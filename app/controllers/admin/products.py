@@ -39,8 +39,7 @@ def _product_data_from_form(form: dict) -> dict:
         "is_featured": "is_featured" in form,
         "is_active": "is_active" in form,
         "meta_title": form.get("meta_title", "").strip() or None,
-        "meta_description": form.get("meta_description", "").strip() or None,
-        "brand": form.get("brand", "GUA Maison").strip(),
+        "meta_description": form.get("meta_description", "").strip() or None, 
         "gender": form.get("gender", "").strip() or None,
         "tags": tags,
     }
@@ -199,7 +198,6 @@ def add_product():
 
     return render_template("admin/product_form.html", product=None, cats=cats)
 
-
 @admin_bp.route("/products/edit/<pid>", methods=["GET", "POST"])
 @admin_required
 @handle_errors("Lỗi cập nhật.", "admin.products")
@@ -212,15 +210,21 @@ def edit_product(pid):
 
     if request.method == "POST":
         form = _form()
-        if ProductModel.update(pid, _product_data_from_form(form)):
+        
+         
+        is_updated = ProductModel.update(pid, _product_data_from_form(form))
+        
+        if is_updated:
             _handle_images_on_save(pid, form)
             _save_product_variants(_db(), pid)
-            flash("Cập nhật thành công!", "success")
+            flash("Lưu sản phẩm thành công!", "success")
             return redirect(url_for("admin.products"))
+        else:
+            # Nếu thất bại, giữ người dùng lại form và báo lỗi cho họ biết
+            flash("Cập nhật thất bại. Vui lòng kiểm tra lỗi cấu trúc cột hoặc quyền RLS trong Terminal!", "danger")
 
     product["images"] = ProductModel.get_images(pid)
     return render_template("admin/product_form.html", product=product, cats=cats)
-
 
 @admin_bp.route("/products/delete/<pid>", methods=["POST"])
 @admin_required
@@ -231,7 +235,25 @@ def delete_product(pid):
     else:
         flash("Lỗi khi xóa.", "danger")
     return redirect(url_for("admin.products"))
-
+@admin_bp.route("/products/upload-async", methods=["POST"])
+@admin_required
+def upload_product_image_async():
+    """API hỗ trợ tải ảnh lên trực tiếp từ giao diện bằng AJAX"""
+    if "file" not in request.files:
+        return {"error": "Không tìm thấy file ảnh dữ liệu."}, 400
+        
+    file = request.files["file"]
+    if file and file.filename and _allowed_file(file.filename):
+        try:
+            url = ProductModel.upload_to_storage(
+                file.read(), file.filename, file.content_type or "image/jpeg"
+            )
+            if url:
+                return {"url": url}, 200
+        except Exception as e:
+            return {"error": str(e)}, 500
+            
+    return {"error": "Định dạng file ảnh không được hệ thống hỗ trợ."}, 400
 # ── Categories Routes ──────────────────
 
 

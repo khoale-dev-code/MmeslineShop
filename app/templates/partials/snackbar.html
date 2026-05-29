@@ -1,0 +1,207 @@
+{#
+  partials/snackbar.html
+  ══════════════════════════════════════════════════════
+  Snackbar toàn cục — thay thế flash.html cũ.
+  Đặt trong base.html: {% include 'partials/snackbar.html' ignore missing %}
+
+  Hỗ trợ category: success | danger | error | warning | info
+  - Tự đóng sau 4.5 giây
+  - Có progress bar đếm ngược
+  - Có thể gọi JS: GUA.snackbar('Nội dung', 'success') từ bất kỳ đâu
+  ══════════════════════════════════════════════════════
+#}
+
+{# ── Container snackbar (luôn render, kể cả không có flash) ── #}
+<div id="gua-snackbar-stack"
+     aria-live="polite"
+     aria-atomic="false"
+     class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999]
+            flex flex-col-reverse items-center gap-2.5
+            w-full max-w-[420px] px-4 pointer-events-none">
+</div>
+
+{# ── CSS ── #}
+<style>
+  .gua-snack {
+    pointer-events: auto;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    width: 100%;
+    padding: 13px 14px 13px 16px;
+    border-radius: 10px;
+    box-shadow: 0 4px 24px rgba(0,0,0,.13), 0 1px 4px rgba(0,0,0,.08);
+    background: #fff;
+    border: 1px solid #e8e5e0;
+    position: relative;
+    overflow: hidden;
+    animation: snackSlideUp .32s cubic-bezier(.16,1,.3,1) both;
+  }
+  .gua-snack.is-hiding {
+    animation: snackSlideDown .24s cubic-bezier(.4,0,1,1) both;
+  }
+
+  /* màu theo category */
+  .gua-snack[data-type="success"] { border-color: #bbf7d0; background: #f0fdf4; }
+  .gua-snack[data-type="danger"],
+  .gua-snack[data-type="error"]   { border-color: #fecaca; background: #fef2f2; }
+  .gua-snack[data-type="warning"] { border-color: #fde68a; background: #fffbeb; }
+  .gua-snack[data-type="info"]    { border-color: #bfdbfe; background: #eff6ff; }
+
+  /* dot icon */
+  .gua-snack-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    flex-shrink: 0; margin-top: 5px;
+  }
+  .gua-snack[data-type="success"]  .gua-snack-dot { background: #22c55e; }
+  .gua-snack[data-type="danger"]   .gua-snack-dot { background: #ef4444; animation: pulse 1.2s infinite; }
+  .gua-snack[data-type="error"]    .gua-snack-dot { background: #ef4444; animation: pulse 1.2s infinite; }
+  .gua-snack[data-type="warning"]  .gua-snack-dot { background: #f59e0b; }
+  .gua-snack[data-type="info"]     .gua-snack-dot { background: #3b82f6; }
+  .gua-snack[data-type="message"]  .gua-snack-dot { background: #737065; }
+
+  /* label */
+  .gua-snack-label {
+    font-size: 10px; font-weight: 800;
+    letter-spacing: .14em; text-transform: uppercase; margin-bottom: 2px;
+  }
+  .gua-snack[data-type="success"]  .gua-snack-label { color: #15803d; }
+  .gua-snack[data-type="danger"]   .gua-snack-label,
+  .gua-snack[data-type="error"]    .gua-snack-label { color: #dc2626; }
+  .gua-snack[data-type="warning"]  .gua-snack-label { color: #b45309; }
+  .gua-snack[data-type="info"]     .gua-snack-label { color: #2563eb; }
+  .gua-snack[data-type="message"]  .gua-snack-label { color: #737065; }
+
+  /* message text */
+  .gua-snack-msg { font-size: 13px; font-weight: 500; color: #1c1a18; line-height: 1.45; }
+
+  /* close button */
+  .gua-snack-close {
+    flex-shrink: 0; margin-left: auto; margin-top: -2px;
+    color: #b5b0a8; background: none; border: none; cursor: pointer;
+    padding: 4px; border-radius: 4px;
+    transition: color .15s, background .15s;
+    line-height: 0;
+  }
+  .gua-snack-close:hover { color: #1c1a18; background: rgba(0,0,0,.05); }
+
+  /* progress bar */
+  .gua-snack-progress {
+    position: absolute; bottom: 0; left: 0;
+    height: 2.5px; width: 100%;
+    transform-origin: left;
+    border-radius: 0 0 10px 10px;
+    animation: snackProgress var(--snack-dur, 4500ms) linear both;
+  }
+  .gua-snack[data-type="success"]  .gua-snack-progress { background: #22c55e; }
+  .gua-snack[data-type="danger"]   .gua-snack-progress,
+  .gua-snack[data-type="error"]    .gua-snack-progress { background: #ef4444; }
+  .gua-snack[data-type="warning"]  .gua-snack-progress { background: #f59e0b; }
+  .gua-snack[data-type="info"]     .gua-snack-progress { background: #3b82f6; }
+  .gua-snack[data-type="message"]  .gua-snack-progress { background: #a8a29e; }
+
+  @keyframes snackSlideUp {
+    from { opacity: 0; transform: translateY(20px) scale(.96); }
+    to   { opacity: 1; transform: translateY(0)    scale(1);   }
+  }
+  @keyframes snackSlideDown {
+    from { opacity: 1; transform: translateY(0)    scale(1);   }
+    to   { opacity: 0; transform: translateY(16px) scale(.96); }
+  }
+  @keyframes snackProgress {
+    from { transform: scaleX(1); }
+    to   { transform: scaleX(0); }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; } 50% { opacity: .4; }
+  }
+</style>
+
+{# ── Script ── #}
+<script>
+(function () {
+  const LABELS = {
+    success: 'Thành công',
+    danger:  'Lỗi',
+    error:   'Lỗi',
+    warning: 'Cảnh báo',
+    info:    'Thông tin',
+    message: 'Thông báo',
+  };
+
+  const DURATION = 4500; // ms tự đóng
+
+  function createSnack(message, type, duration) {
+    type = type || 'message';
+    duration = duration || DURATION;
+
+    const stack  = document.getElementById('gua-snackbar-stack');
+    const label  = LABELS[type] || 'Thông báo';
+    const el     = document.createElement('div');
+
+    el.className  = 'gua-snack';
+    el.dataset.type = type;
+    el.style.setProperty('--snack-dur', duration + 'ms');
+    el.setAttribute('role', 'alert');
+
+    el.innerHTML = `
+      <span class="gua-snack-dot" aria-hidden="true"></span>
+      <div class="flex-1 min-w-0">
+        <p class="gua-snack-label">${label}</p>
+        <p class="gua-snack-msg">${message}</p>
+      </div>
+      <button class="gua-snack-close" aria-label="Đóng thông báo" onclick="GUA._dismissSnack(this.closest('.gua-snack'))">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+      <div class="gua-snack-progress" aria-hidden="true"></div>
+    `;
+
+    stack.prepend(el);
+
+    // Tự đóng
+    const timer = setTimeout(() => GUA._dismissSnack(el), duration);
+    el._snackTimer = timer;
+
+    return el;
+  }
+
+  function dismissSnack(el) {
+    if (!el || el.classList.contains('is-hiding')) return;
+    clearTimeout(el._snackTimer);
+    el.classList.add('is-hiding');
+    setTimeout(() => el.remove(), 240);
+  }
+
+  // Public API
+  window.GUA = window.GUA || {};
+  window.GUA.snackbar     = createSnack;
+  window.GUA._dismissSnack = dismissSnack;
+
+  // Render flash messages từ Flask khi DOM ready
+  document.addEventListener('DOMContentLoaded', function () {
+    const flashData = document.getElementById('__flask_flash_data__');
+    if (!flashData) return;
+    try {
+      const messages = JSON.parse(flashData.textContent);
+      messages.forEach(function (item, i) {
+        setTimeout(function () {
+          createSnack(item.message, item.category);
+        }, i * 120);
+      });
+    } catch (e) {
+      console.warn('[GUA Snackbar] Lỗi parse flash data:', e);
+    }
+  });
+})();
+</script>
+
+{# ── Inject flash messages từ Flask dưới dạng JSON ── #}
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<script id="__flask_flash_data__" type="application/json">
+  {{ messages | tojson }}
+</script>
+{% endif %}
+{% endwith %}

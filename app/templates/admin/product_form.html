@@ -3,6 +3,8 @@
 
 {% block extra_head %}
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+
 <style>
   /* ── Ẩn thanh cuộn nhưng vẫn cuộn được ── */
   .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -21,6 +23,12 @@
     border-radius: 10px; cursor: pointer; transition: background 0.2s;
   }
   .suggest-item:hover { background: #f5f5f4; }
+  
+  /* Style cho item khi đang được kéo */
+  .sortable-ghost {
+    opacity: 0.3;
+    border: 2px dashed #000 !important;
+  }
   
   /* ── Cấu hình khi In mã vạch ── */
   @media print {
@@ -197,10 +205,10 @@
         <div class="bg-white border border-stone-100 rounded-[2rem] p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
           <h2 class="text-xs font-bold uppercase tracking-widest text-stone-400 mb-4 flex items-center justify-between">
             Hình ảnh
-            <span class="text-[9px] bg-stone-100 text-stone-500 px-2 py-0.5 rounded-full">Kéo thả để sắp xếp</span>
+            <span class="text-[9px] bg-stone-100 text-stone-500 px-2 py-0.5 rounded-full font-bold">Kéo thả để đổi vị trí hiển thị</span>
           </h2>
           
-          <input type="file" name="image_files" id="fileInput" accept="image/*" multiple class="sr-only" onchange="handleFiles(this)">
+          <input type="file" id="fileInput" accept="image/*" multiple class="sr-only" onchange="handleFiles(this)">
           <div onclick="document.getElementById('fileInput').click()" 
                class="border-2 border-dashed border-stone-200 rounded-2xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer bg-stone-50 hover:bg-stone-100 hover:border-stone-400 transition-all group">
             <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
@@ -211,15 +219,14 @@
           </div>
           
           <div class="mt-4 flex gap-2">
-            <input type="text" id="urlInput" placeholder="Hoặc dán URL ảnh..." onkeydown="if(event.key==='Enter'){event.preventDefault();addUrl()}"
-                   class="flex-1 bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-black">
+            <input type="text" id="urlInput" placeholder="Hoặc dán URL ảnh..." onkeydown="if(event.key==='Enter'){event.preventDefault();addUrl()}">
             <button type="button" onclick="addUrl()" class="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-xl transition-colors">Thêm</button>
           </div>
 
           <div id="imgGrid" class="grid grid-cols-3 gap-3 mt-4">
             {% if product and product.product_images %}
               {% for img in product.product_images %}
-              <div class="relative aspect-[3/4] rounded-xl overflow-hidden border border-stone-100 group shadow-sm bg-stone-50 img-card">
+              <div class="relative aspect-[3/4] rounded-xl overflow-hidden border border-stone-100 group shadow-sm bg-stone-50 img-card cursor-grab active:cursor-grabbing">
                 <img src="{{ img.url }}" class="w-full h-full object-cover">
                 <input type="hidden" name="image_urls" value="{{ img.url }}">
                 <button type="button" onclick="removeImg(this)" class="absolute top-1 right-1 w-6 h-6 bg-white/90 rounded-full flex items-center justify-center text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-600 hover:text-white">
@@ -439,39 +446,116 @@
       document.querySelectorAll('.suggest-box').forEach(b=>b.style.display='none');
   });
 
-  /* ══ Image Logic ══════════════════════════════════════════ */
-  window.handleFiles = inp => Array.from(inp.files).forEach(f => {
-    const r=new FileReader(); r.onload=e=>addImgCard(e.target.result,true); r.readAsDataURL(f); setSync();
-  });
-  window.addUrl = () => {
-    const i=document.getElementById('urlInput'), u=i.value.trim();
-    if(!u||!u.startsWith('http')) return;
-    addImgCard(u,false); i.value=''; setSync();
-  };
-  function addImgCard(url,isFile){
-    const g=document.getElementById('imgGrid'), first=!g.children.length;
-    const d=document.createElement('div'); d.className='relative aspect-[3/4] rounded-xl overflow-hidden border border-stone-100 group shadow-sm bg-stone-50 img-card';
-    d.innerHTML=`<img src="${url}" class="w-full h-full object-cover"><input type="hidden" name="image_urls" value="${isFile?'':url}"><button type="button" onclick="removeImg(this)" class="absolute top-1 right-1 w-6 h-6 bg-white/90 rounded-full flex items-center justify-center text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-600 hover:text-white"><i class="fa-solid fa-xmark text-[10px]"></i></button>${first?'<div class="absolute bottom-0 inset-x-0 bg-black/70 text-white text-[8px] font-bold text-center py-1 uppercase tracking-widest img-cover">Ảnh bìa</div>':''}`;
-    g.appendChild(d);
-  }
-  window.removeImg = btn => {
-    const g=document.getElementById('imgGrid');
-    btn.closest('.img-card').remove();
-    const f=g.querySelector('.img-card');
-    if(f&&!f.querySelector('.img-cover')){
-        const b=document.createElement('div');b.className='absolute bottom-0 inset-x-0 bg-black/70 text-white text-[8px] font-bold text-center py-1 uppercase tracking-widest img-cover';b.textContent='Ảnh bìa';f.appendChild(b);
+  /* ══ 🔴 BẢN CẬP NHẬT: Image Logic (Kéo thả & Tải lên bất đồng bộ) ════ */
+  
+  // Hàm gán nhãn "Ảnh bìa" động cho thẻ đầu tiên
+  function updateCoverBadge() {
+    document.querySelectorAll('#imgGrid .img-cover').forEach(el => el.remove());
+    const firstCard = document.querySelector('#imgGrid .img-card');
+    if (firstCard) {
+      const b = document.createElement('div');
+      b.className = 'absolute bottom-0 inset-x-0 bg-black/70 text-white text-[8px] font-bold text-center py-1 uppercase tracking-widest img-cover pointer-events-none';
+      b.textContent = 'Ảnh bìa';
+      firstCard.appendChild(b);
     }
+  }
+
+  // Khởi tạo kéo thả SortableJS cho khung ảnh
+  new Sortable(document.getElementById('imgGrid'), {
+    animation: 200,
+    ghostClass: 'sortable-ghost',
+    onEnd: function() {
+      updateCoverBadge();
+      setSync();
+    }
+  });
+
+  // Tải ảnh trực tiếp lên Supabase ngay khi chọn file từ thiết bị
+  window.handleFiles = inp => {
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || document.querySelector('input[name="csrf_token"]')?.value;
+    
+    Array.from(inp.files).forEach(f => {
+      // 1. Tạo block placeholder "Đang tải..." tạm thời vào lưới
+      const g = document.getElementById('imgGrid');
+      const d = document.createElement('div');
+      d.className = 'relative aspect-[3/4] rounded-xl overflow-hidden border border-stone-200 shadow-sm bg-stone-50 flex flex-col items-center justify-center gap-1.5 loading-placeholder animate-pulse';
+      d.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin text-stone-400 text-lg"></i><span class="text-[10px] text-stone-400 font-bold">Đang tải...</span>`;
+      g.appendChild(d);
+      updateCoverBadge();
+
+      // 2. Đẩy file bất đồng bộ lên endpoint mới thiết lập
+      const fd = new FormData();
+      fd.append('file', f);
+
+      fetch("{{ url_for('admin.upload_product_image_async') }}", {
+        method: "POST",
+        headers: { "X-CSRFToken": token },
+        body: fd
+      })
+      .then(res => {
+        if (!res.ok) throw new Error();
+        return res.json();
+      })
+      .then(data => {
+        if (data.url) {
+          // 3. Hoàn thành: Thay đổi giao diện placeholder thành thẻ ảnh thật
+          d.className = 'relative aspect-[3/4] rounded-xl overflow-hidden border border-stone-100 group shadow-sm bg-stone-50 img-card cursor-grab active:cursor-grabbing';
+          d.innerHTML = `
+            <img src="${data.url}" class="w-full h-full object-cover">
+            <input type="hidden" name="image_urls" value="${data.url}">
+            <button type="button" onclick="removeImg(this)" class="absolute top-1 right-1 w-6 h-6 bg-white/90 rounded-full flex items-center justify-center text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-600 hover:text-white">
+              <i class="fa-solid fa-xmark text-[10px]"></i>
+            </button>
+          `;
+          updateCoverBadge();
+          setSync();
+        } else {
+          d.remove();
+        }
+      })
+      .catch(() => {
+        d.remove();
+        alert(`Gặp lỗi khi tải lên tệp tin: ${f.name}`);
+      });
+    });
+    inp.value = ''; // Reset input để chọn lại file cũ được nếu muốn
+  };
+
+  window.addUrl = () => {
+    const i = document.getElementById('urlInput'), u = i.value.trim();
+    if (!u || !u.startsWith('http')) return;
+    
+    const g = document.getElementById('imgGrid');
+    const d = document.createElement('div');
+    d.className = 'relative aspect-[3/4] rounded-xl overflow-hidden border border-stone-100 group shadow-sm bg-stone-50 img-card cursor-grab active:cursor-grabbing';
+    d.innerHTML = `
+      <img src="${u}" class="w-full h-full object-cover">
+      <input type="hidden" name="image_urls" value="${u}">
+      <button type="button" onclick="removeImg(this)" class="absolute top-1 right-1 w-6 h-6 bg-white/90 rounded-full flex items-center justify-center text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-600 hover:text-white">
+        <i class="fa-solid fa-xmark text-[10px]"></i>
+      </button>
+    `;
+    g.appendChild(d);
+    i.value = '';
+    updateCoverBadge();
     setSync();
   };
-  function setSync(){document.getElementById('imgSync').value='1'}
+
+  window.removeImg = btn => {
+    btn.closest('.img-card').remove();
+    updateCoverBadge();
+    setSync();
+  };
+
+  function setSync() { document.getElementById('imgSync').value = '1'; }
 
   /* ══ Form Validation ══════════════════════════════════════ */
   document.getElementById('productForm').onsubmit = function(e) {
-    const bp=document.getElementById('base_price'), err=document.getElementById('price-error');
-    if(!bp.value||+bp.value<=0){
+    const bp = document.getElementById('base_price'), err = document.getElementById('price-error');
+    if (!bp.value || +bp.value <= 0) {
         e.preventDefault(); err.classList.remove('hidden'); bp.classList.add('border-red-500', 'bg-red-50'); bp.focus(); return false;
     }
-    if(!groups.some(g=>g.sz.length)){
+    if (!groups.some(g => g.sz.length)) {
         e.preventDefault(); alert('⚠ Vui lòng chọn ít nhất 1 kích thước cho sản phẩm!'); return false;
     }
     const btn = document.getElementById('btn-save-main');

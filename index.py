@@ -8,31 +8,36 @@ except ImportError:
     pass
 
 from app import create_app
-# --- THÊM DÒNG NÀY ĐỂ GỌI MODEL SETTINGS ---
 from app.models.setting_model import SettingModel 
 
 # 2. KHỞI TẠO ỨNG DỤNG FLASK
 app = create_app()
 
+# 🔴 BẢN CẬP NHẬT 1: Nâng hạn mức trần nhận dữ liệu của tệp tin đầu vào trong Flask lên 50MB
+# Sửa tận gốc lỗi 413 Request Entity Too Large khi chạy Local/Gunicorn mà không có Nginx
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
+
 
 # ═══════════════════════════════════════════════════════════════
-#  BƯỚC 5: GLOBAL CONTEXT PROCESSOR (BẮT BUỘC)
-#  Giúp bạn gọi {{ global_settings.hotline }} ở bất cứ đâu (Header, Footer...)
+#  BƯỚC 5: GLOBAL CONTEXT PROCESSOR (BẢN CẬP NHẬT ĐỒNG BỘ REAL-TIME)
+#  Đã sửa lỗi hiển thị hệ thống Banner Storefront ngoài trang chủ công khai
 # ═══════════════════════════════════════════════════════════════
 @app.context_processor
 def inject_global_settings():
-    """Tự động lấy cấu hình cửa hàng từ DB và đưa vào mọi template HTML"""
+    """Tự động kéo toàn bộ cấu hình mới nhất từ Supabase ra mọi trang Web công khai"""
     try:
-        store_settings = SettingModel.get_settings("general")
-        return dict(global_settings=store_settings)
+        all_settings = SettingModel.get_settings()
+        return dict(
+            system_settings=all_settings, # Tên biến này bắt buộc phải trùng khớp với index.html
+            global_settings=all_settings.get("general", {})
+        )
     except Exception:
-        # Trả về giá trị mặc định nếu DB lỗi để web không bị crash
-        return dict(global_settings={
-            "store_name": "GUA Maison",
-            "hotline": "N/A",
-            "email": "N/A"
-        })
-
+        defaults = SettingModel.DEFAULT_SETTINGS
+        return dict(
+            system_settings=defaults,
+            global_settings=defaults["general"]
+        )
+        
 
 # 3. MÁY CHỦ PHÁT TRIỂN (Local Development)
 if __name__ == "__main__":

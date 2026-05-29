@@ -1,0 +1,139 @@
+{#
+  admin/settings/_tab_notifications.html
+  ══════════════════════════════════════════════════════
+  Tab quản lý thông báo (Tách ra từ _tab_storefront.html).
+  Bao gồm: Topbar text, Topbar active toggle + link nhanh
+  đến trang quản trị thông báo đầy đủ.
+  ══════════════════════════════════════════════════════
+#}
+
+{# ── HEADER ── #}
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-stone-200/60">
+  <div>
+    <h2 class="text-xl font-bold tracking-tight text-stone-900 font-serif">Thông báo</h2>
+    <p class="text-xs text-stone-500 mt-1">Cấu hình dải chạy chữ topbar và quản lý thông báo hệ thống gửi đến khách hàng.</p>
+  </div>
+  <button type="button"
+          class="inline-flex items-center gap-2 px-5 py-2.5 bg-stone-950 text-white text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-stone-800 transition-all shadow-sm active:scale-95"
+          onclick="Settings.save('storefront')">
+    <i class="fa-solid fa-floppy-disk text-xs"></i>
+    Lưu cấu hình
+  </button>
+</div>
+
+<form id="form-notifications-tab" class="space-y-6" novalidate>
+
+  {# ══ CARD 1: TOPBAR ══ #}
+  <div class="bg-white border border-stone-100 rounded-3xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all hover:shadow-md">
+    <div class="p-6">
+      <div class="flex items-start gap-4">
+        <div class="w-10 h-10 bg-stone-50 text-stone-700 rounded-xl flex items-center justify-center shrink-0 border border-stone-200/60 shadow-sm">
+          <i class="fa-solid fa-rectangle-ad text-sm"></i>
+        </div>
+        <div class="flex-1 space-y-5">
+          <div>
+            <h3 class="text-sm font-bold text-stone-950 uppercase tracking-wider">Thanh Topbar thông điệp</h3>
+            <p class="text-xs text-stone-400 mt-0.5">Dải chạy chữ thông điệp xuất hiện trên đầu trang chủ cửa hàng.</p>
+          </div>
+
+          {# Toggle bật/tắt #}
+          <div class="flex items-center justify-between p-4 bg-stone-50 rounded-2xl border border-stone-100">
+            <div>
+              <p class="text-sm font-semibold text-stone-900">Hiển thị Topbar</p>
+              <p class="text-xs text-stone-400 mt-0.5">Bật để hiện dải thông điệp trên trang chủ</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="topbar_active" name="topbar_active" value="true"
+                     class="sr-only peer"
+                     {% if storefront.topbar_active == 'true' %}checked{% endif %}>
+              <div class="w-11 h-6 bg-stone-200 peer-focus:outline-none rounded-full peer
+                          peer-checked:after:translate-x-full peer-checked:after:border-white
+                          after:content-[''] after:absolute after:top-[2px] after:left-[2px]
+                          after:bg-white after:border-stone-300 after:border after:rounded-full
+                          after:h-5 after:w-5 after:transition-all
+                          peer-checked:bg-stone-950"></div>
+            </label>
+          </div>
+
+          {# Nội dung topbar #}
+          <div class="space-y-2">
+            <label for="topbar_text" class="block text-[10px] font-bold uppercase tracking-widest text-stone-500">
+              Nội dung hiển thị
+            </label>
+            <input type="text" id="topbar_text" name="topbar_text"
+                   class="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm text-stone-900 focus:bg-white focus:border-stone-950 transition-all outline-none"
+                   placeholder="VD: Miễn phí vận chuyển cho đơn hàng trên 500.000đ 🎉"
+                   value="{{ storefront.topbar_text | default('') }}">
+            <p class="text-xs text-stone-400">Hỗ trợ emoji. Nên giữ dưới 80 ký tự để hiển thị tốt trên mobile.</p>
+          </div>
+
+          {# Link kèm theo #}
+          <div class="space-y-2">
+            <label for="topbar_link" class="block text-[10px] font-bold uppercase tracking-widest text-stone-500">
+              Liên kết đính kèm (tuỳ chọn)
+            </label>
+            <input type="url" id="topbar_link" name="topbar_link"
+                   class="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-mono text-stone-900 focus:bg-white focus:border-stone-950 transition-all outline-none"
+                   placeholder="https://example.com/sale"
+                   value="{{ storefront.topbar_link | default('') }}">
+          </div>
+
+          {# Preview #}
+          <div id="topbarLivePreview"
+               class="rounded-xl overflow-hidden border border-stone-200 {% if storefront.topbar_active != 'true' %}hidden{% endif %}">
+            <div class="bg-stone-950 text-white text-center text-xs font-semibold tracking-widest uppercase py-2.5 px-4" id="topbarPreviewText">
+              {{ storefront.topbar_text | default('— Nội dung Topbar sẽ hiển thị tại đây —') }}
+            </div>
+            <p class="text-[10px] text-stone-400 text-center py-1.5 bg-stone-50">Xem trước Topbar</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ══ CARD 2: LINK TỚI TRANG QUẢN TRỊ THÔNG BÁO ══ #}
+  <div class="bg-white border border-stone-100 rounded-3xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] p-6 transition-all hover:shadow-md">
+    <div class="flex items-start gap-4">
+      <div class="w-10 h-10 bg-stone-50 text-stone-700 rounded-xl flex items-center justify-center shrink-0 border border-stone-200/60 shadow-sm">
+        <i class="fa-solid fa-bell text-sm"></i>
+      </div>
+      <div class="flex-1">
+        <h3 class="text-sm font-bold text-stone-950 uppercase tracking-wider">Thông báo đẩy đến khách hàng</h3>
+        <p class="text-xs text-stone-400 mt-1 mb-4 leading-relaxed">
+          Hệ thống thông báo hỗ trợ đa nội dung, lên lịch chạy tự động, gắn link chuyển hướng linh hoạt.
+          Quản lý toàn bộ tại trang chuyên biệt bên dưới.
+        </p>
+        <a href="{{ url_for('admin.notifications_index') }}"
+           class="inline-flex items-center gap-2 px-5 py-2.5 bg-stone-950 text-white text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-stone-800 transition-all shadow-sm">
+          <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
+          Đi tới trang Quản trị Thông báo
+        </a>
+      </div>
+    </div>
+  </div>
+
+</form>
+
+<script>
+/* ── Live preview Topbar ── */
+(function () {
+  const toggle  = document.getElementById('topbar_active');
+  const textInp = document.getElementById('topbar_text');
+  const preview = document.getElementById('topbarLivePreview');
+  const previewText = document.getElementById('topbarPreviewText');
+
+  function refreshPreview() {
+    if (!preview) return;
+    const isOn = toggle && toggle.checked;
+    preview.classList.toggle('hidden', !isOn);
+    if (previewText && textInp) {
+      previewText.textContent = textInp.value.trim() || '— Nội dung Topbar sẽ hiển thị tại đây —';
+    }
+  }
+
+  if (toggle)  toggle.addEventListener('change', refreshPreview);
+  if (textInp) textInp.addEventListener('input',  refreshPreview);
+
+  document.addEventListener('DOMContentLoaded', refreshPreview);
+})();
+</script>

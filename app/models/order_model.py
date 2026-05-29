@@ -2,11 +2,15 @@
 app/models/order_model.py
 Quản lý vòng đời đơn hàng, thống kê tài chính, logistics và hỗ trợ vận hành.
 
-Cập nhật 2026:
+Cập nhật v2.1 (2026):
+  - Fix lỗi PGRST204: Loại bỏ cột 'size' không tồn tại khi insert order_items.
+  - unit_price tính đúng: ưu tiên variant.price_override, fallback về products.price.
+  - variant_label và product_name được snapshot ngay tại thời điểm create_order
+    (không cần update lại sau), giảm 1 lần round-trip DB.
   - Tích hợp snapshot shipping_fee và discount_amount tại thời điểm Checkout.
   - get_stats() nâng cấp: Tính toán Lời/Lỗ phí vận chuyển (Logistics Profit/Loss).
-  - Tích hợp State Machine Guard bảo vệ luồng trạng thái chặt chẽ.
-  - Fix lỗi Schema: Không query/update các cột ảo (refunded_amount, is_return_requested) trên bảng orders.
+  - State Machine Guard bảo vệ luồng trạng thái.
+  - Fix lỗi Schema: Không query/update các cột ảo (refunded_amount, is_return_requested).
 """
 
 import logging
@@ -24,17 +28,35 @@ class OrderModel:
     # ═══════════════════════════════════════════════════════════════
 
     @staticmethod
-    def create_order(user_id: str, items: list, total: float, address: dict,
-                     shipping_fee: float=0, discount_amount: float=0,
-                     payment_method: str='COD', order_notes: str=None) -> dict:
+    def create_order(
+        user_id: str,
+        items: list,
+        total: float,
+        address: dict,
+        shipping_fee: float = 0,
+        discount_amount: float = 0,
+        payment_method: str = "COD",
+        order_notes: str = None,
+    ) -> dict:
         """
-        Khởi tạo đơn hàng với đầy đủ Snapshot về Phí ship và Giảm giá.
+        Khởi tạo đơn hàng với đầy đủ snapshot về phí ship, giảm giá,
+        product_name và variant_label. Không insert cột 'size' (không tồn tại trong DB).
+
+        Cấu trúc mỗi item đầu vào (từ CartModel.get_user_cart):
+            {
+                "product_id": str,
+                "variant_id": str | None,
+                "quantity": int,
+                "products":         {"id", "name", "price", ...},   # joined
+                "product_variants": {"size", "color_name", "price_override", ...}  # joined
+            }
         """
         db = get_supabase()
         try:
+            # ── 1. Tạo bản ghi orders ────────────────────────────────
             order_data = {
                 "user_id": user_id,
-                "total_amount": float(total),  # Tổng đã bao gồm phí ship và trừ giảm giá
+                "total_amount": float(total),
                 "shipping_fee": float(shipping_fee),
                 "discount_amount": float(discount_amount),
                 "shipping_address": address,
@@ -46,21 +68,44 @@ class OrderModel:
 
             r = db.table("orders").insert(order_data).execute()
             if not r.data:
+                logger.error("[OrderModel] insert orders trả về rỗng.")
                 return {}
 
             order = r.data[0]
             order_id = order["id"]
 
+            # ── 2. Build order_items — đúng schema, có snapshot ─────
             order_items = []
             for item in items:
-                prod = item.get("products", {}) if isinstance(item.get("products"), dict) else {}
+                # Dữ liệu join từ CartModel (products và product_variants là dict lồng)
+                product = item.get("products") or {}
+                variant = item.get("product_variants") or {}
+
+                # Giá đúng: ưu tiên price_override của variant
+                price_override = variant.get("price_override")
+                unit_price = float(price_override) if price_override else float(product.get("price", 0))
+
+                # Snapshot tên sản phẩm và nhãn biến thể
+                product_name = product.get("name") or "Sản phẩm"
+                color = (variant.get("color_name") or "").strip()
+                size  = (variant.get("size") or "").strip()
+                if color and size:
+                    variant_label = f"{color} - Size {size}"
+                elif color:
+                    variant_label = color
+                elif size:
+                    variant_label = f"Size {size}"
+                else:
+                    variant_label = None
+
                 order_items.append({
-                    "order_id": order_id,
-                    "product_id": item.get("product_id"),
-                    "variant_id": item.get("variant_id"),  # Lưu liên kết với bảng biến thể (Màu/Size)
-                    "quantity": int(item.get("quantity", 1)),
-                    "unit_price": float(prod.get("price", 0)),
-                    "size": item.get("size"),
+                    "order_id":      order_id,
+                    "product_id":    item.get("product_id"),
+                    "variant_id":    item.get("variant_id") or None,
+                    "quantity":      int(item.get("quantity", 1)),
+                    "unit_price":    unit_price,
+                    "product_name":  product_name,    # snapshot ngay, không cần update sau
+                    "variant_label": variant_label,   # snapshot ngay, không cần update sau
                 })
 
             if order_items:
@@ -69,7 +114,7 @@ class OrderModel:
             return order
 
         except Exception as e:
-            logger.exception(f"Lỗi tạo đơn hàng: {e}")
+            logger.exception("Lỗi tạo đơn hàng: %s", e)
             return {}
 
     # ═══════════════════════════════════════════════════════════════
@@ -94,19 +139,23 @@ class OrderModel:
             "_orders": [],
             "vnpay_recent": [],
             "pending_returns": 0,
-            # KPIs Logistics & Tài chính Vận chuyển
             "delivery_success": 0,
             "return_rate": 0,
             "avg_time": 0,
             "shipping_collected": 0,
             "actual_shipping_cost": 0,
-            "logistics_profit_loss": 0
+            "logistics_profit_loss": 0,
         }
 
         try:
-            # Lấy trước dữ liệu hoàn tiền từ bảng return_requests để trừ vào doanh thu
+            # Bản đồ hoàn tiền theo order_id
             try:
-                refunds_res = db.table("return_requests").select("order_id, refund_amount").eq("status", "refunded").execute()
+                refunds_res = (
+                    db.table("return_requests")
+                    .select("order_id, refund_amount")
+                    .eq("status", "refunded")
+                    .execute()
+                )
                 refunds_map = defaultdict(float)
                 for r_req in (refunds_res.data or []):
                     if r_req.get("refund_amount"):
@@ -114,10 +163,13 @@ class OrderModel:
             except Exception:
                 refunds_map = defaultdict(float)
 
-            # 1. THỐNG KÊ DOANH THU & ĐƠN HÀNG (Đã bỏ cột refunded_amount)
+            # 1. THỐNG KÊ DOANH THU & ĐƠN HÀNG
             r = (
                 db.table("orders")
-                .select("id, total_amount, shipping_fee, status, payment_method, payment_status, created_at, users(full_name, email)")
+                .select(
+                    "id, total_amount, shipping_fee, status, payment_method, payment_status, "
+                    "created_at, users(full_name, email)"
+                )
                 .order("created_at", desc=True)
                 .limit(500)
                 .execute()
@@ -129,91 +181,95 @@ class OrderModel:
 
             status_counts = Counter()
             monthly_revenue = defaultdict(float)
-            valid_orders = []  
+            valid_orders = []
             vnpay_paid = []
             pending_count = 0
 
             for o in orders:
-                status = o.get("status", "pending")
-                amount = float(o.get("total_amount", 0))
-                # Map tổng tiền hoàn tương ứng với đơn hàng
-                refunded = refunds_map.get(o["id"], 0.0) 
-                
+                status         = o.get("status", "pending")
+                amount         = float(o.get("total_amount", 0))
+                refunded       = refunds_map.get(o["id"], 0.0)
                 payment_method = o.get("payment_method", "").upper()
                 payment_status = o.get("payment_status", "pending")
 
                 status_counts[status] += 1
 
-                is_delivered = status in ["delivered", "completed"]
-                is_paid = (payment_status == "paid")
+                is_delivered = status in ("delivered", "completed")
+                is_paid      = payment_status == "paid"
 
                 if is_delivered or is_paid:
-                    net_revenue = amount - refunded
-                    stats["total_revenue"] += net_revenue
+                    net_rev = amount - refunded
+                    stats["total_revenue"] += net_rev
                     valid_orders.append(o)
 
                     if payment_method == "VNPAY":
                         vnpay_paid.append(o)
 
                     if o.get("created_at"):
-                        month = o["created_at"][:7]  # Format YYYY-MM
-                        monthly_revenue[month] += net_revenue
+                        month = o["created_at"][:7]  # YYYY-MM
+                        monthly_revenue[month] += net_rev
 
-                if status == "pending" and (payment_method == "COD" or payment_status == "paid"):
+                if status == "pending" and (payment_method == "COD" or is_paid):
                     pending_count += 1
 
-            stats["pending"] = pending_count
-            stats["vnpay_orders"] = len(vnpay_paid)
-            
+            stats["pending"]       = pending_count
+            stats["vnpay_orders"]  = len(vnpay_paid)
             if valid_orders:
                 stats["vnpay_ratio"] = round((len(vnpay_paid) / len(valid_orders)) * 100, 1)
 
-            stats["vnpay_recent"] = sorted(vnpay_paid, key=lambda x: x.get("created_at", ""), reverse=True)[:5]
-            stats["status_chart"] = [{"status": k, "count": v} for k, v in status_counts.items()]
-            stats["monthly"] = [{"month": k, "revenue": round(v)} for k, v in sorted(monthly_revenue.items())[-6:]]
+            stats["vnpay_recent"]  = sorted(vnpay_paid, key=lambda x: x.get("created_at", ""), reverse=True)[:5]
+            stats["status_chart"]  = [{"status": k, "count": v} for k, v in status_counts.items()]
+            stats["monthly"]       = [
+                {"month": k, "revenue": round(v)}
+                for k, v in sorted(monthly_revenue.items())[-6:]
+            ]
 
-            # 2. THỐNG KÊ ĐỔI TRẢ
+            # 2. ĐỔI TRẢ
             try:
                 rr = db.table("return_requests").select("id", count="exact").eq("status", "pending").execute()
                 stats["pending_returns"] = rr.count or 0
             except Exception:
                 pass
 
-            # 3. THỐNG KÊ VẬN CHUYỂN (LOGISTICS & TÀI CHÍNH)
-            shipments_res = db.table("shipments").select("status, created_at, shipped_at, delivered_at, shipping_fee, actual_shipping_fee").execute()
+            # 3. LOGISTICS & TÀI CHÍNH VẬN CHUYỂN
+            shipments_res = (
+                db.table("shipments")
+                .select("status, created_at, shipped_at, delivered_at, shipping_fee, actual_shipping_fee")
+                .execute()
+            )
             shipments = shipments_res.data or []
-            
-            total_shipped = len(shipments)
+
+            total_shipped   = len(shipments)
             delivered_count = sum(1 for s in shipments if s["status"] == "delivered")
-            returned_count = sum(1 for s in shipments if s["status"] in ("returned", "failed", "cancelled"))
-            
+            returned_count  = sum(1 for s in shipments if s["status"] in ("returned", "failed", "cancelled"))
+
             for s in shipments:
-                if s["status"] not in ["cancelled"]:
-                    stats["shipping_collected"] += float(s.get("shipping_fee") or 0)
+                if s["status"] != "cancelled":
+                    stats["shipping_collected"]   += float(s.get("shipping_fee") or 0)
                     stats["actual_shipping_cost"] += float(s.get("actual_shipping_fee") or 0)
-            
+
             stats["logistics_profit_loss"] = stats["shipping_collected"] - stats["actual_shipping_cost"]
-            stats["net_revenue"] = stats["total_revenue"] + stats["logistics_profit_loss"]
+            stats["net_revenue"]           = stats["total_revenue"] + stats["logistics_profit_loss"]
 
             stats["delivery_success"] = round((delivered_count / total_shipped * 100), 1) if total_shipped > 0 else 0
-            stats["return_rate"] = round((returned_count / total_shipped * 100), 1) if total_shipped > 0 else 0
-            
-            total_days = 0
+            stats["return_rate"]      = round((returned_count  / total_shipped * 100), 1) if total_shipped > 0 else 0
+
+            total_days       = 0
             valid_deliveries = 0
             for s in shipments:
                 if s["status"] == "delivered" and s.get("shipped_at") and s.get("delivered_at"):
                     try:
-                        start = datetime.fromisoformat(s["shipped_at"].replace('Z', '+00:00'))
-                        end = datetime.fromisoformat(s["delivered_at"].replace('Z', '+00:00'))
+                        start = datetime.fromisoformat(s["shipped_at"].replace("Z", "+00:00"))
+                        end   = datetime.fromisoformat(s["delivered_at"].replace("Z", "+00:00"))
                         total_days += (end - start).total_seconds() / 86400.0
                         valid_deliveries += 1
-                    except Exception: 
+                    except Exception:
                         pass
-                    
+
             stats["avg_time"] = round((total_days / valid_deliveries), 1) if valid_deliveries > 0 else 0
 
         except Exception as e:
-            logger.exception(f"Lỗi lấy thống kê Dashboard: {e}")
+            logger.exception("Lỗi lấy thống kê Dashboard: %s", e)
 
         return stats
 
@@ -227,7 +283,10 @@ class OrderModel:
         try:
             r = (
                 db.table("orders")
-                .select("*, users(full_name, email, phone), order_items(*, products(id, name, thumbnail_url, slug), product_variants(*))")
+                .select(
+                    "*, users(full_name, email, phone), "
+                    "order_items(*, products(id, name, thumbnail_url, slug), product_variants(*))"
+                )
                 .eq("id", order_id)
                 .single()
                 .execute()
@@ -251,17 +310,20 @@ class OrderModel:
 
             return order
         except Exception as e:
-            logger.error(f"Lỗi get_by_id cho đơn {order_id}: {e}")
+            logger.error("Lỗi get_by_id cho đơn %s: %s", order_id, e)
             return None
 
     @staticmethod
-    def get_all(page: int=1, per_page: int=20, status: str=None, keyword: str=None):
+    def get_all(page: int = 1, per_page: int = 20, status: str = None, keyword: str = None):
         db = get_supabase()
         offset = (page - 1) * per_page
         try:
             query = (
                 db.table("orders")
-                .select("*, users(email, full_name, phone), order_items(*, products(id, name, thumbnail_url))", count="exact")
+                .select(
+                    "*, users(email, full_name, phone), order_items(*, products(id, name, thumbnail_url))",
+                    count="exact",
+                )
                 .order("created_at", desc=True)
             )
 
@@ -269,22 +331,18 @@ class OrderModel:
                 query = query.eq("status", status)
 
             if keyword:
-                kw = keyword.strip()
-                if kw.startswith('#'):
-                    kw = kw[1:]
+                kw = keyword.strip().lstrip("#")
                 kw_lower = kw.lower()
-                
-                search_condition = (
+                query = query.or_(
                     f"id.ilike.%{kw_lower}%,"
                     f"shipping_address->>phone.ilike.%{kw}%,"
                     f"shipping_address->>full_name.ilike.%{kw}%"
                 )
-                query = query.or_(search_condition)
 
             r = query.range(offset, offset + per_page - 1).execute()
             return {"items": r.data or [], "total": r.count or 0}
         except Exception as e:
-            logger.error(f"Lỗi lấy danh sách đơn hàng: {e}")
+            logger.error("Lỗi lấy danh sách đơn hàng: %s", e)
             return {"items": [], "total": 0}
 
     @staticmethod
@@ -300,34 +358,47 @@ class OrderModel:
             )
             return r.data or []
         except Exception as e:
-            logger.error(f"Lỗi lấy đơn hàng user {user_id}: {e}")
+            logger.error("Lỗi lấy đơn hàng user %s: %s", user_id, e)
             return []
 
     @staticmethod
-    def get_user_orders_paginated(user_id: str, page: int=1, per_page: int=10) -> dict:
+    def get_user_orders_paginated(user_id: str, page: int = 1, per_page: int = 10) -> dict:
         db = get_supabase()
         offset = (page - 1) * per_page
         try:
             r = (
                 db.table("orders")
-                .select("*, order_items(*, products(id, name, thumbnail_url, slug), product_variants(*))", count="exact")
+                .select(
+                    "*, order_items(*, products(id, name, thumbnail_url, slug), product_variants(*))",
+                    count="exact",
+                )
                 .eq("user_id", user_id)
                 .order("created_at", desc=True)
                 .range(offset, offset + per_page - 1)
                 .execute()
             )
-            total = r.count or 0
+            total       = r.count or 0
             total_pages = max(1, -(-total // per_page))
             return {
                 "items": r.data or [],
                 "pagination": {
-                    "page": page, "per_page": per_page, "total": total, "total_pages": total_pages,
-                    "has_prev": page > 1, "has_next": page < total_pages,
+                    "page": page,
+                    "per_page": per_page,
+                    "total": total,
+                    "total_pages": total_pages,
+                    "has_prev": page > 1,
+                    "has_next": page < total_pages,
                 },
             }
         except Exception as e:
-            logger.error(f"Lỗi lấy đơn hàng phân trang user {user_id}: {e}")
-            return {"items": [], "pagination": {"page": 1, "per_page": per_page, "total": 0, "total_pages": 1, "has_prev": False, "has_next": False}}
+            logger.error("Lỗi lấy đơn hàng phân trang user %s: %s", user_id, e)
+            return {
+                "items": [],
+                "pagination": {
+                    "page": 1, "per_page": per_page, "total": 0,
+                    "total_pages": 1, "has_prev": False, "has_next": False,
+                },
+            }
 
     # ═══════════════════════════════════════════════════════════════
     #  CẬP NHẬT TRẠNG THÁI & HOTLINE
@@ -340,11 +411,11 @@ class OrderModel:
             db.table("orders").update({"status": status}).eq("id", order_id).execute()
             return True
         except Exception as e:
-            logger.error(f"Lỗi cập nhật trạng thái đơn {order_id}: {e}")
+            logger.error("Lỗi cập nhật trạng thái đơn %s: %s", order_id, e)
             return False
 
     @staticmethod
-    def update_payment_status(order_id: str, payment_status: str, transaction_id: str=None) -> bool:
+    def update_payment_status(order_id: str, payment_status: str, transaction_id: str = None) -> bool:
         db = get_supabase()
         try:
             payload = {"payment_status": payment_status}
@@ -353,7 +424,7 @@ class OrderModel:
             db.table("orders").update(payload).eq("id", order_id).execute()
             return True
         except Exception as e:
-            logger.error(f"Lỗi cập nhật thanh toán đơn {order_id}: {e}")
+            logger.error("Lỗi cập nhật thanh toán đơn %s: %s", order_id, e)
             return False
 
     @staticmethod
@@ -363,7 +434,7 @@ class OrderModel:
             db.table("orders").update({"shipping_address": new_address}).eq("id", order_id).execute()
             return True
         except Exception as e:
-            logger.error(f"Lỗi sửa địa chỉ Hotline cho đơn {order_id}: {e}")
+            logger.error("Lỗi sửa địa chỉ Hotline cho đơn %s: %s", order_id, e)
             return False
 
     # ═══════════════════════════════════════════════════════════════
@@ -374,7 +445,14 @@ class OrderModel:
     def cancel_order_by_user(order_id: str, user_id: str) -> tuple[bool, str]:
         db = get_supabase()
         try:
-            order_res = db.table("orders").select("created_at, status").eq("id", order_id).eq("user_id", user_id).single().execute()
+            order_res = (
+                db.table("orders")
+                .select("created_at, status")
+                .eq("id", order_id)
+                .eq("user_id", user_id)
+                .single()
+                .execute()
+            )
             if not order_res.data:
                 return False, "Không tìm thấy đơn hàng."
 
@@ -391,198 +469,199 @@ class OrderModel:
             db.table("orders").update({"status": "cancelled"}).eq("id", order_id).execute()
             return True, "Đã hủy đơn hàng thành công."
         except Exception as e:
-            logger.error(f"Lỗi hủy đơn user: {e}")
+            logger.error("Lỗi hủy đơn user: %s", e)
             return False, "Lỗi hệ thống."
 
     @staticmethod
     def request_return(order_id: str, user_id: str, reason: str, image_url: str) -> tuple[bool, str]:
         db = get_supabase()
         try:
-            order_res = db.table("orders").select("status").eq("id", order_id).eq("user_id", user_id).single().execute()
+            order_res = (
+                db.table("orders")
+                .select("status")
+                .eq("id", order_id)
+                .eq("user_id", user_id)
+                .single()
+                .execute()
+            )
             if not order_res.data:
                 return False, "Không tìm thấy đơn hàng."
 
-            order = order_res.data
-            
-            if order["status"] not in ["delivered", "completed"]:
+            if order_res.data["status"] not in ("delivered", "completed"):
                 return False, "Chỉ đơn hàng đã giao thành công mới được yêu cầu đổi/trả."
 
-            existing = db.table("return_requests").select("id, status").eq("order_id", order_id).in_("status", ["pending", "approved", "refunded"]).execute()
+            existing = (
+                db.table("return_requests")
+                .select("id, status")
+                .eq("order_id", order_id)
+                .in_("status", ["pending", "approved", "refunded"])
+                .execute()
+            )
             if existing.data:
                 return False, "Bạn đã có yêu cầu đổi/trả đang được xử lý cho đơn này."
 
-            # Chỉ insert vào return_requests, không cập nhật bảng orders do schema không có các field is_return_requested, return_reason...
             db.table("return_requests").insert({
-                "order_id": order_id, "user_id": user_id, "reason": reason, "image_url": image_url, "status": "pending",
+                "order_id": order_id,
+                "user_id": user_id,
+                "reason": reason,
+                "image_url": image_url,
+                "status": "pending",
             }).execute()
 
             return True, "Yêu cầu đổi/trả đã được ghi nhận. Đội ngũ GUA sẽ liên hệ bạn trong 24 giờ."
         except Exception as e:
-            logger.error(f"Lỗi gửi yêu cầu đổi/trả: {e}")
+            logger.error("Lỗi gửi yêu cầu đổi/trả: %s", e)
             return False, "Lỗi hệ thống."
 
     @staticmethod
-    def get_return_requests(page: int=1, per_page: int=20, status: str=None) -> dict:
+    def get_return_requests(page: int = 1, per_page: int = 20, status: str = None) -> dict:
         db = get_supabase()
         offset = (page - 1) * per_page
         try:
-            # Đã bỏ lấy refunded_amount từ bảng orders
             query = (
                 db.table("return_requests")
-                .select("*, orders(id, total_amount, payment_status, payment_method), users(full_name, email, phone)", count="exact")
+                .select(
+                    "*, orders(id, total_amount, payment_status, payment_method), "
+                    "users(full_name, email, phone)",
+                    count="exact",
+                )
                 .order("requested_at", desc=True)
             )
-            if status: query = query.eq("status", status)
+            if status:
+                query = query.eq("status", status)
 
             r = query.range(offset, offset + per_page - 1).execute()
             return {"items": r.data or [], "total": r.count or 0}
         except Exception as e:
-            logger.error(f"Lỗi lấy return_requests: {e}")
+            logger.error("Lỗi lấy return_requests: %s", e)
             return {"items": [], "total": 0}
 
     @staticmethod
     def get_return_request_by_id(rr_id: str) -> dict | None:
         db = get_supabase()
         try:
-            r = db.table("return_requests").select("*, orders(*, order_items(*, products(name, thumbnail_url))), users(full_name, email, phone)").eq("id", rr_id).single().execute()
+            r = (
+                db.table("return_requests")
+                .select("*, orders(*, order_items(*, products(name, thumbnail_url))), users(full_name, email, phone)")
+                .eq("id", rr_id)
+                .single()
+                .execute()
+            )
             return r.data
         except Exception:
             return None
 
     @staticmethod
-    def approve_return(rr_id: str, admin_user_id: str, admin_note: str="") -> tuple[bool, str]:
+    def approve_return(rr_id: str, admin_user_id: str, admin_note: str = "") -> tuple[bool, str]:
         db = get_supabase()
         try:
             rr = db.table("return_requests").select("status").eq("id", rr_id).single().execute().data
-            if not rr: return False, "Yêu cầu không tồn tại."
-            if rr["status"] != "pending": return False, f"Yêu cầu đang ở trạng thái '{rr['status']}', không thể duyệt."
+            if not rr:
+                return False, "Yêu cầu không tồn tại."
+            if rr["status"] != "pending":
+                return False, f"Yêu cầu đang ở trạng thái '{rr['status']}', không thể duyệt."
 
             db.table("return_requests").update({
-                "status": "approved", "reviewed_by": admin_user_id, "reviewed_at": datetime.now(timezone.utc).isoformat(), "admin_note": admin_note.strip() or None,
+                "status": "approved",
+                "reviewed_by": admin_user_id,
+                "reviewed_at": datetime.now(timezone.utc).isoformat(),
+                "admin_note": admin_note.strip() or None,
             }).eq("id", rr_id).execute()
 
             return True, "Đã duyệt yêu cầu đổi/trả. Tiến hành liên hệ khách hàng để nhận lại hàng."
         except Exception as e:
-            logger.error(f"Lỗi duyệt return_request {rr_id}: {e}")
+            logger.error("Lỗi duyệt return_request %s: %s", rr_id, e)
             return False, "Lỗi hệ thống."
 
     @staticmethod
     def reject_return(rr_id: str, admin_user_id: str, admin_note: str) -> tuple[bool, str]:
         db = get_supabase()
         try:
-            if not admin_note or not admin_note.strip(): return False, "Vui lòng nhập lý do từ chối."
+            if not admin_note or not admin_note.strip():
+                return False, "Vui lòng nhập lý do từ chối."
 
-            rr = db.table("return_requests").select("status, order_id").eq("id", rr_id).single().execute().data
-            if not rr: return False, "Yêu cầu không tồn tại."
-            if rr["status"] != "pending": return False, f"Yêu cầu đang ở trạng thái '{rr['status']}', không thể từ chối."
+            rr = (
+                db.table("return_requests")
+                .select("status, order_id")
+                .eq("id", rr_id)
+                .single()
+                .execute()
+                .data
+            )
+            if not rr:
+                return False, "Yêu cầu không tồn tại."
+            if rr["status"] != "pending":
+                return False, f"Yêu cầu đang ở trạng thái '{rr['status']}', không thể từ chối."
 
             db.table("return_requests").update({
-                "status": "rejected", "reviewed_by": admin_user_id, "reviewed_at": datetime.now(timezone.utc).isoformat(), "admin_note": admin_note.strip(),
+                "status": "rejected",
+                "reviewed_by": admin_user_id,
+                "reviewed_at": datetime.now(timezone.utc).isoformat(),
+                "admin_note": admin_note.strip(),
             }).eq("id", rr_id).execute()
 
             return True, "Đã từ chối yêu cầu. Khách hàng có thể gửi lại nếu muốn."
         except Exception as e:
-            logger.error(f"Lỗi từ chối return_request {rr_id}: {e}")
+            logger.error("Lỗi từ chối return_request %s: %s", rr_id, e)
             return False, "Lỗi hệ thống."
 
     @staticmethod
-    def complete_refund(rr_id: str, admin_user_id: str, refund_amount: float=None) -> tuple[bool, str]:
+    def complete_refund(rr_id: str, admin_user_id: str, refund_amount: float = None) -> tuple[bool, str]:
         db = get_supabase()
         try:
-            rr = db.table("return_requests").select("status, order_id").eq("id", rr_id).single().execute().data
-            if not rr: return False, "Yêu cầu không tồn tại."
-            if rr["status"] != "approved": return False, "Yêu cầu phải ở trạng thái 'Đã duyệt' trước khi xác nhận hoàn tiền."
+            rr = (
+                db.table("return_requests")
+                .select("status, order_id")
+                .eq("id", rr_id)
+                .single()
+                .execute()
+                .data
+            )
+            if not rr:
+                return False, "Yêu cầu không tồn tại."
+            if rr["status"] != "approved":
+                return False, "Yêu cầu phải ở trạng thái 'Đã duyệt' trước khi xác nhận hoàn tiền."
 
             order_id = rr["order_id"]
-            # Đã bỏ lấy refunded_amount từ bảng orders
-            order = db.table("orders").select("total_amount, payment_status").eq("id", order_id).single().execute().data
-            if not order: return False, "Không tìm thấy đơn hàng liên quan."
+            order = (
+                db.table("orders")
+                .select("total_amount, payment_status")
+                .eq("id", order_id)
+                .single()
+                .execute()
+                .data
+            )
+            if not order:
+                return False, "Không tìm thấy đơn hàng liên quan."
 
-            # Query tổng tiền đã hoàn cho đơn hàng này từ bảng return_requests
-            past_refunds = db.table("return_requests").select("refund_amount").eq("order_id", order_id).eq("status", "refunded").execute().data
+            past_refunds = (
+                db.table("return_requests")
+                .select("refund_amount")
+                .eq("order_id", order_id)
+                .eq("status", "refunded")
+                .execute()
+                .data
+            )
             already_refunded = sum(float(pr.get("refund_amount") or 0) for pr in (past_refunds or []))
 
-            total_amount = float(order["total_amount"])
+            total_amount   = float(order["total_amount"])
             max_refundable = total_amount - already_refunded
 
-            amount_to_refund = float(refund_amount) if refund_amount else total_amount
-            amount_to_refund = min(amount_to_refund, max_refundable)
+            if refund_amount is None:
+                refund_amount = max_refundable
+            else:
+                refund_amount = float(refund_amount)
+                if refund_amount > max_refundable:
+                    return False, f"Số tiền hoàn ({refund_amount:,.0f}đ) vượt quá mức tối đa cho phép ({max_refundable:,.0f}đ)."
 
-            if amount_to_refund <= 0: return False, "Đơn hàng này đã được hoàn tiền đầy đủ trước đó."
-
-            now_iso = datetime.now(timezone.utc).isoformat()
-            
-            # Cập nhật thông tin vào return_requests, KHÔNG update bảng orders
             db.table("return_requests").update({
-                "status": "refunded", "refunded_at": now_iso, "refund_amount": amount_to_refund, "reviewed_by": admin_user_id,
+                "status": "refunded",
+                "refund_amount": refund_amount,
+                "refunded_at": datetime.now(timezone.utc).isoformat(),
+                "reviewed_by": admin_user_id,
             }).eq("id", rr_id).execute()
 
-            return True, f"Đã xác nhận hoàn tiền {amount_to_refund:,.0f}đ. Doanh thu đã được cập nhật."
+            return True, f"Đã xác nhận hoàn tiền {refund_amount:,.0f}đ thành công."
         except Exception as e:
-            logger.error(f"Lỗi xác nhận hoàn tiền return_request {rr_id}: {e}")
+            logger.error("Lỗi complete_refund %s: %s", rr_id, e)
             return False, "Lỗi hệ thống."
-
-    # ═══════════════════════════════════════════════════════════════
-    #  THỐNG KÊ KHÁCH HÀNG
-    # ═══════════════════════════════════════════════════════════════
-
-    @staticmethod
-    def get_user_count() -> int:
-        db = get_supabase()
-        try:
-            r = db.table("users").select("id", count="exact").eq("role", "customer").execute()
-            return r.count or 0
-        except Exception:
-            return 0
-
-    # ═══════════════════════════════════════════════════════════════
-    #  STATE MACHINE: Chuyển trạng thái CÓ KIỂM TRA
-    # ═══════════════════════════════════════════════════════════════
- 
-    _VALID_TRANSITIONS = {
-        "pending": ["confirmed", "cancelled"],
-        "confirmed": ["packed", "cancelled"],
-        "packed": ["shipped", "cancelled"],
-        "shipped": ["delivered", "failed", "returned"],
-        "shipping": ["delivered", "failed", "returned"],
-        "delivered": ["completed", "returned"],
-        "completed": [],
-        "cancelled": [],
-        "failed": ["returned"],
-        "returned": [],
-    }
- 
-    @staticmethod
-    def update_status_guarded(order_id: str, new_status: str) -> tuple[bool, str]:
-        db = get_supabase()
-        try:
-            order = db.table("orders").select("status").eq("id", order_id).single().execute().data
-            if not order:
-                return False, "Đơn hàng không tồn tại."
- 
-            current = order["status"]
-            allowed = OrderModel._VALID_TRANSITIONS.get(current, [])
- 
-            if new_status not in allowed:
-                return False, (
-                    f"Không thể chuyển từ '{current}' sang '{new_status}'. "
-                    f"Trạng thái hợp lệ tiếp theo: {allowed or ['(không có)']}"
-                )
- 
-            db.table("orders").update({"status": new_status}).eq("id", order_id).execute()
-            logger.info(f"[OrderModel] Order {order_id[:8]}: {current} → {new_status}")
-            return True, ""
- 
-        except Exception as e:
-            logger.error(f"Lỗi update_status_guarded cho đơn {order_id}: {e}")
-            return False, "Lỗi hệ thống."
- 
-    @staticmethod
-    def get_status_counts() -> dict:
-        db = get_supabase()
-        try:
-            rows = db.table("orders").select("status").execute().data or []
-            return dict(Counter(r["status"] for r in rows))
-        except Exception as e:
-            logger.error(f"Lỗi get_status_counts: {e}")
-            return {}
