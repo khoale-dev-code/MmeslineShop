@@ -3,9 +3,9 @@
 {% block title %}Cài đặt Hệ thống — GUA Admin{% endblock %}
 
 {% block extra_head %}
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
-  rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- 🔴 ĐÃ XÓA: Dòng nạp FontAwesome 6.5.0 cũ gây xung đột attribute d: Expected number với file base -->
+
 <style>
   :root {
     --font-jakarta: 'Plus Jakarta Sans', sans-serif;
@@ -39,7 +39,6 @@
       opacity: 0;
       transform: translateY(20px);
     }
-
     to {
       opacity: 1;
       transform: translateY(0);
@@ -84,15 +83,8 @@
   }
 
   @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(4px);
-    }
-
-    to {
-      opacity: 1;
-      transform: none;
-    }
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: none; }
   }
 
   /* Toast */
@@ -123,15 +115,8 @@
   }
 
   @keyframes toastIn {
-    from {
-      opacity: 0;
-      transform: translateY(8px);
-    }
-
-    to {
-      opacity: 1;
-      transform: none;
-    }
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
   }
 
   .toast.fade-out {
@@ -139,34 +124,13 @@
   }
 
   @keyframes toastOut {
-    from {
-      opacity: 1;
-    }
-
-    to {
-      opacity: 0;
-      transform: translateY(4px);
-    }
+    from { opacity: 1; }
+    to { opacity: 0; transform: translateY(4px); }
   }
 
-  .toast--success {
-    background: #0f172a;
-    color: #fff;
-  }
-
-  /* slate-900 */
-  .toast--error {
-    background: #e11d48;
-    color: #fff;
-  }
-
-  /* rose-600 */
-  .toast--info {
-    background: #4f46e5;
-    color: #fff;
-  }
-
-  /* indigo-600 */
+  .toast--success { background: #0f172a; color: #fff; }
+  .toast--error { background: #e11d48; color: #fff; }
+  .toast--info { background: #4f46e5; color: #fff; }
 </style>
 {% endblock %}
 
@@ -177,8 +141,7 @@
 
   {# ── STICKY TOP BAR ── #}
   <div class="glass-nav sticky top-0 z-30 border-b border-slate-200/60">
-    <div
-      class="max-w-[1400px] mx-auto px-6 lg:px-12 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div class="max-w-[1400px] mx-auto px-6 lg:px-12 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shadow-sm">
           <i class="fa-solid fa-gear text-lg"></i>
@@ -186,14 +149,12 @@
         <div>
           <h1 class="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
             Cài đặt Hệ thống
-            <span
-              class="flex items-center gap-1.5 text-[10px] bg-emerald-50 text-emerald-600 px-2 py-1 rounded-md uppercase tracking-widest font-bold">
+            <span class="flex items-center gap-1.5 text-[10px] bg-emerald-50 text-emerald-600 px-2 py-1 rounded-md uppercase tracking-widest font-bold">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live
             </span>
           </h1>
           <div class="flex items-center gap-2 mt-0.5">
-            <a href="/admin/"
-              class="text-slate-500 hover:text-indigo-600 text-xs font-semibold transition-colors">Dashboard</a>
+            <a href="/admin/" class="text-slate-500 hover:text-indigo-600 text-xs font-semibold transition-colors">Dashboard</a>
             <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
             <span class="text-indigo-600 text-xs font-semibold">Cấu hình</span>
           </div>
@@ -212,12 +173,10 @@
                 {% elif category == 'danger' %}bg-rose-50 text-rose-700 border-rose-100
                 {% else %}bg-indigo-50 text-indigo-700 border-indigo-100{% endif %}">
       <div class="flex items-center gap-3">
-        <i
-          class="fa-solid {% if category == 'success' %}fa-circle-check{% elif category == 'danger' %}fa-circle-xmark{% else %}fa-circle-info{% endif %} text-lg"></i>
+        <i class="fa-solid {% if category == 'success' %}fa-circle-check{% elif category == 'danger' %}fa-circle-xmark{% else %}fa-circle-info{% endif %} text-lg"></i>
         <span>{{ msg }}</span>
       </div>
-      <button class="text-current opacity-60 hover:opacity-100 transition-opacity"
-        onclick="this.parentElement.remove()"><i class="fa-solid fa-xmark"></i></button>
+      <button class="text-current opacity-60 hover:opacity-100 transition-opacity" onclick="this.parentElement.remove()"><i class="fa-solid fa-xmark"></i></button>
     </div>
     {% endfor %}
   </div>
@@ -226,12 +185,11 @@
 
   <div class="max-w-[1400px] mx-auto px-6 lg:px-12 mt-8 fade-up s-layout">
 
-    {# ── Sidebar ── #}
+    {# ── Sidebar Tabs Menu ── #}
     <aside class="flex flex-col gap-1 md:sticky md:top-[88px] h-max">
       <div class="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-2 px-3">Cơ bản</div>
 
-      <button
-        class="s-nav__item active flex items-center justify-between w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group"
+      <button class="s-nav__item active flex items-center justify-between w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group"
         data-tab="general" onclick="Settings.switchTab('general',this)">
         <div class="flex items-center gap-3">
           <i class="fa-solid fa-sliders text-slate-400 group-hover:text-indigo-500 w-4 text-center"></i>
@@ -239,19 +197,16 @@
         </div>
       </button>
 
-      <button
-        class="s-nav__item flex items-center justify-between w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group"
+      <button class="s-nav__item flex items-center justify-between w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group"
         data-tab="storefront" onclick="Settings.switchTab('storefront',this)">
         <div class="flex items-center gap-3">
           <i class="fa-solid fa-store text-slate-400 group-hover:text-indigo-500 w-4 text-center"></i>
           Giao diện cửa hàng
         </div>
-        <span
-          class="text-[9px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-md uppercase tracking-wider">Banner</span>
+        <span class="text-[9px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-md uppercase tracking-wider">Banner</span>
       </button>
 
-      <button
-        class="s-nav__item flex items-center justify-between w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group"
+      <button class="s-nav__item flex items-center justify-between w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group"
         data-tab="integrations" onclick="Settings.switchTab('integrations',this)">
         <div class="flex items-center gap-3">
           <i class="fa-solid fa-link text-slate-400 group-hover:text-indigo-500 w-4 text-center"></i>
@@ -259,8 +214,7 @@
         </div>
       </button>
 
-      <button
-        class="s-nav__item flex items-center justify-between w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group"
+      <button class="s-nav__item flex items-center justify-between w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group"
         data-tab="shipping" onclick="Settings.switchTab('shipping',this)">
         <div class="flex items-center gap-3">
           <i class="fa-solid fa-truck-fast text-slate-400 group-hover:text-indigo-500 w-4 text-center"></i>
@@ -271,20 +225,25 @@
       <div class="h-px bg-slate-200 my-4 mx-3"></div>
       <div class="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-2 px-3">Hệ thống</div>
 
-      <button
-        class="s-nav__item flex items-center justify-between w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group"
+      <button class="s-nav__item flex items-center justify-between w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group"
         data-tab="language" onclick="Settings.switchTab('language',this)">
         <div class="flex items-center gap-3">
           <i class="fa-solid fa-earth-americas text-slate-400 group-hover:text-indigo-500 w-4 text-center"></i>
           Ngôn ngữ Admin
         </div>
-        <span
-          class="text-[9px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-md uppercase tracking-wider">New</span>
+        <span class="text-[9px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-md uppercase tracking-wider">New</span>
       </button>
 
+      <button class="s-nav__item flex items-center justify-between w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group"
+        data-tab="admin_ui" onclick="Settings.switchTab('admin_ui',this)">
+        <div class="flex items-center gap-3">
+          <i class="fa-solid fa-palette text-slate-400 group-hover:text-indigo-500 w-4 text-center"></i>
+          Giao diện Admin
+        </div>
+      </button>
     </aside>
 
-    {# ── Panels ── #}
+    {# ── Panels Render Content ── #}
     <main class="w-full">
       <section class="s-panel active" id="panel-general">
         {% include "admin/settings/_tab_general.html" %}
@@ -304,9 +263,6 @@
       <section class="s-panel" id="panel-admin_ui">
         {% include "admin/settings/_tab_admin_ui.html" ignore missing %}
       </section>
-      <section class="s-panel" id="panel-permissions">
-        {% include "admin/settings/_tab_permissions.html" ignore missing %}
-      </section>
     </main>
   </div>
 </div>
@@ -314,8 +270,6 @@
 
 {% block extra_scripts %}
 <script>
-  // Overriding the inline class toggling from the original js/admin/settings.js because the layout structure changed
-  // Wait for settings.js to load
   document.addEventListener("DOMContentLoaded", () => {
     if (window.Settings) {
       window.Settings.switchTab = function (tabId, btn) {

@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- CSRF Token (quan trọng cho Ajax POST) -->
   <meta name="csrf-token" content="{{ csrf_token() }}">
 
   {# 👉 TỰ ĐỘNG LẤY TÊN SHOP TỪ DATABASE #}
@@ -80,20 +79,14 @@
 
 <body class="bg-stone-50 text-stone-900 flex flex-col min-h-screen">
 
-  <!-- NAVBAR -->
   {% include "admin/admin_navbar.html" %}
 
-  <!-- FLASH MESSAGES -->
-  {% include 'flash.html' %}
-
-  <!-- MAIN CONTENT -->
   <main class="flex-1 admin-main pt-6 pb-12">
     <div class="max-w-screen-2xl mx-auto px-6 lg:px-10">
       {% block content %}{% endblock %}
     </div>
   </main>
 
-  <!-- FOOTER -->
   <footer class="bg-white border-t border-stone-100 py-8 mt-auto">
     <div class="max-w-screen-2xl mx-auto px-6 lg:px-10">
       <div class="flex flex-col md:flex-row justify-between items-center gap-4 text-xs">
@@ -133,6 +126,50 @@
       </div>
     </div>
   </footer>
+
+  {# ── SNACKBAR (TOAST) THÔNG BÁO TỪ FLASK ── #}
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div id="gua-snackbar-container" class="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3 pointer-events-none">
+        {% for category, message in messages %}
+          
+          {% set icon = 'fa-circle-check text-emerald-500' if category == 'success' else 'fa-circle-exclamation text-rose-500' %}
+          {% set border = 'border-emerald-100' if category == 'success' else 'border-rose-100' %}
+          
+          <div class="gua-toast flex items-center gap-3 bg-white border {{ border }} shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] rounded-2xl p-4 pr-5 transform transition-all duration-500 translate-y-10 opacity-0 pointer-events-auto">
+            <div class="w-8 h-8 rounded-full bg-stone-50 flex items-center justify-center shrink-0">
+              <i class="fa-solid {{ icon }} text-lg"></i>
+            </div>
+            <span class="text-sm font-bold text-stone-800">{{ message }}</span>
+            <button type="button" onclick="this.closest('.gua-toast').remove()" class="ml-4 w-6 h-6 flex items-center justify-center text-stone-400 hover:bg-stone-100 hover:text-stone-700 rounded-full transition-colors">
+              <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+          </div>
+          
+        {% endfor %}
+      </div>
+
+      <script>
+        document.addEventListener("DOMContentLoaded", () => {
+          const toasts = document.querySelectorAll('.gua-toast');
+          toasts.forEach((toast, index) => {
+            // Animation hiện vào (Slide up + Fade in)
+            setTimeout(() => {
+              toast.classList.remove('translate-y-10', 'opacity-0');
+              toast.classList.add('translate-y-0', 'opacity-100');
+            }, 100 * index);
+            
+            // Tự động ẩn sau 4 giây
+            setTimeout(() => {
+              toast.classList.remove('translate-y-0', 'opacity-100');
+              toast.classList.add('translate-y-10', 'opacity-0');
+              setTimeout(() => toast.remove(), 500); // Xóa khỏi DOM sau khi kết thúc transition
+            }, 4000);
+          });
+        });
+      </script>
+    {% endif %}
+  {% endwith %}
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {

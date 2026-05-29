@@ -2,6 +2,7 @@
 app/models/product_model.py
 Quản lý dữ liệu Sản phẩm, Biến thể (Variants) và SEO chuẩn E-commerce.
 Hỗ trợ Soft Delete, Slug generation, Barcode generation, và đồng bộ hình ảnh.
+Tối ưu hóa bảo vệ Payload và kiểm tra an toàn Supabase RLS Constraints.
 """
 
 import logging
@@ -41,20 +42,18 @@ class ProductModel:
         return slug
 
     @staticmethod
-    def generate_barcode(product_id: str=None) -> str:
+    def generate_barcode(product_id: str = None) -> str:
         """
         Sinh mã vạch duy nhất theo format: GUA-YYMM-XXXXXX
         - GUA     : Thương hiệu
         - YYMM    : Năm + Tháng tạo (VD: 2605 = tháng 5/2026)
         - XXXXXX  : 6 ký tự hex đầu của UUID (lấy từ product_id nếu có)
-
-        Ví dụ: GUA-2605-A3F9C1
         """
         now = datetime.now()
         prefix = f"GUA-{now.strftime('%y%m')}"
 
         if product_id:
-            hex_part = product_id.replace("-", "")[:6].upper()
+            hex_part = str(product_id).replace("-", "")[:6].upper()
         else:
             hex_part = uuid.uuid4().hex[:6].upper()
 
@@ -139,7 +138,6 @@ class ProductModel:
             for p in (res.data or []):
                 if p.get("barcode"):
                     continue
-                # Sinh barcode dựa trên product_id và thời gian tạo thực tế
                 created = p.get("created_at", "")
                 try:
                     dt = datetime.fromisoformat(created.replace("Z", "+00:00"))
@@ -161,7 +159,7 @@ class ProductModel:
     # ═══════════════════════════════════════════════════════════════
 
     @staticmethod
-    def get_categories(limit: int=3) -> list:
+    def get_categories(limit: int = 3) -> list:
         db = ProductModel._db()
         try:
             res = db.table("categories").select("*").limit(limit).execute()
@@ -171,7 +169,7 @@ class ProductModel:
             return []
 
     @staticmethod
-    def get_featured(limit: int=8) -> list:
+    def get_featured(limit: int = 8) -> list:
         db = ProductModel._db()
         try:
             res = (
@@ -190,12 +188,12 @@ class ProductModel:
 
     @staticmethod
     def get_all(
-        page: int=1,
-        per_page: int=12,
-        category_slug: str=None,
-        gender: str=None,
-        keyword: str=None,
-        admin_mode: bool=False,
+        page: int = 1,
+        per_page: int = 12,
+        category_slug: str = None,
+        gender: str = None,
+        keyword: str = None,
+        admin_mode: bool = False,
     ) -> dict:
         db = ProductModel._db()
         offset = (page - 1) * per_page
@@ -241,7 +239,7 @@ class ProductModel:
             res = (
                 db.table("products")
                 .select("*, categories(name, slug), product_images(*), product_variants(*)")
-                .eq("id", pid)
+                .eq("id", str(pid).strip())
                 .limit(1)
                 .execute()
             )
@@ -299,53 +297,84 @@ class ProductModel:
         if not data.get("slug") and data.get("name"):
             data["slug"] = ProductModel.generate_slug(data["name"])
         try:
-            # Insert trước để lấy ID
             res = db.table("products").insert(data).execute()
             if not res.data:
+                logger.error("[ProductModel.create] Thất bại! Không có dữ liệu trả về. Vui lòng kiểm tra RLS INSERT Policy.")
                 return None
 
             product = res.data[0]
             pid = product["id"]
 
-            # Sinh barcode từ UUID thực tế của DB
             barcode = ProductModel.generate_barcode(pid)
-            db.table("products").update({"barcode": barcode}).eq("id", pid).execute()
-            product["barcode"] = barcode
+            bc_res = db.table("products").update({"barcode": barcode}).eq("id", pid).execute()
+            
+            if bc_res.data:
+                product["barcode"] = barcode
+            else:
+                logger.warning(f"[ProductModel.create] SP đã tạo nhưng không thể ghi đè Barcode tự động cho ID '{pid}'.")
 
-            logger.info(f"[ProductModel] Tạo SP '{data.get('name')}' | barcode: {barcode}")
             return product
-
         except Exception as e:
             logger.error(f"Lỗi tạo sản phẩm: {e}")
             return None
 
     @staticmethod
     def update(pid: str, data: dict) -> bool:
+        """Cập nhật sản phẩm - Tích hợp bộ chặn dữ liệu rác và debug kiểm tra lỗi RLS"""
         if not pid:
             return False
+            
+        # Làm sạch payload
         if "slug" in data and not data["slug"]:
             data.pop("slug")
-        # Không cho phép ghi đè barcode qua update thông thường
-        data.pop("barcode", None)
+        if "thumbnail_url" in data and not data["thumbnail_url"]:
+            data.pop("thumbnail_url")
+            
+        data.pop("barcode", None) # Gỡ bỏ trường không cho phép sửa thông thường
+        clean_pid = str(pid).strip()
+
         try:
-            res = ProductModel._db().table("products").update(data).eq("id", pid).execute()
-            return len(res.data) > 0
+            # 🔴 BẬT HỆ THỐNG KIỂM TRA CHỦ ĐỘNG
+            print(f"\n=== 🔍 [DEBUG] UPDATE PRODUCT ===")
+            print(f"Target ID: '{clean_pid}'")
+            print(f"Payload gửi đi: {data}")
+
+            res = ProductModel._db().table("products").update(data).eq("id", clean_pid).execute()
+            
+            print(f"Mảng trả về từ Supabase: {res.data}")
+            
+            if not res.data:
+                print("🚨 CẢNH BÁO: Supabase trả về mảng rỗng [].")
+                print("👉 Nguyên nhân: 1. Sai ID | 2. Bị chặn bởi Policy RLS (Vào Supabase > Bảng products > Tạo Policy cho phép UPDATE).")
+                print("=================================\n")
+                logger.warning(f"[ProductModel.update] Không tìm thấy dòng hoặc bị RLS chặn tại ID '{clean_pid}'")
+                return False
+                
+            print("✨ Cập nhật thành công vào Database!")
+            print("=================================\n")
+            return True
+            
         except Exception as e:
             logger.error(f"Lỗi cập nhật sản phẩm '{pid}': {e}")
             return False
 
     @staticmethod
-    def delete(pid: str, permanent: bool=False) -> bool:
+    def delete(pid: str, permanent: bool = False) -> bool:
         db = ProductModel._db()
+        clean_pid = str(pid).strip()
         try:
             if permanent:
-                res = db.table("products").delete().eq("id", pid).execute()
+                res = db.table("products").delete().eq("id", clean_pid).execute()
             else:
                 res = db.table("products").update({
                     "deleted_at": datetime.now().isoformat(),
                     "is_active": False,
-                }).eq("id", pid).execute()
-            return len(res.data) > 0
+                }).eq("id", clean_pid).execute()
+                
+            if not res.data:
+                logger.warning(f"[ProductModel.delete] Lệnh xóa không tác động lên dòng nào cho ID '{clean_pid}'. Hãy kiểm tra RLS.")
+                return False
+            return True
         except Exception as e:
             logger.error(f"Lỗi xóa sản phẩm '{pid}': {e}")
             return False
@@ -361,7 +390,7 @@ class ProductModel:
                 ProductModel._db()
                 .table("product_images")
                 .select("*")
-                .eq("product_id", pid)
+                .eq("product_id", str(pid).strip())
                 .order("sort_order")
                 .execute()
             )
@@ -373,11 +402,12 @@ class ProductModel:
     @staticmethod
     def sync_images(pid: str, urls: list) -> bool:
         db = ProductModel._db()
+        clean_pid = str(pid).strip()
         try:
-            db.table("product_images").delete().eq("product_id", pid).execute()
+            db.table("product_images").delete().eq("product_id", clean_pid).execute()
             if urls:
                 db.table("product_images").insert([
-                    {"product_id": pid, "url": url, "sort_order": i, "is_primary": (i == 0)}
+                    {"product_id": clean_pid, "url": url, "sort_order": i, "is_primary": (i == 0)}
                     for i, url in enumerate(urls)
                 ]).execute()
             return True

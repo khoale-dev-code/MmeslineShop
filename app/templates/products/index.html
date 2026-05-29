@@ -14,14 +14,17 @@
 
 {% block content %}
 
-{# ── Lấy danh mục từ categories (vẫn giữ 4 ô đầu cho grid) ── #}
+{# ── Lấy danh mục từ categories (giữ 4 ô đầu cho grid) ── #}
 {% set grid_cats = categories[0:4] if categories else [] %}
+
+{# ── BẢN CẬP NHẬT: Trích xuất phân vùng storefront an toàn bằng .get() ── #}
+{% set sf = system_settings.get('storefront', {}) %}
 
 <div class="bg-white text-black font-sans w-full selection:bg-black selection:text-white">
 
-  {# ══ 1. HERO BANNER (từ Admin Settings) ══ #}
-  {% set hero_url = system_settings.storefront.hero_banner_url | default('') %}
-  {% set is_video = hero_url.lower().endswith('.mp4') or 'video' in hero_url.lower() %}
+  {# ══ 1. HERO BANNER (Đồng bộ thời gian thực từ Admin Settings) ══ #}
+  {% set hero_url = sf.get('hero_banner_url') or '' %}
+  {% set is_video = hero_url.lower().endswith('.mp4') or 'video' in hero_url.lower() if hero_url else false %}
 
   <section class="relative w-full h-[85vh] md:h-screen overflow-hidden bg-neutral-900 flex items-end">
     {% if hero_url %}
@@ -34,7 +37,7 @@
       {% endif %}
     {% else %}
       <video autoplay muted loop playsinline class="absolute inset-0 w-full h-full object-cover object-center">
-        <source src="https://www.pexels.com/download/video/8443733/" type="video/mp4"/>
+        <source src="../../static/video/MMESTLINE CON NGỰA.mp4" type="video/mp4"/>
       </video>
     {% endif %}
 
@@ -69,9 +72,9 @@
     {% endfor %}
   </section>
 
-  {# ══ 3. BANNER 2 (Full Width) từ storefront.banner2_url ══ #}
+  {# ══ 3. BANNER 2 (Full Width) ══ #}
   <section class="relative w-full h-[65vh] md:h-[120vh] mt-1 md:mt-2 overflow-hidden bg-neutral-100 group">
-    <img src="{{ system_settings.storefront.banner2_url or 'https://i.pinimg.com/1200x/c2/66/05/c2660571733bc9f4b917675c9bfe94f9.jpg' }}" 
+    <img src="{{ sf.get('banner2_url') or 'https://i.pinimg.com/1200x/c2/66/05/c2660571733bc9f4b917675c9bfe94f9.jpg' }}" 
          alt="Banner 2" class="absolute inset-0 w-full h-full object-cover object-center img-pan">
     <div class="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition-colors duration-700"></div>
     <div class="absolute bottom-12 left-6 md:left-12 text-white z-10">
@@ -80,10 +83,10 @@
     </div>
   </section>
 
-  {# ══ 4. SPLIT BANNERS (Trái/Phải) từ storefront.split_left_url và split_right_url ══ #}
+  {# ══ 4. SPLIT BANNERS (Trái/Phải) ══ #}
   <section class="w-full p-1 md:p-2 grid grid-cols-1 md:grid-cols-2 gap-1 md:gap-2">
     <div class="relative w-full h-[60vh] md:h-[80vh] group overflow-hidden bg-neutral-100">
-      <img src="{{ system_settings.storefront.split_left_url or 'https://i.pinimg.com/1200x/8d/f1/b1/8df1b177ec235f6699a8f56cd324e5e4.jpg' }}" 
+      <img src="{{ sf.get('split_left_url') or 'https://i.pinimg.com/1200x/8d/f1/b1/8df1b177ec235f6699a8f56cd324e5e4.jpg' }}" 
            alt="Split left" class="absolute inset-0 w-full h-full object-cover object-center img-pan">
       <div class="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition duration-700"></div>
       <div class="absolute bottom-10 left-8 md:left-12 text-white z-10 transform group-hover:-translate-y-3 transition-transform duration-500">
@@ -92,7 +95,7 @@
       </div>
     </div>
     <div class="relative w-full h-[60vh] md:h-[80vh] group overflow-hidden bg-neutral-100">
-      <img src="{{ system_settings.storefront.split_right_url or 'https://i.pinimg.com/736x/ad/49/55/ad4955e1f64e66bf775163948ba51a3b.jpg' }}" 
+      <img src="{{ sf.get('split_right_url') or 'https://i.pinimg.com/736x/ad/49/55/ad4955e1f64e66bf775163948ba51a3b.jpg' }}" 
            alt="Split right" class="absolute inset-0 w-full h-full object-cover object-center img-pan">
       <div class="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition duration-700"></div>
       <div class="absolute bottom-10 left-8 md:left-12 text-white z-10 transform group-hover:-translate-y-3 transition-transform duration-500">
@@ -102,8 +105,8 @@
     </div>
   </section>
 
-  {# ══ 5. BANNER 4 (VIDEO) từ storefront.banner4_video_url ══ #}
-  {% set video_url = system_settings.storefront.banner4_video_url %}
+  {# ══ 5. BANNER 4 (VIDEO Best Sellers) ══ #}
+  {% set video_url = sf.get('banner4_video_url') %}
   <section class="relative w-full h-[65vh] md:h-[80vh] mt-1 md:mt-2 overflow-hidden bg-neutral-900 group">
     {% if video_url %}
       <video autoplay loop muted playsinline class="absolute inset-0 w-full h-full object-cover object-center">
@@ -121,7 +124,7 @@
     </div>
   </section>
 
-  {# ══ 6. FEATURED PRODUCTS SLIDER (giữ nguyên) ══ #}
+  {# ══ 6. FEATURED PRODUCTS SLIDER ══ #}
   {% if featured_products %}
   <section class="bg-white relative mt-16 md:mt-24 mb-24">
     <div class="flex items-end justify-between px-6 md:px-12 py-6">
