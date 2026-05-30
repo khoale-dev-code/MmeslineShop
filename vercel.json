@@ -3,16 +3,52 @@
   "builds": [
     {
       "src": "index.py",
-      "use": "@vercel/python"
+      "use": "@vercel/python",
+      "config": {
+        "maxDuration": 15
+      }
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    },
+    {
+      "source": "/static/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, m-maxinter=31536000, immutable"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
     }
   ],
   "routes": [
     {
       "src": "/static/(.*)",
-      "dest": "/app/static/$1",
-      "headers": {
-        "Cache-Control": "public, max-age=31536000, immutable"
-      }
+      "dest": "app/static/$1"
+    },
+    {
+      "src": "/favicon.ico",
+      "dest": "app/static/favicon.ico"
     },
     {
       "src": "/(.*)",

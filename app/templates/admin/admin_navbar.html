@@ -1,7 +1,8 @@
 {# ============================================================
-GUA MAISON — Premium European Admin Navbar
-Tech: Tailwind CSS, FontAwesome 6, Vanilla JS
-Design System: Premium Minimalism, Rounded Pills, Stone Scale
+   GUA MAISON — Premium European Admin Navbar (Version 2.0 - Real-time Secure)
+   Tech: Tailwind CSS, FontAwesome 6, Vanilla JS
+   Design System: Premium Minimalism, Rounded Pills, Stone Scale
+   Fixes: Chống sập UndefinedError Null Name & Đồng bộ admin_role_slug chuẩn hệ thống
 ============================================================ #}
 
 {# ── PROGRESS BAR (Hiệu ứng chuyển trang mượt mà) ── #}
@@ -49,7 +50,7 @@ Design System: Premium Minimalism, Rounded Pills, Stone Scale
         </a>
         {% endfor %}
 
-        {# ── Dropdown: Quản trị ── #}
+        {# ── Dropdown: Quản trị Nâng cao ── #}
         {% set mgmt_eps = ['admin.settings_page','admin.categories','admin.coupons','admin.return_requests',
         'admin.permissions_index', 'admin.audit_logs'] %}
         {% set mgmt_active = request.endpoint in mgmt_eps or (request.endpoint and
@@ -96,8 +97,8 @@ Design System: Premium Minimalism, Rounded Pills, Stone Scale
             </a>
             {% endfor %}
 
-            {# Phân quyền — chỉ Super Admin #}
-            {% if current_user.role == 'admin' %}
+            {# ✅ ĐÃ SỬA LOGIC: Check nhóm quyền admin_role_slug chuẩn xác (chấp nhận cả super_admin và admin) #}
+            {% if session.get('user_role') in ('super_admin', 'admin') %}
             <div class="h-px bg-stone-100 my-2 mx-3"></div>
             <a href="{{ url_for('admin.permissions_index') }}" data-nav
               class="flex items-center gap-3 px-3 py-2.5 text-[13px] font-medium rounded-xl transition-all duration-200 {{ 'text-stone-900 bg-stone-100' if request.endpoint == 'admin.permissions_index' else 'text-stone-600 hover:text-stone-900 hover:bg-stone-50' }}">
@@ -169,7 +170,8 @@ Design System: Premium Minimalism, Rounded Pills, Stone Scale
                        hover:bg-stone-50 border border-transparent hover:border-stone-200 transition-all duration-300 select-none">
           <div class="hidden sm:block text-right">
             <p class="text-[13px] font-bold text-stone-900 leading-tight">
-              {{ current_user.full_name if current_user else 'Admin User' }}
+              {# ✅ ĐÃ SỬA LOGIC: Đọc an toàn từ session để tránh lỗi kẹt chuỗi trống rỗng #}
+              {{ current_user.full_name if (current_user and current_user.full_name) else (session.get('user_name') or 'Admin User') }}
             </p>
             <p
               class="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5 flex items-center justify-end gap-1.5">
@@ -179,11 +181,18 @@ Design System: Premium Minimalism, Rounded Pills, Stone Scale
           </div>
           <div class="w-10 h-10 bg-stone-900 rounded-full
                       flex items-center justify-center text-[15px] font-bold text-white shadow-md">
-            {{ current_user.full_name[0].upper() if current_user else 'A' }}
+            {# ✅ ĐÃ SỬA GỐC RỄ: Cơ chế tự cứu nguy (Self-Healing Avatar Letter) chống bẫy lỗi Undefined 500 #}
+            {% if current_user and current_user.full_name %}
+              {{ current_user.full_name[0].upper() }}
+            {% elif session.get('email') %}
+              {{ session.get('email')[0].upper() }}
+            {% else %}
+              A
+            {% endif %}
           </div>
         </button>
 
-        {# User Panel #}
+        {# User Dropdown Panel #}
         <div class="absolute right-0 top-full mt-2 w-52 bg-white/95 backdrop-blur-xl border border-stone-200/60 rounded-[20px] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)]
                     opacity-0 invisible -translate-y-3 origin-top-right
                     group-hover/user:opacity-100 group-hover/user:visible group-hover/user:translate-y-0
@@ -207,7 +216,7 @@ Design System: Premium Minimalism, Rounded Pills, Stone Scale
         </div>
       </div>
 
-      {# Hamburger Mobile #}
+      {# Hamburger Mobile Button #}
       <button id="hamburgerBtn" onclick="MobileMenu.toggle()"
         class="lg:hidden w-10 h-10 flex items-center justify-center rounded-full bg-stone-50 border border-stone-200 hover:bg-stone-100 transition-colors shadow-sm"
         aria-label="Menu">
@@ -294,7 +303,8 @@ Design System: Premium Minimalism, Rounded Pills, Stone Scale
             {% endif %}
       </a>
 
-      {% if current_user.role == 'admin' %}
+      {# ✅ ĐÃ SỬA LOGIC MOBILE: Đồng bộ kiểm tra quyền hạn admin_role_slug từ Session Context #}
+      {% if session.get('user_role') in ('super_admin', 'admin') %}
       <a href="{{ url_for('admin.permissions_index') }}" data-nav
         class="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[14px] font-semibold transition-colors duration-200 border border-transparent hover:bg-stone-50 text-stone-600">
         <div class="w-6 flex justify-center"><i class="fa-solid fa-shield-halved text-base text-stone-400"></i></div>

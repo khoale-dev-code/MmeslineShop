@@ -1,139 +1,9 @@
 {% extends "base.html" %}
 {% block title %}GUA. | Minimalism Fashion{% endblock %}
 
-{% block content %}
-<div class="bg-white text-black font-sans selection:bg-black selection:text-white">
-
-  {# ══ 1. HERO SECTION (Tối ưu Layer & Text gradient) ══ #}
-  <section class="relative h-[90vh] md:h-screen overflow-hidden">
-    <video autoplay muted loop playsinline class="absolute inset-0 w-full h-full object-cover scale-105 transform">
-      <source src="https://cdn.hstatic.net/files/200001029438/file/ef7df01e-38a3-4b59-b7ae-79757c79a37b.mp4" type="video/mp4"/>
-    </video>
-    <!-- Lớp phủ tối dần từ dưới lên để làm nổi bật chữ -->
-    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-    
-    <div class="relative z-10 h-full flex flex-col justify-end px-6 pb-20 md:px-12 md:pb-32 text-white animate-fade-in-up">
-      <p class="text-[10px] md:text-[12px] font-bold uppercase tracking-[0.4em] mb-4 opacity-90 text-neutral-300">
-        Spring / Summer 2026
-      </p>
-      <h1 class="text-6xl md:text-8xl lg:text-[10rem] font-black uppercase tracking-tighter leading-[0.85] mb-10 drop-shadow-xl">
-        Beyond <br> The Form
-      </h1>
-      <a href="/shop" class="group flex items-center gap-4 w-fit">
-        <span class="text-[11px] font-bold uppercase tracking-[0.2em] border-b-2 border-white pb-1.5 group-hover:pr-6 transition-all duration-300">
-          Discover Now
-        </span>
-        <svg class="w-4 h-4 transform group-hover:translate-x-2 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3"/></svg>
-      </a>
-    </div>
-  </section>
-
-  {# ══ 2. NEW ARRIVALS SLIDER (Bố cục Editorial) ══ #}
-  {% if featured_products %}
-  <section class="py-24 md:py-32">
-    <!-- Header của Slider -->
-    <div class="px-6 md:px-12 mb-16 flex flex-col md:flex-row md:items-end justify-between gap-8">
-      <div class="max-w-xl">
-        <span class="text-[10px] font-bold uppercase tracking-[0.3em] text-neutral-400 block mb-3">Curated Selection</span>
-        <h2 class="text-4xl md:text-5xl font-black uppercase tracking-tighter leading-none">New Arrivals</h2>
-        <div class="w-16 h-[3px] bg-black mt-6"></div>
-      </div>
-      <div class="flex gap-3">
-        <button id="btnPrev" class="w-12 h-12 flex items-center justify-center border border-neutral-200 rounded-full hover:bg-black hover:text-white transition-all duration-300 disabled:opacity-20"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15.75 19.5L8.25 12l7.5-7.5"/></svg></button>
-        <button id="btnNext" class="w-12 h-12 flex items-center justify-center border border-neutral-200 rounded-full hover:bg-black hover:text-white transition-all duration-300 disabled:opacity-20"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg></button>
-      </div>
-    </div>
-
-    <!-- Slider Viewport -->
-    <div id="slider-container" class="relative overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar select-none cursor-grab active:cursor-grabbing px-6 md:px-12 pb-8">
-      <div id="slider-track" class="flex gap-4 md:gap-8 w-max">
-        
-        {% for product in featured_products %}
-        <div class="slider-item snap-start flex-shrink-0 group" style="width: var(--item-w, 280px);">
-          
-          <!-- Product Image Card -->
-          <div class="relative overflow-hidden bg-[#f4f2f0] aspect-[3/4]">
-            <a href="/product/{{ product.slug or product.id }}" class="block h-full w-full" draggable="false">
-              <img src="{{ product.thumbnail_url }}" alt="{{ product.name }}" class="w-full h-full object-cover transition-transform duration-[1500ms] group-hover:scale-105" draggable="false" loading="lazy"/>
-            </a>
-            
-            <!-- Badge -->
-            {% if loop.index <= 3 %}
-            <span class="absolute top-4 left-4 text-[9px] font-black uppercase tracking-[0.2em] bg-white text-black px-3 py-1.5 shadow-sm pointer-events-none">
-              Mới
-            </span>
-            {% endif %}
-            
-            <!-- Quick Add Overlay (Đã fix đủ Data attributes) -->
-            <div class="absolute inset-x-4 bottom-4 translate-y-8 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 z-20 hidden md:block">
-              <button onclick="triggerQuickView(this);" 
-                      data-id="{{ product.id }}" 
-                      data-slug="{{ product.slug }}"
-                      data-name="{{ product.name }}"
-                      data-price="{{ product.price }}"
-                      data-image="{{ product.thumbnail_url }}"
-                      data-category="{{ product.categories.name if product.categories else 'Collection' }}"
-                      data-stock="{{ product.stock_quantity | default(10) }}"
-                      data-variants='{{ product.product_variants | tojson | safe if product.product_variants else "[]" }}'
-                      class="w-full bg-black text-white text-[10px] font-bold uppercase tracking-widest py-4 hover:bg-neutral-800 shadow-2xl transition-colors">
-                Quick View +
-              </button>
-            </div>
-          </div>
-
-          <!-- Product Info -->
-          <div class="mt-5">
-            <p class="text-[9px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-1.5">{{ product.categories.name if product.categories else 'Core' }}</p>
-            <div class="flex justify-between items-start gap-4">
-              <h3 class="text-[13px] font-bold uppercase tracking-tight text-black line-clamp-2 leading-snug hover:text-neutral-500 transition-colors">
-                <a href="/product/{{ product.slug or product.id }}">{{ product.name }}</a>
-              </h3>
-              <p class="text-[13px] font-medium whitespace-nowrap">₫{{ "{:,.0f}".format(product.price) }}</p>
-            </div>
-          </div>
-          
-        </div>
-        {% endfor %}
-
-      </div>
-    </div>
-
-    <!-- Scroll Progress Indicator -->
-    <div class="mt-8 mx-6 md:mx-12 h-[2px] bg-neutral-100 relative overflow-hidden">
-      <div id="progressBar" class="absolute top-0 left-0 h-full bg-black w-0 transition-all duration-200"></div>
-    </div>
-  </section>
-  {% endif %}
-
-  {# ══ 3. CATEGORY BENTO GRID (Bảo vệ code bằng If-Check) ══ #}
-  {% if categories and categories|length >= 2 %}
-  <section class="px-4 md:px-8 grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 mb-32">
-    {% set cat1 = categories[0] %}
-    {% set cat2 = categories[1] %}
-    
-    <!-- Lớn -->
-    <a href="/shop?category={{ cat1.slug }}" class="md:col-span-8 relative group overflow-hidden aspect-[4/5] md:aspect-auto md:h-[80vh] bg-neutral-100">
-      <img src="{{ cat1.image_url }}" class="w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-105">
-      <div class="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition-colors duration-700"></div>
-      <div class="absolute bottom-10 left-10 md:bottom-16 md:left-16 text-white transform group-hover:-translate-y-4 transition-transform duration-700">
-        <h2 class="text-4xl md:text-5xl font-black uppercase tracking-tighter mb-4">{{ cat1.name }}</h2>
-        <span class="text-[11px] font-bold uppercase tracking-[0.2em] border-b-2 border-white pb-1">Explore Edition</span>
-      </div>
-    </a>
-    
-    <!-- Nhỏ -->
-    <a href="/shop?category={{ cat2.slug }}" class="md:col-span-4 relative group overflow-hidden aspect-[4/5] md:h-[80vh] bg-neutral-100">
-      <img src="{{ cat2.image_url }}" class="w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-105">
-      <div class="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition-colors duration-700"></div>
-      <div class="absolute bottom-10 left-10 text-white transform group-hover:-translate-y-4 transition-transform duration-700">
-        <h2 class="text-3xl font-black uppercase tracking-tighter mb-4">{{ cat2.name }}</h2>
-        <span class="text-[10px] font-bold uppercase tracking-[0.2em] border-b-2 border-white pb-1">Shop Now</span>
-      </div>
-    </a>
-  </section>
-  {% endif %}
-
-</div>
+{% block extra_head %}
+{# ── BẢN CẬP NHẬT SIÊU TỐC: Ép trình duyệt ưu tiên nạp trước luồng stream Video Hero ── #}
+<link rel="preload" href="https://cdn.hstatic.net/files/200001029438/file/ef7df01e-38a3-4b59-b7ae-79757c79a37b.mp4" as="video" type="video/mp4">
 
 <style>
   .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -145,10 +15,146 @@
   @media(min-width:1024px){ .slider-item { --item-w: 28vw; } }
   @media(min-width:1280px){ .slider-item { --item-w: 22vw; } }
 
-  /* Animation Hero */
+  /* Tối ưu hóa hiệu năng render phần cứng (GPU) cho ảnh và video */
+  video, img {
+    will-change: transform, opacity;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  /* Animation Hero mềm mại hơn */
   .animate-fade-in-up { animation: fadeInUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
   @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
 </style>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white text-black font-sans w-full selection:bg-black selection:text-white">
+
+  {# ══ 1. HERO SECTION (Tối ưu truyền tải Video Nền) ══ #}
+  <section class="relative h-[90vh] md:h-screen overflow-hidden bg-neutral-900 flex items-end">
+    {# ✅ ĐÃ SỬA: Thêm thuộc tính preload="auto" để phát video mượt mà lập tức ngay khi vào trang #}
+    <video autoplay muted loop playsinline 
+           preload="auto"
+           class="absolute inset-0 w-full h-full object-cover scale-105 transform bg-neutral-900">
+      <source src="https://cdn.hstatic.net/files/200001029438/file/ef7df01e-38a3-4b59-b7ae-79757c79a37b.mp4" type="video/mp4"/>
+    </video>
+    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+    
+    <div class="relative z-10 w-full px-6 pb-20 md:px-12 md:pb-32 text-white animate-fade-in-up">
+      <p class="text-[10px] md:text-[12px] font-bold uppercase tracking-[0.4em] mb-4 opacity-90 text-neutral-300">
+        Spring / Summer 2026
+      </p>
+      <h1 class="text-6xl md:text-8xl lg:text-[10rem] font-black uppercase tracking-tighter leading-[0.85] mb-10 drop-shadow-xl">
+        Beyond <br> The Form
+      </h1>
+      <a href="/shop" data-nav class="group flex items-center gap-4 w-fit">
+        <span class="text-[11px] font-bold uppercase tracking-[0.2em] border-b-2 border-white pb-1.5 group-hover:pr-6 transition-all duration-300">
+          Discover Now
+        </span>
+        <svg class="w-4 h-4 transform group-hover:translate-x-2 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3"/></svg>
+      </a>
+    </div>
+  </section>
+
+  {# ══ 2. NEW ARRIVALS SLIDER (Bố cục Editorial) ══ #}
+  {% if featured_products %}
+  <section class="py-24 md:py-32">
+    <div class="px-6 md:px-12 mb-16 flex flex-col md:flex-row md:items-end justify-between gap-8">
+      <div class="max-w-xl">
+        <span class="text-[10px] font-bold uppercase tracking-[0.3em] text-neutral-400 block mb-3">Curated Selection</span>
+        <h2 class="text-4xl md:text-5xl font-black uppercase tracking-tighter leading-none">New Arrivals</h2>
+        <div class="w-16 h-[3px] bg-black mt-6"></div>
+      </div>
+      <div class="flex gap-3">
+        <button id="btnPrev" class="w-12 h-12 flex items-center justify-center border border-neutral-200 rounded-full hover:bg-black hover:text-white transition-all duration-300 disabled:opacity-20 cursor-pointer"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15.75 19.5L8.25 12l7.5-7.5"/></svg></button>
+        <button id="btnNext" class="w-12 h-12 flex items-center justify-center border border-neutral-200 rounded-full hover:bg-black hover:text-white transition-all duration-300 disabled:opacity-20 cursor-pointer"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg></button>
+      </div>
+    </div>
+
+    <div id="slider-container" class="relative overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar select-none cursor-grab active:cursor-grabbing px-6 md:px-12 pb-8">
+      <div id="slider-track" class="flex gap-4 md:gap-8 w-max">
+        
+        {% for product in featured_products %}
+        <div class="slider-item snap-start flex-shrink-0 group" style="width: var(--item-w, 280px);">
+          
+          <div class="relative overflow-hidden bg-[#f4f2f0] aspect-[3/4]">
+            <a href="/product/{{ product.slug or product.id }}" class="block h-full w-full" draggable="false" data-nav>
+              {# ✅ ĐÃ SỬA: Ép kiểu tải lazy cho toàn bộ sản phẩm bên dưới để ưu tiên băng thông tải Video Hero trước #}
+              <img src="{{ product.thumbnail_url }}" alt="{{ product.name }}" class="w-full h-full object-cover transition-transform duration-[1500ms] group-hover:scale-105 mix-blend-multiply" draggable="false" loading="lazy"/>
+            </a>
+            
+            {% if loop.index <= 3 %}
+            <span class="absolute top-4 left-4 text-[9px] font-black uppercase tracking-[0.2em] bg-white text-black px-3 py-1.5 shadow-sm pointer-events-none">
+              Mới
+            </span>
+            {% endif %}
+            
+            <div class="absolute inset-x-4 bottom-4 translate-y-8 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 z-20 hidden md:block">
+              <button onclick="triggerQuickView(this);" 
+                      data-id="{{ product.id }}" 
+                      data-slug="{{ product.slug }}"
+                      data-name="{{ product.name }}"
+                      data-price="{{ product.price }}"
+                      data-image="{{ product.thumbnail_url }}"
+                      data-category="{{ product.categories.name if product.categories else 'Collection' }}"
+                      data-stock="{{ product.stock_quantity | default(10) }}"
+                      data-variants='{{ product.product_variants | tojson | safe if product.product_variants else "[]" }}'
+                      class="w-full bg-black text-white text-[10px] font-bold uppercase tracking-widest py-4 hover:bg-neutral-800 shadow-2xl transition-colors cursor-pointer">
+                Quick View +
+              </button>
+            </div>
+          </div>
+
+          <div class="mt-5">
+            <p class="text-[9px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-1.5">{{ product.categories.name if product.categories else 'Core' }}</p>
+            <div class="flex justify-between items-start gap-4">
+              <h3 class="text-[13px] font-bold uppercase tracking-tight text-black line-clamp-2 leading-snug hover:text-neutral-500 transition-colors">
+                <a href="/product/{{ product.slug or product.id }}" data-nav>{{ product.name }}</a>
+              </h3>
+              <p class="text-[13px] font-medium whitespace-nowrap">₫{{ "{:,.0f}".format(product.price) }}</p>
+            </div>
+          </div>
+          
+        </div>
+        {% endfor %}
+
+      </div>
+    </div>
+
+    <div class="mt-8 mx-6 md:mx-12 h-[2px] bg-neutral-100 relative overflow-hidden">
+      <div id="progressBar" class="absolute top-0 left-0 h-full bg-black w-0 transition-all duration-200"></div>
+    </div>
+  </section>
+  {% endif %}
+
+  {# ══ 3. CATEGORY BENTO GRID (Bảo vệ bảo mật mã nguồn bằng If-Check) ══ #}
+  {% if categories and categories|length >= 2 %}
+  <section class="px-4 md:px-8 grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 mb-32">
+    {% set cat1 = categories[0] %}
+    {% set cat2 = categories[1] %}
+    
+    <a href="/shop?category={{ cat1.slug }}" data-nav class="md:col-span-8 relative group overflow-hidden aspect-[4/5] md:aspect-auto md:h-[80vh] bg-neutral-100">
+      <img src="{{ cat1.image_url }}" class="w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-105" loading="lazy">
+      <div class="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition-colors duration-700"></div>
+      <div class="absolute bottom-10 left-10 md:bottom-16 md:left-16 text-white transform group-hover:-translate-y-4 transition-transform duration-700">
+        <h2 class="text-4xl md:text-5xl font-black uppercase tracking-tighter mb-4">{{ cat1.name }}</h2>
+        <span class="text-[11px] font-bold uppercase tracking-[0.2em] border-b-2 border-white pb-1">Explore Edition</span>
+      </div>
+    </a>
+    
+    <a href="/shop?category={{ cat2.slug }}" data-nav class="md:col-span-4 relative group overflow-hidden aspect-[4/5] md:h-[80vh] bg-neutral-100">
+      <img src="{{ cat2.image_url }}" class="w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-105" loading="lazy">
+      <div class="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition-colors duration-700"></div>
+      <div class="absolute bottom-10 left-10 text-white transform group-hover:-translate-y-4 transition-transform duration-700">
+        <h2 class="text-3xl font-black uppercase tracking-tighter mb-4">{{ cat2.name }}</h2>
+        <span class="text-[10px] font-bold uppercase tracking-[0.2em] border-b-2 border-white pb-1">Shop Now</span>
+      </div>
+    </a>
+  </section>
+  {% endif %}
+
+</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -159,7 +165,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (!container) return;
 
-    // 1. Cập nhật UI thanh cuộn
+    // 1. Cập nhật UI thanh cuộn (Đã bật passive tránh chặn render luồng click)
+    let isScrollingThrottled = false;
     const updateUI = () => {
         const max = container.scrollWidth - container.clientWidth;
         if (max <= 0) return;
@@ -167,10 +174,20 @@ document.addEventListener('DOMContentLoaded', function() {
         btnPrev.disabled = container.scrollLeft <= 10;
         btnNext.disabled = container.scrollLeft >= max - 10;
     };
-    container.addEventListener('scroll', updateUI, { passive: true });
+    
+    container.addEventListener('scroll', () => {
+        if (!isScrollingThrottled) {
+            window.requestAnimationFrame(() => {
+                updateUI();
+                isScrollingThrottled = false;
+            });
+            isScrollingThrottled = true;
+        }
+    }, { passive: true });
+    
     setTimeout(updateUI, 100);
 
-    // 2. Nút điều hướng
+    // 2. Nút điều hướng mượt mà
     const getStep = () => {
         const item = container.querySelector('.slider-item');
         return item ? item.offsetWidth + 24 : container.clientWidth * 0.8;
@@ -178,35 +195,35 @@ document.addEventListener('DOMContentLoaded', function() {
     btnNext.onclick = () => container.scrollBy({ left: getStep(), behavior: 'smooth' });
     btnPrev.onclick = () => container.scrollBy({ left: -getStep(), behavior: 'smooth' });
 
-    // 3. Xử lý Kéo thả mượt mà (Kèm chống click lầm)
+    // 3. Xử lý Kéo thả mượt mà (Kèm chống click lầm khi đang kéo)
     let isDown = false, startX, scrollLeft, isDragging = false;
 
-    container.onmousedown = (e) => {
+    container.addEventListener('mousedown', (e) => {
         isDown = true; 
         isDragging = false;
         startX = e.pageX - container.offsetLeft; 
         scrollLeft = container.scrollLeft;
         container.style.cursor = 'grabbing';
-        container.classList.remove('scroll-smooth'); // Tắt mượt để kéo ko bị trễ
-    };
+        container.classList.remove('scroll-smooth'); 
+    }, { passive: true });
 
-    window.onmouseup = () => { 
+    window.addEventListener('mouseup', () => { 
         isDown = false; 
         container.style.cursor = 'grab';
         container.classList.add('scroll-smooth');
-        setTimeout(() => isDragging = false, 50); // Delay nhẹ để chặn click
-    };
+        setTimeout(() => isDragging = false, 50); 
+    });
 
-    container.onmousemove = (e) => {
+    container.addEventListener('mousemove', (e) => {
         if(!isDown) return;
         e.preventDefault();
         const x = e.pageX - container.offsetLeft;
         const walk = (x - startX) * 1.5;
-        if (Math.abs(walk) > 5) isDragging = true; // Nhận diện đang kéo thật sự
+        if (Math.abs(walk) > 5) isDragging = true; 
         container.scrollLeft = scrollLeft - walk;
-    };
+    });
 
-    // Chặn click vào nút Quick View / Link nếu người dùng đang thực hiện thao tác kéo cuộn (Drag)
+    // Chặn kích hoạt nhầm trang khi người dùng đang thực hiện quẹt kéo Slider
     container.querySelectorAll('a, button').forEach(el => {
         el.addEventListener('click', (e) => {
             if (isDragging) {

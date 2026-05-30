@@ -2,6 +2,13 @@
 {% block title %}GUA. | Official Online Store{% endblock %}
 
 {% block extra_head %}
+{# ── BẢN CẬP NHẬT TĂNG TỐC: Kích hoạt Preload cho Video Đầu trang nếu có cấu hình sẵn ── #}
+{% set sf = system_settings.get('storefront', {}) %}
+{% set hero_url = sf.get('hero_banner_url') or '' %}
+{% if hero_url and (hero_url.lower().endswith('.mp4') or 'video' in hero_url.lower()) %}
+  <link rel="preload" href="{{ hero_url }}" as="video" type="video/mp4">
+{% endif %}
+
 <style>
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -9,6 +16,13 @@
   .group:hover .img-pan { transform: scale(1.05); }
   .animate-fade-in-up { animation: fadeInUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
   @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  
+  /* Tối ưu hóa hiệu ứng mượt mà cho phần cứng khi render video/ảnh */
+  video, img {
+    will-change: transform, opacity;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
 </style>
 {% endblock %}
 
@@ -17,26 +31,33 @@
 {# ── Lấy danh mục từ categories (giữ 4 ô đầu cho grid) ── #}
 {% set grid_cats = categories[0:4] if categories else [] %}
 
-{# ── BẢN CẬP NHẬT: Trích xuất phân vùng storefront an toàn bằng .get() ── #}
+{# ── Trích xuất phân vùng storefront an toàn bằng .get() ── #}
 {% set sf = system_settings.get('storefront', {}) %}
 
 <div class="bg-white text-black font-sans w-full selection:bg-black selection:text-white">
 
-  {# ══ 1. HERO BANNER (Đồng bộ thời gian thực từ Admin Settings) ══ #}
+  {# ══ 1. HERO BANNER (Tối ưu hóa luồng Stream Video siêu tốc) ══ #}
   {% set hero_url = sf.get('hero_banner_url') or '' %}
   {% set is_video = hero_url.lower().endswith('.mp4') or 'video' in hero_url.lower() if hero_url else false %}
 
   <section class="relative w-full h-[85vh] md:h-screen overflow-hidden bg-neutral-900 flex items-end">
     {% if hero_url %}
       {% if is_video %}
-        <video autoplay muted loop playsinline class="absolute inset-0 w-full h-full object-cover object-center">
+        {# ✅ ĐÃ SỬA: Thêm các thuộc tính tối ưu hóa truyền tải, dùng ảnh banner máy tính làm poster tạm thời #}
+        <video autoplay muted loop playsinline 
+               preload="auto"
+               poster="{{ sf.get('banner_desktop_url') or '' }}"
+               class="absolute inset-0 w-full h-full object-cover object-center bg-neutral-900">
           <source src="{{ hero_url }}" type="video/mp4">
         </video>
       {% else %}
-        <img src="{{ hero_url }}" alt="Hero banner" class="absolute inset-0 w-full h-full object-cover object-center">
+        <img src="{{ hero_url }}" alt="Hero banner" class="absolute inset-0 w-full h-full object-cover object-center" fetchpriority="high">
       {% endif %}
     {% else %}
-      <video autoplay muted loop playsinline class="absolute inset-0 w-full h-full object-cover object-center">
+      {# Video Dự phòng hệ thống Local #}
+      <video autoplay muted loop playsinline 
+             preload="auto"
+             class="absolute inset-0 w-full h-full object-cover object-center bg-neutral-900">
         <source src="../../static/video/MMESTLINE CON NGỰA.mp4" type="video/mp4"/>
       </video>
     {% endif %}
@@ -60,8 +81,11 @@
     {% for i in range(4) %}
       {% set cat = grid_cats[i] if grid_cats|length > i else None %}
       <a href="/shop{% if cat %}?category={{ cat.slug }}{% endif %}" class="relative group block aspect-[3/4] md:aspect-[4/5] overflow-hidden bg-[#f8f8f8]">
+        {# Thay đổi fetchpriority sang high cho 4 ô danh mục đầu trang để kéo ảnh về nhanh hơn #}
         <img src="{{ cat.image_url if cat and cat.image_url else 'https://placehold.co/600x800/ede4d8/1a1714?text=Category+' ~ (i+1) }}" 
-             alt="{{ cat.name if cat else 'Category' }}" class="w-full h-full object-cover object-top img-pan">
+             alt="{{ cat.name if cat else 'Category' }}" 
+             class="w-full h-full object-cover object-top img-pan"
+             {% if loop.first %}fetchpriority="high"{% else %}loading="eager"{% endif %}>
         <div class="absolute inset-0 bg-black/5 group-hover:bg-black/20 transition-colors duration-500"></div>
         <div class="absolute bottom-5 left-5 z-10">
           <h3 class="text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-black bg-white px-4 py-2 shadow-sm transform group-hover:-translate-y-1 transition-transform duration-300">
@@ -75,7 +99,7 @@
   {# ══ 3. BANNER 2 (Full Width) ══ #}
   <section class="relative w-full h-[65vh] md:h-[120vh] mt-1 md:mt-2 overflow-hidden bg-neutral-100 group">
     <img src="{{ sf.get('banner2_url') or 'https://i.pinimg.com/1200x/c2/66/05/c2660571733bc9f4b917675c9bfe94f9.jpg' }}" 
-         alt="Banner 2" class="absolute inset-0 w-full h-full object-cover object-center img-pan">
+         alt="Banner 2" class="absolute inset-0 w-full h-full object-cover object-center img-pan" loading="lazy">
     <div class="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition-colors duration-700"></div>
     <div class="absolute bottom-12 left-6 md:left-12 text-white z-10">
       <h2 class="font-display text-4xl md:text-6xl font-black uppercase tracking-tight">Signature</h2>
@@ -87,7 +111,7 @@
   <section class="w-full p-1 md:p-2 grid grid-cols-1 md:grid-cols-2 gap-1 md:gap-2">
     <div class="relative w-full h-[60vh] md:h-[80vh] group overflow-hidden bg-neutral-100">
       <img src="{{ sf.get('split_left_url') or 'https://i.pinimg.com/1200x/8d/f1/b1/8df1b177ec235f6699a8f56cd324e5e4.jpg' }}" 
-           alt="Split left" class="absolute inset-0 w-full h-full object-cover object-center img-pan">
+           alt="Split left" class="absolute inset-0 w-full h-full object-cover object-center img-pan" loading="lazy">
       <div class="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition duration-700"></div>
       <div class="absolute bottom-10 left-8 md:left-12 text-white z-10 transform group-hover:-translate-y-3 transition-transform duration-500">
         <h2 class="font-display text-3xl md:text-4xl font-black uppercase tracking-tight">Essentials</h2>
@@ -96,7 +120,7 @@
     </div>
     <div class="relative w-full h-[60vh] md:h-[80vh] group overflow-hidden bg-neutral-100">
       <img src="{{ sf.get('split_right_url') or 'https://i.pinimg.com/736x/ad/49/55/ad4955e1f64e66bf775163948ba51a3b.jpg' }}" 
-           alt="Split right" class="absolute inset-0 w-full h-full object-cover object-center img-pan">
+           alt="Split right" class="absolute inset-0 w-full h-full object-cover object-center img-pan" loading="lazy">
       <div class="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition duration-700"></div>
       <div class="absolute bottom-10 left-8 md:left-12 text-white z-10 transform group-hover:-translate-y-3 transition-transform duration-500">
         <h2 class="font-display text-3xl md:text-4xl font-black uppercase tracking-tight">Avant-Garde</h2>
@@ -105,15 +129,20 @@
     </div>
   </section>
 
-  {# ══ 5. BANNER 4 (VIDEO Best Sellers) ══ #}
+  {# ══ 5. BANNER 4 (VIDEO Best Sellers - Tối ưu hóa tải chậm cuộn trang) ══ #}
   {% set video_url = sf.get('banner4_video_url') %}
   <section class="relative w-full h-[65vh] md:h-[80vh] mt-1 md:mt-2 overflow-hidden bg-neutral-900 group">
     {% if video_url %}
-      <video autoplay loop muted playsinline class="absolute inset-0 w-full h-full object-cover object-center">
+      {# ✅ ĐÃ SỬA: Chuyển preload thành 'metadata' để trình duyệt không tải ngầm video này khi người dùng chưa cuộn xuống #}
+      <video autoplay loop muted playsinline 
+             preload="metadata"
+             class="absolute inset-0 w-full h-full object-cover object-center bg-neutral-900">
         <source src="{{ video_url }}" type="video/mp4">
       </video>
     {% else %}
-      <video autoplay loop muted playsinline class="absolute inset-0 w-full h-full object-cover object-center">
+      <video autoplay loop muted playsinline 
+             preload="metadata"
+             class="absolute inset-0 w-full h-full object-cover object-center bg-neutral-900">
         <source src="https://www.pexels.com/download/video/10664773/" type="video/mp4">
       </video>
     {% endif %}

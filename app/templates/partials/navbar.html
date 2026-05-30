@@ -1,25 +1,23 @@
 {# ═══════════════════════════════════════════════════════════
-   partials/navbar.html — GUA Maison 2026
-   Thay đổi:
-   - Bell badge dùng unread_notification_count từ context processor
-   - Badge JS live-update mỗi 60s (từ base.html script)
-   - Dropdown mini 3 thông báo gần nhất (desktop)
-   - Mobile menu có link Thông báo
-   - Scroll FX giữ nguyên
+   partials/navbar.html — GUA Maison 2026 (High-Performance Supercharged)
+   Thay đổi cốt lõi:
+   - Tối ưu hóa GPU Hardware Acceleration bằng transform 3D cho Mobile Drawer (chống lag).
+   - Throttle Scroll Event (Tiết giảm tần suất tính toán DOM giúp chuyển trang nhanh lập tức).
+   - Đồng bộ CSS mượt mà và Live-update thông báo an toàn.
 ═══════════════════════════════════════════════════════════ #}
 
 <nav id="mainNav"
      aria-label="Điều hướng chính"
-     class="fixed top-0 w-full z-[150] transition-colors duration-500 border-b bg-transparent text-white border-transparent">
+     class="fixed top-0 w-full z-[150] transition-all duration-300 border-b bg-transparent text-white border-transparent transform translate-z-0 backface-hidden">
 
   <div class="max-w-[1440px] mx-auto px-5 md:px-8 flex items-center justify-between h-[72px] md:h-[88px]">
 
     {# ── 1. MOBILE HAMBURGER ── #}
     <div class="flex lg:hidden items-center flex-1">
-      <button id="openMenu" aria-label="Mở menu"
-              class="flex flex-col gap-[5px] p-2 -ml-2 hover:opacity-60 transition-opacity">
-        <span class="w-5 h-[1.5px] bg-current block transition-all"></span>
-        <span class="w-3.5 h-[1.5px] bg-current block transition-all"></span>
+      <button id="openMenu" aria-label="Mở menu" onclick="MobileMenuOverlay.open()"
+              class="flex flex-col gap-[5px] p-2 -ml-2 hover:opacity-60 transition-opacity cursor-pointer">
+        <span class="w-5 h-[1.5px] bg-current block transition-all duration-300"></span>
+        <span class="w-3.5 h-[1.5px] bg-current block transition-all duration-300"></span>
       </button>
     </div>
 
@@ -28,7 +26,7 @@
 
       {# Cửa hàng + Dropdown #}
       <div class="relative group h-[88px] flex items-center">
-        <a href="/shop" class="flex items-center gap-2 hover:opacity-60 transition-opacity py-2">
+        <a href="/shop" class="flex items-center gap-2 hover:opacity-60 transition-opacity py-2" data-nav>
           Cửa hàng
           <svg class="w-2.5 h-2.5 group-hover:rotate-180 transition-transform duration-300"
                fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -38,19 +36,21 @@
         <div class="absolute top-[88px] left-0 w-56 bg-white text-black border border-neutral-100 shadow-xl
                     opacity-0 invisible translate-y-3
                     group-hover:opacity-100 group-hover:visible group-hover:translate-y-0
-                    transition-all duration-300 ease-out z-50">
+                    transition-all duration-300 ease-out z-50 rounded-sm overflow-hidden">
           <div class="py-1">
-            <a href="/shop"
+            <a href="/shop" data-nav
                class="block px-6 py-3 text-[10px] font-black tracking-[0.2em] hover:bg-neutral-50 transition-colors border-b border-neutral-100">
               Tất cả thiết kế
             </a>
-            {% for cat in global_categories[:3] %}
-            <a href="/shop?category={{ cat.slug }}"
-               class="block px-6 py-3 text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-500 hover:text-black hover:bg-neutral-50 transition-colors">
-              {{ cat.name }}
-            </a>
-            {% endfor %}
-            <a href="/collections"
+            {% if global_categories %}
+              {% for cat in global_categories[:3] %}
+              <a href="/shop?category={{ cat.slug }}" data-nav
+                 class="block px-6 py-3 text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-500 hover:text-black hover:bg-neutral-50 transition-colors">
+                {{ cat.name }}
+              </a>
+              {% endfor %}
+            {% endif %}
+            <a href="/collections" data-nav
                class="block px-6 py-3 text-[9px] font-black uppercase tracking-[0.2em] text-black hover:bg-neutral-50 transition-colors border-t border-neutral-100">
               Xem Lookbook &rarr;
             </a>
@@ -58,117 +58,73 @@
         </div>
       </div>
 
-      <a href="/about"      class="hover:opacity-60 transition-opacity">Giới thiệu</a>
-      <a href="/contact"    class="hover:opacity-60 transition-opacity">Liên hệ</a>
-      <a href="/promotions" class="hover:opacity-60 transition-opacity flex items-center gap-1.5">
+      <a href="/about" data-nav class="hover:opacity-60 transition-opacity">Giới thiệu</a>
+      <a href="/contact" data-nav class="hover:opacity-60 transition-opacity">Liên hệ</a>
+      <a href="/promotions" data-nav class="hover:opacity-60 transition-opacity flex items-center gap-1.5">
         Voucher <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
       </a>
     </div>
 
     {# ── 3. LOGO ── #}
     <div class="flex justify-center flex-1 lg:flex-none">
-      <a href="/" aria-label="GUA Maison"
-         class="text-2xl md:text-3xl tracking-[0.2em] uppercase hover:opacity-70 transition-opacity"
-         style="font-family:'Cormorant Garamond',serif;">GUA</a>
+      <a href="/" data-nav aria-label="GUA Maison"
+         class="text-2xl md:text-3xl tracking-[0.2em] uppercase hover:opacity-70 transition-opacity font-serif">GUA</a>
     </div>
 
     {# ── 4. RIGHT ICONS ── #}
     <div class="flex flex-1 items-center justify-end gap-3 md:gap-5">
-      {# ── THÔNG BÁO — Bell icon + badge + dropdown mini (desktop) ── #}
+      
+      {# ── THÔNG BÁO ── #}
       {% if current_user.id %}
       <div class="relative group hidden sm:block">
-
-        {# Bell button #}
-        <a href="{{ url_for('notification.index') }}" 
+        <a href="{{ url_for('notification.index') }}" data-nav
            aria-label="Thông báo"
            class="relative flex items-center justify-center w-8 h-8 hover:opacity-60 transition-opacity"
            id="navBellBtn">
-          <svg class="w-4 h-4 md:w-[18px] md:h-[18px]" fill="none" stroke="currentColor"
-               stroke-width="1.5" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/>
+          <svg class="w-4 h-4 md:w-[18px] md:h-[18px]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/>
           </svg>
-
-          {# Badge — SSR fallback + JS sẽ override qua .notif-badge class #}
-          <span class="notif-badge absolute -top-1 -right-1 min-w-[16px] h-4 px-1
-                       bg-black text-white text-[8px] font-black rounded-full
-                       flex items-center justify-center border border-white shadow-sm
-                       {% if not unread_notification_count or unread_notification_count == 0 %}is-zero{% endif %}">
-            {{ unread_notification_count if unread_notification_count and unread_notification_count > 0 else 0 }}
+          <span class="notif-badge absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-black text-white text-[8px] font-black rounded-full flex items-center justify-center border border-white shadow-sm {% if not unread_notification_count or unread_notification_count == 0 %}is-zero{% endif %}">
+            {{ unread_notification_count | default(0) }}
           </span>
         </a>
 
-        {# Dropdown mini — 3 thông báo gần nhất (desktop hover) #}
-        <div class="absolute right-0 top-[calc(100%+10px)] w-80
-                    bg-white text-black border border-neutral-100 shadow-2xl rounded-sm
-                    opacity-0 invisible translate-y-2
-                    group-hover:opacity-100 group-hover:visible group-hover:translate-y-0
-                    transition-all duration-250 ease-out z-50"
-             id="notifDropdown">
-
-          {# Header dropdown #}
+        {# Dropdown mini #}
+        <div class="absolute right-0 top-[calc(100%+10px)] w-80 bg-white text-black border border-neutral-100 shadow-2xl rounded-sm opacity-0 invisible translate-y-2 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-200 ease-out z-50" id="notifDropdown">
           <div class="flex items-center justify-between px-4 py-3 border-b border-neutral-100">
             <span class="text-[10px] font-black uppercase tracking-[0.2em]">Thông báo</span>
-            <a href="{{ url_for('notification.index') }}?filter=unread"
-               class="text-[9px] font-bold uppercase tracking-wider text-neutral-400 hover:text-black transition-colors">
-              Xem tất cả
-            </a>
+            <a href="{{ url_for('notification.index') }}?filter=unread" data-nav class="text-[9px] font-bold uppercase tracking-wider text-neutral-400 hover:text-black transition-colors">Xem tất cả</a>
           </div>
-
-          {# Danh sách — load qua JS khi hover #}
-          <div id="notifDropdownList" class="divide-y divide-neutral-50 max-h-72 overflow-y-auto">
-            {# Placeholder trước khi JS load #}
-            <div class="px-4 py-8 text-center text-[11px] text-neutral-400" id="notifDropdownEmpty">
-              <svg class="w-8 h-8 mx-auto mb-2 text-neutral-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                      d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/>
-              </svg>
-              Đang tải...
-            </div>
+          <div id="notifDropdownList" class="divide-y divide-neutral-50 max-h-72 overflow-y-auto custom-scrollbar">
+            <div class="px-4 py-8 text-center text-[11px] text-neutral-400" id="notifDropdownEmpty">Đang tải...</div>
           </div>
-
-          {# Footer #}
           <div class="border-t border-neutral-100 px-4 py-2.5">
-            <a href="{{ url_for('notification.index') }}"
-               class="block text-center text-[9px] font-black uppercase tracking-[0.2em] text-neutral-500 hover:text-black transition-colors">
-              Xem trang thông báo &rarr;
-            </a>
+            <a href="{{ url_for('notification.index') }}" data-nav class="block text-center text-[9px] font-black uppercase tracking-[0.2em] text-neutral-500 hover:text-black transition-colors">Xem trang thông báo &rarr;</a>
           </div>
         </div>
       </div>
 
-      {# Mobile bell — chỉ icon, không dropdown #}
-      <a href="{{ url_for('notification.index') }}"
-         aria-label="Thông báo"
-         class="relative flex sm:hidden items-center justify-center w-8 h-8 hover:opacity-60 transition-opacity">
+      {# Mobile Bell #}
+      <a href="{{ url_for('notification.index') }}" data-nav aria-label="Thông báo" class="relative flex sm:hidden items-center justify-center w-8 h-8 hover:opacity-60 transition-opacity">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round"
-                d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/>
         </svg>
-        <span class="notif-badge absolute -top-1 -right-1 min-w-[16px] h-4 px-1
-                     bg-black text-white text-[8px] font-black rounded-full
-                     flex items-center justify-center border border-white shadow-sm
-                     {% if not unread_notification_count or unread_notification_count == 0 %}is-zero{% endif %}">
-          {{ unread_notification_count if unread_notification_count and unread_notification_count > 0 else 0 }}
+        <span class="notif-badge absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-black text-white text-[8px] font-black rounded-full flex items-center justify-center border border-white shadow-sm {% if not unread_notification_count or unread_notification_count == 0 %}is-zero{% endif %}">
+          {{ unread_notification_count | default(0) }}
         </span>
       </a>
       {% endif %}
 
       {# ── Tài khoản (Desktop) ── #}
       <div class="relative group hidden lg:flex h-[88px] items-center">
-        <a href="{% if current_user.id %}/profile/{% else %}/auth/login{% endif %}"
-           aria-label="Tài khoản" class="hover:opacity-60 transition-opacity p-1.5">
+        <a href="{% if current_user.id %}/profile/{% else %}/auth/login{% endif %}" data-nav aria-label="Tài khoản" class="hover:opacity-60 transition-opacity p-1.5">
           <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/>
           </svg>
         </a>
 
         {% if current_user.id %}
-        <div class="absolute right-0 top-[88px] w-56 bg-white text-black border border-neutral-100 shadow-xl
-                    opacity-0 invisible translate-y-3
-                    group-hover:opacity-100 group-hover:visible group-hover:translate-y-0
-                    transition-all duration-300 ease-out z-50">
+        <div class="absolute right-0 top-[88px] w-56 bg-white text-black border border-neutral-100 shadow-xl opacity-0 invisible translate-y-3 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-300 ease-out z-50 rounded-sm overflow-hidden">
           <div class="px-6 py-4 bg-[#f8f8f8] border-b border-neutral-100">
             <p class="text-xs font-black uppercase tracking-wider truncate">{{ current_user.full_name }}</p>
             <p class="text-[9px] font-medium text-neutral-400 truncate mt-1 tracking-widest">{{ current_user.email }}</p>
@@ -185,30 +141,18 @@
             </a>
             <div class="h-px bg-neutral-100 mx-4 my-1"></div>
             {% endif %}
-            <a href="/profile/"
-               class="block px-6 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 hover:text-black hover:bg-neutral-50 transition-colors">
-              Tài khoản
-            </a>
-            <a href="/profile/orders"
-               class="block px-6 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 hover:text-black hover:bg-neutral-50 transition-colors">
-              Đơn hàng
-            </a>
-            <a href="{{ url_for('notification.index') }}"
-               class="flex items-center justify-between px-6 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 hover:text-black hover:bg-neutral-50 transition-colors">
+            <a href="/profile/" data-nav class="block px-6 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 hover:text-black hover:bg-neutral-50 transition-colors">Tài khoản</a>
+            <a href="/profile/orders" data-nav class="block px-6 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 hover:text-black hover:bg-neutral-50 transition-colors">Đơn hàng</a>
+            <a href="{{ url_for('notification.index') }}" data-nav class="flex items-center justify-between px-6 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 hover:text-black hover:bg-neutral-50 transition-colors">
               <span>Thông báo</span>
               {% if unread_notification_count and unread_notification_count > 0 %}
-              <span class="bg-black text-white text-[8px] font-black px-1.5 py-0.5 rounded-full">
-                {{ unread_notification_count }}
-              </span>
+              <span class="bg-black text-white text-[8px] font-black px-1.5 py-0.5 rounded-full">{{ unread_notification_count }}</span>
               {% endif %}
             </a>
             <div class="h-px bg-neutral-100 mx-4 my-1"></div>
             <form action="/auth/logout" method="POST" class="m-0">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <button type="submit"
-                      class="w-full text-left px-6 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-red-500 hover:bg-red-50 transition-colors cursor-pointer">
-                Đăng xuất
-              </button>
+              <button type="submit" class="w-full text-left px-6 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-red-500 hover:bg-red-50 transition-colors cursor-pointer">Đăng xuất</button>
             </form>
           </div>
         </div>
@@ -216,116 +160,122 @@
       </div>
 
       {# ── Giỏ hàng ── #}
-      <a href="/cart/" aria-label="Giỏ hàng"
-         class="relative hover:opacity-60 transition-opacity p-1.5 -mr-1.5">
-        <svg class="w-4 h-4 md:w-[18px] md:h-[18px]" fill="none" stroke="currentColor"
-             stroke-width="1.5" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round"
-                d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/>
+      <a href="/cart/" data-nav aria-label="Giỏ hàng" class="relative hover:opacity-60 transition-opacity p-1.5 -mr-1.5">
+        <svg class="w-4 h-4 md:w-[18px] md:h-[18px]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/>
         </svg>
-        {% if cart_count > 0 %}
-        <span class="absolute top-0 right-0 bg-red-500 text-white text-[8px] font-black
-                     w-3.5 h-3.5 flex items-center justify-center rounded-full border border-white">
-          {{ cart_count }}
-        </span>
+        {% if cart_count and cart_count > 0 %}
+        <span class="absolute top-0 right-0 bg-red-500 text-white text-[8px] font-black w-3.5 h-3.5 flex items-center justify-center rounded-full border border-white">{{ cart_count }}</span>
         {% endif %}
       </a>
     </div>
   </div>
 </nav>
 
-{# ── 5. MOBILE MENU OVERLAY ── #}
+{# ── 5. MOBILE MENU OVERLAY (TỐI ƯU TRANSLATE X CHẠY 60FPS BẰNG GPU) ── #}
 <div id="mobileMenu"
-     class="fixed inset-0 bg-white z-[200] flex flex-col invisible opacity-0 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]">
+     class="fixed inset-y-0 left-0 w-full max-w-sm bg-white z-[200] flex flex-col shadow-2xl border-r border-neutral-100 pointer-events-none transform -translate-x-full transition-transform duration-400 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform">
 
-  <div class="flex items-center justify-between px-5 h-[72px] border-b border-neutral-100 text-black">
-    <span class="text-2xl tracking-[0.2em] uppercase" style="font-family:'Cormorant Garamond',serif;">GUA</span>
-    <button id="closeMenu" aria-label="Đóng menu"
-            class="p-2 -mr-2 text-neutral-400 hover:text-black transition-colors">
+  <div class="flex items-center justify-between px-5 h-[72px] border-b border-neutral-100 text-black shrink-0">
+    <span class="text-2xl tracking-[0.2em] uppercase font-serif">GUA</span>
+    <button id="closeMenu" aria-label="Đóng menu" onclick="MobileMenuOverlay.close()"
+            class="p-2 -mr-2 text-neutral-400 hover:text-black transition-colors cursor-pointer">
       <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
       </svg>
     </button>
   </div>
 
-  <div class="flex-1 overflow-y-auto px-6 py-10 flex flex-col justify-between">
-    <div class="space-y-6">
-      <a href="/shop" class="block text-2xl font-light uppercase tracking-widest text-black">Cửa hàng</a>
-      <div class="pl-4 space-y-4 border-l border-neutral-200 py-2 my-4">
-        {% for cat in global_categories[:4] %}
-        <a href="/shop?category={{ cat.slug }}"
-           class="block text-xs font-bold uppercase tracking-[0.2em] text-neutral-500">{{ cat.name }}</a>
-        {% endfor %}
+  <div class="flex-1 overflow-y-auto px-6 py-8 flex flex-col justify-between custom-scrollbar">
+    <div class="space-y-5">
+      <a href="/shop" data-nav class="block text-xl font-bold uppercase tracking-widest text-black">Cửa hàng</a>
+      <div class="pl-4 space-y-3 border-l border-neutral-200 py-1 my-2">
+        {% if global_categories %}
+          {% for cat in global_categories[:4] %}
+          <a href="/shop?category={{ cat.slug }}" data-nav
+             class="block text-[11px] font-bold uppercase tracking-[0.2em] text-neutral-500 hover:text-black transition-colors">{{ cat.name }}</a>
+          {% endfor %}
+        {% endif %}
       </div>
-      <a href="/about"      class="block text-2xl font-light uppercase tracking-widest text-black">Giới thiệu</a>
-      <a href="/contact"    class="block text-2xl font-light uppercase tracking-widest text-black">Liên hệ</a>
-      <a href="/promotions" class="flex items-center gap-3 text-2xl font-light uppercase tracking-widest text-black">
-        Voucher <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse mt-1"></span>
+      <a href="/about" data-nav class="block text-xl font-bold uppercase tracking-widest text-black">Giới thiệu</a>
+      <a href="/contact" data-nav class="block text-xl font-bold uppercase tracking-widest text-black">Liên hệ</a>
+      <a href="/promotions" data-nav class="flex items-center gap-3 text-xl font-bold uppercase tracking-widest text-black">
+        Voucher <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse mt-0.5"></span>
       </a>
 
       {% if current_user.id %}
-      <a href="{{ url_for('notification.index') }}"
-         class="flex items-center justify-between text-2xl font-light uppercase tracking-widest text-black">
+      <a href="{{ url_for('notification.index') }}" data-nav
+         class="flex items-center justify-between text-xl font-bold uppercase tracking-widest text-black">
         <span>Thông báo</span>
         {% if unread_notification_count and unread_notification_count > 0 %}
-        <span class="text-sm font-black bg-black text-white px-2 py-0.5 rounded-full">
-          {{ unread_notification_count }}
-        </span>
+        <span class="text-xs font-black bg-black text-white px-2 py-0.5 rounded-full">{{ unread_notification_count }}</span>
         {% endif %}
       </a>
       {% endif %}
     </div>
 
-    <div class="pt-10 mt-10 border-t border-neutral-100">
+    <div class="pt-8 border-t border-neutral-100 shrink-0">
       {% if current_user.id %}
-        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-4">
-          Xin chào, {{ current_user.full_name }}
-        </p>
+        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Xin chào, {{ current_user.full_name }}</p>
         <div class="grid grid-cols-2 gap-3">
-          <a href="/profile/"
-             class="text-[11px] font-bold uppercase tracking-[0.15em] text-black border border-neutral-200 text-center py-3 hover:bg-neutral-50 transition-colors">
-            Tài khoản
-          </a>
-          <a href="/profile/orders"
-             class="text-[11px] font-bold uppercase tracking-[0.15em] text-black border border-neutral-200 text-center py-3 hover:bg-neutral-50 transition-colors">
-            Đơn hàng
-          </a>
+          <a href="/profile/" data-nav class="text-[11px] font-bold uppercase tracking-[0.15em] text-black border border-neutral-200 text-center py-3 hover:bg-neutral-50 transition-colors">Tài khoản</a>
+          <a href="/profile/orders" data-nav class="text-[11px] font-bold uppercase tracking-[0.15em] text-black border border-neutral-200 text-center py-3 hover:bg-neutral-50 transition-colors">Đơn hàng</a>
         </div>
         {% if current_user.role in ('admin', 'staff') %}
         <a href="/admin/"
-           class="mt-3 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest
-                  {% if current_user.role == 'admin' %}text-black border border-neutral-900 bg-neutral-50{% else %}text-blue-700 border border-blue-200 bg-blue-50{% endif %}
-                  py-3 hover:opacity-80 transition-opacity">
-          <i class="fa-solid {% if current_user.role == 'admin' %}fa-shield-halved{% else %}fa-user-shield{% endif %} text-xs"></i>
-          {% if current_user.role == 'admin' %}Studio Admin{% else %}Trang Quản trị{% endif %} &rarr;
+           class="mt-3 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest {% if current_user.role == 'admin' %}text-black border border-neutral-900 bg-neutral-50{% else %}text-blue-700 border border-blue-200 bg-blue-50{% endif %} py-3 hover:opacity-80 transition-opacity">
+          Studio Admin &rarr;
         </a>
         {% endif %}
-        <form action="/auth/logout" method="POST" class="mt-4">
+        <form action="/auth/logout" method="POST" class="mt-4 m-0">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit"
-                  class="w-full text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 underline py-2">
-            Đăng xuất
-          </button>
+          <button type="submit" class="w-full text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 underline py-2 cursor-pointer">Đăng xuất</button>
         </form>
       {% else %}
-        <a href="/auth/login"
-           class="block w-full bg-black text-white text-center py-4 text-[11px] font-bold uppercase tracking-[0.2em]">
-          Đăng nhập / Đăng ký
-        </a>
+        <a href="/auth/login" data-nav class="block w-full bg-black text-white text-center py-4 text-[11px] font-bold uppercase tracking-[0.2em]">Đăng nhập / Đăng ký</a>
       {% endif %}
     </div>
   </div>
 </div>
 
-{# ── SCROLL FX + NOTIFICATION DROPDOWN LOGIC ── #}
-<script>
-document.addEventListener('DOMContentLoaded', () => {
+{# Nền mờ Mobile Menu #}
+<div id="mobileMenuBackdrop" onclick="MobileMenuOverlay.close()" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[190] opacity-0 pointer-events-none transition-opacity duration-300 lg:hidden"></div>
 
-  // ── Scroll color FX ──────────────────────────────────────
+{# ── SCROLL FX + HIGH-PERFORMANCE SCRIPT ── #}
+<script>
+// ✅ OBJECT QUẢN LÝ MENU OVERLAY CHẠY BẰNG PHẦN CỨNG GPU
+const MobileMenuOverlay = {
+  menu: document.getElementById('mobileMenu'),
+  backdrop: document.getElementById('mobileMenuBackdrop'),
+  open() {
+    if(!this.menu) return;
+    this.menu.classList.remove('-translate-x-full', 'pointer-events-none');
+    this.backdrop.classList.remove('opacity-0', 'pointer-events-none');
+    this.backdrop.classList.add('opacity-100');
+    document.body.style.overflow = 'hidden';
+  },
+  close() {
+    if(!this.menu) return;
+    this.menu.classList.add('-translate-x-full', 'pointer-events-none');
+    this.backdrop.classList.remove('opacity-100');
+    this.backdrop.classList.add('opacity-0', 'pointer-events-none');
+    document.body.style.overflow = '';
+  }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Đồng bộ nút kích hoạt cũ sang cấu trúc Hardware Accelerated mới
+  document.getElementById('openMenu')?.addEventListener('click', (e) => {
+    e.preventDefault(); MobileMenuOverlay.open();
+  });
+
+  // ── SỬA ĐỒNG BỘ: TIẾT GIẢM SỰ KIỆN CUỘN CHUỘT (THROTTLE) GIÚP CHUYỂN TRANG SIÊU TỐC
   const nav = document.getElementById('mainNav');
+  let isThrottled = false;
+
   const updateNavTheme = () => {
-    const isHome  = window.location.pathname === '/';
-    const scrolled = window.scrollY > 50;
+    const isHome = window.location.pathname === '/';
+    const scrolled = window.scrollY > 40;
     if (isHome && !scrolled) {
       nav.classList.add('bg-transparent', 'text-white', 'border-transparent');
       nav.classList.remove('bg-white/95', 'backdrop-blur-md', 'text-black', 'border-neutral-100');
@@ -334,53 +284,53 @@ document.addEventListener('DOMContentLoaded', () => {
       nav.classList.add('bg-white/95', 'backdrop-blur-md', 'text-black', 'border-neutral-100');
     }
   };
+
   updateNavTheme();
-  window.addEventListener('scroll', updateNavTheme, { passive: true });
+
+  window.addEventListener('scroll', () => {
+    if (!isThrottled) {
+      // Chỉ cho phép xử lý tính toán lại giao diện tối đa 1 lần mỗi 16ms (Chuẩn 60 FPS)
+      window.requestAnimationFrame(() => {
+        updateNavTheme();
+        isThrottled = false;
+      });
+      isThrottled = true;
+    }
+  }, { passive: true });
 
   // ── Dropdown mini: load thông báo khi hover ──────────────
-  const dropdown   = document.getElementById('notifDropdown');
-  const listEl     = document.getElementById('notifDropdownList');
-  const emptyEl    = document.getElementById('notifDropdownEmpty');
+  const dropdown = document.getElementById('notifDropdown');
+  const emptyEl = document.getElementById('notifDropdownEmpty');
   const bellParent = dropdown?.closest('.group');
-  if (!dropdown || !bellParent) return;
-
-  let loaded = false;
-
-  bellParent.addEventListener('mouseenter', async () => {
-    if (loaded) return;
-    try {
-      const res  = await fetch('/notifications/?filter=all&_partial=1', {
-        headers: { 'X-CSRFToken': getCSRFToken(), 'X-Requested-With': 'XMLHttpRequest' }
-      });
-      // Nếu backend chưa hỗ trợ partial, fallback dùng unread-count endpoint
-      // và hiện thông báo đơn giản
-      const count = parseInt(
-        document.querySelector('.notif-badge')?.textContent?.trim() || '0'
-      );
-      if (count === 0) {
-        emptyEl.innerHTML = `
-          <svg class="w-8 h-8 mx-auto mb-2 text-neutral-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                  d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/>
-          </svg>
-          Không có thông báo mới`;
-      } else {
-        emptyEl.innerHTML = `
-          <a href="/notifications/" class="text-[11px] font-bold text-black uppercase tracking-wider hover:underline">
-            Bạn có ${count} thông báo chưa đọc →
-          </a>`;
+  
+  if (bellParent && emptyEl) {
+    let loaded = false;
+    bellParent.addEventListener('mouseenter', async () => {
+      if (loaded) return;
+      try {
+        const count = parseInt(document.querySelector('.notif-badge')?.textContent?.trim() || '0');
+        if (count === 0) {
+          emptyEl.innerHTML = `
+            <svg class="w-8 h-8 mx-auto mb-2 text-neutral-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/>
+            </svg> Không có thông báo mới`;
+        } else {
+          emptyEl.innerHTML = `
+            <a href="/notifications/" class="text-[11px] font-bold text-black uppercase tracking-wider hover:underline">
+              Bạn có ${count} thông báo chưa đọc →
+            </a>`;
+        }
+        loaded = true;
+      } catch (_) {
+        emptyEl.textContent = 'Không thể tải thông báo.';
       }
-      loaded = true;
-    } catch (_) {
-      emptyEl.textContent = 'Không thể tải thông báo.';
-    }
-  });
-
+    });
+  }
 });
 </script>
 
 <style>
-.overflow-y-auto::-webkit-scrollbar { width: 3px; }
-.overflow-y-auto::-webkit-scrollbar-track { background: #f1f1f1; }
-.overflow-y-auto::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
+.custom-scrollbar::-webkit-scrollbar { width: 3px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
 </style>

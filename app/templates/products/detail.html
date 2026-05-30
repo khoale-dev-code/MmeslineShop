@@ -29,6 +29,28 @@
   .accordion-icon { transition: transform 0.3s ease; }
   .accordion-icon.open { transform: rotate(180deg); }
 
+  /* ✅ CẤU HÌNH TRƯỢT SƯỜN NÂNG CAO CHO MOBILE */
+  @media (max-width: 1023px) {
+    .mobile-swipe-container {
+      display: flex !important;
+      overflow-x: auto !important;
+      scroll-snap-type: x mandatory !important;
+      scroll-behavior: smooth !important;
+      -webkit-overflow-scrolling: touch !important;
+    }
+    .mobile-swipe-slide {
+      width: 100% !important;
+      flex-shrink: 0 !important;
+      scroll-snap-align: start !important;
+      position: relative !important;
+      opacity: 1 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    .desktop-arrows { display: none !important; }
+  }
+
   * { -webkit-tap-highlight-color: transparent; }
 </style>
 {% endblock %}
@@ -56,41 +78,44 @@
     <div class="flex flex-col lg:flex-row gap-12 lg:gap-20">
 
       {# ══════════════════════════════
-         CỘT TRÁI — IMAGE GALLERY
+           CỘT TRÁI — IMAGE GALLERY (ĐÃ UPGRADE QUẸT VUỐT)
          ══════════════════════════════ #}
       <section class="w-full lg:w-[55%] flex flex-col gap-6 select-none">
         
-        <div class="relative w-full aspect-[3/4] md:aspect-[4/5] bg-white flex items-center justify-center group">
+        <div class="relative w-full aspect-[3/4] md:aspect-[4/5] bg-white flex items-center justify-center group overflow-hidden">
           {% if images|length > 1 %}
-          <button data-dir="-1" class="btn-slide absolute left-2 top-1/2 -translate-y-1/2 z-20 text-black p-3 hover:opacity-50 transition-opacity">
+          <button data-dir="-1" class="btn-slide desktop-arrows absolute left-2 top-1/2 -translate-y-1/2 z-20 text-black p-3 hover:opacity-50 transition-opacity">
             <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
           </button>
           {% endif %}
 
-          <div id="carousel-track" class="relative w-full h-full">
+          {# Wrapper Track tích hợp cấu trúc đa luồng Swipe trên Mobile #}
+          <div id="carousel-track" class="mobile-swipe-container w-full h-full relative">
             {% for img in images %}
-            <div class="carousel-slide absolute inset-0 w-full h-full transition-opacity duration-500 ease-in-out p-10 md:p-16 lg:p-20
-                        {% if loop.first %}opacity-100 z-10{% else %}opacity-0 z-0{% endif %} flex items-center justify-center">
-              <img src="{{ img.url }}" alt="{{ product.name }}" fetchpriority="{% if loop.first %}high{% else %}auto{% endif %}" loading="{% if loop.first %}eager{% else %}lazy{% endif %}" class="w-full h-full object-contain mix-blend-multiply">
+            <div class="carousel-slide mobile-swipe-slide absolute inset-0 w-full h-full transition-opacity duration-500 ease-in-out p-10 md:p-16 lg:p-20
+                        {% if loop.first %}opacity-100 z-10{% else %}opacity-0 z-0{% endif %} flex items-center justify-center" data-index="{{ loop.index0 }}">
+              <img src="{{ img.url }}" alt="{{ product.name }}" fetchpriority="{% if loop.first %}high{% else %}auto{% endif %}" loading="{% if loop.first %}eager{% else %}lazy{% endif %}" class="w-full h-full object-contain mix-blend-multiply pointer-events-none">
             </div>
             {% endfor %}
           </div>
           
           {% if images|length > 1 %}
-          <button data-dir="1" class="btn-slide absolute right-2 top-1/2 -translate-y-1/2 z-20 text-black p-3 hover:opacity-50 transition-opacity">
+          <button data-dir="1" class="btn-slide desktop-arrows absolute right-2 top-1/2 -translate-y-1/2 z-20 text-black p-3 hover:opacity-50 transition-opacity">
             <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
           </button>
           {% endif %}
 
+          {# Nút thích sản phẩm #}
           <button type="button" id="btn-wishlist" data-pid="{{ product.id }}" class="absolute top-4 right-4 z-30 w-10 h-10 flex items-center justify-center text-neutral-400 hover:text-black transition-all">
             <svg class="w-5 h-5 heart-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" /></svg>
           </button>
         </div>
 
+        {# Danh sách chấm / ảnh nhỏ chỉ báo phía dưới #}
         {% if images|length > 1 %}
-        <div class="flex gap-4 overflow-x-auto no-scrollbar w-full justify-center lg:justify-start">
+        <div class="flex gap-4 overflow-x-auto no-scrollbar w-full justify-center lg:justify-start" id="thumbnail-wrapper">
           {% for img in images %}
-          <button data-index="{{ loop.index0 }}" class="thumbnail-btn w-16 h-20 md:w-20 md:h-24 shrink-0 overflow-hidden transition-all bg-white border border-transparent {% if loop.first %}opacity-100{% else %}opacity-40 hover:opacity-80{% endif %}">
+          <button data-index="{{ loop.index0 }}" class="thumbnail-btn w-16 h-20 md:w-20 md:h-24 shrink-0 overflow-hidden transition-all bg-white border {% if loop.first %}border-black opacity-100{% else %}border-transparent opacity-40 hover:opacity-80{% endif %}">
             <img src="{{ img.url }}" class="w-full h-full object-contain p-2 mix-blend-multiply">
           </button>
           {% endfor %}
@@ -99,7 +124,7 @@
       </section>
 
       {# ══════════════════════════════
-         CỘT PHẢI — THÔNG TIN SẢN PHẨM
+           CỘT PHẢI — THÔNG TIN SẢN PHẨM
          ══════════════════════════════ #}
       <section class="w-full lg:w-[45%] flex flex-col">
         <div class="lg:sticky lg:top-[120px] space-y-8">
@@ -222,9 +247,7 @@
       </section>
     </div>
 
-    {# ══════════════════════════════
-       SẢN PHẨM TƯƠNG TỰ
-       ══════════════════════════════ #}
+    {# ── SẢN PHẨM TƯƠNG TỰ ── #}
     {% if related_products %}
     <div class="mt-24 pt-16 border-t border-[#e5e5e5]">
       <div class="mb-12">
@@ -255,7 +278,7 @@
 </div>
 
 {# ══════════════════════════════
-   POPUP MODAL: SIZE GUIDE
+    POPUP MODAL: SIZE GUIDE
    ══════════════════════════════ #}
 <div id="sizeGuideModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 sm:p-6 opacity-0 transition-opacity duration-300">
   <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeSizeGuide()"></div>
@@ -316,7 +339,7 @@
 document.addEventListener('DOMContentLoaded', () => {
 
   /* ==============================
-     🎯 ANALYTICS CORE
+      🎯 ANALYTICS CORE
   ============================== */
   const PRODUCT_ID = "{{ product.id }}";
 
@@ -343,7 +366,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==============================
-     ❤️ WISHLIST
+      ❤️ WISHLIST
   ============================== */
   const wishlistBtn = document.getElementById("btn-wishlist");
   if (wishlistBtn) {
@@ -375,7 +398,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==============================
-     🎨 UI & VARIANT LOGIC
+      🎨 UI & VARIANT LOGIC
   ============================== */
   document.querySelectorAll('.color-swatch').forEach(el => { el.style.backgroundColor = el.dataset.bg; });
 
@@ -405,23 +428,20 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   /* ==============================
-     📐 SIZE GUIDE MODAL TABS
+      📐 SIZE GUIDE MODAL TABS
   ============================== */
   const sgTabs = document.querySelectorAll('.sg-tab-btn');
   const sgContents = document.querySelectorAll('.sg-tab-content');
 
   sgTabs.forEach(tab => {
     tab.addEventListener('click', () => {
-      // Đặt lại style các nút
       sgTabs.forEach(t => {
         t.classList.remove('bg-black', 'text-white', 'border-black');
         t.classList.add('bg-white', 'text-neutral-500', 'border-[#e5e5e5]');
       });
-      // Bật nút hiện tại
       tab.classList.add('bg-black', 'text-white', 'border-black');
       tab.classList.remove('bg-white', 'text-neutral-500', 'border-[#e5e5e5]');
 
-      // Đổi nội dung hiển thị
       const target = tab.getAttribute('data-target');
       sgContents.forEach(c => {
         c.classList.remove('block');
@@ -434,10 +454,27 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  /* ==============================
+      🔄 SỬA ĐỒNG BỘ: DETECT KHI VUỐT TRÊN MOBILE
+  ============================== */
+  const track = document.getElementById('carousel-track');
+  if (track) {
+    track.addEventListener('scroll', () => {
+      if (window.innerWidth >= 1024) return; // Bỏ qua nếu là màn Desktop
+      const width = track.clientWidth;
+      // Tính toán vị trí ảnh đang được cuộn tới
+      const newIndex = Math.round(track.scrollLeft / width);
+      if (newIndex !== current && newIndex >= 0 && newIndex < slides.length) {
+        current = newIndex;
+        updateThumbnailState(current);
+      }
+    }, { passive: true });
+  }
+
 });
 
 /* ==============================
-   🧠 SELECTOR LOGIC
+    🧠 SELECTOR LOGIC
 ============================== */
 function selectColor(color) {
   document.getElementById('color-label').innerText = color;
@@ -511,32 +548,47 @@ function chQty(d) {
 }
 
 /* ==============================
-   🎞 CAROUSEL
+    🎞 CAROUSEL MANAGEMENT
 ============================== */
 const slides = document.querySelectorAll('.carousel-slide');
 let current = 0;
 
 function goTo(n) {
   if (slides.length <= 1) return;
-  slides[current].style.opacity = '0';
-  slides[current].style.zIndex = '0';
-  
-  current = (n + slides.length) % slides.length;
-  
-  slides[current].style.opacity = '1';
-  slides[current].style.zIndex = '10';
+  const track = document.getElementById('carousel-track');
 
+  // ✅ ĐÃ SỬA: Phân bổ cách chuyển ảnh theo thiết bị
+  if (window.innerWidth < 1024 && track) {
+    // Luồng Mobile: Di chuyển vị trí thanh cuộn ngang để kích hoạt hiệu ứng Snap Native
+    current = (n + slides.length) % slides.length;
+    track.scrollLeft = current * track.clientWidth;
+    updateThumbnailState(current);
+  } else {
+    // Luồng Desktop: Giữ nguyên cơ chế mờ dần Opacity sang trọng
+    slides[current].style.opacity = '0';
+    slides[current].style.zIndex = '0';
+    
+    current = (n + slides.length) % slides.length;
+    
+    slides[current].style.opacity = '1';
+    slides[current].style.zIndex = '10';
+    updateThumbnailState(current);
+  }
+}
+
+function updateThumbnailState(activeIndex) {
   document.querySelectorAll('.thumbnail-btn').forEach((b, i) => {
-    b.classList.toggle('opacity-100', i === current);
-    b.classList.toggle('opacity-50', i !== current);
-    b.classList.toggle('border-black', i === current);
-    b.classList.toggle('border-transparent', i !== current);
+    b.classList.toggle('opacity-100', i === activeIndex);
+    b.classList.toggle('opacity-40', i !== activeIndex);
+    b.classList.toggle('border-black', i === activeIndex);
+    b.classList.toggle('border-transparent', i !== activeIndex);
   });
 }
+
 function slide(d) { goTo(current + d); }
 
 /* ==============================
-   👇 ACCORDION & MODALS
+    👇 ACCORDION & MODALS
 ============================== */
 window.toggleAccordion = function(id) {
   const content = document.getElementById(id);

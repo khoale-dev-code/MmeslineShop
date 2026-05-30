@@ -3,25 +3,25 @@ Flask>=3.0.0
 Flask-Session>=0.8.0
 Flask-WTF>=1.2.0
 
-# --- CƠ SỞ DỮ LIỆU & BẢO MẬT ---
-supabase>=2.4.0        # Đã nâng cấp để sửa lỗi httpx proxy
-python-dotenv>=1.2.2   # Tối thiểu 1.2.2 để tương thích với NiceGUI
+# --- CƠ SỞ DỮ LIỆU & BẢO MẬT (NỚI LỎNG PHẠM VI THEO DOCUMENT) ---
+supabase>=2.4.1        # Bỏ khóa cứng, cho phép tự kết hợp để khớp h11 với NiceGUI
+python-dotenv>=1.2.2
 bcrypt>=4.1.0
 email-validator>=2.0.0
-websockets==15.0
+websockets>=12.0       # Nới lỏng phạm vi phiên bản
 
 # --- GIAO DIỆN ADMIN (DASHBOARD) ---
 nicegui>=3.11.1
 
 # --- TÍNH NĂNG MỞ RỘNG (EMAIL & BACKUP EXCEL) ---
-sendgrid>=6.11.0       # Gửi email khôi phục mật khẩu
-pandas>=2.0.0          # Xử lý dữ liệu báo cáo
-SQLAlchemy>=2.0.0      # Trích xuất dữ liệu Database
-openpyxl>=3.1.0        # Engine để Pandas xuất ra file Excel (.xlsx)
+sendgrid>=6.11.0
+pandas>=2.0.0
+SQLAlchemy>=2.0.0
+openpyxl>=3.1.0
 
 # --- DEPENDENCIES (Thư viện lõi hỗ trợ) ---
-httpx>=0.27.2
-google-genai>=0.1.0  # Thư viện chính thức của Google GenAI SDK
-segno>=1.4.0         # Tạo mã QR cho liên kết thanh toán
+httpx>=0.27.0          # Cho phép dùng bản mới để triệt tiêu lỗi proxy argument
+google-genai>=0.1.0
+segno>=1.4.0
 blinker
-apscheduler>=3.0.0   # Lập lịch công việc định kỳ (backup, báo cáo)
+apscheduler>=3.0.0

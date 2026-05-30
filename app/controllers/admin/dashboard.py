@@ -9,6 +9,7 @@ from flask import render_template, current_app
 
 from app.models.product_model import ProductModel
 from app.models.order_model import OrderModel
+from app.models.user_model import UserModel          # ← thêm dòng này
 from app.middleware.auth_required import admin_required
 from app.utils.supabase_client import get_supabase
 from ._blueprint import admin_bp
@@ -24,7 +25,7 @@ def _fetch_logistics_stats() -> dict:
     db = get_supabase()
     shipments = (
         db.table("shipments")
-        .select("status, created_at, shipped_at, delivered_at")
+        .select("status, created_at, shipped_at, delivered_at, shipping_fee, actual_shipping_fee")
         .execute()
         .data or []
     )
@@ -53,6 +54,7 @@ def _fetch_logistics_stats() -> dict:
         "avg_time": round(total_days / valid, 1) if valid else 0,
     }
 
+
 # ── Routes ───────────────────────────────────────────────────────
 
 
@@ -61,7 +63,7 @@ def _fetch_logistics_stats() -> dict:
 @handle_errors("Lỗi tải dashboard.")
 def dashboard():
     stats = OrderModel.get_stats()
-    user_count = OrderModel.get_user_count()
+    user_count = UserModel.get_user_count()           # ← giờ dùng đúng model
     prod_total = ProductModel.get_all(page=1, per_page=1, admin_mode=True).get("total", 0)
 
     try:
@@ -70,7 +72,6 @@ def dashboard():
         current_app.logger.error(f"[Dashboard] Lỗi query logistics: {e}")
         stats.update({"delivery_success": 0, "return_rate": 0, "avg_time": 0})
 
-    # Lấy 10 đơn mới nhất để hiển thị bảng "Giao dịch mới nhất"
     try:
         recent_result = OrderModel.get_all(page=1, per_page=10)
         recent_orders = recent_result.get("items", [])
@@ -83,5 +84,5 @@ def dashboard():
         stats=stats,
         user_count=user_count,
         prod_count=prod_total,
-        recent_orders=recent_orders,  # ← truyền riêng ra ngoài stats
+        recent_orders=recent_orders,
     )

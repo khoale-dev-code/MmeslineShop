@@ -1,27 +1,40 @@
 """
 app/models/order_model.py
-Quản lý vòng đời đơn hàng, thống kê tài chính, logistics và hỗ trợ vận hành.
+=========================
+Quản lý vòng đời đơn hàng, thống kê tài chính, logistics và hỗ trợ vận hành cho GUA Maison.
 
-Cập nhật v2.1 (2026):
+CHANGELOG (Tối ưu hóa Lazy Initialization Toàn diện):
+  - Khởi chạy cơ chế Lazy Initialization qua hai cổng _db() (Public) và _db_admin() (Bypass RLS).
+  - Di chuyển toàn bộ các hàm nghiệp vụ quản trị, thống kê Dashboard sang kênh Admin Client.
   - Fix lỗi PGRST204: Loại bỏ cột 'size' không tồn tại khi insert order_items.
   - unit_price tính đúng: ưu tiên variant.price_override, fallback về products.price.
-  - variant_label và product_name được snapshot ngay tại thời điểm create_order
-    (không cần update lại sau), giảm 1 lần round-trip DB.
-  - Tích hợp snapshot shipping_fee và discount_amount tại thời điểm Checkout.
-  - get_stats() nâng cấp: Tính toán Lời/Lỗ phí vận chuyển (Logistics Profit/Loss).
-  - State Machine Guard bảo vệ luồng trạng thái.
+  - variant_label và product_name được snapshot ngay tại thời điểm create_order.
   - Fix lỗi Schema: Không query/update các cột ảo (refunded_amount, is_return_requested).
 """
 
 import logging
 from collections import defaultdict, Counter
 from datetime import datetime, timezone
-from app.utils.supabase_client import get_supabase
+from app.utils.supabase_client import get_supabase, get_supabase_admin
 
 logger = logging.getLogger(__name__)
 
 
 class OrderModel:
+
+    # ═══════════════════════════════════════════════════════════════
+    #  LAZY INITIALIZATION HELPERS (KHỞI TẠO LƯỜI THEO PHÂN VÙNG QUYỀN)
+    # ═══════════════════════════════════════════════════════════════
+
+    @staticmethod
+    def _db():
+        """Khởi tạo lười Client công khai (Dành cho khách hàng tra cứu đơn hàng)"""
+        return get_supabase()
+
+    @staticmethod
+    def _db_admin():
+        """Khởi tạo lười Client quyền Admin (Bypass RLS, bảo đảm nạp stats tài chính chính xác)"""
+        return get_supabase_admin()
 
     # ═══════════════════════════════════════════════════════════════
     #  TẠO ĐƠN HÀNG (Dành cho Checkout)
@@ -41,17 +54,8 @@ class OrderModel:
         """
         Khởi tạo đơn hàng với đầy đủ snapshot về phí ship, giảm giá,
         product_name và variant_label. Không insert cột 'size' (không tồn tại trong DB).
-
-        Cấu trúc mỗi item đầu vào (từ CartModel.get_user_cart):
-            {
-                "product_id": str,
-                "variant_id": str | None,
-                "quantity": int,
-                "products":         {"id", "name", "price", ...},   # joined
-                "product_variants": {"size", "color_name", "price_override", ...}  # joined
-            }
         """
-        db = get_supabase()
+        db = OrderModel._db_admin() # Dùng quyền admin để bảo đảm luôn khởi tạo đơn hàng thành công
         try:
             # ── 1. Tạo bản ghi orders ────────────────────────────────
             order_data = {
@@ -68,7 +72,7 @@ class OrderModel:
 
             r = db.table("orders").insert(order_data).execute()
             if not r.data:
-                logger.error("[OrderModel] insert orders trả về rỗng.")
+                logger.error("[OrderModel.create_order] insert orders trả về rỗng.")
                 return {}
 
             order = r.data[0]
@@ -77,15 +81,12 @@ class OrderModel:
             # ── 2. Build order_items — đúng schema, có snapshot ─────
             order_items = []
             for item in items:
-                # Dữ liệu join từ CartModel (products và product_variants là dict lồng)
                 product = item.get("products") or {}
                 variant = item.get("product_variants") or {}
 
-                # Giá đúng: ưu tiên price_override của variant
                 price_override = variant.get("price_override")
                 unit_price = float(price_override) if price_override else float(product.get("price", 0))
 
-                # Snapshot tên sản phẩm và nhãn biến thể
                 product_name = product.get("name") or "Sản phẩm"
                 color = (variant.get("color_name") or "").strip()
                 size  = (variant.get("size") or "").strip()
@@ -104,8 +105,8 @@ class OrderModel:
                     "variant_id":    item.get("variant_id") or None,
                     "quantity":      int(item.get("quantity", 1)),
                     "unit_price":    unit_price,
-                    "product_name":  product_name,    # snapshot ngay, không cần update sau
-                    "variant_label": variant_label,   # snapshot ngay, không cần update sau
+                    "product_name":  product_name,    
+                    "variant_label": variant_label,   
                 })
 
             if order_items:
@@ -118,15 +119,13 @@ class OrderModel:
             return {}
 
     # ═══════════════════════════════════════════════════════════════
-    #  THỐNG KÊ DASHBOARD  (Doanh Thu & KPI Vận Chuyển)
+    #  THỐNG KÊ DASHBOARD (ĐÃ CHUYỂN TOÀN BỘ SANG ADMIN CLIENT)
     # ═══════════════════════════════════════════════════════════════
 
     @staticmethod
     def get_stats() -> dict:
-        """
-        Tính toán các chỉ số kinh doanh cốt lõi (Gross Revenue, Net Revenue, Logistics KPIs).
-        """
-        db = get_supabase()
+        """Tính toán các chỉ số kinh doanh cốt lõi (Bypass RLS tránh lỗi mảng rỗng [])."""
+        db = OrderModel._db_admin()
         stats = {
             "total_orders": 0,
             "total_revenue": 0,
@@ -148,7 +147,6 @@ class OrderModel:
         }
 
         try:
-            # Bản đồ hoàn tiền theo order_id
             try:
                 refunds_res = (
                     db.table("return_requests")
@@ -279,7 +277,7 @@ class OrderModel:
 
     @staticmethod
     def get_by_id(order_id: str):
-        db = get_supabase()
+        db = OrderModel._db_admin() # Dùng admin client để nạp thông tin chi tiết đơn không bị chặn RLS
         try:
             r = (
                 db.table("orders")
@@ -315,7 +313,7 @@ class OrderModel:
 
     @staticmethod
     def get_all(page: int = 1, per_page: int = 20, status: str = None, keyword: str = None):
-        db = get_supabase()
+        db = OrderModel._db_admin() # Thao tác Admin Workspace sử dụng Admin Client
         offset = (page - 1) * per_page
         try:
             query = (
@@ -347,7 +345,7 @@ class OrderModel:
 
     @staticmethod
     def get_user_orders(user_id: str):
-        db = get_supabase()
+        db = OrderModel._db() # Sử dụng Public Client tra cứu đơn hàng cá nhân của User đã authenticate
         try:
             r = (
                 db.table("orders")
@@ -363,7 +361,7 @@ class OrderModel:
 
     @staticmethod
     def get_user_orders_paginated(user_id: str, page: int = 1, per_page: int = 10) -> dict:
-        db = get_supabase()
+        db = OrderModel._db()
         offset = (page - 1) * per_page
         try:
             r = (
@@ -401,12 +399,12 @@ class OrderModel:
             }
 
     # ═══════════════════════════════════════════════════════════════
-    #  CẬP NHẬT TRẠNG THÁI & HOTLINE
+    #  CẬP NHẬT TRẠNG THÁI & HOTLINE (DÙNG ADMIN CLIENT)
     # ═══════════════════════════════════════════════════════════════
 
     @staticmethod
     def update_status(order_id: str, status: str) -> bool:
-        db = get_supabase()
+        db = OrderModel._db_admin()
         try:
             db.table("orders").update({"status": status}).eq("id", order_id).execute()
             return True
@@ -416,7 +414,7 @@ class OrderModel:
 
     @staticmethod
     def update_payment_status(order_id: str, payment_status: str, transaction_id: str = None) -> bool:
-        db = get_supabase()
+        db = OrderModel._db_admin()
         try:
             payload = {"payment_status": payment_status}
             if transaction_id:
@@ -429,7 +427,7 @@ class OrderModel:
 
     @staticmethod
     def update_shipping_address(order_id: str, new_address: dict) -> bool:
-        db = get_supabase()
+        db = OrderModel._db_admin()
         try:
             db.table("orders").update({"shipping_address": new_address}).eq("id", order_id).execute()
             return True
@@ -443,7 +441,7 @@ class OrderModel:
 
     @staticmethod
     def cancel_order_by_user(order_id: str, user_id: str) -> tuple[bool, str]:
-        db = get_supabase()
+        db = OrderModel._db_admin() # Dùng admin để bypass các hạn chế RLS update trạng thái phía client
         try:
             order_res = (
                 db.table("orders")
@@ -474,7 +472,7 @@ class OrderModel:
 
     @staticmethod
     def request_return(order_id: str, user_id: str, reason: str, image_url: str) -> tuple[bool, str]:
-        db = get_supabase()
+        db = OrderModel._db_admin()
         try:
             order_res = (
                 db.table("orders")
@@ -515,7 +513,7 @@ class OrderModel:
 
     @staticmethod
     def get_return_requests(page: int = 1, per_page: int = 20, status: str = None) -> dict:
-        db = get_supabase()
+        db = OrderModel._db_admin()
         offset = (page - 1) * per_page
         try:
             query = (
@@ -538,7 +536,7 @@ class OrderModel:
 
     @staticmethod
     def get_return_request_by_id(rr_id: str) -> dict | None:
-        db = get_supabase()
+        db = OrderModel._db_admin()
         try:
             r = (
                 db.table("return_requests")
@@ -553,7 +551,7 @@ class OrderModel:
 
     @staticmethod
     def approve_return(rr_id: str, admin_user_id: str, admin_note: str = "") -> tuple[bool, str]:
-        db = get_supabase()
+        db = OrderModel._db_admin()
         try:
             rr = db.table("return_requests").select("status").eq("id", rr_id).single().execute().data
             if not rr:
@@ -575,7 +573,7 @@ class OrderModel:
 
     @staticmethod
     def reject_return(rr_id: str, admin_user_id: str, admin_note: str) -> tuple[bool, str]:
-        db = get_supabase()
+        db = OrderModel._db_admin()
         try:
             if not admin_note or not admin_note.strip():
                 return False, "Vui lòng nhập lý do từ chối."
@@ -607,7 +605,7 @@ class OrderModel:
 
     @staticmethod
     def complete_refund(rr_id: str, admin_user_id: str, refund_amount: float = None) -> tuple[bool, str]:
-        db = get_supabase()
+        db = OrderModel._db_admin()
         try:
             rr = (
                 db.table("return_requests")
