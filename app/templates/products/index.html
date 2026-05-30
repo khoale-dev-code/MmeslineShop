@@ -65,11 +65,11 @@
         <img src="{{ hero_url }}" alt="Hero banner" class="absolute inset-0 w-full h-full object-cover object-center" fetchpriority="high" decoding="async">
       {% endif %}
     {% else %}
-      {# Video Dự phòng hệ thống Local #}
+      {# 🛠️ SỬA LỖI TẠI ĐÂY: Sử dụng url_for để ánh xạ chính xác thư mục tĩnh trên Vercel production #}
       <video autoplay muted loop playsinline 
              preload="auto"
              class="absolute inset-0 w-full h-full object-cover object-center bg-neutral-900 hero-video-render">
-        <source src="../../static/video/MMESTLINE CON NGỰA.mp4" type="video/mp4"/>
+        <source src="{{ url_for('static', filename='video/MMESTLINE CON NGỰA.mp4') }}" type="video/mp4"/>
       </video>
     {% endif %}
 
@@ -283,7 +283,6 @@ document.addEventListener('DOMContentLoaded', function() {
     btnNext.disabled = container.scrollLeft >= maxScroll - 5;
   };
 
-  // Sử dụng passive listener để tăng tốc cuộn mượt bằng chuột/trackpad của trình duyệt
   container.addEventListener('scroll', updateUI, { passive: true });
   setTimeout(updateUI, 100);
   window.addEventListener('resize', updateUI);
@@ -296,9 +295,8 @@ document.addEventListener('DOMContentLoaded', function() {
   btnNext.addEventListener('click', () => container.scrollBy({ left: getScrollStep(), behavior: 'smooth' }));
   btnPrev.addEventListener('click', () => container.scrollBy({ left: -getScrollStep(), behavior: 'smooth' }));
 
-  // Khởi tạo các biến kéo thả chuột (Drag-to-scroll)
   let isDown = false, startX, scrollLeft, isDragging = false;
-  let ticking = false; // Cờ kiểm soát vòng lặp Animation Frame
+  let ticking = false;
 
   container.addEventListener('mousedown', (e) => {
     isDown = true; 
@@ -330,7 +328,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const walk = (x - startX) * 1.5;
     if (Math.abs(walk) > 5) isDragging = true;
 
-    // FIX CHÍNH: Gom thao tác ghi DOM tọa độ cuộn (scrollLeft) vào chu kỳ vẽ tiếp theo của card màn hình
     if (!ticking) {
       requestAnimationFrame(() => {
         container.scrollLeft = scrollLeft - walk;
@@ -340,7 +337,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  // Ngăn chặn sự kiện Click kích hoạt nhầm khi đang thao tác kéo chuột mượt mà
   container.querySelectorAll('a, button').forEach(el => {
     el.addEventListener('click', (e) => { if (isDragging) { e.preventDefault(); e.stopPropagation(); } });
   });
