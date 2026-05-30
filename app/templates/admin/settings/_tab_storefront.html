@@ -1,9 +1,10 @@
 {#
   admin/settings/_tab_storefront.html
   ══════════════════════════════════════════════════════
-  CHANGELOG:
-  - Tách phần "Thông báo Topbar" ra tab riêng (_tab_notifications.html)
-  - Thêm Section "Ảnh trang Đăng nhập & Đăng ký" (login_image_url, register_image_url)
+  CHANGELOG (Sửa lỗi dứt điểm bẫy Payload 413 & Kẹt hàm script trên Vercel):
+  - Ép hạ giới hạn MAX_SIZE xuống 4.5MB tương thích chuẩn Serverless Request Limit của Vercel.
+  - Thêm ghi chú hướng dẫn Admin dán link Supabase nếu file video lớn để tránh lỗi 413.
+  - Fix bẫy an toàn đối tượng Settings.save() và fallback alert nếu GUA object chưa kịp nạp.
   ══════════════════════════════════════════════════════
 #}
 
@@ -13,9 +14,10 @@
     <h2 class="text-xl font-bold tracking-tight text-stone-900 font-serif">Giao diện cửa hàng</h2>
     <p class="text-xs text-stone-500 mt-1">Thiết lập biểu ngữ, ảnh trang đăng nhập/đăng ký và video background cho storefront.</p>
   </div>
+  {# ✅ ĐÃ SỬA: Chuyển sang gọi qua window.Settings an toàn chống lỗi 'is not a function' #}
   <button type="button"
-          class="inline-flex items-center gap-2 px-5 py-2.5 bg-stone-950 text-white text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-stone-800 transition-all shadow-sm active:scale-95"
-          onclick="Settings.save('storefront')">
+          class="inline-flex items-center gap-2 px-5 py-2.5 bg-stone-950 text-white text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-stone-800 transition-all shadow-sm active:scale-95 cursor-pointer"
+          onclick="if(window.Settings && typeof window.Settings.save === 'function'){ window.Settings.save('storefront'); }else{ alert('Hệ thống đang đồng bộ dữ liệu JS, vui lòng thử lại sau một giây!'); }">
     <i class="fa-solid fa-floppy-disk text-xs"></i>
     Lưu cấu hình
   </button>
@@ -24,8 +26,8 @@
 <form id="form-storefront" class="space-y-6" novalidate>
 
   {# ══════════════════════════════════════════════
-     SECTION 1 — ẢNH TRANG ĐĂNG NHẬP & ĐĂNG KÝ
-  ══════════════════════════════════════════════ #}
+      SECTION 1 — ẢNH TRANG ĐĂNG NHẬP & ĐĂNG KÝ
+     ══════════════════════════════════════════════ #}
   <div class="bg-white border border-stone-100 rounded-3xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] p-6 transition-all hover:shadow-md">
     <div class="flex flex-col lg:flex-row gap-6">
       <div class="lg:w-1/3 space-y-1">
@@ -35,7 +37,6 @@
         </div>
         <p class="text-xs text-stone-400 leading-relaxed pl-4">
           Hình ảnh hiển thị ở cột trái của trang đăng nhập và đăng ký. Kích thước khuyên dùng: <strong>900×1200px</strong>.
-          Thay đổi tại đây sẽ cập nhật ngay lên giao diện người dùng.
         </p>
       </div>
 
@@ -54,7 +55,7 @@
             <input type="file" id="login_img_upload" accept="image/*" class="hidden"
                    onchange="uploadStorefrontFile(this, 'login_image_url', 'loginImgPreview')">
             <button type="button"
-                    class="px-2.5 bg-white border border-stone-200 rounded-xl text-stone-600 hover:border-stone-400 sf-upload-btn transition-all shadow-sm"
+                    class="px-2.5 bg-white border border-stone-200 rounded-xl text-stone-600 hover:border-stone-400 sf-upload-btn transition-all shadow-sm cursor-pointer"
                     onclick="document.getElementById('login_img_upload').click()">
               <i class="fa-solid fa-upload text-xs"></i>
             </button>
@@ -64,7 +65,7 @@
               <img src="{{ storefront.login_image_url }}" class="w-full max-h-[160px] object-cover" loading="lazy">
             {% endif %}
             <div class="px-3 py-1.5 bg-stone-50/50 flex items-center justify-end text-[10px]">
-              <button type="button" class="text-rose-600 font-bold transition-colors"
+              <button type="button" class="text-rose-600 font-bold transition-colors cursor-pointer"
                       onclick="sfClearField('login_image_url','loginImgPreview')">Xóa</button>
             </div>
           </div>
@@ -84,7 +85,7 @@
             <input type="file" id="register_img_upload" accept="image/*" class="hidden"
                    onchange="uploadStorefrontFile(this, 'register_image_url', 'registerImgPreview')">
             <button type="button"
-                    class="px-2.5 bg-white border border-stone-200 rounded-xl text-stone-600 hover:border-stone-400 sf-upload-btn transition-all shadow-sm"
+                    class="px-2.5 bg-white border border-stone-200 rounded-xl text-stone-600 hover:border-stone-400 sf-upload-btn transition-all shadow-sm cursor-pointer"
                     onclick="document.getElementById('register_img_upload').click()">
               <i class="fa-solid fa-upload text-xs"></i>
             </button>
@@ -94,7 +95,7 @@
               <img src="{{ storefront.register_image_url }}" class="w-full max-h-[160px] object-cover" loading="lazy">
             {% endif %}
             <div class="px-3 py-1.5 bg-stone-50/50 flex items-center justify-end text-[10px]">
-              <button type="button" class="text-rose-600 font-bold transition-colors"
+              <button type="button" class="text-rose-600 font-bold cursor-pointer"
                       onclick="sfClearField('register_image_url','registerImgPreview')">Xóa</button>
             </div>
           </div>
@@ -103,30 +104,32 @@
     </div>
   </div>
 
-  {# ══════════════════════════════════════════════
-     SECTION 2 — HERO BANNER
-  ══════════════════════════════════════════════ #}
+  {# ═══ SECTION 2 — HERO BANNER ═══ #}
   <div class="bg-white border border-stone-100 rounded-3xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] p-6 transition-all hover:shadow-md">
     <div class="flex flex-col lg:flex-row gap-6">
       <div class="lg:w-1/3 space-y-1">
         <div class="flex items-center gap-2 text-stone-900">
           <div class="w-2 h-2 rounded-full bg-stone-950 animate-pulse"></div>
-          <h3 class="text-sm font-bold uppercase tracking-wider">Hero Banner (Ảnh lớn đầu trang)</h3>
+          <h3 class="text-sm font-bold uppercase tracking-wider">Hero Banner (Ảnh/Video đầu trang)</h3>
         </div>
-        <p class="text-xs text-stone-400 leading-relaxed pl-4">Khung hình lớn đập vào mắt người dùng khi vào trang chủ. Hỗ trợ ảnh (.jpg, .png, .webp) hoặc video (.mp4). Kích thước khuyên dùng: 1920×800px.</p>
+        <p class="text-xs text-stone-400 leading-relaxed pl-4">
+          Khung hình lớn đầu trang chủ. Hỗ trợ .jpg, .png, .webp hoặc video .mp4.<br>
+          {# ✅ ĐÃ THÊM LƯU Ý UX QUAN TRỌNG ĐỂ ADMIN BIẾT CÁCH BYPASS 413 #}
+          <span class="text-amber-600 font-medium">* Lưu ý: Vercel giới hạn upload trực tiếp file dưới 4.5MB. Nếu video của bạn lớn hơn, hãy tải trực tiếp lên Supabase Storage Dashboard, sao chép Public URL và dán vào ô bên cạnh.</span>
+        </p>
       </div>
 
       <div class="flex-1 space-y-3">
         <div class="flex gap-2">
           <input type="url" id="hero_banner_url" name="hero_banner_url"
                  class="flex-1 px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-medium text-stone-900 focus:bg-white focus:border-stone-950 transition-all outline-none font-mono"
-                 placeholder="Dán liên kết ảnh mạng hoặc nhấn nút Tải lên..."
+                 placeholder="Dán liên kết URL từ Supabase Storage hoặc nhấn nút Tải lên..."
                  value="{{ storefront.hero_banner_url | default('') }}"
                  oninput="sfAutoPreview(this.value, 'heroPreview')">
           <input type="file" id="hero_upload" accept="image/*,video/mp4" class="hidden"
                  onchange="uploadStorefrontFile(this, 'hero_banner_url', 'heroPreview')">
           <button type="button"
-                  class="px-4 py-2.5 bg-white border border-stone-200 text-stone-700 text-xs font-bold rounded-xl hover:bg-stone-50 hover:border-stone-400 transition-all sf-upload-btn whitespace-nowrap shadow-sm"
+                  class="px-4 py-2.5 bg-white border border-stone-200 text-stone-700 text-xs font-bold rounded-xl hover:bg-stone-50 hover:border-stone-400 transition-all sf-upload-btn whitespace-nowrap shadow-sm cursor-pointer"
                   onclick="document.getElementById('hero_upload').click()">
             <i class="fa-solid fa-cloud-arrow-up mr-1"></i> Tải lên
           </button>
@@ -141,7 +144,7 @@
           {% endif %}
           <div class="px-4 py-2 bg-white border-t border-stone-50 flex items-center justify-between text-[11px]">
             <span id="heroPreviewName" class="text-stone-400 truncate max-w-[70%] font-mono">{{ storefront.hero_banner_url | default('') }}</span>
-            <button type="button" class="text-rose-600 hover:text-rose-800 font-bold inline-flex items-center gap-1 transition-colors"
+            <button type="button" class="text-rose-600 hover:text-rose-800 font-bold inline-flex items-center gap-1 transition-colors cursor-pointer"
                     onclick="sfClearField('hero_banner_url','heroPreview')">
               <i class="fa-solid fa-trash-can text-[10px]"></i> Gỡ bỏ
             </button>
@@ -151,9 +154,7 @@
     </div>
   </div>
 
-  {# ══════════════════════════════════════════════
-     SECTION 3 — BANNER DESKTOP
-  ══════════════════════════════════════════════ #}
+  {# ═══ SECTION 3 — BANNER DESKTOP ═══ #}
   <div class="bg-white border border-stone-100 rounded-3xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] p-6 transition-all hover:shadow-md">
     <div class="flex flex-col lg:flex-row gap-6">
       <div class="lg:w-1/3 space-y-1">
@@ -173,7 +174,7 @@
           <input type="file" id="desktop_upload" accept="image/*" class="hidden"
                  onchange="uploadStorefrontFile(this, 'banner_desktop_url', 'bannerDesktopPreview')">
           <button type="button"
-                  class="px-4 py-2.5 bg-white border border-stone-200 text-stone-700 text-xs font-bold rounded-xl hover:bg-stone-50 hover:border-stone-400 transition-all sf-upload-btn whitespace-nowrap shadow-sm"
+                  class="px-4 py-2.5 bg-white border border-stone-200 text-stone-700 text-xs font-bold rounded-xl hover:bg-stone-50 hover:border-stone-400 transition-all sf-upload-btn whitespace-nowrap shadow-sm cursor-pointer"
                   onclick="document.getElementById('desktop_upload').click()">
             <i class="fa-solid fa-cloud-arrow-up mr-1"></i> Tải lên
           </button>
@@ -184,7 +185,7 @@
           {% endif %}
           <div class="px-4 py-2 bg-white border-t border-stone-50 flex items-center justify-between text-[11px]">
             <span id="bannerDesktopPreviewName" class="text-stone-400 truncate max-w-[70%] font-mono">{{ storefront.banner_desktop_url | default('') }}</span>
-            <button type="button" class="text-rose-600 hover:text-rose-800 font-bold inline-flex items-center gap-1 transition-colors"
+            <button type="button" class="text-rose-600 hover:text-rose-800 font-bold inline-flex items-center gap-1 transition-colors cursor-pointer"
                     onclick="sfClearField('banner_desktop_url','bannerDesktopPreview')">
               <i class="fa-solid fa-trash-can text-[10px]"></i> Gỡ bỏ
             </button>
@@ -194,9 +195,7 @@
     </div>
   </div>
 
-  {# ══════════════════════════════════════════════
-     SECTION 4 — BANNER 2 FULL WIDTH
-  ══════════════════════════════════════════════ #}
+  {# ═══ SECTION 4 — BANNER 2 FULL WIDTH ═══ #}
   <div class="bg-white border border-stone-100 rounded-3xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] p-6 transition-all hover:shadow-md">
     <div class="flex flex-col lg:flex-row gap-6">
       <div class="lg:w-1/3 space-y-1">
@@ -216,7 +215,7 @@
           <input type="file" id="banner2_upload" accept="image/*" class="hidden"
                  onchange="uploadStorefrontFile(this, 'banner2_url', 'banner2Preview')">
           <button type="button"
-                  class="px-4 py-2.5 bg-white border border-stone-200 text-stone-700 text-xs font-bold rounded-xl hover:bg-stone-50 hover:border-stone-400 transition-all sf-upload-btn whitespace-nowrap shadow-sm"
+                  class="px-4 py-2.5 bg-white border border-stone-200 text-stone-700 text-xs font-bold rounded-xl hover:bg-stone-50 hover:border-stone-400 transition-all sf-upload-btn whitespace-nowrap shadow-sm cursor-pointer"
                   onclick="document.getElementById('banner2_upload').click()">
             <i class="fa-solid fa-cloud-arrow-up mr-1"></i> Tải lên
           </button>
@@ -227,7 +226,7 @@
           {% endif %}
           <div class="px-4 py-2 bg-white border-t border-stone-50 flex items-center justify-between text-[11px]">
             <span id="banner2PreviewName" class="text-stone-400 truncate max-w-[70%] font-mono">{{ storefront.banner2_url | default('') }}</span>
-            <button type="button" class="text-rose-600 hover:text-rose-800 font-bold inline-flex items-center gap-1 transition-colors"
+            <button type="button" class="text-rose-600 hover:text-rose-800 font-bold inline-flex items-center gap-1 transition-colors cursor-pointer"
                     onclick="sfClearField('banner2_url','banner2Preview')">
               <i class="fa-solid fa-trash-can text-[10px]"></i> Gỡ bỏ
             </button>
@@ -237,9 +236,7 @@
     </div>
   </div>
 
-  {# ══════════════════════════════════════════════
-     SECTION 5 — SPLIT BANNERS
-  ══════════════════════════════════════════════ #}
+  {# ═══ SECTION 5 — SPLIT BANNERS ═══ #}
   <div class="bg-white border border-stone-100 rounded-3xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] p-6 transition-all hover:shadow-md">
     <div class="flex flex-col lg:flex-row gap-6">
       <div class="lg:w-1/3 space-y-1">
@@ -261,7 +258,7 @@
             <input type="file" id="split_left_upload" accept="image/*" class="hidden"
                    onchange="uploadStorefrontFile(this, 'split_left_url', 'splitLeftPreview')">
             <button type="button"
-                    class="px-2.5 bg-white border border-stone-200 rounded-xl text-stone-600 hover:border-stone-400 sf-upload-btn transition-all shadow-sm"
+                    class="px-2.5 bg-white border border-stone-200 rounded-xl text-stone-600 hover:border-stone-400 sf-upload-btn transition-all shadow-sm cursor-pointer"
                     onclick="document.getElementById('split_left_upload').click()">
               <i class="fa-solid fa-upload text-xs"></i>
             </button>
@@ -271,7 +268,7 @@
               <img src="{{ storefront.split_left_url }}" class="w-full max-h-[120px] object-cover" loading="lazy">
             {% endif %}
             <div class="px-3 py-1.5 bg-stone-50/50 flex items-center justify-end text-[10px]">
-              <button type="button" class="text-rose-600 font-bold"
+              <button type="button" class="text-rose-600 font-bold cursor-pointer"
                       onclick="sfClearField('split_left_url','splitLeftPreview')">Xóa</button>
             </div>
           </div>
@@ -287,7 +284,7 @@
             <input type="file" id="split_right_upload" accept="image/*" class="hidden"
                    onchange="uploadStorefrontFile(this, 'split_right_url', 'splitRightPreview')">
             <button type="button"
-                    class="px-2.5 bg-white border border-stone-200 rounded-xl text-stone-600 hover:border-stone-400 sf-upload-btn transition-all shadow-sm"
+                    class="px-2.5 bg-white border border-stone-200 rounded-xl text-stone-600 hover:border-stone-400 sf-upload-btn transition-all shadow-sm cursor-pointer"
                     onclick="document.getElementById('split_right_upload').click()">
               <i class="fa-solid fa-upload text-xs"></i>
             </button>
@@ -297,7 +294,7 @@
               <img src="{{ storefront.split_right_url }}" class="w-full max-h-[120px] object-cover" loading="lazy">
             {% endif %}
             <div class="px-3 py-1.5 bg-stone-50/50 flex items-center justify-end text-[10px]">
-              <button type="button" class="text-rose-600 font-bold"
+              <button type="button" class="text-rose-600 font-bold cursor-pointer"
                       onclick="sfClearField('split_right_url','splitRightPreview')">Xóa</button>
             </div>
           </div>
@@ -306,9 +303,7 @@
     </div>
   </div>
 
-  {# ══════════════════════════════════════════════
-     SECTION 6 — BANNER 4 VIDEO
-  ══════════════════════════════════════════════ #}
+  {# ═══ SECTION 6 — BANNER 4 VIDEO ═══ #}
   <div class="bg-white border border-stone-100 rounded-3xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] p-6 transition-all hover:shadow-md">
     <div class="flex flex-col md:flex-row gap-6">
       <div class="md:w-1/3 space-y-1">
@@ -316,19 +311,22 @@
           <div class="w-2 h-2 rounded-full bg-stone-400"></div>
           <h3 class="text-sm font-bold uppercase tracking-wider">Banner 4 – Video Best Sellers</h3>
         </div>
-        <p class="text-xs text-stone-400 leading-relaxed pl-4">Luồng video vòng lặp chạy nền khu vực hàng bán chạy (.mp4).</p>
+        <p class="text-xs text-stone-400 leading-relaxed pl-4">
+          Luồng video vòng lặp chạy nền khu vực hàng bán chạy (.mp4).<br>
+          <span class="text-amber-600 font-medium">* Giới hạn upload Vercel: 4.5MB. Khuyên dùng dán URL đã lưu từ Supabase Storage Dashboard vào ô cấu hình.</span>
+        </p>
       </div>
       <div class="flex-1 space-y-3">
         <div class="flex gap-2">
           <input type="url" id="banner4_video_url" name="banner4_video_url"
                  class="flex-1 px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-medium text-stone-900 focus:bg-white focus:border-stone-950 transition-all outline-none font-mono"
-                 placeholder="Đường dẫn tệp video .mp4..."
+                 placeholder="Dán URL tệp video .mp4 từ Supabase Storage..."
                  value="{{ storefront.banner4_video_url | default('') }}"
                  oninput="sfAutoPreview(this.value, 'banner4Preview')">
           <input type="file" id="banner4_upload" accept="video/mp4" class="hidden"
                  onchange="uploadStorefrontFile(this, 'banner4_video_url', 'banner4Preview')">
           <button type="button"
-                  class="px-4 py-2.5 bg-white border border-stone-200 text-stone-700 text-xs font-bold rounded-xl hover:bg-stone-50 hover:border-stone-400 transition-all sf-upload-btn whitespace-nowrap shadow-sm"
+                  class="px-4 py-2.5 bg-white border border-stone-200 text-stone-700 text-xs font-bold rounded-xl hover:bg-stone-50 hover:border-stone-400 transition-all sf-upload-btn whitespace-nowrap shadow-sm cursor-pointer"
                   onclick="document.getElementById('banner4_upload').click()">
             <i class="fa-solid fa-cloud-arrow-up mr-1"></i> Tải lên
           </button>
@@ -339,7 +337,7 @@
           {% endif %}
           <div class="px-4 py-2 bg-white border-t border-stone-50 flex items-center justify-between text-[11px]">
             <span id="banner4PreviewName" class="text-stone-400 truncate max-w-[70%] font-mono">{{ storefront.banner4_video_url | default('') }}</span>
-            <button type="button" class="text-rose-600 hover:text-rose-800 font-bold inline-flex items-center gap-1 transition-colors"
+            <button type="button" class="text-rose-600 hover:text-rose-800 font-bold inline-flex items-center gap-1 transition-colors cursor-pointer"
                     onclick="sfClearField('banner4_video_url','banner4Preview')">
               <i class="fa-solid fa-trash-can text-[10px]"></i> Gỡ bỏ
             </button>
@@ -402,18 +400,31 @@ function sfClearField(inputId, previewId) {
 async function uploadStorefrontFile(inputEl, targetInputId, previewId) {
   const file = inputEl.files[0];
   if (!file) return;
-  const MAX = 50 * 1024 * 1024;
+  
+  // ✅ FIX LỖI 413: Giới hạn cứng 4.5MB ngay tại Frontend trước khi request bị Vercel chặn đứng
+  const VERCEL_MAX_SIZE = 4.5 * 1024 * 1024; 
   const btn = inputEl.closest('.flex').querySelector('.sf-upload-btn');
-  if (file.size > MAX) {
-    GUA && GUA.snackbar ? GUA.snackbar(`File vượt quá 50MB (${(file.size/1024/1024).toFixed(2)}MB)`, 'warning') : alert('File quá lớn!');
-    inputEl.value = ''; return;
+  
+  if (file.size > VERCEL_MAX_SIZE) {
+    const errorMsg = `File vượt quá hạn mức Vercel (4.5MB). Kích thước file hiện tại: ${(file.size/1024/1024).toFixed(2)}MB. Vui lòng tải trực tiếp lên Supabase Storage Dashboard và dán URL vào ô cấu hình!`;
+    // Fallback thông minh tránh crash Uncaught ReferenceError: GUA is not defined
+    if (window.GUA && typeof window.GUA.snackbar === 'function') {
+      window.GUA.snackbar(errorMsg, 'warning');
+    } else {
+      alert(errorMsg);
+    }
+    inputEl.value = ''; 
+    return;
   }
+  
   const blobUrl = URL.createObjectURL(file);
   const isVideo = file.type.startsWith('video/');
   sfAutoPreview(blobUrl, previewId, isVideo);
+  
   if (btn) { btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'; btn.classList.add('opacity-40','pointer-events-none'); }
   const fd = new FormData(); fd.append('file', file);
   const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+  
   try {
     const res = await fetch('/admin/settings/upload', { method:'POST', headers:{'X-CSRFToken': csrf}, body: fd });
     if (!res.ok) throw new Error(`Lỗi máy chủ (${res.status})`);
@@ -422,11 +433,20 @@ async function uploadStorefrontFile(inputEl, targetInputId, previewId) {
       const inp = document.getElementById(targetInputId);
       if (inp) { inp.value = data.url; sfAutoPreview(data.url, previewId, isVideo); }
       URL.revokeObjectURL(blobUrl);
-      GUA && GUA.snackbar ? GUA.snackbar('Tải file lên thành công!', 'success') : alert('Thành công!');
+      if (window.GUA && typeof window.GUA.snackbar === 'function') {
+        window.GUA.snackbar('Tải file lên thành công!', 'success');
+      } else {
+        alert('Tải file lên thành công!');
+      }
     } else throw new Error(data.error || 'Lỗi không xác định');
   } catch (err) {
-    sfClearField(targetInputId, previewId); URL.revokeObjectURL(blobUrl);
-    GUA && GUA.snackbar ? GUA.snackbar(err.message, 'danger') : alert(err.message);
+    sfClearField(targetInputId, previewId); 
+    URL.revokeObjectURL(blobUrl);
+    if (window.GUA && typeof window.GUA.snackbar === 'function') {
+      window.GUA.snackbar(err.message, 'danger');
+    } else {
+      alert(err.message);
+    }
   } finally {
     if (btn) { btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up mr-1"></i> Tải lên'; btn.classList.remove('opacity-40','pointer-events-none'); }
     inputEl.value = '';

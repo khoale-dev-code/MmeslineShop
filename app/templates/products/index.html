@@ -2,7 +2,7 @@
 {% block title %}GUA. | Official Online Store{% endblock %}
 
 {% block extra_head %}
-{# ── BẢN CẬP NHẬT TĂNG TỐC: Kích hoạt Preload cho Video Đầu trang nếu có cấu hình sẵn ── #}
+{# ── BẢN CẬP NHẬT TĂNG TỐC VÀ TỐI ƯU MƯỢT MÀ TOÀN DIỆN ── #}
 {% set sf = system_settings.get('storefront', {}) %}
 {% set hero_url = sf.get('hero_banner_url') or '' %}
 {% if hero_url and (hero_url.lower().endswith('.mp4') or 'video' in hero_url.lower()) %}
@@ -12,16 +12,28 @@
 <style>
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-  .img-pan { transition: transform 1.5s cubic-bezier(0.16, 1, 0.3, 1); }
+  
+  /* Tối ưu hóa GPU Layer tách biệt cho hiệu ứng Pan không gây lag luồng chính */
+  .img-pan { 
+    transition: transform 1.5s cubic-bezier(0.16, 1, 0.3, 1); 
+    will-change: transform;
+  }
   .group:hover .img-pan { transform: scale(1.05); }
+  
   .animate-fade-in-up { animation: fadeInUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
   @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
   
-  /* Tối ưu hóa hiệu ứng mượt mà cho phần cứng khi render video/ảnh */
-  video, img {
+  /* Tạo Composite Layer riêng cho Video Hero để card đồ họa xử lý trực tiếp */
+  .hero-video-render {
     will-change: transform, opacity;
     transform: translateZ(0);
     backface-visibility: hidden;
+  }
+
+  /* 💡 TỐI ƯU SÂU: Chặn Trình duyệt tính toán Layout/Paint cho các Section ở dưới khi chưa cuộn tới */
+  .lazy-render-section {
+    content-visibility: auto;
+    contain-intrinsic-size: 1000px;
   }
 </style>
 {% endblock %}
@@ -43,21 +55,20 @@
   <section class="relative w-full h-[85vh] md:h-screen overflow-hidden bg-neutral-900 flex items-end">
     {% if hero_url %}
       {% if is_video %}
-        {# ✅ ĐÃ SỬA: Thêm các thuộc tính tối ưu hóa truyền tải, dùng ảnh banner máy tính làm poster tạm thời #}
         <video autoplay muted loop playsinline 
                preload="auto"
                poster="{{ sf.get('banner_desktop_url') or '' }}"
-               class="absolute inset-0 w-full h-full object-cover object-center bg-neutral-900">
+               class="absolute inset-0 w-full h-full object-cover object-center bg-neutral-900 hero-video-render">
           <source src="{{ hero_url }}" type="video/mp4">
         </video>
       {% else %}
-        <img src="{{ hero_url }}" alt="Hero banner" class="absolute inset-0 w-full h-full object-cover object-center" fetchpriority="high">
+        <img src="{{ hero_url }}" alt="Hero banner" class="absolute inset-0 w-full h-full object-cover object-center" fetchpriority="high" decoding="async">
       {% endif %}
     {% else %}
       {# Video Dự phòng hệ thống Local #}
       <video autoplay muted loop playsinline 
              preload="auto"
-             class="absolute inset-0 w-full h-full object-cover object-center bg-neutral-900">
+             class="absolute inset-0 w-full h-full object-cover object-center bg-neutral-900 hero-video-render">
         <source src="../../static/video/MMESTLINE CON NGỰA.mp4" type="video/mp4"/>
       </video>
     {% endif %}
@@ -81,10 +92,10 @@
     {% for i in range(4) %}
       {% set cat = grid_cats[i] if grid_cats|length > i else None %}
       <a href="/shop{% if cat %}?category={{ cat.slug }}{% endif %}" class="relative group block aspect-[3/4] md:aspect-[4/5] overflow-hidden bg-[#f8f8f8]">
-        {# Thay đổi fetchpriority sang high cho 4 ô danh mục đầu trang để kéo ảnh về nhanh hơn #}
         <img src="{{ cat.image_url if cat and cat.image_url else 'https://placehold.co/600x800/ede4d8/1a1714?text=Category+' ~ (i+1) }}" 
              alt="{{ cat.name if cat else 'Category' }}" 
              class="w-full h-full object-cover object-top img-pan"
+             decoding="async"
              {% if loop.first %}fetchpriority="high"{% else %}loading="eager"{% endif %}>
         <div class="absolute inset-0 bg-black/5 group-hover:bg-black/20 transition-colors duration-500"></div>
         <div class="absolute bottom-5 left-5 z-10">
@@ -99,7 +110,7 @@
   {# ══ 3. BANNER 2 (Full Width) ══ #}
   <section class="relative w-full h-[65vh] md:h-[120vh] mt-1 md:mt-2 overflow-hidden bg-neutral-100 group">
     <img src="{{ sf.get('banner2_url') or 'https://i.pinimg.com/1200x/c2/66/05/c2660571733bc9f4b917675c9bfe94f9.jpg' }}" 
-         alt="Banner 2" class="absolute inset-0 w-full h-full object-cover object-center img-pan" loading="lazy">
+         alt="Banner 2" class="absolute inset-0 w-full h-full object-cover object-center img-pan" loading="lazy" decoding="async">
     <div class="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition-colors duration-700"></div>
     <div class="absolute bottom-12 left-6 md:left-12 text-white z-10">
       <h2 class="font-display text-4xl md:text-6xl font-black uppercase tracking-tight">Signature</h2>
@@ -111,7 +122,7 @@
   <section class="w-full p-1 md:p-2 grid grid-cols-1 md:grid-cols-2 gap-1 md:gap-2">
     <div class="relative w-full h-[60vh] md:h-[80vh] group overflow-hidden bg-neutral-100">
       <img src="{{ sf.get('split_left_url') or 'https://i.pinimg.com/1200x/8d/f1/b1/8df1b177ec235f6699a8f56cd324e5e4.jpg' }}" 
-           alt="Split left" class="absolute inset-0 w-full h-full object-cover object-center img-pan" loading="lazy">
+           alt="Split left" class="absolute inset-0 w-full h-full object-cover object-center img-pan" loading="lazy" decoding="async">
       <div class="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition duration-700"></div>
       <div class="absolute bottom-10 left-8 md:left-12 text-white z-10 transform group-hover:-translate-y-3 transition-transform duration-500">
         <h2 class="font-display text-3xl md:text-4xl font-black uppercase tracking-tight">Essentials</h2>
@@ -120,7 +131,7 @@
     </div>
     <div class="relative w-full h-[60vh] md:h-[80vh] group overflow-hidden bg-neutral-100">
       <img src="{{ sf.get('split_right_url') or 'https://i.pinimg.com/736x/ad/49/55/ad4955e1f64e66bf775163948ba51a3b.jpg' }}" 
-           alt="Split right" class="absolute inset-0 w-full h-full object-cover object-center img-pan" loading="lazy">
+           alt="Split right" class="absolute inset-0 w-full h-full object-cover object-center img-pan" loading="lazy" decoding="async">
       <div class="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition duration-700"></div>
       <div class="absolute bottom-10 left-8 md:left-12 text-white z-10 transform group-hover:-translate-y-3 transition-transform duration-500">
         <h2 class="font-display text-3xl md:text-4xl font-black uppercase tracking-tight">Avant-Garde</h2>
@@ -129,23 +140,14 @@
     </div>
   </section>
 
-  {# ══ 5. BANNER 4 (VIDEO Best Sellers - Tối ưu hóa tải chậm cuộn trang) ══ #}
+  {# ══ 5. BANNER 4 (VIDEO Best Sellers - Quản lý Playback bằng JS) ══ #}
   {% set video_url = sf.get('banner4_video_url') %}
-  <section class="relative w-full h-[65vh] md:h-[80vh] mt-1 md:mt-2 overflow-hidden bg-neutral-900 group">
-    {% if video_url %}
-      {# ✅ ĐÃ SỬA: Chuyển preload thành 'metadata' để trình duyệt không tải ngầm video này khi người dùng chưa cuộn xuống #}
-      <video autoplay loop muted playsinline 
-             preload="metadata"
-             class="absolute inset-0 w-full h-full object-cover object-center bg-neutral-900">
-        <source src="{{ video_url }}" type="video/mp4">
-      </video>
-    {% else %}
-      <video autoplay loop muted playsinline 
-             preload="metadata"
-             class="absolute inset-0 w-full h-full object-cover object-center bg-neutral-900">
-        <source src="https://www.pexels.com/download/video/10664773/" type="video/mp4">
-      </video>
-    {% endif %}
+  <section class="lazy-render-section relative w-full h-[65vh] md:h-[80vh] mt-1 md:mt-2 overflow-hidden bg-neutral-900 group">
+    <video loop muted playsinline 
+           preload="none"
+           class="lazy-scroll-video absolute inset-0 w-full h-full object-cover object-center bg-neutral-900 hero-video-render">
+      <source src="{{ video_url if video_url else 'https://www.pexels.com/download/video/10664773/' }}" type="video/mp4">
+    </video>
     <div class="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors duration-700"></div>
     <div class="absolute bottom-12 left-6 md:left-12 text-white z-10">
       <h2 class="font-display text-4xl md:text-6xl font-black uppercase tracking-tight">Best Sellers</h2>
@@ -155,7 +157,7 @@
 
   {# ══ 6. FEATURED PRODUCTS SLIDER ══ #}
   {% if featured_products %}
-  <section class="bg-white relative mt-16 md:mt-24 mb-24">
+  <section class="lazy-render-section bg-white relative mt-16 md:mt-24 mb-24">
     <div class="flex items-end justify-between px-6 md:px-12 py-6">
       <div class="flex flex-col gap-1.5">
         <span class="text-[9px] font-black uppercase tracking-[0.3em] text-neutral-400">Collection</span>
@@ -177,7 +179,7 @@
         <div class="slider-item snap-start shrink-0 flex flex-col bg-white group w-[80vw] sm:w-[45vw] lg:w-[28vw] xl:w-[22vw]">
           <div class="relative overflow-hidden bg-[#f8f8f8] aspect-[3/4]">
             <a href="/product/{{ product.slug or product.id }}" class="block h-full w-full" draggable="false">
-              <img src="{{ product.thumbnail_url }}" alt="{{ product.name }}" class="w-full h-full object-cover object-top img-pan mix-blend-multiply" draggable="false" loading="lazy"/>
+              <img src="{{ product.thumbnail_url }}" alt="{{ product.name }}" class="w-full h-full object-cover object-top img-pan mix-blend-multiply" draggable="false" loading="lazy" decoding="async"/>
             </a>
             {% if loop.index <= 3 %}
             <span class="absolute top-4 left-4 text-[9px] font-black uppercase tracking-[0.2em] bg-white text-black px-3 py-1.5 shadow-sm pointer-events-none">Mới</span>
@@ -230,12 +232,36 @@
   {% endif %}
 
   {# ══ 7. NEWSLETTER CTA ══ #}
-  {% include 'components/home/_cta_register.html' ignore missing %}
+  <div class="lazy-render-section">
+    {% include 'components/home/_cta_register.html' ignore missing %}
+  </div>
 
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  // ── 1. KHỞI TẠO INTERSECTION OBSERVER CHO VIDEO KHUẤT MÀN HÌNH ──
+  const lazyVideos = document.querySelectorAll('.lazy-scroll-video');
+  if ('IntersectionObserver' in window) {
+    const videoObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        const video = entry.target;
+        if (entry.isIntersecting) {
+          if (video.getAttribute('preload') === 'none') {
+            video.setAttribute('preload', 'metadata');
+          }
+          video.play().catch(err => {});
+        } else {
+          video.pause(); // Giải phóng CPU/GPU khi người dùng cuộn qua chỗ khác
+        }
+      });
+    }, { root: null, rootMargin: '150px', threshold: 0.1 });
+    lazyVideos.forEach(video => videoObserver.observe(video));
+  } else {
+    lazyVideos.forEach(video => { video.setAttribute('preload', 'auto'); video.play(); });
+  }
+
+  // ── 2. KHỞI TẠO LOGIC SLIDER TỐI ƯU BẰNG REQUESTANIMATIONFRAME ──
   const container = document.getElementById('slider-container');
   const progressBar = document.getElementById('progressBar');
   const btnNext = document.getElementById('btnNext');
@@ -257,6 +283,7 @@ document.addEventListener('DOMContentLoaded', function() {
     btnNext.disabled = container.scrollLeft >= maxScroll - 5;
   };
 
+  // Sử dụng passive listener để tăng tốc cuộn mượt bằng chuột/trackpad của trình duyệt
   container.addEventListener('scroll', updateUI, { passive: true });
   setTimeout(updateUI, 100);
   window.addEventListener('resize', updateUI);
@@ -269,18 +296,25 @@ document.addEventListener('DOMContentLoaded', function() {
   btnNext.addEventListener('click', () => container.scrollBy({ left: getScrollStep(), behavior: 'smooth' }));
   btnPrev.addEventListener('click', () => container.scrollBy({ left: -getScrollStep(), behavior: 'smooth' }));
 
+  // Khởi tạo các biến kéo thả chuột (Drag-to-scroll)
   let isDown = false, startX, scrollLeft, isDragging = false;
+  let ticking = false; // Cờ kiểm soát vòng lặp Animation Frame
+
   container.addEventListener('mousedown', (e) => {
-    isDown = true; isDragging = false;
+    isDown = true; 
+    isDragging = false;
     container.classList.remove('scroll-smooth');
     container.style.cursor = 'grabbing';
     startX = e.pageX - container.offsetLeft;
     scrollLeft = container.scrollLeft;
   });
+
   window.addEventListener('mouseup', () => {
+    if (!isDown) return;
     isDown = false;
     container.style.cursor = 'auto';
     container.classList.add('scroll-smooth');
+    
     if (isDragging) {
       const step = getScrollStep();
       const snapPoint = Math.round(container.scrollLeft / step) * step;
@@ -288,14 +322,25 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     setTimeout(() => { isDragging = false; }, 50);
   });
+
   container.addEventListener('mousemove', (e) => {
     if (!isDown) return;
     e.preventDefault();
     const x = e.pageX - container.offsetLeft;
     const walk = (x - startX) * 1.5;
     if (Math.abs(walk) > 5) isDragging = true;
-    container.scrollLeft = scrollLeft - walk;
+
+    // FIX CHÍNH: Gom thao tác ghi DOM tọa độ cuộn (scrollLeft) vào chu kỳ vẽ tiếp theo của card màn hình
+    if (!ticking) {
+      requestAnimationFrame(() => {
+        container.scrollLeft = scrollLeft - walk;
+        ticking = false;
+      });
+      ticking = true;
+    }
   });
+
+  // Ngăn chặn sự kiện Click kích hoạt nhầm khi đang thao tác kéo chuột mượt mà
   container.querySelectorAll('a, button').forEach(el => {
     el.addEventListener('click', (e) => { if (isDragging) { e.preventDefault(); e.stopPropagation(); } });
   });
