@@ -5,7 +5,7 @@ Tích hợp: Variants, SEO, Soft Delete, Filter.
 
 import logging
 from flask import render_template, redirect, url_for, flash, request, current_app
-
+from app.utils.supabase_client import get_supabase_admin
 from app.models.product_model import ProductModel
 from app.models.category_model import CategoryModel
 from app.middleware.auth_required import admin_required
@@ -378,4 +378,35 @@ def edit_category(cat_id):
 def delete_category(cat_id):
     CategoryModel.delete(cat_id)
     flash("Đã xóa danh mục.", "success")
+    return redirect(url_for("admin.categories"))
+
+@admin_bp.route("/categories/update-homepage", methods=["POST"])
+@admin_required
+@handle_errors("Lỗi cập nhật trang chủ.", "admin.categories")
+def update_homepage_layout():
+    # Mảng này chứa ID của các danh mục ĐÃ ĐƯỢC KÉO VÀO TRANG CHỦ, theo đúng thứ tự từ trên xuống dưới
+    home_ids = request.form.getlist("home_cats[]")
+    db = get_supabase_admin()
+
+    try:
+        # 1. Quét dọn: Tìm tất cả danh mục đang ghim và hạ chúng xuống (Reset vị trí)
+        res = db.table("categories").select("id").eq("show_on_home", True).execute()
+        for item in (res.data or []):
+            db.table("categories").update({
+                "show_on_home": False, 
+                "sort_order": 0
+            }).eq("id", item["id"]).execute()
+
+        # 2. Xếp lại: Lấy mảng ID mới từ giao diện Kéo thả để cập nhật lại đúng thứ tự (Index + 1)
+        for index, cid in enumerate(home_ids):
+            db.table("categories").update({
+                "show_on_home": True,
+                "sort_order": index + 1
+            }).eq("id", cid).execute()
+
+        flash("Đã lưu bố cục trang chủ thành công!", "success")
+    except Exception as e:
+        current_app.logger.error(f"Lỗi Update Homepage Layout: {e}")
+        flash("Có lỗi xảy ra khi lưu cấu hình.", "danger")
+
     return redirect(url_for("admin.categories"))

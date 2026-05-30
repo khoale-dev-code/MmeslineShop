@@ -40,8 +40,11 @@
 
 {% block content %}
 
-{# ── Lấy danh mục từ categories (giữ 4 ô đầu cho grid) ── #}
-{% set grid_cats = categories[0:4] if categories else [] %}
+{# ── LỌC DANH MỤC ĐƯỢC GHIM LÊN TRANG CHỦ (show_on_home) ── #}
+{% set home_cats = categories | selectattr('show_on_home', 'equalto', true) | list if categories else [] %}
+{# Fallback thông minh: Nếu Admin chưa ghim danh mục nào, lấy tất cả để hiển thị #}
+{% set grid_cats = home_cats if home_cats|length > 0 else (categories if categories else []) %}
+{% set total_cats = grid_cats|length %}
 
 {# ── Trích xuất phân vùng storefront an toàn bằng .get() ── #}
 {% set sf = system_settings.get('storefront', {}) %}
@@ -62,10 +65,9 @@
           <source src="{{ hero_url }}" type="video/mp4">
         </video>
       {% else %}
-        <img src="{{ hero_url }}" alt="Hero banner" class="absolute inset-0 w-full h-full object-cover object-center" fetchpriority="high" decoding="async">
+        <img src="{{ hero_url }}" alt="Hero banner" class="absolute inset-0 w-full h-full object-cover object-center" fetchpriority="high" loading="eager" decoding="async">
       {% endif %}
     {% else %}
-      {# 🛠️ SỬA LỖI TẠI ĐÂY: Sử dụng url_for để ánh xạ chính xác thư mục tĩnh trên Vercel production #}
       <video autoplay muted loop playsinline 
              preload="auto"
              class="absolute inset-0 w-full h-full object-cover object-center bg-neutral-900 hero-video-render">
@@ -87,25 +89,53 @@
     </div>
   </section>
 
-  {# ══ 2. CATEGORY GRID (4 danh mục đầu tiên) ══ #}
-  <section class="w-full p-1 md:p-2 grid grid-cols-2 lg:grid-cols-4 gap-1 md:gap-2">
-    {% for i in range(4) %}
-      {% set cat = grid_cats[i] if grid_cats|length > i else None %}
-      <a href="/shop{% if cat %}?category={{ cat.slug }}{% endif %}" class="relative group block aspect-[3/4] md:aspect-[4/5] overflow-hidden bg-[#f8f8f8]">
-        <img src="{{ cat.image_url if cat and cat.image_url else 'https://placehold.co/600x800/ede4d8/1a1714?text=Category+' ~ (i+1) }}" 
-             alt="{{ cat.name if cat else 'Category' }}" 
-             class="w-full h-full object-cover object-top img-pan"
-             decoding="async"
-             {% if loop.first %}fetchpriority="high"{% else %}loading="eager"{% endif %}>
-        <div class="absolute inset-0 bg-black/5 group-hover:bg-black/20 transition-colors duration-500"></div>
-        <div class="absolute bottom-5 left-5 z-10">
+  {# ══ 2. CATEGORY GRID (Hiển thị linh hoạt: Ít thì giãn rộng, Nhiều thì lướt ngang) ══ #}
+  {% if total_cats > 0 %}
+  <section class="w-full p-1 md:p-2 flex overflow-x-auto snap-x snap-mandatory no-scrollbar gap-1 md:gap-2">
+    {% for cat in grid_cats %}
+      
+      {# THUẬT TOÁN GRID ĐỘNG HỌC (ELASTIC GRID) #}
+      {% if total_cats == 1 %}
+        {% set w_class = "w-full min-w-full" %}
+      {% elif total_cats == 2 %}
+        {% set w_class = "w-[calc(50%-2px)] md:w-[calc(50%-0.25rem)] min-w-[calc(50%-2px)] md:min-w-[calc(50%-0.25rem)]" %}
+      {% elif total_cats == 3 %}
+        {% set w_class = "w-[85vw] md:w-[calc(33.333%-0.33rem)] min-w-[85vw] md:min-w-[calc(33.333%-0.33rem)]" %}
+      {% else %}
+        {# Từ 4 trở lên: Mobile lướt ngang 85vw, Tablet chia 3, PC chia 4 #}
+        {% set w_class = "w-[85vw] sm:w-[calc(50%-2px)] md:w-[calc(33.333%-0.33rem)] lg:w-[calc(25%-0.375rem)] min-w-[85vw] sm:min-w-[calc(50%-2px)] md:min-w-[calc(33.333%-0.33rem)] lg:min-w-[calc(25%-0.375rem)]" %}
+      {% endif %}
+
+      <a href="/shop?category={{ cat.slug }}" class="relative group block aspect-[3/4] md:aspect-[4/5] overflow-hidden bg-[#f8f8f8] snap-start shrink-0 {{ w_class }}">
+        
+        {% if cat.video_url %}
+          <video src="{{ cat.video_url }}" autoplay loop muted playsinline 
+                 class="w-full h-full object-cover object-center img-pan" 
+                 {% if loop.index <= 4 %}fetchpriority="high"{% endif %}></video>
+        {% else %}
+          <img src="{{ cat.image_url if cat.image_url else 'https://placehold.co/600x800/ede4d8/1a1714?text=' ~ cat.name|urlencode }}" 
+               alt="{{ cat.name }}" 
+               class="w-full h-full object-cover object-center img-pan"
+               decoding="async"
+               {% if loop.index <= 4 %}fetchpriority="high" loading="eager"{% else %}loading="lazy"{% endif %}>
+        {% endif %}
+
+        <div class="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition-colors duration-500"></div>
+        
+        <div class="absolute bottom-5 left-5 z-10 flex flex-col items-start gap-2 pr-5">
           <h3 class="text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-black bg-white px-4 py-2 shadow-sm transform group-hover:-translate-y-1 transition-transform duration-300">
-            {{ cat.name if cat else 'Upcoming' }}
+            {{ cat.name }}
           </h3>
+          {% if cat.description %}
+            <p class="text-white text-[11px] font-medium leading-relaxed opacity-0 group-hover:opacity-100 transform translate-y-3 group-hover:translate-y-0 transition-all duration-300 line-clamp-2 drop-shadow-md">
+              {{ cat.description }}
+            </p>
+          {% endif %}
         </div>
       </a>
     {% endfor %}
   </section>
+  {% endif %}
 
   {# ══ 3. BANNER 2 (Full Width) ══ #}
   <section class="relative w-full h-[65vh] md:h-[120vh] mt-1 md:mt-2 overflow-hidden bg-neutral-100 group">
@@ -179,7 +209,7 @@
         <div class="slider-item snap-start shrink-0 flex flex-col bg-white group w-[80vw] sm:w-[45vw] lg:w-[28vw] xl:w-[22vw]">
           <div class="relative overflow-hidden bg-[#f8f8f8] aspect-[3/4]">
             <a href="/product/{{ product.slug or product.id }}" class="block h-full w-full" draggable="false">
-              <img src="{{ product.thumbnail_url }}" alt="{{ product.name }}" class="w-full h-full object-cover object-top img-pan mix-blend-multiply" draggable="false" loading="lazy" decoding="async"/>
+              <img src="{{ product.thumbnail_url }}" alt="{{ product.name }}" class="w-full h-full object-cover object-top img-pan mix-blend-multiply" draggable="false" {% if loop.index <= 4 %}loading="eager" fetchpriority="high"{% else %}loading="lazy"{% endif %} decoding="async"/>
             </a>
             {% if loop.index <= 3 %}
             <span class="absolute top-4 left-4 text-[9px] font-black uppercase tracking-[0.2em] bg-white text-black px-3 py-1.5 shadow-sm pointer-events-none">Mới</span>
@@ -252,7 +282,7 @@ document.addEventListener('DOMContentLoaded', function() {
           }
           video.play().catch(err => {});
         } else {
-          video.pause(); // Giải phóng CPU/GPU khi người dùng cuộn qua chỗ khác
+          video.pause(); // Giải phóng CPU/GPU
         }
       });
     }, { root: null, rootMargin: '150px', threshold: 0.1 });
@@ -261,7 +291,7 @@ document.addEventListener('DOMContentLoaded', function() {
     lazyVideos.forEach(video => { video.setAttribute('preload', 'auto'); video.play(); });
   }
 
-  // ── 2. KHỞI TẠO LOGIC SLIDER TỐI ƯU BẰNG REQUESTANIMATIONFRAME ──
+  // ── 2. KHỞI TẠO LOGIC SLIDER TỐI ƯU ──
   const container = document.getElementById('slider-container');
   const progressBar = document.getElementById('progressBar');
   const btnNext = document.getElementById('btnNext');
@@ -272,15 +302,15 @@ document.addEventListener('DOMContentLoaded', function() {
   const updateUI = () => {
     const maxScroll = container.scrollWidth - container.clientWidth;
     if (maxScroll <= 0) {
-      progressBar.style.width = '100%';
-      btnPrev.disabled = true;
-      btnNext.disabled = true;
+      if(progressBar) progressBar.style.width = '100%';
+      if(btnPrev) btnPrev.disabled = true;
+      if(btnNext) btnNext.disabled = true;
       return;
     }
     const scrollProgress = (container.scrollLeft / maxScroll) * 100;
-    progressBar.style.width = scrollProgress + '%';
-    btnPrev.disabled = container.scrollLeft <= 5;
-    btnNext.disabled = container.scrollLeft >= maxScroll - 5;
+    if(progressBar) progressBar.style.width = scrollProgress + '%';
+    if(btnPrev) btnPrev.disabled = container.scrollLeft <= 5;
+    if(btnNext) btnNext.disabled = container.scrollLeft >= maxScroll - 5;
   };
 
   container.addEventListener('scroll', updateUI, { passive: true });
@@ -292,8 +322,8 @@ document.addEventListener('DOMContentLoaded', function() {
     return item ? item.offsetWidth + 24 : container.clientWidth * 0.5;
   };
 
-  btnNext.addEventListener('click', () => container.scrollBy({ left: getScrollStep(), behavior: 'smooth' }));
-  btnPrev.addEventListener('click', () => container.scrollBy({ left: -getScrollStep(), behavior: 'smooth' }));
+  if(btnNext) btnNext.addEventListener('click', () => container.scrollBy({ left: getScrollStep(), behavior: 'smooth' }));
+  if(btnPrev) btnPrev.addEventListener('click', () => container.scrollBy({ left: -getScrollStep(), behavior: 'smooth' }));
 
   let isDown = false, startX, scrollLeft, isDragging = false;
   let ticking = false;

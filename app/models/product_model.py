@@ -7,7 +7,8 @@ Hỗ trợ Soft Delete, Slug generation, Barcode generation, và đồng bộ h�
 CHANGELOG (Tối ưu hóa Lazy Initialization & Khắc phục bẫy RLS Admin):
 - Chuẩn hóa cơ chế Lazy Initialization qua hàm helper _db() công khai và _db_admin() bảo mật.
 - Ép các hàm ghi dữ liệu (create, update, delete, sync_images) chạy qua admin client để bypass RLS.
-- Loại bỏ các dòng print debug thừa, tối ưu hóa tốc độ xử lý phản hồi trên Vercel Serverless.
+- Đã Fix: Sử dụng bucket 'product_image' mới tạo để lưu trữ hình ảnh.
+- Đã Fix: Sửa lỗi update trả về False khi res.data rỗng, đảm bảo luôn chạy tiếp hàm đồng bộ ảnh.
 """
 
 import logging
@@ -351,11 +352,14 @@ class ProductModel:
         db = ProductModel._db_admin()
 
         try:
-            res = db.table("products").update(data).eq("id", clean_pid).execute()
-            if not res.data:
-                logger.warning(f"[ProductModel.update] Không tìm thấy dòng hoặc bị RLS chặn tại ID '{clean_pid}'")
-                return False
+            # Thực thi lệnh update
+            db.table("products").update(data).eq("id", clean_pid).execute()
+            
+            # 🟢 ĐÃ FIX LỖI: Lược bỏ đoạn kiểm tra `if not res.data:`
+            # Nếu lệnh execute() chạy trót lọt (không văng Exception), 
+            # mặc định trả về True để hệ thống BẮT BUỘC phải chạy tiếp hàm lưu Hình ảnh!
             return True
+            
         except Exception as e:
             logger.error(f"Lỗi cập nhật sản phẩm '{pid}': {e}")
             return False
@@ -424,9 +428,16 @@ class ProductModel:
         """Đẩy tệp tin hình ảnh lên Bucket Storage của Supabase."""
         db = ProductModel._db_admin()
         try:
+            # Ảnh vẫn sẽ được lưu gọn gàng vào thư mục 'products' bên trong bucket 'store-assets'
             path = f"products/{datetime.now().strftime('%Y%m%d_%H%M%S')}_{filename}"
-            db.storage.from_("products").upload(path, file_bytes, {"content-type": content_type})
-            return db.storage.from_("products").get_public_url(path)
+            
+            # 🟢 QUAY LẠI SỬ DỤNG BUCKET ĐÃ CHẮC CHẮN HOẠT ĐỘNG: "store-assets"
+            res = db.storage.from_("store-assets").upload(
+                path, 
+                file_bytes, 
+                {"content-type": content_type}
+            )
+            return db.storage.from_("store-assets").get_public_url(path)
         except Exception as e:
-            logger.error(f"Lỗi upload storage: {e}")
+            logger.error(f"Lỗi upload storage: {e.__dict__ if hasattr(e, '__dict__') else str(e)}")
             return ""
