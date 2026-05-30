@@ -3,12 +3,11 @@ app/models/user_model.py
 =========================
 Model xử lý tất cả thao tác liên quan đến bảng `users` và phân quyền (RBAC) trên Supabase.
 
-CHANGELOG (fix đăng ký / đăng nhập):
-- Xoá block gọi bảng `roles` và `user_roles` (không tồn tại trong schema).
-- Thêm "role": "customer" vào payload INSERT để session luôn đọc được.
-- UserModel.create() dùng get_supabase_admin() để bypass RLS khi tạo user.
-- Thêm UserModel.change_password() để dùng ở reset-password / đổi mật khẩu.
-- Thêm UserModel.get_user_count() để dùng ở admin dashboard.
+CHANGELOG (Sửa lỗi triệt để bẫy khóa dữ liệu RLS & Crash Giao diện):
+- Đồng bộ hóa get_by_email() và get_by_id() sang dùng get_supabase_admin() để bảo đảm nạp đầy đủ
+  trường thông tin (full_name, role, admin_role_slug) cho Session Context, chống lỗi sập giao diện.
+- UserModel.update_profile() nâng cấp lên admin client để xử lý luồng cập nhật thông tin mượt mà.
+- Bảo toàn cấu trúc gọn gàng, loại bỏ hoàn toàn các bảng thừa không tồn tại trong schema.
 """
 
 import logging
@@ -21,7 +20,7 @@ logger = logging.getLogger(__name__)
 class UserModel:
 
     # ═══════════════════════════════════════════════════════════════
-    #  TẠO USER MỚI
+    #  TẠO USER MỚI (Bypass RLS an toàn)
     # ═══════════════════════════════════════════════════════════════
 
     @staticmethod
@@ -34,7 +33,7 @@ class UserModel:
                 "email":         email,
                 "password_hash": hashed,
                 "full_name":     full_name,
-                "role":          "customer",
+                "role":          "customer", # Quyền mặc định khi đăng ký tài khoản mới
             }).execute()
 
             user = user_result.data[0] if user_result.data else {}
@@ -52,12 +51,13 @@ class UserModel:
             return {}
 
     # ═══════════════════════════════════════════════════════════════
-    #  QUERY
+    #  QUERY (ĐÃ ĐỒNG BỘ BYPASS RLS ĐỂ TRÁNH LỖI HOÀN CẢNH ĐĂNG NHẬP)
     # ═══════════════════════════════════════════════════════════════
 
     @staticmethod
     def get_by_email(email: str) -> dict | None:
-        db = get_supabase()
+        # ✅ SỬA ĐỔI: Dùng admin client để nạp toàn bộ metadata, tránh RLS chặn mất trường full_name
+        db = get_supabase_admin()
         try:
             result = db.table("users").select("*").eq("email", email).limit(1).execute()
             return result.data[0] if result.data else None
@@ -67,7 +67,8 @@ class UserModel:
 
     @staticmethod
     def get_by_id(user_id: str) -> dict | None:
-        db = get_supabase()
+        # ✅ SỬA ĐỔI: Dùng admin client để Middleware đồng bộ current_user sạch lỗi crash cấu trúc
+        db = get_supabase_admin()
         try:
             result = db.table("users").select("*").eq("id", user_id).limit(1).execute()
             return result.data[0] if result.data else None
@@ -78,9 +79,8 @@ class UserModel:
     @staticmethod
     def get_user_count() -> int:
         """
-        Đếm tổng số user có role='customer' (không tính admin).
-        Dùng count='exact' để Supabase trả về số lượng qua header,
-        tránh phải kéo toàn bộ bản ghi về.
+        Đếm tổng số user có role='customer' (không tính các tài khoản nội bộ admin/staff).
+        Dùng count='exact' để Supabase trả về số lượng qua header, tối ưu hóa băng thông.
         """
         db = get_supabase_admin()
         try:
@@ -96,20 +96,23 @@ class UserModel:
             return 0
 
     # ═══════════════════════════════════════════════════════════════
-    #  XÁC THỰC
+    #  XÁC THỰC NGƯỜI DÙNG
     # ═══════════════════════════════════════════════════════════════
 
     @staticmethod
     def authenticate(email: str, password: str) -> dict | None:
+        # Gọi hàm get_by_email đã được nâng cấp quyền admin ở phía trên
         user = UserModel.get_by_email(email)
         if not user:
             return None
+        
+        # So khớp chuỗi băm bảo mật mật khẩu đầu vào
         if verify_password(password, user.get("password_hash", "")):
             return user
         return None
 
     # ═══════════════════════════════════════════════════════════════
-    #  KIỂM TRA
+    #  KIỂM TRA SỰ TỒN TẠI
     # ═══════════════════════════════════════════════════════════════
 
     @staticmethod
@@ -117,12 +120,13 @@ class UserModel:
         return UserModel.get_by_email(email) is not None
 
     # ═══════════════════════════════════════════════════════════════
-    #  CẬP NHẬT
+    #  CẬP NHẬT THÔNG TIN THÀNH VIÊN
     # ═══════════════════════════════════════════════════════════════
 
     @staticmethod
     def update_profile(user_id: str, data: dict) -> dict:
-        db = get_supabase()
+        # ✅ SỬA ĐỔI: Sử dụng admin client để hỗ trợ người dùng ghi đè thông tin cá nhân mượt mà
+        db = get_supabase_admin()
         try:
             result = db.table("users").update(data).eq("id", user_id).execute()
             return result.data[0] if result.data else {}

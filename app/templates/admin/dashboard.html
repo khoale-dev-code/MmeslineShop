@@ -1,4 +1,4 @@
- {% extends "admin/admin_base.html" %}
+{% extends "admin/admin_base.html" %}
 {% block title %}Dashboard Admin | GUA Maison{% endblock %}
 
 {% block extra_head %}
@@ -13,7 +13,7 @@
     
     body { 
         font-family: var(--font-jakarta); 
-        background-color: #f8fafc; /* Slate 50 - Sáng, sạch, chuẩn SaaS */
+        background-color: #f8fafc; /* Slate 50 - Chuẩn thiết kế SaaS tối giản */
     }
     
     /* Modern SaaS Card */
@@ -23,6 +23,7 @@
         border-radius: 1.5rem; /* Bo tròn lớn, mềm mại */
         box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        will-change: transform, box-shadow; /* Tối ưu hóa tăng tốc phần cứng khi hover */
     }
     
     .modern-card:hover {
@@ -73,13 +74,22 @@
                 </div>
             </div>
 
+            {# KHU VỰC CHỐNG SẬP GIAO DIỆN: Tránh bẫy dữ liệu Null khi tài khoản thiếu trường full_name #}
             <div class="flex items-center gap-4">
                 <div class="hidden md:flex flex-col items-end">
-                    <span class="text-sm font-bold text-slate-900">{{ current_user.full_name }}</span>
+                    <span class="text-sm font-bold text-slate-900">
+                        {{ current_user.full_name if (current_user and current_user.full_name) else (session.get('user_name') or 'Admin User') }}
+                    </span>
                     <span class="text-xs font-medium text-slate-500">Quản trị viên</span>
                 </div>
                 <div class="w-11 h-11 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center font-bold text-lg shadow-sm border border-indigo-100">
-                    {{ current_user.full_name[0].upper() if current_user else 'G' }}
+                    {% if current_user and current_user.full_name %}
+                        {{ current_user.full_name[0].upper() }}
+                    {% elif session.get('email') %}
+                        {{ session.get('email')[0].upper() }}
+                    {% else %}
+                        G
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -102,7 +112,7 @@
                         </div>
                         <p class="text-slate-300 text-sm font-medium">Doanh thu ròng</p>
                     </div>
-                    <h3 class="text-3xl font-bold tracking-tight mt-2">{{ '{:,.0f}'.format(stats.total_revenue) }} ₫</h3>
+                    <h3 class="text-3xl font-bold tracking-tight mt-2">{{ '{:,.0f}'.format(stats.total_revenue | default(0)) }} ₫</h3>
                     <div class="flex items-center gap-2 mt-4">
                         <span class="px-2.5 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-semibold rounded-lg flex items-center gap-1.5">
                             <i class="fa-solid fa-arrow-up text-[10px]"></i> Tiền đã về
@@ -119,7 +129,7 @@
                     </div>
                 </div>
                 <p class="text-slate-500 text-sm font-medium mb-1">Đơn chờ xuất kho</p>
-                <h3 class="text-3xl font-bold text-slate-900 tracking-tight">{{ stats.pending }}</h3>
+                <h3 class="text-3xl font-bold text-slate-900 tracking-tight">{{ stats.pending | default(0) }}</h3>
                 <div class="mt-4 flex items-center gap-2 text-xs font-medium text-amber-600">
                     <span class="w-2 h-2 rounded-full bg-amber-500"></span> Cần xử lý ngay
                 </div>
@@ -133,10 +143,18 @@
                     </div>
                 </div>
                 <p class="text-slate-500 text-sm font-medium mb-1">Tỷ lệ CK / VNPay</p>
-                <h3 class="text-3xl font-bold text-slate-900 tracking-tight">{{ stats.vnpay_ratio }}%</h3>
+                <h3 class="text-3xl font-bold text-slate-900 tracking-tight">{{ stats.vnpay_ratio | default(0) }}%</h3>
                 <div class="w-full bg-slate-100 h-2 rounded-full mt-5 overflow-hidden">
-                    <div class="bg-blue-500 h-full rounded-full transition-all duration-1000" style="width: {{ stats.vnpay_ratio }}%;"></div>
+                    <div class="bg-blue-500 h-full rounded-full transition-all duration-1000" data-width="{{ stats.vnpay_ratio | default(0) }}" style="width: 0%;"></div>
                 </div>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function () {
+                        var bar = document.querySelector('[data-width]');
+                        if (bar) {
+                            bar.style.width = bar.dataset.width + '%';
+                        }
+                    });
+                </script>
             </div>
 
             {# Card 4: Khách hàng #}
@@ -147,7 +165,7 @@
                     </div>
                 </div>
                 <p class="text-slate-500 text-sm font-medium mb-1">Tổng tài khoản đăng ký</p>
-                <h3 class="text-3xl font-bold text-slate-900 tracking-tight">{{ user_count }}</h3>
+                <h3 class="text-3xl font-bold text-slate-900 tracking-tight">{{ user_count | default(0) }}</h3>
                 <div class="mt-4 flex items-center gap-1.5 text-xs font-medium text-indigo-600">
                     Xem danh sách khách hàng <i class="fa-solid fa-arrow-right ml-1"></i>
                 </div>

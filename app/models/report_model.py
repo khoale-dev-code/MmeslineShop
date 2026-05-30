@@ -1,21 +1,47 @@
 """
 app/models/report_model.py
+=========================
 Xử lý dữ liệu Báo cáo & Thống kê Omnichannel bằng Pure Python (Tối ưu cho Vercel Serverless).
-Không sử dụng Pandas để tránh lỗi vượt dung lượng và tối ưu tốc độ.
+Không sử dụng Pandas để tránh lỗi vượt dung lượng container và tối ưu hóa tốc độ phản hồi.
+
+CHANGELOG (Tối ưu hóa Lazy Initialization & Khắc phục bẫy RLS Báo cáo):
+- Triển khai cơ chế Lazy Initialization qua hai lớp hàm _db() và _db_admin().
+- Nâng cấp luồng get_dashboard_reports() chạy qua quyền admin nhằm bypass RLS khi quét dữ liệu nâng cao.
+- Dọn sạch các bẫy import Top-Level, đảm bảo ứng dụng không phát sinh Cold Start mạng trên Vercel.
 """
+
 import logging
 from collections import defaultdict
 from datetime import datetime
-from app.utils.supabase_client import get_supabase
+from app.utils.supabase_client import get_supabase, get_supabase_admin
 
 logger = logging.getLogger(__name__)
 
 
 class ReportModel:
 
+    # ═══════════════════════════════════════════════════════════════
+    #  LAZY INITIALIZATION HELPERS (KHỞI TẠO KẾT NỐI LƯỜI)
+    # ═══════════════════════════════════════════════════════════════
+
+    @staticmethod
+    def _db():
+        """Khởi tạo lười kết nối Client công khai (Dành cho hiển thị Storefront nếu có)"""
+        return get_supabase()
+
+    @staticmethod
+    def _db_admin():
+        """Khởi tạo lười kết nối Client quyền Admin (Dành cho việc tổng hợp báo cáo Workspace Admin)"""
+        return get_supabase_admin()
+
+    # ═══════════════════════════════════════════════════════════════
+    #  CORE METHODS (XỬ LÝ DỮ LIỆU THỐNG KÊ)
+    # ═══════════════════════════════════════════════════════════════
+
     @staticmethod
     def get_dashboard_reports() -> dict:
-        db = get_supabase()
+        # ✅ ĐÃ SỬA: Chuyển sang sử dụng Admin Client để bypass RLS đa bảng, chống lỗi hụt data báo cáo
+        db = ReportModel._db_admin()
         try:
             # ── Kéo dữ liệu từ các bảng cần thiết ──
             analytics_res = db.table("product_analytics").select("*, products(name)").execute()
@@ -55,18 +81,18 @@ class ReportModel:
                     if created_at_str:
                         try:
                             dt = datetime.fromisoformat(created_at_str.replace('Z', '+00:00'))
-                            month_key = dt.strftime("%Y-%m")  # Lưu YYYY-MM để sort cho chuẩn
+                            month_key = dt.strftime("%Y-%m")  # Lưu YYYY-MM để sắp xếp chuẩn xác
                             monthly_dict[month_key] += amt
                         except ValueError:
                             pass
 
-            # Sắp xếp và lấy 12 tháng gần nhất
+            # Sắp xếp và lấy dữ liệu của 12 tháng gần nhất
             sorted_months = sorted(monthly_dict.keys())[-12:]
             monthly_stats = []
             for ym in sorted_months:
                 dt_obj = datetime.strptime(ym, "%Y-%m")
                 monthly_stats.append({
-                    "month": dt_obj.strftime("%m/%Y"),  # Đổi lại thành MM/YYYY cho UI
+                    "month": dt_obj.strftime("%m/%Y"),  # Đổi định dạng thành MM/YYYY cho giao diện UI
                     "revenue": monthly_dict[ym]
                 })
 
@@ -92,7 +118,7 @@ class ReportModel:
                     carts = int(a.get("add_to_carts") or 0)
                     likes = int(a.get("wishlist_count") or 0)
                     
-                    # Hợp nhất sold (Lấy MAX giữa tracking online và thực tế)
+                    # Hợp nhất sold (Lấy MAX giữa hệ thống tracking online và thực tế hóa đơn quầy)
                     sold_actual = sold_by_product.get(pid, 0)
                     sold_tracking = int(a.get("sold") or 0)
                     final_sold = max(sold_actual, sold_tracking)
@@ -102,10 +128,10 @@ class ReportModel:
                     funnel_by_channel[channel]["add_to_carts"] += carts
                     funnel_by_channel[channel]["sold"] += final_sold
 
-                    # AI Score Calculation
+                    # AI Score Calculation (Thuật toán đề xuất sản phẩm tối ưu)
                     ai_score = (final_sold * 0.5) + (likes * 0.3) + (views * 0.2)
                     
-                    # Tìm best product per channel
+                    # Tìm best product per channel dựa theo điểm số AI
                     if channel not in best_production_dict or ai_score > best_production_dict[channel]["ai_score"]:
                         best_production_dict[channel] = {
                             "channel": channel,
@@ -115,13 +141,13 @@ class ReportModel:
                             "views": views
                         }
                         
-                    # Yêu thích
+                    # Tổng hợp lượt yêu thích
                     product_likes[prod_name] += likes
 
-                # Format Funnel Data
+                # Format cấu trúc dữ liệu phễu chuyển đổi (Funnel Data)
                 funnel_data = []
                 for ch, data in funnel_by_channel.items():
-                    v = max(data["views"], 1)  # Chống lỗi chia cho 0
+                    v = max(data["views"], 1)  # Đặt mức trần 1 để phòng hờ lỗi chia cho 0
                     c = max(data["add_to_carts"], 1)
                     funnel_data.append({
                         "channel": ch,
@@ -135,11 +161,11 @@ class ReportModel:
                 
                 best_production = list(best_production_dict.values())
                 
-                # Top 5 most liked
+                # Trích xuất Top 5 sản phẩm được yêu thích nhiều nhất
                 sorted_likes = sorted(product_likes.items(), key=lambda x: x[1], reverse=True)
                 most_liked = [{"product_name": k, "likes": v} for k, v in sorted_likes if v > 0][:5]
 
-            # ── BƯỚC 4: Fallback nếu không có analytics nhưng có order ──
+            # ── BƯỚC 4: Fallback nếu thiếu dữ liệu analytics nhưng có dữ liệu đơn ──
             elif sold_by_product and order_items_data and valid_order_ids:
                 for item in order_items_data:
                     oid = item.get("order_id")
@@ -177,11 +203,12 @@ class ReportModel:
             }
 
         except Exception as e:
-            logger.error(f"[ReportModel] Lỗi xử lý báo cáo: {e}", exc_info=True)
+            logger.error(f"[ReportModel] Lỗi xử lý dữ liệu báo cáo: {e}", exc_info=True)
             return ReportModel._get_fallback_data()
 
     @staticmethod
     def _get_fallback_data():
+        """Dữ liệu dự phòng mặc định chống sập lỗi trang khi DB trống"""
         return {
             "channel_revenue": {"web": 0, "pos": 0, "tiktok": 0},
             "monthly_stats": [],

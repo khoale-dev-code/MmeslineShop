@@ -1,24 +1,39 @@
 """
 app/models/product_model.py
-Quản lý dữ liệu Sản phẩm, Biến thể (Variants) và SEO chuẩn E-commerce.
+=========================
+Quản lý dữ liệu Sản phẩm, Biến thể (Variants) và SEO chuẩn E-commerce cho GUA Maison.
 Hỗ trợ Soft Delete, Slug generation, Barcode generation, và đồng bộ hình ảnh.
-Tối ưu hóa bảo vệ Payload và kiểm tra an toàn Supabase RLS Constraints.
+
+CHANGELOG (Tối ưu hóa Lazy Initialization & Khắc phục bẫy RLS Admin):
+- Chuẩn hóa cơ chế Lazy Initialization qua hàm helper _db() công khai và _db_admin() bảo mật.
+- Ép các hàm ghi dữ liệu (create, update, delete, sync_images) chạy qua admin client để bypass RLS.
+- Loại bỏ các dòng print debug thừa, tối ưu hóa tốc độ xử lý phản hồi trên Vercel Serverless.
 """
 
 import logging
 import re
 import uuid
 from datetime import datetime
-from app.utils.supabase_client import get_supabase
+from app.utils.supabase_client import get_supabase, get_supabase_admin
 
 logger = logging.getLogger(__name__)
 
 
 class ProductModel:
 
+    # ═══════════════════════════════════════════════════════════════
+    #  LAZY INITIALIZATION HELPERS (KHỞI TẠO LƯỜI KHI CÓ REQUEST)
+    # ═══════════════════════════════════════════════════════════════
+
     @staticmethod
     def _db():
+        """Khởi tạo lười kết nối Client công khai (Dành cho đọc dữ liệu Storefront)"""
         return get_supabase()
+
+    @staticmethod
+    def _db_admin():
+        """Khởi tạo lười kết nối Client quyền Admin (Dành cho ghi/sửa dữ liệu Admin Dashboard)"""
+        return get_supabase_admin()
 
     # ═══════════════════════════════════════════════════════════════
     #  UTILITIES & FORMATTERS
@@ -45,7 +60,7 @@ class ProductModel:
     def generate_barcode(product_id: str = None) -> str:
         """
         Sinh mã vạch duy nhất theo format: GUA-YYMM-XXXXXX
-        - GUA     : Thương hiệu
+        - GUA     : Thương hiệu GUA Maison
         - YYMM    : Năm + Tháng tạo (VD: 2605 = tháng 5/2026)
         - XXXXXX  : 6 ký tự hex đầu của UUID (lấy từ product_id nếu có)
         """
@@ -59,7 +74,7 @@ class ProductModel:
 
         return f"{prefix}-{hex_part}"
 
-    # Bảng từ điển màu chuẩn Fashion
+    # Bảng từ điển màu chuẩn phục vụ ngành Fashion
     COLOR_DICT = {
         'đen': '#000000', 'black': '#000000',
         'trắng': '#ffffff', 'white': '#ffffff',
@@ -110,8 +125,8 @@ class ProductModel:
 
     @staticmethod
     def fix_missing_slugs() -> int:
-        """Backfill slug cho các sản phẩm bị thiếu trong DB."""
-        db = ProductModel._db()
+        """Backfill slug cho các sản phẩm bị thiếu trong DB (Dùng Admin Client)."""
+        db = ProductModel._db_admin()
         fixed = 0
         try:
             res = db.table("products").select("id, name, slug").execute()
@@ -125,13 +140,13 @@ class ProductModel:
                 fixed += 1
             return fixed
         except Exception as e:
-            logger.error(f"Lỗi fix_missing_slugs: {e}")
+            logger.error(f"[ProductModel.fix_missing_slugs] Gặp sự cố hệ thống: {e}")
             return 0
 
     @staticmethod
     def fix_missing_barcodes() -> int:
-        """Backfill barcode cho các sản phẩm cũ chưa có."""
-        db = ProductModel._db()
+        """Backfill barcode cho các sản phẩm cũ chưa có (Dùng Admin Client)."""
+        db = ProductModel._db_admin()
         fixed = 0
         try:
             res = db.table("products").select("id, created_at, barcode").execute()
@@ -151,11 +166,11 @@ class ProductModel:
                 fixed += 1
             return fixed
         except Exception as e:
-            logger.error(f"Lỗi fix_missing_barcodes: {e}")
+            logger.error(f"[ProductModel.fix_missing_barcodes] Gặp sự cố hệ thống: {e}")
             return 0
 
     # ═══════════════════════════════════════════════════════════════
-    #  READ (GET)
+    #  READ (DÙNG PUBLIC CLIENT CHO STOREFRONT CÔNG KHAI)
     # ═══════════════════════════════════════════════════════════════
 
     @staticmethod
@@ -195,7 +210,8 @@ class ProductModel:
         keyword: str = None,
         admin_mode: bool = False,
     ) -> dict:
-        db = ProductModel._db()
+        # Nếu ở admin_mode, dùng thẳng admin client để kéo toàn bộ sản phẩm bất kể RLS
+        db = ProductModel._db_admin() if admin_mode else ProductModel._db()
         offset = (page - 1) * per_page
         try:
             query = db.table("products").select(
@@ -269,10 +285,10 @@ class ProductModel:
 
     @staticmethod
     def get_by_barcode(barcode: str):
-        """Tìm sản phẩm theo mã vạch — dùng trong POS scan."""
+        """Tìm sản phẩm theo mã vạch — phục vụ hệ thống POS scan tại quầy."""
         if not barcode:
             return None
-        db = ProductModel._db()
+        db = ProductModel._db_admin() # Dùng admin client đề phòng nhân viên quét tại quầy POS bị dính RLS công khai
         try:
             res = (
                 db.table("products")
@@ -288,18 +304,18 @@ class ProductModel:
             return None
 
     # ═══════════════════════════════════════════════════════════════
-    #  WRITE (POST / PUT / DELETE)
+    #  WRITE (DÙNG ADMIN CLIENT ĐỂ BYPASS RLS CHO DASHBOARD WORKSPACE)
     # ═══════════════════════════════════════════════════════════════
 
     @staticmethod
     def create(data: dict) -> dict:
-        db = ProductModel._db()
+        db = ProductModel._db_admin()
         if not data.get("slug") and data.get("name"):
             data["slug"] = ProductModel.generate_slug(data["name"])
         try:
             res = db.table("products").insert(data).execute()
             if not res.data:
-                logger.error("[ProductModel.create] Thất bại! Không có dữ liệu trả về. Vui lòng kiểm tra RLS INSERT Policy.")
+                logger.error("[ProductModel.create] Thất bại! Không có dữ liệu trả về từ Supabase.")
                 return None
 
             product = res.data[0]
@@ -311,7 +327,7 @@ class ProductModel:
             if bc_res.data:
                 product["barcode"] = barcode
             else:
-                logger.warning(f"[ProductModel.create] SP đã tạo nhưng không thể ghi đè Barcode tự động cho ID '{pid}'.")
+                logger.warning(f"[ProductModel.create] Không thể ghi đè Barcode tự động cho ID '{pid}'.")
 
             return product
         except Exception as e:
@@ -320,47 +336,34 @@ class ProductModel:
 
     @staticmethod
     def update(pid: str, data: dict) -> bool:
-        """Cập nhật sản phẩm - Tích hợp bộ chặn dữ liệu rác và debug kiểm tra lỗi RLS"""
+        """Cập nhật thông tin sản phẩm (Bypass RLS an toàn)."""
         if not pid:
             return False
             
-        # Làm sạch payload
+        # Làm sạch dữ liệu payload rác đầu vào
         if "slug" in data and not data["slug"]:
             data.pop("slug")
         if "thumbnail_url" in data and not data["thumbnail_url"]:
             data.pop("thumbnail_url")
             
-        data.pop("barcode", None) # Gỡ bỏ trường không cho phép sửa thông thường
+        data.pop("barcode", None) # Không cho phép tự ý viết đè mã Barcode gốc hệ thống
         clean_pid = str(pid).strip()
+        db = ProductModel._db_admin()
 
         try:
-            # 🔴 BẬT HỆ THỐNG KIỂM TRA CHỦ ĐỘNG
-            print(f"\n=== 🔍 [DEBUG] UPDATE PRODUCT ===")
-            print(f"Target ID: '{clean_pid}'")
-            print(f"Payload gửi đi: {data}")
-
-            res = ProductModel._db().table("products").update(data).eq("id", clean_pid).execute()
-            
-            print(f"Mảng trả về từ Supabase: {res.data}")
-            
+            res = db.table("products").update(data).eq("id", clean_pid).execute()
             if not res.data:
-                print("🚨 CẢNH BÁO: Supabase trả về mảng rỗng [].")
-                print("👉 Nguyên nhân: 1. Sai ID | 2. Bị chặn bởi Policy RLS (Vào Supabase > Bảng products > Tạo Policy cho phép UPDATE).")
-                print("=================================\n")
                 logger.warning(f"[ProductModel.update] Không tìm thấy dòng hoặc bị RLS chặn tại ID '{clean_pid}'")
                 return False
-                
-            print("✨ Cập nhật thành công vào Database!")
-            print("=================================\n")
             return True
-            
         except Exception as e:
             logger.error(f"Lỗi cập nhật sản phẩm '{pid}': {e}")
             return False
 
     @staticmethod
     def delete(pid: str, permanent: bool = False) -> bool:
-        db = ProductModel._db()
+        """Xóa sản phẩm hệ thống (Mặc định là Soft Delete để bảo toàn liên kết khóa ngoại đơn hàng)."""
+        db = ProductModel._db_admin()
         clean_pid = str(pid).strip()
         try:
             if permanent:
@@ -372,7 +375,7 @@ class ProductModel:
                 }).eq("id", clean_pid).execute()
                 
             if not res.data:
-                logger.warning(f"[ProductModel.delete] Lệnh xóa không tác động lên dòng nào cho ID '{clean_pid}'. Hãy kiểm tra RLS.")
+                logger.warning(f"[ProductModel.delete] Không thể xóa hoặc cập nhật dòng cho ID '{clean_pid}'.")
                 return False
             return True
         except Exception as e:
@@ -380,7 +383,7 @@ class ProductModel:
             return False
 
     # ═══════════════════════════════════════════════════════════════
-    #  IMAGES
+    #  IMAGES MANAGEMENT (QUẢN LÝ THƯ VIỆN ẢNH)
     # ═══════════════════════════════════════════════════════════════
 
     @staticmethod
@@ -401,7 +404,8 @@ class ProductModel:
 
     @staticmethod
     def sync_images(pid: str, urls: list) -> bool:
-        db = ProductModel._db()
+        """Đồng bộ danh sách hình ảnh sản phẩm (Xóa cũ, ghi đè mới bằng quyền Admin)."""
+        db = ProductModel._db_admin()
         clean_pid = str(pid).strip()
         try:
             db.table("product_images").delete().eq("product_id", clean_pid).execute()
@@ -417,7 +421,8 @@ class ProductModel:
 
     @staticmethod
     def upload_to_storage(file_bytes: bytes, filename: str, content_type: str) -> str:
-        db = ProductModel._db()
+        """Đẩy tệp tin hình ảnh lên Bucket Storage của Supabase."""
+        db = ProductModel._db_admin()
         try:
             path = f"products/{datetime.now().strftime('%Y%m%d_%H%M%S')}_{filename}"
             db.storage.from_("products").upload(path, file_bytes, {"content-type": content_type})

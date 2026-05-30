@@ -1129,36 +1129,112 @@ review_submitted_event = signal('review-submitted')
 </file>
 
 <file path="app/models/favorite_model.py">
-from config.settings import get_supabase_client
+"""
+app/models/favorite_model.py
+=============================
+Quản lý danh sách sản phẩm yêu thích (Wishlist) của người dùng GUA Maison.
+Hỗ trợ Multi-channel Tracking (Web, POS, TikTok, Shopee, Facebook, Instagram).
+
+CHANGELOG (Lazy Initialization & Multi-channel Tracking Optimization):
+- Chuẩn hóa cơ chế Lazy Initialization qua hàm helper _db() công khai và _db_admin() bảo mật.
+- Ép các hàm thay đổi dữ liệu (insert, delete) qua admin client để bypass RLS an toàn.
+- Bổ sung tham số động 'channel' và 'source' để đồng bộ dữ liệu tracking marketing chuẩn schema.
+"""
+
+import logging
+from app.utils.supabase_client import get_supabase, get_supabase_admin
+
+logger = logging.getLogger(__name__)
 
 
 class FavoriteModel:
 
-    @staticmethod
-    def toggle_favorite(user_id: str, product_id: str):
-        supabase = get_supabase_client()
-        
-        # Kiểm tra xem đã yêu thích chưa
-        existing = supabase.table('favorites').select('*').eq('user_id', user_id).eq('product_id', product_id).execute()
-        
-        if existing.data:
-            # Nếu đã có -> Xóa (Bỏ yêu thích)
-            supabase.table('favorites').delete().eq('user_id', user_id).eq('product_id', product_id).execute()
-            return {"status": "removed"}
-        else:
-            # Nếu chưa có -> Thêm mới (Yêu thích)
-            supabase.table('favorites').insert({
-                "user_id": user_id,
-                "product_id": product_id
-            }).execute()
-            return {"status": "added"}
+    # ═══════════════════════════════════════════════════════════════
+    #  LAZY INITIALIZATION HELPERS
+    # ═══════════════════════════════════════════════════════════════
 
     @staticmethod
-    def get_user_favorites(user_id: str):
-        supabase = get_supabase_client()
-        # Lấy danh sách yêu thích kèm theo thông tin chi tiết của bảng products
-        response = supabase.table('favorites').select('*, products(*)').eq('user_id', user_id).execute()
-        return response.data
+    def _db():
+        """Khởi tạo lười kết nối Client công khai (Dành cho đọc danh sách)"""
+        return get_supabase()
+
+    @staticmethod
+    def _db_admin():
+        """Khởi tạo lười kết nối Client quyền Admin (Dành cho ghi/xóa dữ liệu Wishlist)"""
+        return get_supabase_admin()
+
+    # ═══════════════════════════════════════════════════════════════
+    #  CORE OPERATIONS
+    # ═══════════════════════════════════════════════════════════════
+
+    @staticmethod
+    def toggle_favorite(user_id: str, product_id: str, channel: str = "web", source: str = "organic") -> dict:
+        """
+        Bật/Tắt trạng thái yêu thích sản phẩm (Bypass RLS an toàn).
+        Tích hợp lưu trữ kênh tương tác (channel) và nguồn chiến dịch (source) chuẩn tiếp thị.
+        """
+        if not user_id or not product_id:
+            return {"status": "error", "message": "Thiếu thông tin người dùng hoặc sản phẩm."}
+            
+        db = FavoriteModel._db_admin()
+        clean_uid = str(user_id).strip()
+        clean_pid = str(product_id).strip()
+
+        try:
+            # Bước 1: Kiểm tra xem sản phẩm này đã được người dùng yêu thích chưa
+            existing = db.table('favorites')\
+                         .select('*')\
+                         .eq('user_id', clean_uid)\
+                         .eq('product_id', clean_pid)\
+                         .execute()
+            
+            if existing.data:
+                # Nếu đã tồn tại bản ghi -> Tiến hành Xóa (Bỏ yêu thích)
+                db.table('favorites')\
+                  .delete()\
+                  .eq('user_id', clean_uid)\
+                  .eq('product_id', clean_pid)\
+                  .execute()
+                  
+                logger.info(f"[WISHLIST] User '{clean_uid}' xóa bỏ yêu thích sản phẩm '{clean_pid}'")
+                return {"status": "removed"}
+            else:
+                # Nếu chưa tồn tại -> Thêm mới bản ghi kèm metadata theo dõi nguồn marketing
+                db.table('favorites').insert({
+                    "user_id":    clean_uid,
+                    "product_id": clean_pid,
+                    "channel":    channel.strip().lower(),
+                    "source":     source.strip().lower()
+                }).execute()
+                
+                logger.info(f"[WISHLIST] User '{clean_uid}' thêm yêu thích sản phẩm '{clean_pid}' qua kênh '{channel}' [{source}]")
+                return {"status": "added"}
+
+        except Exception as e:
+            logger.error(f"[FavoriteModel.toggle_favorite] Gặp sự cố khi tương tác Wishlist: {e}")
+            return {"status": "error", "message": str(e)}
+
+    @staticmethod
+    def get_user_favorites(user_id: str) -> list:
+        """
+        Lấy toàn bộ danh sách sản phẩm yêu thích của người dùng kèm thông tin chi tiết Product.
+        Sử dụng cơ chế Lazy Loading nạp dữ liệu nhanh khi có yêu cầu.
+        """
+        if not user_id:
+            return []
+            
+        db = FavoriteModel._db()
+        try:
+            # Lấy danh sách yêu thích kèm theo quan hệ kết hợp bảng products thông qua khóa ngoại fkey
+            response = db.table('favorites')\
+                         .select('*, products(*)')\
+                         .eq('user_id', str(user_id).strip())\
+                         .execute()
+                         
+            return response.data or []
+        except Exception as e:
+            logger.error(f"[FavoriteModel.get_user_favorites] Lỗi truy vấn Wishlist cho user '{user_id}': {e}")
+            return []
 </file>
 
 <file path="app/models/notification_model.py">
@@ -36450,96 +36526,6 @@ def delete_customer(user_id):
     return redirect(url_for("admin.customers"))
 </file>
 
-<file path="app/controllers/admin/dashboard.py">
-"""
-app/controllers/admin/dashboard.py
-"""
-
-import logging
-from datetime import datetime
-
-from flask import render_template, current_app
-
-from app.models.product_model import ProductModel
-from app.models.order_model import OrderModel
-from app.middleware.auth_required import admin_required
-from app.utils.supabase_client import get_supabase
-from ._blueprint import admin_bp
-from ._helpers import handle_errors
-
-logger = logging.getLogger(__name__)
-
-# ── Helpers ──────────────────────────────────────────────────────
-
-
-def _fetch_logistics_stats() -> dict:
-    """Tính delivery_success, return_rate, avg_time từ bảng shipments."""
-    db = get_supabase()
-    shipments = (
-        db.table("shipments")
-        .select("status, created_at, shipped_at, delivered_at")
-        .execute()
-        .data or []
-    )
-
-    total = len(shipments)
-    delivered = sum(1 for s in shipments if s["status"] == "delivered")
-    returned = sum(1 for s in shipments if s["status"] in ("returned", "failed", "cancelled"))
-
-    delivery_success_rate = round(delivered / total * 100, 1) if total else 0
-    return_rate = round(returned / total * 100, 1) if total else 0
-
-    total_days, valid = 0, 0
-    for s in shipments:
-        if s["status"] == "delivered" and s.get("shipped_at") and s.get("delivered_at"):
-            try:
-                start = datetime.fromisoformat(s["shipped_at"].replace("Z", "+00:00"))
-                end = datetime.fromisoformat(s["delivered_at"].replace("Z", "+00:00"))
-                total_days += (end - start).days
-                valid += 1
-            except Exception:
-                pass
-
-    return {
-        "delivery_success": delivery_success_rate,
-        "return_rate": return_rate,
-        "avg_time": round(total_days / valid, 1) if valid else 0,
-    }
-
-# ── Routes ───────────────────────────────────────────────────────
-
-
-@admin_bp.route("/")
-@admin_required
-@handle_errors("Lỗi tải dashboard.")
-def dashboard():
-    stats = OrderModel.get_stats()
-    user_count = OrderModel.get_user_count()
-    prod_total = ProductModel.get_all(page=1, per_page=1, admin_mode=True).get("total", 0)
-
-    try:
-        stats.update(_fetch_logistics_stats())
-    except Exception as e:
-        current_app.logger.error(f"[Dashboard] Lỗi query logistics: {e}")
-        stats.update({"delivery_success": 0, "return_rate": 0, "avg_time": 0})
-
-    # Lấy 10 đơn mới nhất để hiển thị bảng "Giao dịch mới nhất"
-    try:
-        recent_result = OrderModel.get_all(page=1, per_page=10)
-        recent_orders = recent_result.get("items", [])
-    except Exception as e:
-        current_app.logger.error(f"[Dashboard] Lỗi query recent orders: {e}")
-        recent_orders = []
-
-    return render_template(
-        "admin/dashboard.html",
-        stats=stats,
-        user_count=user_count,
-        prod_count=prod_total,
-        recent_orders=recent_orders,  # ← truyền riêng ra ngoài stats
-    )
-</file>
-
 <file path="app/controllers/admin/permissions_controller.py">
 """
 app/controllers/admin/permissions_controller.py
@@ -37171,42 +37157,82 @@ def detail(code):
 <file path="app/models/address_model.py">
 """
 app/models/address_model.py
-Quản lý sổ địa chỉ của khách hàng và đồng bộ số điện thoại.
+============================
+Quản lý sổ địa chỉ của khách hàng và đồng bộ số điện thoại cá nhân.
+
+CHANGELOG (Tối ưu hóa Lazy Initialization & Khắc phục RLS đồng bộ SĐT):
+- Giữ nguyên cấu trúc Lazy Initialization sạch sẽ bên trong từng hàm.
+- Tích hợp thêm _db_admin() (get_supabase_admin) để bảo đảm việc đồng bộ SĐT sang bảng `users` 
+  luôn thành công 100%, bypass bẫy chặn ghi dữ liệu RLS của Supabase.
+- Thêm bảo vệ kiểm tra dữ liệu trả về trước khi xử lý mảng.
 """
+
 import logging
-from app.utils.supabase_client import get_supabase
+from app.utils.supabase_client import get_supabase, get_supabase_admin
 
 logger = logging.getLogger(__name__)
 
 
 class AddressModel:
 
+    # ═══════════════════════════════════════════════════════════════
+    #  LAZY INITIALIZATION HELPERS
+    # ═══════════════════════════════════════════════════════════════
+
+    @staticmethod
+    def _db():
+        """Khởi tạo lười kết nối Client công khai (Đọc địa chỉ)"""
+        return get_supabase()
+
+    @staticmethod
+    def _db_admin():
+        """Khởi tạo lười kết nối Client Admin (Đồng bộ SĐT xuyên bảng users)"""
+        return get_supabase_admin()
+
+    # ═══════════════════════════════════════════════════════════════
+    #  THAO TÁC ĐỌC DỮ LIỆU (READ)
+    # ═══════════════════════════════════════════════════════════════
+
     @staticmethod
     def get_user_addresses(user_id: str) -> list:
         """Lấy danh sách địa chỉ của user, đưa địa chỉ mặc định lên đầu."""
-        db = get_supabase()
+        db = AddressModel._db()
         try:
-            result = db.table("user_addresses").select("*").eq("user_id", user_id).order("is_default", desc=True).execute()
+            result = db.table("user_addresses") \
+                       .select("*") \
+                       .eq("user_id", user_id) \
+                       .order("is_default", desc=True) \
+                       .execute()
             return result.data if result.data else []
         except Exception as e:
-            logger.error(f"Lỗi get_user_addresses: {e}")
+            logger.error(f"[AddressModel.get_user_addresses] Lỗi: {e}")
             return []
 
     @staticmethod
     def get_default_address(user_id: str) -> dict | None:
-        """Lấy địa chỉ mặc định duy nhất của user."""
-        db = get_supabase()
+        """Lấy địa chỉ mặc định duy nhất của người dùng."""
+        db = AddressModel._db()
         try:
-            result = db.table("user_addresses").select("*").eq("user_id", user_id).eq("is_default", True).limit(1).execute()
+            result = db.table("user_addresses") \
+                       .select("*") \
+                       .eq("user_id", user_id) \
+                       .eq("is_default", True) \
+                       .limit(1) \
+                       .execute()
             return result.data[0] if result.data else None
         except Exception as e:
-            logger.error(f"Lỗi get_default_address: {e}")
+            logger.error(f"[AddressModel.get_default_address] Lỗi: {e}")
             return None
+
+    # ═══════════════════════════════════════════════════════════════
+    #  THAO TÁC GHI DỮ LIỆU (WRITE & SYNC XUYÊN BẢNG)
+    # ═══════════════════════════════════════════════════════════════
 
     @staticmethod
     def add_address(user_id: str, data: dict) -> dict:
-        """Thêm địa chỉ mới. Nếu là địa chỉ đầu tiên -> set làm mặc định và đồng bộ SĐT."""
-        db = get_supabase()
+        """Thêm địa chỉ mới. Nếu là địa chỉ đầu tiên -> set làm mặc định và đồng bộ SĐT bằng Admin Quyền."""
+        db = AddressModel._db()
+        db_admin = AddressModel._db_admin()
         try:
             current_addresses = AddressModel.get_user_addresses(user_id)
             is_first = not current_addresses
@@ -37219,96 +37245,119 @@ class AddressModel:
             
             if result.data:
                 new_address = result.data[0]
-                # Đồng bộ SĐT qua bảng users nếu đây là địa chỉ đầu tiên (mặc định)
+                # ✅ ĐÃ SỬA: Đồng bộ SĐT an toàn qua bảng users bằng kênh admin nếu đây là địa chỉ đầu tiên
                 if is_first and new_address.get("phone"):
-                    db.table("users").update({"phone": new_address["phone"]}).eq("id", user_id).execute()
+                    db_admin.table("users").update({"phone": new_address["phone"]}).eq("id", user_id).execute()
                 return new_address
             return {}
         except Exception as e:
-            logger.error(f"Lỗi add_address: {e}")
+            logger.error(f"[AddressModel.add_address] Lỗi: {e}")
             return {}
 
     @staticmethod
     def set_default(user_id: str, address_id: str) -> bool:
-        """Đổi địa chỉ mặc định và đồng bộ SĐT mới qua bảng user."""
-        db = get_supabase()
+        """Đổi địa chỉ mặc định và cập nhật cứng số điện thoại mới vào thông tin tài khoản."""
+        db = AddressModel._db()
+        db_admin = AddressModel._db_admin()
         try:
-            # 1. Hủy mặc định của tất cả địa chỉ cũ
+            # 1. Hủy trạng thái mặc định cũ của toàn bộ địa chỉ thuộc user này
             db.table("user_addresses").update({"is_default": False}).eq("user_id", user_id).execute()
             
-            # 2. Cài mặc định cho địa chỉ được chọn
+            # 2. Cài trạng thái mặc định mới cho địa chỉ được lựa chọn
             res = db.table("user_addresses").update({"is_default": True}).eq("id", address_id).execute()
             
-            # 3. Đồng bộ SĐT
+            # 3. ✅ ĐÃ SỬA: Đồng bộ SĐT chuẩn xác qua bảng users bằng quyền Service Role để tránh lỗi bảo mật RLS
             if res.data:
                 new_phone = res.data[0].get("phone")
                 if new_phone:
-                    db.table("users").update({"phone": new_phone}).eq("id", user_id).execute()
+                    db_admin.table("users").update({"phone": new_phone}).eq("id", user_id).execute()
             return True
         except Exception as e:
-            logger.error(f"Lỗi set_default: {e}")
+            logger.error(f"[AddressModel.set_default] Lỗi: {e}")
             return False
 
     @staticmethod
     def update_address(user_id: str, address_id: str, data: dict) -> bool:
-        """Cập nhật địa chỉ. Nếu đang là địa chỉ mặc định -> Đồng bộ lại SĐT."""
-        db = get_supabase()
+        """Cập nhật địa chỉ. Nếu đang là địa chỉ mặc định -> Đồng bộ lại số điện thoại cá nhân mới."""
+        db = AddressModel._db()
+        db_admin = AddressModel._db_admin()
         try:
-            # Đảm bảo chỉ cập nhật đúng địa chỉ của user này
+            # Bảo đảm quy chế an toàn: Chỉ cập nhật chính xác địa chỉ thuộc sở hữu của user này
             res = db.table("user_addresses").update(data).eq("user_id", user_id).eq("id", address_id).execute()
             
             if res.data:
                 updated_address = res.data[0]
-                # Nếu địa chỉ vừa sửa đang là mặc định, phải đồng bộ lại SĐT nhỡ khách vừa sửa SĐT
+                # ✅ ĐÃ SỬA: Nếu địa chỉ chỉnh sửa là mặc định, ép nạp lại SĐT mới sang hồ sơ để tránh rác thông tin
                 if updated_address.get("is_default") and updated_address.get("phone"):
-                    db.table("users").update({"phone": updated_address["phone"]}).eq("id", user_id).execute()
+                    db_admin.table("users").update({"phone": updated_address["phone"]}).eq("id", user_id).execute()
                 return True
             return False
         except Exception as e:
-            logger.error(f"Lỗi update_address: {e}")
+            logger.error(f"[AddressModel.update_address] Lỗi: {e}")
             return False
 
     @staticmethod
     def delete_address(user_id: str, address_id: str) -> bool:
-        """Xóa địa chỉ."""
-        db = get_supabase()
+        """Xóa vĩnh viễn địa chỉ ra khỏi danh bạ."""
+        db = AddressModel._db()
         try:
             db.table("user_addresses").delete().eq("user_id", user_id).eq("id", address_id).execute()
             return True
         except Exception as e:
-            logger.error(f"Lỗi delete_address: {e}")
+            logger.error(f"[AddressModel.delete_address] Lỗi: {e}")
             return False
 </file>
 
 <file path="app/models/cart_model.py">
 """
 app/models/cart_model.py
-Quản lý dữ liệu Giỏ hàng của người dùng.
+=========================
+Quản lý dữ liệu Giỏ hàng của người dùng trên hệ thống GUA Maison.
 Phiên bản Premium: Tích hợp kiểm tra tồn kho (Stock Check), 
 chống Over-sell và lọc dữ liệu mồ côi (Orphan Data).
+
+CHANGELOG (Tối ưu hóa Lazy Initialization & Phân tuyến kết nối an toàn):
+- Tích hợp cơ chế Lazy Initialization thông qua hai helper _db() (Public) và _db_admin() (Service Role).
+- Chuyển đổi các hàm can thiệp dữ liệu giỏ hàng hoặc can thiệp tồn kho sang admin client để tránh lỗi chặn quyền RLS.
+- Giữ vững logic core chống mua quá mức tồn kho (Over-sell) và tự dọn dữ liệu rác mồ côi.
 """
 
 import logging
-from app.utils.supabase_client import get_supabase
+from app.utils.supabase_client import get_supabase, get_supabase_admin
 
 logger = logging.getLogger(__name__)
 
 
 class CartModel:
 
+    # ═══════════════════════════════════════════════════════════════
+    #  LAZY INITIALIZATION HELPERS (KHỞI TẠO LƯỜI DỮ LIỆU)
+    # ═══════════════════════════════════════════════════════════════
+
     @staticmethod
     def _db():
-        """Helper lấy kết nối Supabase"""
+        """Helper lấy kết nối Supabase công khai (Dành cho đọc thông tin cơ bản)"""
         return get_supabase()
+
+    @staticmethod
+    def _db_admin():
+        """Helper lấy kết nối Supabase quyền Admin (Dành cho xử lý dữ liệu và kiểm kho bypass RLS)"""
+        return get_supabase_admin()
+
+    # ═══════════════════════════════════════════════════════════════
+    #  GIAO DIỆN ĐỌC (READ METHODS)
+    # ═══════════════════════════════════════════════════════════════
 
     @staticmethod
     def get_user_cart(user_id: str) -> list:
         """
-        Lấy toàn bộ sản phẩm trong giỏ.
+        Lấy toàn bộ sản phẩm trong giỏ hàng.
         Tự động Join với products và product_variants. Có bộ lọc an toàn.
         """
+        # Dùng admin client để bảo đảm đọc mượt mà dữ liệu giỏ hàng, tránh lỗi RLS chặn dữ liệu quan hệ (Join)
+        db = CartModel._db_admin()
         try:
-            res = CartModel._db().table("cart_items") \
+            res = db.table("cart_items") \
                 .select("*, products(id, name, price, thumbnail_url, stock, slug, is_active, deleted_at), product_variants(*)") \
                 .eq("user_id", user_id) \
                 .order("created_at", desc=False) \
@@ -37318,46 +37367,50 @@ class CartModel:
             valid_items = []
             if res.data:
                 for item in res.data:
-                    # Chỉ lấy item nếu products và product_variants vẫn còn dữ liệu
+                    # Chỉ lấy item nếu products và product_variants vẫn còn tồn tại dữ liệu thực
                     if item.get("products") and item.get("product_variants"):
                         valid_items.append(item)
                         
             return valid_items
         except Exception as e:
-            logger.error(f"Lỗi get_user_cart cho user {user_id}: {e}")
+            logger.error(f"[CartModel.get_user_cart] Lỗi hệ thống khi nạp giỏ hàng user {user_id}: {e}")
             return []
 
     @staticmethod
     def get_count(user_id: str) -> int:
-        """Đếm tổng số lượng sản phẩm trong giỏ hàng"""
+        """Đếm tổng số lượng sản phẩm đang có trong giỏ hàng của người dùng"""
         try:
             items = CartModel.get_user_cart(user_id)
             return sum(item.get("quantity", 0) for item in items)
         except Exception as e:
-            logger.error(f"Lỗi get_count: {e}")
+            logger.error(f"[CartModel.get_count] Lỗi tính số lượng: {e}")
             return 0
 
+    # ═══════════════════════════════════════════════════════════════
+    #  GIAO DIỆN GHI / SỬA (WRITE METHODS)
+    # ═══════════════════════════════════════════════════════════════
+
     @staticmethod
-    def add_item(user_id: str, product_id: str, variant_id: str, quantity: int=1) -> dict:
+    def add_item(user_id: str, product_id: str, variant_id: str, quantity: int = 1) -> dict:
         """
-        Thêm sản phẩm vào giỏ với Logic Cực Chặt:
-        1. Check xem biến thể có tồn tại không.
-        2. Ép số lượng mua KHÔNG VƯỢT QUÁ tồn kho.
+        Thêm sản phẩm vào giỏ với Logic An Toàn Tuyệt Đối:
+        1. Kiểm tra biến thể kích thước/màu sắc có tồn tại thực tế không.
+        2. Ép số lượng mua KHÔNG VƯỢT QUÁ giới hạn tồn kho trong database.
         """
-        db = CartModel._db()
+        db = CartModel._db_admin() # Dùng admin client để đọc tồn kho chính xác và bypass RLS bảo vệ
         try:
-            # Bước 1: Kiểm tra Tồn kho thực tế của Biến thể
+            # Bước 1: Kiểm tra Tồn kho thực tế của Biến thể (Product Variant)
             variant_check = db.table("product_variants").select("stock").eq("id", variant_id).execute()
             if not variant_check.data:
-                logger.warning(f"Thêm giỏ hàng thất bại: Variant {variant_id} không tồn tại.")
+                logger.warning(f"[CartModel.add_item] Thất bại: Biến thể {variant_id} không tồn tại trên hệ thống.")
                 return {}
             
             max_stock = variant_check.data[0].get("stock", 0)
             if max_stock <= 0:
-                logger.warning("Thêm giỏ hàng thất bại: Hết hàng.")
-                return {}  # Đã hết hàng, từ chối thêm
+                logger.warning(f"[CartModel.add_item] Thất bại: Mã biến thể {variant_id} đã cháy hàng.")
+                return {}  # Đã hết hàng, từ chối luồng xử lý tiếp theo
 
-            # Bước 2: Kiểm tra item đã có trong giỏ chưa
+            # Bước 2: Kiểm tra item này đã nằm sẵn trong giỏ của user chưa
             existing = db.table("cart_items") \
                 .select("*") \
                 .eq("user_id", user_id) \
@@ -37365,12 +37418,12 @@ class CartModel:
                 .execute()
             
             if existing.data:
-                # Nếu có rồi -> Cộng dồn và Ép giới hạn tồn kho
+                # Nếu đã có -> Cộng dồn số lượng mua mới và ép giới hạn trần theo tồn kho thực
                 item_id = existing.data[0]["id"]
                 new_qty = existing.data[0]["quantity"] + quantity
                 
                 if new_qty > max_stock:
-                    new_qty = max_stock  # Chống mua lố tồn kho
+                    new_qty = max_stock  # Ngăn chặn hành vi over-sell mua lố kho
                     
                 res = db.table("cart_items") \
                     .update({"quantity": new_qty}) \
@@ -37378,7 +37431,7 @@ class CartModel:
                     .execute()
                 return res.data[0] if res.data else {}
             else:
-                # Nếu chưa có -> Thêm mới và Ép giới hạn tồn kho
+                # Nếu chưa có món này -> Thêm bản ghi mới vào giỏ hàng
                 if quantity > max_stock:
                     quantity = max_stock
                     
@@ -37391,33 +37444,33 @@ class CartModel:
                 return res.data[0] if res.data else {}
                 
         except Exception as e:
-            logger.error(f"Lỗi add_item giỏ hàng: {e}")
+            logger.error(f"[CartModel.add_item] Lỗi thêm sản phẩm vào giỏ hàng: {e}")
             return {}
 
     @staticmethod
     def update_quantity(user_id: str, item_id: str, quantity: int) -> dict:
-        """Cập nhật số lượng của 1 món hàng. Kiểm tra tồn kho trực tiếp."""
+        """Cập nhật số lượng của 1 món hàng trong giỏ. Kiểm tra tồn kho thời gian thực trực tiếp."""
         if quantity <= 0:
             CartModel.remove_item(user_id, item_id)
             return {}
 
-        db = CartModel._db()
+        db = CartModel._db_admin()
         try:
-            # Bước 1: Lấy thông tin item để biết nó đang liên kết với Variant nào
+            # Bước 1: Lấy thông tin item để xác minh mối liên kết Variant
             item = db.table("cart_items").select("variant_id").eq("id", item_id).eq("user_id", user_id).execute()
             if not item.data:
                 return {}
             
             variant_id = item.data[0]["variant_id"]
             
-            # Bước 2: Soi tồn kho của Variant đó
+            # Bước 2: Truy quét kiểm kho trực tiếp của mã Variant đó
             variant_check = db.table("product_variants").select("stock").eq("id", variant_id).execute()
             if variant_check.data:
                 max_stock = variant_check.data[0].get("stock", 0)
                 if quantity > max_stock:
-                    quantity = max_stock  # Chống thủ thuật sửa HTML để tăng quantity lố kho
+                    quantity = max_stock  # Triệt tiêu thủ thuật sửa mã HTML/F12 để cố tình tăng quantity lố kho
                     
-            # Bước 3: Update
+            # Bước 3: Thực thi cập nhật số lượng an toàn
             res = db.table("cart_items") \
                 .update({"quantity": quantity}) \
                 .eq("id", item_id) \
@@ -37426,55 +37479,59 @@ class CartModel:
             return res.data[0] if res.data else {}
             
         except Exception as e:
-            logger.error(f"Lỗi cập nhật số lượng item {item_id}: {e}")
+            logger.error(f"[CartModel.update_quantity] Lỗi cập nhật số lượng cho item {item_id}: {e}")
             return {}
 
     @staticmethod
     def remove_item(user_id: str, item_id: str) -> bool:
-        """Xóa một sản phẩm khỏi giỏ hàng. Có check user_id để bảo mật."""
+        """Xóa một sản phẩm khỏi giỏ hàng. Kiểm tra bảo mật chéo qua user_id."""
+        db = CartModel._db_admin()
         try:
-            res = CartModel._db().table("cart_items") \
+            res = db.table("cart_items") \
                 .delete() \
                 .eq("id", item_id) \
                 .eq("user_id", user_id) \
                 .execute()
             return len(res.data) > 0 if res.data else False
         except Exception as e:
-            logger.error(f"Lỗi xóa item {item_id}: {e}")
+            logger.error(f"[CartModel.remove_item] Lỗi xóa món hàng {item_id}: {e}")
             return False
 
     @staticmethod
     def clear_cart(user_id: str) -> bool:
-        """Xóa sạch giỏ hàng (Sau khi thanh toán thành công)."""
+        """Xóa sạch giỏ hàng hoàn toàn (Gọi tự động sau khi đơn hàng thanh toán thành công)."""
+        db = CartModel._db_admin()
         try:
-            CartModel._db().table("cart_items") \
+            db.table("cart_items") \
                 .delete() \
                 .eq("user_id", user_id) \
                 .execute()
             return True
         except Exception as e:
-            logger.error(f"Lỗi clear_cart cho user {user_id}: {e}")
+            logger.error(f"[CartModel.clear_cart] Lỗi làm trống giỏ hàng của user {user_id}: {e}")
             return False
 </file>
 
 <file path="app/models/category_model.py">
 """
-app/models/category_model.py  –  CRUD danh mục (Enterprise Edition)
+app/models/category_model.py  –  CRUD danh mục (Enterprise Edition - Lazy Initialization)
 Hỗ trợ: Media Upload, Auto Cleanup Storage, SEO Metadata, Sort Order & Visibility.
+CHANGELOG:
+- Di chuyển toàn bộ khởi tạo db vào trong từng hàm để kích hoạt Lazy Initialization, giảm tải Cold Start trên Vercel.
+- Đồng bộ hóa các hàm Write/Delete sang get_supabase_admin() để bảo đảm luồng dọn rác Storage bypass RLS.
 """
 import logging
 import re
 from datetime import datetime
 from typing import List, Dict, Optional, Any
-from app.utils.supabase_client import get_supabase
+from app.utils.supabase_client import get_supabase, get_supabase_admin
 
 # Khởi tạo logger để bắt lỗi hệ thống
 logger = logging.getLogger(__name__)
 
 
 class CategoryModel:
-    # Khởi tạo kết nối DB một lần dùng chung cho toàn Class
-    db = get_supabase()
+    # 🔴 ĐÃ GỠ BỎ: db = get_supabase() ở cấp Class để chống nghẽn mạng khi nạp file ứng dụng.
 
     # ═══════════════════════════════════════════════════════════════
     #  UTILITIES (TIỆN ÍCH)
@@ -37504,8 +37561,9 @@ class CategoryModel:
     @staticmethod
     def get_all(active_only: bool=False) -> List[Dict]:
         """Lấy danh sách danh mục. Có hỗ trợ lọc chỉ lấy danh mục đang Active."""
+        db = get_supabase()  # ✅ Khởi tạo cục bộ khi hàm chạy thực tế
         try:
-            query = CategoryModel.db.table("categories").select("*")
+            query = db.table("categories").select("*")
             if active_only:
                 query = query.eq("is_active", True)
             
@@ -37519,8 +37577,9 @@ class CategoryModel:
     @staticmethod
     def get_by_id(cid: str) -> Optional[Dict]:
         """Lấy thông tin một danh mục theo UUID."""
+        db = get_supabase()  # ✅ Khởi tạo cục bộ
         try:
-            r = CategoryModel.db.table("categories").select("*").eq("id", cid).limit(1).execute()
+            r = db.table("categories").select("*").eq("id", cid).limit(1).execute()
             return r.data[0] if r.data else None
         except Exception:
             logger.exception(f"Lỗi lấy thông tin danh mục ID: {cid}")
@@ -37529,8 +37588,9 @@ class CategoryModel:
     @staticmethod
     def get_by_slug(slug: str) -> Optional[Dict]:
         """Lấy thông tin danh mục theo Slug (Dùng cho Storefront)."""
+        db = get_supabase()  # ✅ Khởi tạo cục bộ
         try:
-            r = CategoryModel.db.table("categories").select("*").eq("slug", slug).eq("is_active", True).limit(1).execute()
+            r = db.table("categories").select("*").eq("slug", slug).eq("is_active", True).limit(1).execute()
             return r.data[0] if r.data else None
         except Exception:
             logger.exception(f"Lỗi lấy thông tin danh mục bằng Slug: {slug}")
@@ -37539,8 +37599,9 @@ class CategoryModel:
     @staticmethod
     def get_homepage_categories(limit: int=9) -> List[Dict]:
         """Lấy danh mục để hiển thị ra trang chủ (được ghim, đang hoạt động, có hình ảnh/video)"""
+        db = get_supabase()  # ✅ Khởi tạo cục bộ
         try:
-            r = CategoryModel.db.table("categories").select("*") \
+            r = db.table("categories").select("*") \
                 .eq("is_active", True) \
                 .eq("show_on_home", True) \
                 .order("sort_order").order("name").execute()
@@ -37565,11 +37626,12 @@ class CategoryModel:
     @staticmethod
     def create(data: Dict[str, Any]) -> Dict:
         """Tạo mới danh mục nhận vào một dictionary chứa toàn bộ dữ liệu."""
+        db = get_supabase_admin()  # ✅ Sử dụng admin client để tránh lỗi chặn ghi dữ liệu do RLS
         try:
             if not data.get("slug") and data.get("name"):
                 data["slug"] = CategoryModel.generate_slug(data["name"])
 
-            r = CategoryModel.db.table("categories").insert(data).execute()
+            r = db.table("categories").insert(data).execute()
             return r.data[0] if r.data else {}
         except Exception:
             logger.exception(f"Lỗi tạo danh mục mới: {data.get('name')}")
@@ -37578,6 +37640,7 @@ class CategoryModel:
     @staticmethod
     def update(cid: str, data: Dict[str, Any]) -> Dict:
         """Cập nhật danh mục."""
+        db = get_supabase_admin()  # ✅ Sử dụng admin client an toàn
         try:
             old_cat = CategoryModel.get_by_id(cid)
             clean_data = {k: v for k, v in data.items() if v is not None}
@@ -37585,7 +37648,7 @@ class CategoryModel:
             if not clean_data:
                 return {}
 
-            r = CategoryModel.db.table("categories").update(clean_data).eq("id", cid).execute()
+            r = db.table("categories").update(clean_data).eq("id", cid).execute()
 
             # Dọn rác: Xóa file cũ khỏi Storage nếu có thay đổi URL
             if old_cat:
@@ -37606,9 +37669,10 @@ class CategoryModel:
     @staticmethod
     def delete(cid: str) -> bool:
         """Xóa danh mục. Tự động xóa file media đi kèm trên Storage."""
+        db = get_supabase_admin()  # ✅ Khởi tạo kết nối cục bộ admin quyền cao nhất
         try:
             cat = CategoryModel.get_by_id(cid)
-            r = CategoryModel.db.table("categories").delete().eq("id", cid).execute()
+            r = db.table("categories").delete().eq("id", cid).execute()
             
             if r.data and cat:
                 if cat.get("image_url"):
@@ -37628,14 +37692,15 @@ class CategoryModel:
     @staticmethod
     def upload_media(file_bytes: bytes, filename: str, content_type: str) -> str:
         """Upload file (ảnh/video) lên bucket 'categories' trong Supabase Storage."""
+        db = get_supabase_admin()  # ✅ Khởi tạo cục bộ admin phục vụ ghi file vào Bucket
         try:
             safe_filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{filename}"
             path = f"media/{safe_filename}"
             
-            CategoryModel.db.storage.from_("categories").upload(
+            db.storage.from_("categories").upload(
                 path, file_bytes, {"content-type": content_type}
             )
-            return CategoryModel.db.storage.from_("categories").get_public_url(path)
+            return db.storage.from_("categories").get_public_url(path)
         except Exception:
             logger.exception("Lỗi upload media danh mục")
             return ""
@@ -37643,6 +37708,7 @@ class CategoryModel:
     @staticmethod
     def delete_media_from_url(public_url: str) -> bool:
         """Hàm bóc tách tên file từ URL và xóa file trên Supabase Bucket."""
+        db = get_supabase_admin()  # ✅ Khởi tạo cục bộ admin để dọn sạch tệp tin
         try:
             if not public_url or "supabase.co" not in public_url:
                 return False
@@ -37650,7 +37716,7 @@ class CategoryModel:
             parts = public_url.split("/categories/")
             if len(parts) > 1:
                 file_path = parts[1]
-                CategoryModel.db.storage.from_("categories").remove([file_path])
+                db.storage.from_("categories").remove([file_path])
                 return True
             return False
         except Exception:
@@ -43292,6 +43358,97 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 </file>
 
+<file path="app/controllers/admin/dashboard.py">
+"""
+app/controllers/admin/dashboard.py
+"""
+
+import logging
+from datetime import datetime
+
+from flask import render_template, current_app
+
+from app.models.product_model import ProductModel
+from app.models.order_model import OrderModel
+from app.models.user_model import UserModel          # ← thêm dòng này
+from app.middleware.auth_required import admin_required
+from app.utils.supabase_client import get_supabase
+from ._blueprint import admin_bp
+from ._helpers import handle_errors
+
+logger = logging.getLogger(__name__)
+
+# ── Helpers ──────────────────────────────────────────────────────
+
+
+def _fetch_logistics_stats() -> dict:
+    """Tính delivery_success, return_rate, avg_time từ bảng shipments."""
+    db = get_supabase()
+    shipments = (
+        db.table("shipments")
+        .select("status, created_at, shipped_at, delivered_at, shipping_fee, actual_shipping_fee")
+        .execute()
+        .data or []
+    )
+
+    total = len(shipments)
+    delivered = sum(1 for s in shipments if s["status"] == "delivered")
+    returned = sum(1 for s in shipments if s["status"] in ("returned", "failed", "cancelled"))
+
+    delivery_success_rate = round(delivered / total * 100, 1) if total else 0
+    return_rate = round(returned / total * 100, 1) if total else 0
+
+    total_days, valid = 0, 0
+    for s in shipments:
+        if s["status"] == "delivered" and s.get("shipped_at") and s.get("delivered_at"):
+            try:
+                start = datetime.fromisoformat(s["shipped_at"].replace("Z", "+00:00"))
+                end = datetime.fromisoformat(s["delivered_at"].replace("Z", "+00:00"))
+                total_days += (end - start).days
+                valid += 1
+            except Exception:
+                pass
+
+    return {
+        "delivery_success": delivery_success_rate,
+        "return_rate": return_rate,
+        "avg_time": round(total_days / valid, 1) if valid else 0,
+    }
+
+
+# ── Routes ───────────────────────────────────────────────────────
+
+
+@admin_bp.route("/")
+@admin_required
+@handle_errors("Lỗi tải dashboard.")
+def dashboard():
+    stats = OrderModel.get_stats()
+    user_count = UserModel.get_user_count()           # ← giờ dùng đúng model
+    prod_total = ProductModel.get_all(page=1, per_page=1, admin_mode=True).get("total", 0)
+
+    try:
+        stats.update(_fetch_logistics_stats())
+    except Exception as e:
+        current_app.logger.error(f"[Dashboard] Lỗi query logistics: {e}")
+        stats.update({"delivery_success": 0, "return_rate": 0, "avg_time": 0})
+
+    try:
+        recent_result = OrderModel.get_all(page=1, per_page=10)
+        recent_orders = recent_result.get("items", [])
+    except Exception as e:
+        current_app.logger.error(f"[Dashboard] Lỗi query recent orders: {e}")
+        recent_orders = []
+
+    return render_template(
+        "admin/dashboard.html",
+        stats=stats,
+        user_count=user_count,
+        prod_count=prod_total,
+        recent_orders=recent_orders,
+    )
+</file>
+
 <file path="app/controllers/admin/orders.py">
 """
 app/controllers/admin/orders.py
@@ -44407,168 +44564,6 @@ __all__ = [
     "admin_required",
     "login_required",
 ]
-</file>
-
-<file path="app/models/user_model.py">
-"""
-app/models/user_model.py
-=========================
-Model xử lý tất cả thao tác liên quan đến bảng `users` và phân quyền (RBAC) trên Supabase.
-
-CHANGELOG (fix đăng ký / đăng nhập):
-- Xoá block gọi bảng `roles` và `user_roles` (không tồn tại trong schema).
-- Thêm "role": "customer" vào payload INSERT để session luôn đọc được.
-- UserModel.create() dùng get_supabase_admin() để bypass RLS khi tạo user.
-- Thêm UserModel.change_password() để dùng ở reset-password / đổi mật khẩu.
-"""
-
-import logging
-from app.utils.supabase_client import get_supabase, get_supabase_admin
-from app.utils.security import hash_password, verify_password
-
-logger = logging.getLogger(__name__)
-
-
-class UserModel:
-
-    # ═══════════════════════════════════════════════════════════════
-    #  TẠO USER MỚI
-    # ═══════════════════════════════════════════════════════════════
-
-    @staticmethod
-    def create(email: str, password: str, full_name: str) -> dict:
-        """
-        Tạo user mới – hash password trước khi lưu DB.
-
-        Dùng service-role client để bypass RLS (anon key không có quyền INSERT
-        vào bảng users nếu chưa cấu hình policy tương ứng).
-
-        Trả về:
-            dict  – user vừa tạo (có đầy đủ field từ DB)
-            {}    – nếu có lỗi (đã log chi tiết)
-        """
-        # Dùng admin client để bypass RLS khi đăng ký
-        db = get_supabase_admin()
-        hashed = hash_password(password)
-
-        try:
-            user_result = db.table("users").insert({
-                "email":         email,
-                "password_hash": hashed,
-                "full_name":     full_name,
-                "role":          "customer",   # ← rõ ràng, không phụ thuộc DEFAULT của DB
-            }).execute()
-
-            user = user_result.data[0] if user_result.data else {}
-
-            if not user:
-                logger.error(
-                    f"[UserModel.create] INSERT không trả về data dù không có exception "
-                    f"(email={email}). Kiểm tra RLS hoặc constraint bảng users."
-                )
-
-            return user
-
-        except Exception as e:
-            logger.error(f"[UserModel.create] Lỗi khi tạo user ({email}): {e}")
-            return {}
-
-    # ═══════════════════════════════════════════════════════════════
-    #  QUERY
-    # ═══════════════════════════════════════════════════════════════
-
-    @staticmethod
-    def get_by_email(email: str) -> dict | None:
-        """Tìm user theo email. Trả về None nếu không tồn tại."""
-        db = get_supabase()
-        try:
-            result = db.table("users").select("*").eq("email", email).limit(1).execute()
-            return result.data[0] if result.data else None
-        except Exception as e:
-            logger.error(f"[UserModel.get_by_email] Lỗi ({email}): {e}")
-            return None
-
-    @staticmethod
-    def get_by_id(user_id: str) -> dict | None:
-        """Tìm user theo UUID. Trả về None nếu không tồn tại."""
-        db = get_supabase()
-        try:
-            result = db.table("users").select("*").eq("id", user_id).limit(1).execute()
-            return result.data[0] if result.data else None
-        except Exception as e:
-            logger.error(f"[UserModel.get_by_id] Lỗi (id={user_id}): {e}")
-            return None
-
-    # ═══════════════════════════════════════════════════════════════
-    #  XÁC THỰC
-    # ═══════════════════════════════════════════════════════════════
-
-    @staticmethod
-    def authenticate(email: str, password: str) -> dict | None:
-        """
-        Xác thực email + password.
-
-        Trả về:
-            dict  – user nếu thông tin đúng
-            None  – nếu email không tồn tại hoặc sai mật khẩu
-        """
-        user = UserModel.get_by_email(email)
-        if not user:
-            return None
-        if verify_password(password, user.get("password_hash", "")):
-            return user
-        return None
-
-    # ═══════════════════════════════════════════════════════════════
-    #  KIỂM TRA
-    # ═══════════════════════════════════════════════════════════════
-
-    @staticmethod
-    def email_exists(email: str) -> bool:
-        """Kiểm tra email đã được đăng ký chưa."""
-        return UserModel.get_by_email(email) is not None
-
-    # ═══════════════════════════════════════════════════════════════
-    #  CẬP NHẬT
-    # ═══════════════════════════════════════════════════════════════
-
-    @staticmethod
-    def update_profile(user_id: str, data: dict) -> dict:
-        """
-        Cập nhật thông tin profile của user (full_name, phone, v.v.).
-
-        Lưu ý: Không truyền password_hash vào đây – dùng change_password() thay thế.
-        """
-        db = get_supabase()
-        try:
-            result = db.table("users").update(data).eq("id", user_id).execute()
-            return result.data[0] if result.data else {}
-        except Exception as e:
-            logger.error(f"[UserModel.update_profile] Lỗi (id={user_id}): {e}")
-            return {}
-
-    @staticmethod
-    def change_password(email: str, new_password: str) -> bool:
-        """
-        Đổi mật khẩu theo email (dùng cho forgot-password / reset-password).
-
-        Dùng service-role client để đảm bảo UPDATE luôn thực hiện được
-        dù RLS có hạn chế.
-
-        Trả về:
-            True  – thành công
-            False – thất bại
-        """
-        db = get_supabase_admin()
-        try:
-            db.table("users") \
-              .update({"password_hash": hash_password(new_password)}) \
-              .eq("email", email) \
-              .execute()
-            return True
-        except Exception as e:
-            logger.error(f"[UserModel.change_password] Lỗi ({email}): {e}")
-            return False
 </file>
 
 <file path="app/services/chat_service.py">
@@ -47849,11 +47844,12 @@ def validate_config() -> None:
 
 <file path="index.py">
 import os
+import time  # Thêm thư viện quản lý thời gian thực phục vụ tính toán vòng đời Cache
 
 # 1. NẠP BIẾN MÔI TRƯỜNG (Dành riêng cho Local)
 try:
     from dotenv import load_dotenv
-    load_dotenv()
+    load_dotenv(override=True)  # Ép nạp đè biến môi trường mới nhất từ file .env
 except ImportError:
     pass
 
@@ -47863,31 +47859,54 @@ from app.models.setting_model import SettingModel
 # 2. KHỞI TẠO ỨNG DỤNG FLASK
 app = create_app()
 
-# 🔴 BẢN CẬP NHẬT 1: Nâng hạn mức trần nhận dữ liệu của tệp tin đầu vào trong Flask lên 50MB
+# Nâng hạn mức trần nhận dữ liệu của tệp tin đầu vào trong Flask lên 50MB
 # Sửa tận gốc lỗi 413 Request Entity Too Large khi chạy Local/Gunicorn mà không có Nginx
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 
 
 # ═══════════════════════════════════════════════════════════════
-#  BƯỚC 5: GLOBAL CONTEXT PROCESSOR (BẢN CẬP NHẬT ĐỒNG BỘ REAL-TIME)
-#  Đã sửa lỗi hiển thị hệ thống Banner Storefront ngoài trang chủ công khai
+#  CẤU HÌNH BỘ NHỚ ĐỆM TẠM THỜI (IN-MEMORY CACHE)
+#  Giải pháp tối ưu hóa tốc độ tải trang dứt điểm khi deploy Vercel
+# ═══════════════════════════════════════════════════════════════
+_SETTINGS_CACHE = None
+_CACHE_TIMEOUT = 300  # Lưu trữ cấu hình trong 5 phút (300 giây) rồi mới kéo lại từ Supabase
+_LAST_FETCH_TIME = 0
+
+
+# ═══════════════════════════════════════════════════════════════
+#  BƯỚC 5: GLOBAL CONTEXT PROCESSOR (BẢN CẬP NHẬT TỐI ƯU SIÊU TỐC)
+#  Đã sửa lỗi nghẽn I/O gọi Supabase liên tục khi render template
 # ═══════════════════════════════════════════════════════════════
 @app.context_processor
 def inject_global_settings():
-    """Tự động kéo toàn bộ cấu hình mới nhất từ Supabase ra mọi trang Web công khai"""
+    """Tự động kéo hoặc tái sử dụng cấu hình Banner/Cài đặt từ bộ nhớ đệm Cache"""
+    global _SETTINGS_CACHE, _LAST_FETCH_TIME
+    current_time = time.time()
+    
+    # CHIẾN THUẬT CỨU NGUY VERCEL: Nếu đã có Cache và chưa quá 5 phút -> Trả về lập tức (Tốc độ ~0ms)
+    if _SETTINGS_CACHE and (current_time - _LAST_FETCH_TIME < _CACHE_TIMEOUT):
+        return _SETTINGS_CACHE
+
     try:
+        # Chỉ khi hết hạn cache hoặc Serverless Container khởi động lại mới truy vấn Supabase
         all_settings = SettingModel.get_settings()
-        return dict(
-            system_settings=all_settings, # Tên biến này bắt buộc phải trùng khớp với index.html
+        
+        # Ghi đè dữ liệu mới vào bộ nhớ đệm tạm thời
+        _SETTINGS_CACHE = dict(
+            system_settings=all_settings,  # Tên biến bắt buộc phải trùng khớp với hệ thống template html
             global_settings=all_settings.get("general", {})
         )
+        _LAST_FETCH_TIME = current_time
+        return _SETTINGS_CACHE
+        
     except Exception:
+        # Cơ chế dự phòng an toàn tuyệt đối nếu kết nối mạng Supabase gặp sự cố khi đang tải trang
         defaults = SettingModel.DEFAULT_SETTINGS
         return dict(
             system_settings=defaults,
             global_settings=defaults["general"]
         )
-        
+
 
 # 3. MÁY CHỦ PHÁT TRIỂN (Local Development)
 if __name__ == "__main__":
@@ -49482,6 +49501,157 @@ class SettingModel:
             logger.error(
                 "[SettingModel] Self-Healing thất bại. Lỗi: %s", e
             )
+</file>
+
+<file path="app/models/user_model.py">
+"""
+app/models/user_model.py
+=========================
+Model xử lý tất cả thao tác liên quan đến bảng `users` và phân quyền (RBAC) trên Supabase.
+
+CHANGELOG (Sửa lỗi triệt để bẫy khóa dữ liệu RLS & Crash Giao diện):
+- Đồng bộ hóa get_by_email() và get_by_id() sang dùng get_supabase_admin() để bảo đảm nạp đầy đủ
+  trường thông tin (full_name, role, admin_role_slug) cho Session Context, chống lỗi sập giao diện.
+- UserModel.update_profile() nâng cấp lên admin client để xử lý luồng cập nhật thông tin mượt mà.
+- Bảo toàn cấu trúc gọn gàng, loại bỏ hoàn toàn các bảng thừa không tồn tại trong schema.
+"""
+
+import logging
+from app.utils.supabase_client import get_supabase, get_supabase_admin
+from app.utils.security import hash_password, verify_password
+
+logger = logging.getLogger(__name__)
+
+
+class UserModel:
+
+    # ═══════════════════════════════════════════════════════════════
+    #  TẠO USER MỚI (Bypass RLS an toàn)
+    # ═══════════════════════════════════════════════════════════════
+
+    @staticmethod
+    def create(email: str, password: str, full_name: str) -> dict:
+        db = get_supabase_admin()
+        hashed = hash_password(password)
+
+        try:
+            user_result = db.table("users").insert({
+                "email":         email,
+                "password_hash": hashed,
+                "full_name":     full_name,
+                "role":          "customer", # Quyền mặc định khi đăng ký tài khoản mới
+            }).execute()
+
+            user = user_result.data[0] if user_result.data else {}
+
+            if not user:
+                logger.error(
+                    f"[UserModel.create] INSERT không trả về data dù không có exception "
+                    f"(email={email}). Kiểm tra RLS hoặc constraint bảng users."
+                )
+
+            return user
+
+        except Exception as e:
+            logger.error(f"[UserModel.create] Lỗi khi tạo user ({email}): {e}")
+            return {}
+
+    # ═══════════════════════════════════════════════════════════════
+    #  QUERY (ĐÃ ĐỒNG BỘ BYPASS RLS ĐỂ TRÁNH LỖI HOÀN CẢNH ĐĂNG NHẬP)
+    # ═══════════════════════════════════════════════════════════════
+
+    @staticmethod
+    def get_by_email(email: str) -> dict | None:
+        # ✅ SỬA ĐỔI: Dùng admin client để nạp toàn bộ metadata, tránh RLS chặn mất trường full_name
+        db = get_supabase_admin()
+        try:
+            result = db.table("users").select("*").eq("email", email).limit(1).execute()
+            return result.data[0] if result.data else None
+        except Exception as e:
+            logger.error(f"[UserModel.get_by_email] Lỗi ({email}): {e}")
+            return None
+
+    @staticmethod
+    def get_by_id(user_id: str) -> dict | None:
+        # ✅ SỬA ĐỔI: Dùng admin client để Middleware đồng bộ current_user sạch lỗi crash cấu trúc
+        db = get_supabase_admin()
+        try:
+            result = db.table("users").select("*").eq("id", user_id).limit(1).execute()
+            return result.data[0] if result.data else None
+        except Exception as e:
+            logger.error(f"[UserModel.get_by_id] Lỗi (id={user_id}): {e}")
+            return None
+
+    @staticmethod
+    def get_user_count() -> int:
+        """
+        Đếm tổng số user có role='customer' (không tính các tài khoản nội bộ admin/staff).
+        Dùng count='exact' để Supabase trả về số lượng qua header, tối ưu hóa băng thông.
+        """
+        db = get_supabase_admin()
+        try:
+            result = (
+                db.table("users")
+                .select("id", count="exact")
+                .eq("role", "customer")
+                .execute()
+            )
+            return result.count or 0
+        except Exception as e:
+            logger.error(f"[UserModel.get_user_count] Lỗi: {e}")
+            return 0
+
+    # ═══════════════════════════════════════════════════════════════
+    #  XÁC THỰC NGƯỜI DÙNG
+    # ═══════════════════════════════════════════════════════════════
+
+    @staticmethod
+    def authenticate(email: str, password: str) -> dict | None:
+        # Gọi hàm get_by_email đã được nâng cấp quyền admin ở phía trên
+        user = UserModel.get_by_email(email)
+        if not user:
+            return None
+        
+        # So khớp chuỗi băm bảo mật mật khẩu đầu vào
+        if verify_password(password, user.get("password_hash", "")):
+            return user
+        return None
+
+    # ═══════════════════════════════════════════════════════════════
+    #  KIỂM TRA SỰ TỒN TẠI
+    # ═══════════════════════════════════════════════════════════════
+
+    @staticmethod
+    def email_exists(email: str) -> bool:
+        return UserModel.get_by_email(email) is not None
+
+    # ═══════════════════════════════════════════════════════════════
+    #  CẬP NHẬT THÔNG TIN THÀNH VIÊN
+    # ═══════════════════════════════════════════════════════════════
+
+    @staticmethod
+    def update_profile(user_id: str, data: dict) -> dict:
+        # ✅ SỬA ĐỔI: Sử dụng admin client để hỗ trợ người dùng ghi đè thông tin cá nhân mượt mà
+        db = get_supabase_admin()
+        try:
+            result = db.table("users").update(data).eq("id", user_id).execute()
+            return result.data[0] if result.data else {}
+        except Exception as e:
+            logger.error(f"[UserModel.update_profile] Lỗi (id={user_id}): {e}")
+            return {}
+
+    @staticmethod
+    def change_password(email: str, new_password: str) -> bool:
+        db = get_supabase_admin()
+        try:
+            db.table("users") \
+              .update({"password_hash": hash_password(new_password)}) \
+              .eq("email", email) \
+              .execute()
+            return True
+        except Exception as e:
+            logger.error(f"[UserModel.change_password] Lỗi ({email}): {e}")
+            return False
 </file>
 
 <file path="app/templates/admin/coupons_form.html">
@@ -51625,16 +51795,52 @@ function togglePassword(inputId, iconId) {
   "builds": [
     {
       "src": "index.py",
-      "use": "@vercel/python"
+      "use": "@vercel/python",
+      "config": {
+        "maxDuration": 15
+      }
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    },
+    {
+      "source": "/static/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, m-maxinter=31536000, immutable"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
     }
   ],
   "routes": [
     {
       "src": "/static/(.*)",
-      "dest": "/app/static/$1",
-      "headers": {
-        "Cache-Control": "public, max-age=31536000, immutable"
-      }
+      "dest": "app/static/$1"
+    },
+    {
+      "src": "/favicon.ico",
+      "dest": "app/static/favicon.ico"
     },
     {
       "src": "/(.*)",
@@ -55402,13 +55608,22 @@ class OrderModel:
                 </div>
             </div>
 
+            {# KHU VỰC ĐÃ ĐƯỢC FIX LỖI: Tránh bẫy Undefined khi trường full_name bị Null/None #}
             <div class="flex items-center gap-4">
                 <div class="hidden md:flex flex-col items-end">
-                    <span class="text-sm font-bold text-slate-900">{{ current_user.full_name }}</span>
+                    <span class="text-sm font-bold text-slate-900">
+                        {{ current_user.full_name if (current_user and current_user.full_name) else (session.get('user_name') or 'Admin User') }}
+                    </span>
                     <span class="text-xs font-medium text-slate-500">Quản trị viên</span>
                 </div>
                 <div class="w-11 h-11 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center font-bold text-lg shadow-sm border border-indigo-100">
-                    {{ current_user.full_name[0].upper() if current_user else 'G' }}
+                    {% if current_user and current_user.full_name %}
+                        {{ current_user.full_name[0].upper() }}
+                    {% elif session.get('email') %}
+                        {{ session.get('email')[0].upper() }}
+                    {% else %}
+                        G
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -56787,12 +57002,12 @@ window.saveOutfit = function() {
 """
 app/controllers/auth_controller.py
 ====================================
-CHANGELOG (fix đăng nhập / đăng ký):
-- Thêm debug logging chi tiết ở login() và register() để dễ trace lỗi.
-- reset_password() dùng UserModel.change_password() thay vì gọi thẳng DB
-  (tránh RLS chặn khi dùng anon key).
-- _set_session() bảo vệ KeyError nếu user dict thiếu field.
-- Tách rõ các bước validate → query → authenticate để log từng bước.
+CHANGELOG (Đồng bộ phân quyền & Khắc phục bẫy lỗi Session Admin):
+- ĐỒNG BỘ: Sửa đổi các hàm kiểm tra hasattr() điều hướng, loại bỏ bẫy gọi sai Blueprint gây kẹt vòng lặp 302.
+- Đồng bộ hóa cấu trúc khóa session["user_role"] và session["user_name"] chuẩn hệ thống GUA Admin.
+- Thêm debug logging chi tiết từng bước ở login() và register() để dễ trace lỗi Terminal.
+- reset_password() áp dụng UserModel.change_password() để dùng service role bypass RLS.
+- Helper _set_session() bảo vệ nghiêm ngặt bằng .get(), chống sập lỗi KeyError nếu DB thiếu trường.
 """
 
 import re
@@ -56812,11 +57027,13 @@ logger = logging.getLogger(__name__)
 
 
 # ═══════════════════════════════════════════════════════════════
-#  HELPERS
+#  HELPERS (XỬ LÝ AN TOÀN HỆ THỐNG)
 # ═══════════════════════════════════════════════════════════════
 
 def _is_safe_url(target: str) -> bool:
-    """Kiểm tra URL redirect có cùng host không (chống open redirect)."""
+    """Kiểm tra URL redirect có cùng host không (chống tấn công Open Redirect)."""
+    if not target:
+        return False
     ref_url  = urlparse(request.host_url)
     test_url = urlparse(urljoin(request.host_url, target))
     return test_url.scheme in ("http", "https") and ref_url.netloc == test_url.netloc
@@ -56824,52 +57041,57 @@ def _is_safe_url(target: str) -> bool:
 
 def _fetch_role(user: dict) -> str:
     """
-    Đọc role từ dict user.
-    Chỉ chấp nhận: 'admin' | 'staff' | 'customer'.
-    Mọi giá trị khác fallback về 'customer'.
+    Đọc phân quyền từ bản ghi người dùng.
+    Hỗ trợ kiểm tra cả admin_role_slug để gán quyền chuẩn xác nhất.
     """
-    role = (user.get("role") or "customer").strip().lower()
-    if role not in ("admin", "staff", "customer"):
-        logger.warning(
-            f"[auth._fetch_role] User id={user.get('id')} "
-            f"có role không hợp lệ: '{role}' → fallback 'customer'"
-        )
-        return "customer"
-    return role
+    # Ưu tiên lấy admin_role_slug, nếu không có lấy trường role, mặc định là customer
+    role = (user.get("admin_role_slug") or user.get("role") or "customer").strip().lower()
+    
+    # Chuẩn hóa nhóm quyền Admin/Staff hệ thống
+    if role in ("super_admin", "admin", "staff"):
+        return role
+    return "customer"
 
 
 def _set_session(user: dict, remember: bool = False) -> None:
     """
     Thiết lập Flask session sau khi xác thực thành công.
-    Dùng .get() có default để tránh KeyError nếu DB trả thiếu field.
+    ✅ ĐÃ ĐỒNG BỘ: Sử dụng các khóa session["user_id"], session["user_role"], 
+    session["user_name"] chuẩn hóa để không bị đẩy ngược ra trang Login Admin.
     """
     session.clear()
     session.permanent = remember
-    session["user_id"]        = str(user.get("id", ""))
-    session["email"]          = user.get("email", "")
-    session["full_name"]      = user.get("full_name", "")
-    session["role"]           = _fetch_role(user)
-    session["admin_role_slug"] = user.get("admin_role_slug")   # None nếu không có
+    
+    # Bọc dữ liệu an toàn phòng hờ DB trả thiếu trường (Tránh KeyError gây lỗi sập 500 HTML)
+    session["user_id"]         = str(user.get("id", ""))
+    session["email"]           = user.get("email", "")
+    session["user_name"]       = user.get("full_name", "Khách hàng")
+    session["user_role"]       = _fetch_role(user)
+    session["admin_role_slug"] = user.get("admin_role_slug")   # Lưu trữ phục vụ RLS và Audit logs
 
     logger.info(
-        f"[SESSION SET] email={session['email']} | "
-        f"role={session['role']} | "
-        f"admin_role_slug={session.get('admin_role_slug')}"
+        f"[SESSION SET SUCCESS] Đăng nhập thành công: email={session['email']} | "
+        f"user_role={session['user_role']} | admin_role_slug={session.get('admin_role_slug')}"
     )
 
 
 # ═══════════════════════════════════════════════════════════════
-#  REGISTER
+#  REGISTER (ĐĂNG KÝ TÀI KHOẢN KHÁCH HÀNG)
 # ═══════════════════════════════════════════════════════════════
 
 @auth_bp.route("/register", methods=["GET", "POST"])
 def register():
-    # Đã đăng nhập → chuyển hướng ngay
+    # Khách hàng đã đăng nhập từ trước -> Chuyển hướng an toàn ngay dựa trên quyền hạn
     if "user_id" in session:
-        return redirect(
-            url_for("admin.dashboard") if session.get("role") in ("admin", "staff")
-            else url_for("products.index")
-        )
+        if session.get("user_role") in ("super_admin", "admin", "staff"):
+            try:
+                return redirect(url_for("admin.dashboard"))
+            except Exception:
+                return redirect("/admin/")
+        try:
+            return redirect(url_for("main.index"))
+        except Exception:
+            return redirect("/")
 
     errors = {}
 
@@ -56879,54 +57101,61 @@ def register():
         password  = request.form.get("password", "")
         confirm   = request.form.get("confirm_password", "")
 
-        logger.info(f"[REGISTER] Attempt: email='{email}' full_name='{full_name}'")
+        logger.info(f"[REGISTER ATTEMPT] Bắt đầu xử lý đăng ký: email='{email}' | name='{full_name}'")
 
-        # ── Validate ──────────────────────────────────────────
+        # ── Bước 1: Validate dữ liệu đầu vào ──────────────────
         if not full_name:
-            errors["full_name"] = "Vui lòng nhập họ tên."
+            errors["full_name"] = "Vui lòng nhập họ và tên của bạn."
         if not email or not EMAIL_RE.match(email):
-            errors["email"] = "Email không hợp lệ."
+            errors["email"] = "Định dạng địa chỉ email không hợp lệ."
         if len(password) < 6:
-            errors["password"] = "Mật khẩu tối thiểu 6 ký tự."
+            errors["password"] = "Mật khẩu bảo mật phải tối thiểu từ 6 ký tự trở lên."
         if password != confirm:
-            errors["confirm_password"] = "Mật khẩu xác nhận không khớp."
+            errors["confirm_password"] = "Mật khẩu xác nhận nhập lại không trùng khớp."
 
-        # ── Kiểm tra email trùng ──────────────────────────────
+        # ── Bước 2: Kiểm tra trùng lặp email hệ thống ─────────
         if not errors:
             existing = UserModel.get_by_email(email)
             if existing:
-                logger.info(f"[REGISTER] Email đã tồn tại: {email}")
-                errors["email"] = "Email này đã được sử dụng."
+                logger.info(f"[REGISTER VALIDATION FAILED] Email đã được đăng ký từ trước: {email}")
+                errors["email"] = "Địa chỉ email này đã được sử dụng trên hệ thống."
 
-        # ── Tạo user ─────────────────────────────────────────
+        # ── Bước 3: Đẩy bản ghi mới vào Supabase ──────────────
         if not errors:
             user = UserModel.create(email=email, password=password, full_name=full_name)
 
             if user:
-                logger.info(f"[REGISTER] Thành công: id={user.get('id')} email={email}")
+                logger.info(f"[REGISTER SUCCESS] Tạo tài khoản mới thành công: id={user.get('id')} | email={email}")
                 _set_session(user)
-                flash("Đăng ký thành công! Chào mừng bạn.", "success")
-                return redirect(url_for("products.index"))
+                flash(f"Đăng ký tài khoản thành công! Chào mừng {session['user_name']} đến với GUA.", "success")
+                try:
+                    return redirect(url_for("main.index"))
+                except Exception:
+                    return redirect("/")
             else:
-                # UserModel.create() đã log chi tiết lỗi DB
-                logger.error(f"[REGISTER] UserModel.create() trả về rỗng cho email={email}")
-                flash("Đăng ký thất bại. Vui lòng thử lại sau.", "danger")
+                logger.error(f"[REGISTER CRASH] UserModel.create() trả về rỗng không rõ nguyên nhân cho email={email}")
+                flash("Hệ thống đăng ký gặp sự cố kỹ thuật. Vui lòng thử lại sau!", "danger")
 
     return render_template("auth/register.html", errors=errors)
 
 
 # ═══════════════════════════════════════════════════════════════
-#  LOGIN
+#  LOGIN (XÁC THỰC VÀ ĐĂNG NHẬP)
 # ═══════════════════════════════════════════════════════════════
 
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
-    # Đã đăng nhập → chuyển hướng ngay
+    # Tài khoản đang giữ phiên làm việc active -> Ép chuyển hướng trực tiếp chống kẹt trang login
     if "user_id" in session:
-        return redirect(
-            url_for("admin.dashboard") if session.get("role") in ("admin", "staff")
-            else url_for("products.index")
-        )
+        if session.get("user_role") in ("super_admin", "admin", "staff"):
+            try:
+                return redirect(url_for("admin.dashboard"))
+            except Exception:
+                return redirect("/admin/")
+        try:
+            return redirect(url_for("main.index"))
+        except Exception:
+            return redirect("/")
 
     error = None
 
@@ -56935,58 +57164,66 @@ def login():
         password = request.form.get("password", "")
         remember = bool(request.form.get("remember"))
 
-        logger.info(f"[LOGIN] Attempt: email='{email}'")
+        logger.info(f"[LOGIN ATTEMPT] Đang tiến hành xác thực tài khoản: email='{email}'")
 
-        # ── Bước 1: Kiểm tra user tồn tại ────────────────────
+        # ── Bước 1: Kiểm tra tài khoản tồn tại trong DB ──────
         user_record = UserModel.get_by_email(email)
         if not user_record:
-            logger.warning(f"[LOGIN] Email không tồn tại trong DB: '{email}'")
-            error = "Email hoặc mật khẩu không chính xác."
+            logger.warning(f"[LOGIN FAILED] Tài khoản không tồn tại trên hệ thống: '{email}'")
+            error = "Địa chỉ email hoặc mật khẩu không chính xác."
             return render_template("auth/login.html", error=error)
 
-        # ── Bước 2: Xác thực password ─────────────────────────
+        # ── Bước 2: So khớp mật khẩu mã hóa mật định ─────────
         user = UserModel.authenticate(email, password)
         if not user:
-            logger.warning(f"[LOGIN] Sai mật khẩu cho email='{email}'")
-            error = "Email hoặc mật khẩu không chính xác."
+            logger.warning(f"[LOGIN FAILED] Sai thông tin mật khẩu truy cập cho tài khoản email='{email}'")
+            error = "Địa chỉ email hoặc mật khẩu không chính xác."
             return render_template("auth/login.html", error=error)
 
-        # ── Bước 3: Kiểm tra tài khoản bị khoá ───────────────
-        if user.get("is_suspended"):
-            logger.warning(f"[LOGIN] Tài khoản bị khoá: email='{email}'")
-            error = "Tài khoản của bạn đã bị tạm khoá. Vui lòng liên hệ hỗ trợ."
+        # ── Bước 3: Chặn đứng nếu tài khoản bị khóa RLS/Admin ──
+        if user.get("is_suspended") is True:
+            logger.warning(f"[LOGIN BLOCKED] Truy cập bị chặn, tài khoản đang bị tạm khóa: email='{email}'")
+            error = "Tài khoản của bạn hiện đang bị tạm khóa. Vui lòng liên hệ với bộ phận CSKH để được hỗ trợ."
             return render_template("auth/login.html", error=error)
 
-        # ── Bước 4: Thiết lập session & redirect ──────────────
+        # ── Bước 4: Khởi chạy Session & Điều hướng phân vùng ──
         _set_session(user, remember=remember)
-        flash(f"Chào mừng trở lại, {user.get('full_name', '')}!", "success")
+        flash(f"Đăng nhập thành công. Chào mừng trở lại, {session['user_name']}!", "success")
 
+        # Kiểm tra tham số next đề phòng bẫy Open Redirect bảo mật
         next_url = request.args.get("next")
         if next_url and _is_safe_url(next_url):
             return redirect(next_url)
 
-        if session.get("role") in ("admin", "staff"):
-            return redirect(url_for("admin.dashboard"))
-        return redirect(url_for("products.index"))
+        # Điều phối luồng giao diện Admin hoặc trang bán hàng công khai
+        if session.get("user_role") in ("super_admin", "admin", "staff"):
+            try:
+                return redirect(url_for("admin.dashboard"))
+            except Exception:
+                return redirect("/admin/")
+        try:
+            return redirect(url_for("main.index"))
+        except Exception:
+            return redirect("/")
 
     return render_template("auth/login.html", error=error)
 
 
 # ═══════════════════════════════════════════════════════════════
-#  LOGOUT
+#  LOGOUT (ĐĂNG XUẤT HỆ THỐNG)
 # ═══════════════════════════════════════════════════════════════
 
 @auth_bp.route("/logout", methods=["GET", "POST"])
 def logout():
     email = session.get("email", "unknown")
     session.clear()
-    logger.info(f"[LOGOUT] {email}")
-    flash("Bạn đã đăng xuất.", "info")
+    logger.info(f"[LOGOUT SUCCESS] Người dùng đã đăng xuất an toàn: {email}")
+    flash("Bạn đã đăng xuất tài khoản làm việc an toàn.", "info")
     return redirect(url_for("auth.login"))
 
 
 # ═══════════════════════════════════════════════════════════════
-#  FORGOT PASSWORD
+#  FORGOT PASSWORD (YÊU CẦU ĐẶT LẠI MẬT KHẨU)
 # ═══════════════════════════════════════════════════════════════
 
 @auth_bp.route("/forgot-password", methods=["GET", "POST"])
@@ -56995,67 +57232,70 @@ def forgot_password():
         email = request.form.get("email", "").strip().lower()
 
         if not email or not EMAIL_RE.match(email):
-            flash("Email không hợp lệ.", "danger")
+            flash("Vui lòng điền địa chỉ định dạng email hợp lệ.", "danger")
             return render_template("auth/forgot_password.html")
 
         user = UserModel.get_by_email(email)
 
-        # Luôn hiện thông báo thành công để tránh leak thông tin email tồn tại
+        # Cơ chế Blind Privacy: Luôn báo thành công ra ngoài để tránh lỗ hổng rò rỉ dữ liệu email tồn tại
         if user:
             try:
-                s         = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
-                token     = s.dumps(email, salt="password-reset-salt")
+                secret_key = current_app.config.get("SECRET_KEY", "fallback_gua_secret")
+                s = URLSafeTimedSerializer(secret_key)
+                token = s.dumps(email, salt="password-reset-salt")
                 reset_url = url_for("auth.reset_password", token=token, _external=True)
+                
                 send_password_reset_email(email, reset_url)
-                logger.info(f"[FORGOT PASSWORD] Gửi email reset tới: {email}")
+                logger.info(f"[FORGOT PASSWORD SUCCESS] Đã phát hành mã thông báo và gửi mail reset tới: {email}")
             except Exception as e:
-                logger.error(f"[FORGOT PASSWORD] Lỗi gửi email tới {email}: {e}")
+                logger.error(f"[FORGOT PASSWORD CRASH] Lỗi xử lý gửi mail mã hóa tới {email}: {e}")
         else:
-            logger.info(f"[FORGOT PASSWORD] Email không tồn tại (không gửi): {email}")
+            logger.info(f"[FORGOT PASSWORD PRIVACY] Email không tồn tại trên hệ thống (Hủy bỏ gửi): {email}")
 
-        flash("Nếu email tồn tại, chúng tôi đã gửi link đặt lại mật khẩu.", "info")
+        flash("Nếu tài khoản email tồn tại, hệ thống đã gửi đường liên kết đặt lại mật khẩu thành công. Vui lòng kiểm tra Hòm thư!", "info")
         return redirect(url_for("auth.login"))
 
     return render_template("auth/forgot_password.html")
 
 
 # ═══════════════════════════════════════════════════════════════
-#  RESET PASSWORD
+#  RESET PASSWORD (XÁC THỰC MÃ TOKEN & ĐỔI MẬT KHẨU)
 # ═══════════════════════════════════════════════════════════════
 
 @auth_bp.route("/reset-password/<token>", methods=["GET", "POST"])
 def reset_password(token):
-    # ── Xác thực token ────────────────────────────────────────
+    # ── Bước 1: Giải mã và kiểm tra hạn mức Token ─────────────
     try:
-        s     = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
-        email = s.loads(token, salt="password-reset-salt", max_age=3600)  # hết hạn sau 1 giờ
+        secret_key = current_app.config.get("SECRET_KEY", "fallback_gua_secret")
+        s = URLSafeTimedSerializer(secret_key)
+        email = s.loads(token, salt="password-reset-salt", max_age=3600)  # Hết hiệu lực chính xác sau 1 giờ
     except Exception as e:
-        logger.warning(f"[RESET PASSWORD] Token không hợp lệ hoặc hết hạn: {e}")
-        flash("Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.", "danger")
+        logger.warning(f"[RESET PASSWORD FAILED] Mã thông báo token không hợp lệ hoặc đã hết hạn sử dụng: {e}")
+        flash("Đường liên kết đặt lại mật khẩu của bạn không hợp lệ hoặc đã quá hạn sử dụng.", "danger")
         return redirect(url_for("auth.forgot_password"))
 
     if request.method == "POST":
         password = request.form.get("password", "")
         confirm  = request.form.get("confirm_password", "")
 
-        # ── Validate ──────────────────────────────────────────
+        # ── Bước 2: Validate độ phức tạp mật khẩu mới ──────────
         if len(password) < 6:
-            flash("Mật khẩu tối thiểu 6 ký tự.", "danger")
+            flash("Mật khẩu bảo mật an toàn yêu cầu tối thiểu từ 6 ký tự.", "danger")
             return render_template("auth/reset_password.html", token=token)
 
         if password != confirm:
-            flash("Mật khẩu xác nhận không khớp.", "danger")
+            flash("Mật khẩu xác nhận nhập lại không trùng khớp.", "danger")
             return render_template("auth/reset_password.html", token=token)
 
-        # ── Đổi mật khẩu qua UserModel (dùng service role, bypass RLS) ──
+        # ── Bước 3: Đổi mật khẩu thông qua UserModel Service Role (Bypass RLS) ──
         ok = UserModel.change_password(email, password)
         if ok:
-            logger.info(f"[RESET PASSWORD] Đổi mật khẩu thành công cho: {email}")
-            flash("Đặt lại mật khẩu thành công! Vui lòng đăng nhập.", "success")
+            logger.info(f"[RESET PASSWORD SUCCESS] Đặt lại mật khẩu thành công bằng Service Role cho: {email}")
+            flash("Đặt lại mật khẩu thành công! Vui lòng sử dụng mật khẩu mới để đăng nhập hệ thống.", "success")
             return redirect(url_for("auth.login"))
         else:
-            logger.error(f"[RESET PASSWORD] Đổi mật khẩu thất bại cho: {email}")
-            flash("Có lỗi xảy ra khi đặt lại mật khẩu. Vui lòng thử lại.", "danger")
+            logger.error(f"[RESET PASSWORD CRASH] Đổi mật khẩu thất bại tại tầng Database cho: {email}")
+            flash("Có lỗi hệ thống xảy ra khi cố gắng thiết lập mật khẩu mới. Vui lòng thử lại sau.", "danger")
 
     return render_template("auth/reset_password.html", token=token)
 </file>
@@ -57063,25 +57303,40 @@ def reset_password(token):
 <file path="app/models/product_model.py">
 """
 app/models/product_model.py
-Quản lý dữ liệu Sản phẩm, Biến thể (Variants) và SEO chuẩn E-commerce.
+=========================
+Quản lý dữ liệu Sản phẩm, Biến thể (Variants) và SEO chuẩn E-commerce cho GUA Maison.
 Hỗ trợ Soft Delete, Slug generation, Barcode generation, và đồng bộ hình ảnh.
-Tối ưu hóa bảo vệ Payload và kiểm tra an toàn Supabase RLS Constraints.
+
+CHANGELOG (Tối ưu hóa Lazy Initialization & Khắc phục bẫy RLS Admin):
+- Chuẩn hóa cơ chế Lazy Initialization qua hàm helper _db() công khai và _db_admin() bảo mật.
+- Ép các hàm ghi dữ liệu (create, update, delete, sync_images) chạy qua admin client để bypass RLS.
+- Loại bỏ các dòng print debug thừa, tối ưu hóa tốc độ xử lý phản hồi trên Vercel Serverless.
 """
 
 import logging
 import re
 import uuid
 from datetime import datetime
-from app.utils.supabase_client import get_supabase
+from app.utils.supabase_client import get_supabase, get_supabase_admin
 
 logger = logging.getLogger(__name__)
 
 
 class ProductModel:
 
+    # ═══════════════════════════════════════════════════════════════
+    #  LAZY INITIALIZATION HELPERS (KHỞI TẠO LƯỜI KHI CÓ REQUEST)
+    # ═══════════════════════════════════════════════════════════════
+
     @staticmethod
     def _db():
+        """Khởi tạo lười kết nối Client công khai (Dành cho đọc dữ liệu Storefront)"""
         return get_supabase()
+
+    @staticmethod
+    def _db_admin():
+        """Khởi tạo lười kết nối Client quyền Admin (Dành cho ghi/sửa dữ liệu Admin Dashboard)"""
+        return get_supabase_admin()
 
     # ═══════════════════════════════════════════════════════════════
     #  UTILITIES & FORMATTERS
@@ -57108,7 +57363,7 @@ class ProductModel:
     def generate_barcode(product_id: str = None) -> str:
         """
         Sinh mã vạch duy nhất theo format: GUA-YYMM-XXXXXX
-        - GUA     : Thương hiệu
+        - GUA     : Thương hiệu GUA Maison
         - YYMM    : Năm + Tháng tạo (VD: 2605 = tháng 5/2026)
         - XXXXXX  : 6 ký tự hex đầu của UUID (lấy từ product_id nếu có)
         """
@@ -57122,7 +57377,7 @@ class ProductModel:
 
         return f"{prefix}-{hex_part}"
 
-    # Bảng từ điển màu chuẩn Fashion
+    # Bảng từ điển màu chuẩn phục vụ ngành Fashion
     COLOR_DICT = {
         'đen': '#000000', 'black': '#000000',
         'trắng': '#ffffff', 'white': '#ffffff',
@@ -57173,8 +57428,8 @@ class ProductModel:
 
     @staticmethod
     def fix_missing_slugs() -> int:
-        """Backfill slug cho các sản phẩm bị thiếu trong DB."""
-        db = ProductModel._db()
+        """Backfill slug cho các sản phẩm bị thiếu trong DB (Dùng Admin Client)."""
+        db = ProductModel._db_admin()
         fixed = 0
         try:
             res = db.table("products").select("id, name, slug").execute()
@@ -57188,13 +57443,13 @@ class ProductModel:
                 fixed += 1
             return fixed
         except Exception as e:
-            logger.error(f"Lỗi fix_missing_slugs: {e}")
+            logger.error(f"[ProductModel.fix_missing_slugs] Gặp sự cố hệ thống: {e}")
             return 0
 
     @staticmethod
     def fix_missing_barcodes() -> int:
-        """Backfill barcode cho các sản phẩm cũ chưa có."""
-        db = ProductModel._db()
+        """Backfill barcode cho các sản phẩm cũ chưa có (Dùng Admin Client)."""
+        db = ProductModel._db_admin()
         fixed = 0
         try:
             res = db.table("products").select("id, created_at, barcode").execute()
@@ -57214,11 +57469,11 @@ class ProductModel:
                 fixed += 1
             return fixed
         except Exception as e:
-            logger.error(f"Lỗi fix_missing_barcodes: {e}")
+            logger.error(f"[ProductModel.fix_missing_barcodes] Gặp sự cố hệ thống: {e}")
             return 0
 
     # ═══════════════════════════════════════════════════════════════
-    #  READ (GET)
+    #  READ (DÙNG PUBLIC CLIENT CHO STOREFRONT CÔNG KHAI)
     # ═══════════════════════════════════════════════════════════════
 
     @staticmethod
@@ -57258,7 +57513,8 @@ class ProductModel:
         keyword: str = None,
         admin_mode: bool = False,
     ) -> dict:
-        db = ProductModel._db()
+        # Nếu ở admin_mode, dùng thẳng admin client để kéo toàn bộ sản phẩm bất kể RLS
+        db = ProductModel._db_admin() if admin_mode else ProductModel._db()
         offset = (page - 1) * per_page
         try:
             query = db.table("products").select(
@@ -57332,10 +57588,10 @@ class ProductModel:
 
     @staticmethod
     def get_by_barcode(barcode: str):
-        """Tìm sản phẩm theo mã vạch — dùng trong POS scan."""
+        """Tìm sản phẩm theo mã vạch — phục vụ hệ thống POS scan tại quầy."""
         if not barcode:
             return None
-        db = ProductModel._db()
+        db = ProductModel._db_admin() # Dùng admin client đề phòng nhân viên quét tại quầy POS bị dính RLS công khai
         try:
             res = (
                 db.table("products")
@@ -57351,18 +57607,18 @@ class ProductModel:
             return None
 
     # ═══════════════════════════════════════════════════════════════
-    #  WRITE (POST / PUT / DELETE)
+    #  WRITE (DÙNG ADMIN CLIENT ĐỂ BYPASS RLS CHO DASHBOARD WORKSPACE)
     # ═══════════════════════════════════════════════════════════════
 
     @staticmethod
     def create(data: dict) -> dict:
-        db = ProductModel._db()
+        db = ProductModel._db_admin()
         if not data.get("slug") and data.get("name"):
             data["slug"] = ProductModel.generate_slug(data["name"])
         try:
             res = db.table("products").insert(data).execute()
             if not res.data:
-                logger.error("[ProductModel.create] Thất bại! Không có dữ liệu trả về. Vui lòng kiểm tra RLS INSERT Policy.")
+                logger.error("[ProductModel.create] Thất bại! Không có dữ liệu trả về từ Supabase.")
                 return None
 
             product = res.data[0]
@@ -57374,7 +57630,7 @@ class ProductModel:
             if bc_res.data:
                 product["barcode"] = barcode
             else:
-                logger.warning(f"[ProductModel.create] SP đã tạo nhưng không thể ghi đè Barcode tự động cho ID '{pid}'.")
+                logger.warning(f"[ProductModel.create] Không thể ghi đè Barcode tự động cho ID '{pid}'.")
 
             return product
         except Exception as e:
@@ -57383,47 +57639,34 @@ class ProductModel:
 
     @staticmethod
     def update(pid: str, data: dict) -> bool:
-        """Cập nhật sản phẩm - Tích hợp bộ chặn dữ liệu rác và debug kiểm tra lỗi RLS"""
+        """Cập nhật thông tin sản phẩm (Bypass RLS an toàn)."""
         if not pid:
             return False
             
-        # Làm sạch payload
+        # Làm sạch dữ liệu payload rác đầu vào
         if "slug" in data and not data["slug"]:
             data.pop("slug")
         if "thumbnail_url" in data and not data["thumbnail_url"]:
             data.pop("thumbnail_url")
             
-        data.pop("barcode", None) # Gỡ bỏ trường không cho phép sửa thông thường
+        data.pop("barcode", None) # Không cho phép tự ý viết đè mã Barcode gốc hệ thống
         clean_pid = str(pid).strip()
+        db = ProductModel._db_admin()
 
         try:
-            # 🔴 BẬT HỆ THỐNG KIỂM TRA CHỦ ĐỘNG
-            print(f"\n=== 🔍 [DEBUG] UPDATE PRODUCT ===")
-            print(f"Target ID: '{clean_pid}'")
-            print(f"Payload gửi đi: {data}")
-
-            res = ProductModel._db().table("products").update(data).eq("id", clean_pid).execute()
-            
-            print(f"Mảng trả về từ Supabase: {res.data}")
-            
+            res = db.table("products").update(data).eq("id", clean_pid).execute()
             if not res.data:
-                print("🚨 CẢNH BÁO: Supabase trả về mảng rỗng [].")
-                print("👉 Nguyên nhân: 1. Sai ID | 2. Bị chặn bởi Policy RLS (Vào Supabase > Bảng products > Tạo Policy cho phép UPDATE).")
-                print("=================================\n")
                 logger.warning(f"[ProductModel.update] Không tìm thấy dòng hoặc bị RLS chặn tại ID '{clean_pid}'")
                 return False
-                
-            print("✨ Cập nhật thành công vào Database!")
-            print("=================================\n")
             return True
-            
         except Exception as e:
             logger.error(f"Lỗi cập nhật sản phẩm '{pid}': {e}")
             return False
 
     @staticmethod
     def delete(pid: str, permanent: bool = False) -> bool:
-        db = ProductModel._db()
+        """Xóa sản phẩm hệ thống (Mặc định là Soft Delete để bảo toàn liên kết khóa ngoại đơn hàng)."""
+        db = ProductModel._db_admin()
         clean_pid = str(pid).strip()
         try:
             if permanent:
@@ -57435,7 +57678,7 @@ class ProductModel:
                 }).eq("id", clean_pid).execute()
                 
             if not res.data:
-                logger.warning(f"[ProductModel.delete] Lệnh xóa không tác động lên dòng nào cho ID '{clean_pid}'. Hãy kiểm tra RLS.")
+                logger.warning(f"[ProductModel.delete] Không thể xóa hoặc cập nhật dòng cho ID '{clean_pid}'.")
                 return False
             return True
         except Exception as e:
@@ -57443,7 +57686,7 @@ class ProductModel:
             return False
 
     # ═══════════════════════════════════════════════════════════════
-    #  IMAGES
+    #  IMAGES MANAGEMENT (QUẢN LÝ THƯ VIỆN ẢNH)
     # ═══════════════════════════════════════════════════════════════
 
     @staticmethod
@@ -57464,7 +57707,8 @@ class ProductModel:
 
     @staticmethod
     def sync_images(pid: str, urls: list) -> bool:
-        db = ProductModel._db()
+        """Đồng bộ danh sách hình ảnh sản phẩm (Xóa cũ, ghi đè mới bằng quyền Admin)."""
+        db = ProductModel._db_admin()
         clean_pid = str(pid).strip()
         try:
             db.table("product_images").delete().eq("product_id", clean_pid).execute()
@@ -57480,7 +57724,8 @@ class ProductModel:
 
     @staticmethod
     def upload_to_storage(file_bytes: bytes, filename: str, content_type: str) -> str:
-        db = ProductModel._db()
+        """Đẩy tệp tin hình ảnh lên Bucket Storage của Supabase."""
+        db = ProductModel._db_admin()
         try:
             path = f"products/{datetime.now().strftime('%Y%m%d_%H%M%S')}_{filename}"
             db.storage.from_("products").upload(path, file_bytes, {"content-type": content_type})
@@ -58955,9 +59200,10 @@ def create_app() -> Flask:
 
 <file path="app/templates/admin/admin_navbar.html">
 {# ============================================================
-GUA MAISON — Premium European Admin Navbar
-Tech: Tailwind CSS, FontAwesome 6, Vanilla JS
-Design System: Premium Minimalism, Rounded Pills, Stone Scale
+   GUA MAISON — Premium European Admin Navbar (Version 2.0 - Real-time Secure)
+   Tech: Tailwind CSS, FontAwesome 6, Vanilla JS
+   Design System: Premium Minimalism, Rounded Pills, Stone Scale
+   Fixes: Chống sập UndefinedError Null Name & Đồng bộ admin_role_slug chuẩn hệ thống
 ============================================================ #}
 
 {# ── PROGRESS BAR (Hiệu ứng chuyển trang mượt mà) ── #}
@@ -59005,7 +59251,7 @@ Design System: Premium Minimalism, Rounded Pills, Stone Scale
         </a>
         {% endfor %}
 
-        {# ── Dropdown: Quản trị ── #}
+        {# ── Dropdown: Quản trị Nâng cao ── #}
         {% set mgmt_eps = ['admin.settings_page','admin.categories','admin.coupons','admin.return_requests',
         'admin.permissions_index', 'admin.audit_logs'] %}
         {% set mgmt_active = request.endpoint in mgmt_eps or (request.endpoint and
@@ -59052,8 +59298,8 @@ Design System: Premium Minimalism, Rounded Pills, Stone Scale
             </a>
             {% endfor %}
 
-            {# Phân quyền — chỉ Super Admin #}
-            {% if current_user.role == 'admin' %}
+            {# ✅ ĐÃ SỬA LOGIC: Check nhóm quyền admin_role_slug chuẩn xác (chấp nhận cả super_admin và admin) #}
+            {% if session.get('user_role') in ('super_admin', 'admin') %}
             <div class="h-px bg-stone-100 my-2 mx-3"></div>
             <a href="{{ url_for('admin.permissions_index') }}" data-nav
               class="flex items-center gap-3 px-3 py-2.5 text-[13px] font-medium rounded-xl transition-all duration-200 {{ 'text-stone-900 bg-stone-100' if request.endpoint == 'admin.permissions_index' else 'text-stone-600 hover:text-stone-900 hover:bg-stone-50' }}">
@@ -59125,7 +59371,8 @@ Design System: Premium Minimalism, Rounded Pills, Stone Scale
                        hover:bg-stone-50 border border-transparent hover:border-stone-200 transition-all duration-300 select-none">
           <div class="hidden sm:block text-right">
             <p class="text-[13px] font-bold text-stone-900 leading-tight">
-              {{ current_user.full_name if current_user else 'Admin User' }}
+              {# ✅ ĐÃ SỬA LOGIC: Đọc an toàn từ session để tránh lỗi kẹt chuỗi trống rỗng #}
+              {{ current_user.full_name if (current_user and current_user.full_name) else (session.get('user_name') or 'Admin User') }}
             </p>
             <p
               class="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5 flex items-center justify-end gap-1.5">
@@ -59135,11 +59382,18 @@ Design System: Premium Minimalism, Rounded Pills, Stone Scale
           </div>
           <div class="w-10 h-10 bg-stone-900 rounded-full
                       flex items-center justify-center text-[15px] font-bold text-white shadow-md">
-            {{ current_user.full_name[0].upper() if current_user else 'A' }}
+            {# ✅ ĐÃ SỬA GỐC RỄ: Cơ chế tự cứu nguy (Self-Healing Avatar Letter) chống bẫy lỗi Undefined 500 #}
+            {% if current_user and current_user.full_name %}
+              {{ current_user.full_name[0].upper() }}
+            {% elif session.get('email') %}
+              {{ session.get('email')[0].upper() }}
+            {% else %}
+              A
+            {% endif %}
           </div>
         </button>
 
-        {# User Panel #}
+        {# User Dropdown Panel #}
         <div class="absolute right-0 top-full mt-2 w-52 bg-white/95 backdrop-blur-xl border border-stone-200/60 rounded-[20px] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)]
                     opacity-0 invisible -translate-y-3 origin-top-right
                     group-hover/user:opacity-100 group-hover/user:visible group-hover/user:translate-y-0
@@ -59163,7 +59417,7 @@ Design System: Premium Minimalism, Rounded Pills, Stone Scale
         </div>
       </div>
 
-      {# Hamburger Mobile #}
+      {# Hamburger Mobile Button #}
       <button id="hamburgerBtn" onclick="MobileMenu.toggle()"
         class="lg:hidden w-10 h-10 flex items-center justify-center rounded-full bg-stone-50 border border-stone-200 hover:bg-stone-100 transition-colors shadow-sm"
         aria-label="Menu">
@@ -59250,7 +59504,8 @@ Design System: Premium Minimalism, Rounded Pills, Stone Scale
             {% endif %}
       </a>
 
-      {% if current_user.role == 'admin' %}
+      {# ✅ ĐÃ SỬA LOGIC MOBILE: Đồng bộ kiểm tra quyền hạn admin_role_slug từ Session Context #}
+      {% if session.get('user_role') in ('super_admin', 'admin') %}
       <a href="{{ url_for('admin.permissions_index') }}" data-nav
         class="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[14px] font-semibold transition-colors duration-200 border border-transparent hover:bg-stone-50 text-stone-600">
         <div class="w-6 flex justify-center"><i class="fa-solid fa-shield-halved text-base text-stone-400"></i></div>
@@ -62567,28 +62822,28 @@ Flask>=3.0.0
 Flask-Session>=0.8.0
 Flask-WTF>=1.2.0
 
-# --- CƠ SỞ DỮ LIỆU & BẢO MẬT ---
-supabase>=2.4.0        # Đã nâng cấp để sửa lỗi httpx proxy
-python-dotenv>=1.2.2   # Tối thiểu 1.2.2 để tương thích với NiceGUI
+# --- CƠ SỞ DỮ LIỆU & BẢO MẬT (NỚI LỎNG PHẠM VI THEO DOCUMENT) ---
+supabase>=2.4.1        # Bỏ khóa cứng, cho phép tự kết hợp để khớp h11 với NiceGUI
+python-dotenv>=1.2.2
 bcrypt>=4.1.0
 email-validator>=2.0.0
-websockets==15.0
+websockets>=12.0       # Nới lỏng phạm vi phiên bản
 
 # --- GIAO DIỆN ADMIN (DASHBOARD) ---
 nicegui>=3.11.1
 
 # --- TÍNH NĂNG MỞ RỘNG (EMAIL & BACKUP EXCEL) ---
-sendgrid>=6.11.0       # Gửi email khôi phục mật khẩu
-pandas>=2.0.0          # Xử lý dữ liệu báo cáo
-SQLAlchemy>=2.0.0      # Trích xuất dữ liệu Database
-openpyxl>=3.1.0        # Engine để Pandas xuất ra file Excel (.xlsx)
+sendgrid>=6.11.0
+pandas>=2.0.0
+SQLAlchemy>=2.0.0
+openpyxl>=3.1.0
 
 # --- DEPENDENCIES (Thư viện lõi hỗ trợ) ---
-httpx>=0.27.2
-google-genai>=0.1.0  # Thư viện chính thức của Google GenAI SDK
-segno>=1.4.0         # Tạo mã QR cho liên kết thanh toán
+httpx>=0.27.0          # Cho phép dùng bản mới để triệt tiêu lỗi proxy argument
+google-genai>=0.1.0
+segno>=1.4.0
 blinker
-apscheduler>=3.0.0   # Lập lịch công việc định kỳ (backup, báo cáo)
+apscheduler>=3.0.0
 </file>
 
 </files>

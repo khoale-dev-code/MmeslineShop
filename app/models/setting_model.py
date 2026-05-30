@@ -1,21 +1,19 @@
 """
 app/models/setting_model.py
-Quản lý Cấu hình hệ thống toàn cục (Global Store Settings).
+=========================
+Quản lý Cấu hình hệ thống toàn cục (Global Store Settings) cho GUA Maison.
 
-Phiên bản 6.0 (Smart Cache Edition):
-- Hỗ trợ tham số force_reload=True để bỏ qua cache khi cần (tương thích cart_controller).
-- TTL Cache 60 giây: giảm tải DB mà vẫn đảm bảo gần-thực-thời-gian.
-- Thread-safe với threading.Lock để tránh race condition khi nhiều request đồng thời.
-- Deep copy khi trả về để bảo vệ cache khỏi bị mutate từ bên ngoài.
-- Self-Healing: tự khôi phục defaults nếu bảng store_settings trống.
-- Tương thích ngược 100%: mọi nơi gọi get_settings() không cần thay đổi gì.
+Phiên bản 6.1 (Lazy Smart Cache Edition):
+- ĐỒNG BỘ: Áp dụng cơ chế Lazy Initialization phân tách an toàn cổng kết nối Database.
+- Ép các hàm ghi và khôi phục dữ liệu (update_section, _initialize_defaults) chạy qua admin client để bypass RLS.
+- TTL Cache 60 giây kết hợp Thread-safe với threading.Lock bảo vệ tài nguyên trên Vercel Serverless.
 """
 import copy
 import logging
 import threading
 import time
 
-from app.utils.supabase_client import get_supabase
+from app.utils.supabase_client import get_supabase, get_supabase_admin
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +25,7 @@ class SettingModel:
     # ═══════════════════════════════════════════════════════════════
     _cache: dict = {}
     _cache_ts: float = 0.0
-    _cache_ttl: int = 60          # Giây — có thể tăng lên 120 nếu cần
+    _cache_ttl: int = 60          # Giây — giữ cấu hình RAM tránh hit mạng liên tục
     _lock = threading.Lock()
 
     # ═══════════════════════════════════════════════════════════════
@@ -71,7 +69,7 @@ class SettingModel:
         },
     }
 
-    # Danh sách section hợp lệ — chặn payload độc hại
+    # Danh sách section hợp lệ — chặn đứng mã độc phá hoại payload cấu trúc bảng
     VALID_SECTIONS: list = [
         "general",
         "storefront",
@@ -82,26 +80,13 @@ class SettingModel:
     ]
 
     # ═══════════════════════════════════════════════════════════════
-    #  A. ĐỌC CẤU HÌNH (READ)
+    #  A. ĐỌC CẤU HÌNH (READ - TẬN DỤNG CACHE NỘI BỘ TRÁNH LỆ TRANG)
     # ═══════════════════════════════════════════════════════════════
 
     @classmethod
     def get_settings(cls, force_reload: bool = False) -> dict:
         """
-        Trả về toàn bộ cấu hình hệ thống.
-
-        Tham số:
-            force_reload (bool): Nếu True, bỏ qua cache và kéo thẳng từ DB.
-                                  Dùng khi cần dữ liệu tươi tuyệt đối (vd: checkout, admin save).
-
-        Chiến lược cache:
-            - Lần đầu hoặc cache hết hạn (> TTL): query DB, lưu vào cache.
-            - Các lần tiếp theo trong TTL: trả về bản sao cache (không tốn DB round-trip).
-            - force_reload=True: luôn query DB và làm mới cache.
-
-        Trả về:
-            dict: Toàn bộ cấu hình đã được merge với DEFAULT_SETTINGS.
-                  Luôn là deep copy — caller có thể mutate tự do mà không ảnh hưởng cache.
+        Trả về toàn bộ cấu hình hệ thống (Có tích hợp an toàn Thread-safe).
         """
         now = time.monotonic()
 
@@ -116,14 +101,14 @@ class SettingModel:
                 logger.debug("[SettingModel] Cache HIT — trả về từ RAM.")
                 return copy.deepcopy(cls._cache)
 
-        # Cache miss hoặc force_reload → query DB
+        # Cache miss hoặc force_reload → thực hiện quét trực tiếp dữ liệu từ DB
         logger.debug(
-            "[SettingModel] Cache MISS%s — đang query DB...",
+            "[SettingModel] Cache MISS%s — đang tiến hành đọc cấu hình DB...",
             " (force_reload)" if force_reload else "",
         )
         settings = cls._fetch_from_db()
 
-        # Cập nhật cache (thread-safe)
+        # Cập nhật bộ đệm cache RAM (thread-safe)
         with cls._lock:
             cls._cache = settings
             cls._cache_ts = time.monotonic()
@@ -133,8 +118,7 @@ class SettingModel:
     @classmethod
     def get_section(cls, section_name: str) -> dict:
         """
-        Trích xuất nhanh một section (vd: 'general', 'shipping_rules').
-        Trả về dict rỗng nếu section không hợp lệ.
+        Trích xuất nhanh một section cấu hình cụ thể.
         """
         settings = cls.get_settings()
         return settings.get(section_name) or copy.deepcopy(
@@ -144,37 +128,33 @@ class SettingModel:
     @classmethod
     def invalidate_cache(cls) -> None:
         """
-        Xóa cache thủ công. Gọi sau khi update_section() để đảm bảo
-        lần đọc tiếp theo luôn lấy dữ liệu mới nhất từ DB.
+        Xóa cache thủ công trên RAM để giải phóng phiên làm việc.
         """
         with cls._lock:
             cls._cache = {}
             cls._cache_ts = 0.0
-        logger.debug("[SettingModel] Cache đã được xóa thủ công.")
+        logger.debug("[SettingModel] Cache bộ đệm cấu hình đã xóa dọn sạch.")
 
     # ═══════════════════════════════════════════════════════════════
-    #  B. GHI CẤU HÌNH (WRITE)
+    #  B. GHI CẤU HÌNH (WRITE - ÉP DÙNG ADMIN CLIENT BYPASS RLS)
     # ═══════════════════════════════════════════════════════════════
 
     @classmethod
     def update_section(cls, section_name: str, new_data: dict) -> bool:
         """
-        Cập nhật một section cấu hình vào DB (deep merge với dữ liệu cũ).
-        Tự động xóa cache sau khi ghi thành công.
-
-        Trả về:
-            bool: True nếu thành công, False nếu thất bại.
+        Cập nhật một section cấu hình vào DB (Sử dụng Admin Client để bảo toàn luồng ghi).
         """
         if section_name not in cls.VALID_SECTIONS:
             logger.warning(
-                "[SettingModel] Từ chối: section '%s' không hợp lệ.", section_name
+                "[SettingModel] Từ chối thực thi: section '%s' không hợp lệ.", section_name
             )
             return False
 
         try:
-            db = get_supabase()
+            # ✅ ĐÃ SỬA: Lazy Initialization chuyển hẳn sang admin client để tránh lỗi chặn RLS dữ liệu rác
+            db = get_supabase_admin()
 
-            # Deep merge: giữ nguyên các key cũ không được gửi lên
+            # Deep merge: Giữ nguyên các giá trị cấu hình cũ không nằm trong diện chỉnh sửa lần này
             current_section = cls.get_section(section_name)
             merged_data = {**current_section, **new_data}
 
@@ -182,36 +162,36 @@ class SettingModel:
                 {"setting_key": section_name, "setting_value": merged_data}
             ).execute()
 
-            # Xóa cache để lần đọc tiếp theo lấy dữ liệu mới
+            # Giải phóng RAM lập tức để nạp ngay cấu hình tươi ngoài trang bán hàng công khai
             cls.invalidate_cache()
 
-            logger.info("[SettingModel] Đã cập nhật section '%s'.", section_name)
+            logger.info("[SettingModel] Đã cập nhật thành công section cấu hình '%s'.", section_name)
             return True
 
         except Exception as e:
             logger.error(
-                "[SettingModel] Cập nhật section '%s' thất bại. Lỗi: %s",
+                "[SettingModel] Ghi đè cập nhật section '%s' thất bại. Lỗi hệ thống: %s",
                 section_name,
                 e,
             )
             return False
 
     # ═══════════════════════════════════════════════════════════════
-    #  C. INTERNAL HELPERS (private)
+    #  C. INTERNAL HELPERS (MÁY QUÉT NỘI BỘ)
     # ═══════════════════════════════════════════════════════════════
 
     @classmethod
     def _fetch_from_db(cls) -> dict:
         """
-        Query bảng store_settings và merge vào DEFAULT_SETTINGS.
-        Kích hoạt Self-Healing nếu bảng trống.
-        Trả về DEFAULT_SETTINGS nếu mất kết nối DB.
+        Đọc thông tin từ bảng store_settings.
+        Sử dụng public client kết hợp self-healing an toàn.
         """
         try:
+            # Khởi tạo lười khi hàm được triệu gọi thực tế ngoài controller
             db = get_supabase()
             res = db.table("store_settings").select("*").execute()
 
-            # Bắt đầu từ bản sao deep của defaults (đảm bảo mọi key luôn tồn tại)
+            # Khởi hành luồng deep copy từ cấu trúc defaults
             settings: dict = copy.deepcopy(cls.DEFAULT_SETTINGS)
 
             if res.data:
@@ -222,7 +202,7 @@ class SettingModel:
                         settings[key].update(val)
             else:
                 logger.warning(
-                    "[SettingModel] Bảng store_settings trống — kích hoạt Self-Healing..."
+                    "[SettingModel] Bảng store_settings đang bị trống — Kích hoạt khôi phục dữ liệu nền..."
                 )
                 cls._initialize_defaults()
 
@@ -230,24 +210,25 @@ class SettingModel:
 
         except Exception as e:
             logger.error(
-                "[SettingModel] Mất kết nối DB — dùng DEFAULT_SETTINGS tạm thời. Lỗi: %s", e
+                "[SettingModel] Mất kết nối DB hoặc bị nghẽn mạng Vercel — Dùng cấu hình mặc định. Lỗi: %s", e
             )
             return copy.deepcopy(cls.DEFAULT_SETTINGS)
 
     @classmethod
     def _initialize_defaults(cls) -> None:
         """
-        Self-Healing: chèn toàn bộ DEFAULT_SETTINGS vào DB nếu bảng trống.
+        Self-Healing: Đẩy đồng bộ cấu trúc DEFAULT_SETTINGS vào Supabase (Dùng Admin Client).
         """
         try:
-            db = get_supabase()
+            # ✅ ĐÃ SỬA: Khởi tạo lười qua admin client để bypass RLS khi thực hiện chèn dữ liệu nền tự động
+            db = get_supabase_admin()
             upsert_data = [
                 {"setting_key": key, "setting_value": value}
                 for key, value in cls.DEFAULT_SETTINGS.items()
             ]
             db.table("store_settings").upsert(upsert_data).execute()
-            logger.info("[SettingModel] Self-Healing: đã khởi tạo defaults thành công.")
+            logger.info("[SettingModel] Khởi tạo dữ liệu khôi phục nền Self-Healing thành công.")
         except Exception as e:
             logger.error(
-                "[SettingModel] Self-Healing thất bại. Lỗi: %s", e
+                "[SettingModel] Luồng xử lý khôi phục tự động Self-Healing thất bại. Lỗi: %s", e
             )
