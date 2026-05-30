@@ -2,7 +2,7 @@
  * static/js/admin/settings.js
  * Version 2.2 – bổ sung debug CSRF token
  */
-
+window.Settings = window.Settings || {};
 const Settings = (() => {
 
   // ═══════════════════════════════════════════════════════════════
@@ -87,6 +87,7 @@ const Settings = (() => {
     }
 
     try {
+      // Đã chuẩn hóa Relative URL
       const res = await fetch(`/admin/settings/update/${section}`, {
         method: 'POST',
         headers: {
@@ -129,6 +130,7 @@ const Settings = (() => {
     }
 
     try {
+      // Đã chuẩn hóa Relative URL
       const res = await fetch('/admin/settings/update/language', {
         method: 'POST',
         headers: {
@@ -161,6 +163,7 @@ const Settings = (() => {
     if (el('statsFeeCount'))   el('statsFeeCount').textContent   = rules.filter(r => r.type === 'custom_fee').length;
   }
 
+  // Sử dụng 'change' thay vì onclick inline giúp tăng hiệu năng render
   function toggleFeeInput(selectEl) {
     const group = document.getElementById('feeAmountGroup');
     if (!group) return;
@@ -230,6 +233,7 @@ const Settings = (() => {
       return;
     }
     try {
+      // Đã chuẩn hóa Relative URL
       const res = await fetch('/admin/settings/update/shipping_rules', {
         method: 'POST',
         headers: {
@@ -297,6 +301,7 @@ const Settings = (() => {
     formData.append('file', file);
 
     try {
+      // Đã chuẩn hóa Relative URL
       const res = await fetch('/admin/settings/upload', {
         method: 'POST',
         headers: { 'X-CSRFToken': token },
@@ -333,7 +338,6 @@ const Settings = (() => {
   function init() {
     initTabFromHash();
     updateShippingStats();
-    // Kiểm tra token ngay khi load
     getCSRFToken();
   }
 
