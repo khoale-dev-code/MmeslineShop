@@ -4,8 +4,6 @@
 
 {% block extra_head %}
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<!-- 🔴 ĐÃ XÓA: Dòng nạp FontAwesome 6.5.0 cũ gây xung đột attribute d: Expected number với file base -->
-
 <style>
   :root {
     --font-jakarta: 'Plus Jakarta Sans', sans-serif;
@@ -59,7 +57,7 @@
     border-radius: 10px;
   }
 
-  /* Settings Layout Layout */
+  /* Settings Layout */
   .s-layout {
     display: grid;
     grid-template-columns: 240px 1fr;
@@ -176,7 +174,7 @@
         <i class="fa-solid {% if category == 'success' %}fa-circle-check{% elif category == 'danger' %}fa-circle-xmark{% else %}fa-circle-info{% endif %} text-lg"></i>
         <span>{{ msg }}</span>
       </div>
-      <button class="text-current opacity-60 hover:opacity-100 transition-opacity" onclick="this.parentElement.remove()"><i class="fa-solid fa-xmark"></i></button>
+      <button class="text-current opacity-60 hover:opacity-100 transition-opacity cursor-pointer" onclick="this.parentElement.remove()"><i class="fa-solid fa-xmark"></i></button>
     </div>
     {% endfor %}
   </div>
@@ -186,19 +184,20 @@
   <div class="max-w-[1400px] mx-auto px-6 lg:px-12 mt-8 fade-up s-layout">
 
     {# ── Sidebar Tabs Menu ── #}
+    {# ✅ ĐÃ SỬA: Loại bỏ toàn bộ onclick inline, thay thế hoàn toàn bằng trình nghe DOM chuẩn tắc #}
     <aside class="flex flex-col gap-1 md:sticky md:top-[88px] h-max">
       <div class="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-2 px-3">Cơ bản</div>
 
-      <button class="s-nav__item active flex items-center justify-between w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group"
-        data-tab="general" onclick="Settings.switchTab('general',this)">
+      <button class="s-nav__item active flex items-center justify-between w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group cursor-pointer"
+        data-tab="general">
         <div class="flex items-center gap-3">
           <i class="fa-solid fa-sliders text-slate-400 group-hover:text-indigo-500 w-4 text-center"></i>
           Thông tin chung
         </div>
       </button>
 
-      <button class="s-nav__item flex items-center justify-between w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group"
-        data-tab="storefront" onclick="Settings.switchTab('storefront',this)">
+      <button class="s-nav__item flex items-center justify-between w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group cursor-pointer"
+        data-tab="storefront">
         <div class="flex items-center gap-3">
           <i class="fa-solid fa-store text-slate-400 group-hover:text-indigo-500 w-4 text-center"></i>
           Giao diện cửa hàng
@@ -206,16 +205,16 @@
         <span class="text-[9px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-md uppercase tracking-wider">Banner</span>
       </button>
 
-      <button class="s-nav__item flex items-center justify-between w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group"
-        data-tab="integrations" onclick="Settings.switchTab('integrations',this)">
+      <button class="s-nav__item flex items-center justify-between w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group cursor-pointer"
+        data-tab="integrations">
         <div class="flex items-center gap-3">
           <i class="fa-solid fa-link text-slate-400 group-hover:text-indigo-500 w-4 text-center"></i>
           API & Tích hợp
         </div>
       </button>
 
-      <button class="s-nav__item flex items-center justify-between w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group"
-        data-tab="shipping" onclick="Settings.switchTab('shipping',this)">
+      <button class="s-nav__item flex items-center justify-between w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group cursor-pointer"
+        data-tab="shipping">
         <div class="flex items-center gap-3">
           <i class="fa-solid fa-truck-fast text-slate-400 group-hover:text-indigo-500 w-4 text-center"></i>
           Vận chuyển
@@ -225,8 +224,8 @@
       <div class="h-px bg-slate-200 my-4 mx-3"></div>
       <div class="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-2 px-3">Hệ thống</div>
 
-      <button class="s-nav__item flex items-center justify-between w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group"
-        data-tab="language" onclick="Settings.switchTab('language',this)">
+      <button class="s-nav__item flex items-center justify-between w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group cursor-pointer"
+        data-tab="language">
         <div class="flex items-center gap-3">
           <i class="fa-solid fa-earth-americas text-slate-400 group-hover:text-indigo-500 w-4 text-center"></i>
           Ngôn ngữ Admin
@@ -234,8 +233,8 @@
         <span class="text-[9px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-md uppercase tracking-wider">New</span>
       </button>
 
-      <button class="s-nav__item flex items-center justify-between w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group"
-        data-tab="admin_ui" onclick="Settings.switchTab('admin_ui',this)">
+      <button class="s-nav__item flex items-center justify-between w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group cursor-pointer"
+        data-tab="admin_ui">
         <div class="flex items-center gap-3">
           <i class="fa-solid fa-palette text-slate-400 group-hover:text-indigo-500 w-4 text-center"></i>
           Giao diện Admin
@@ -270,34 +269,51 @@
 
 {% block extra_scripts %}
 <script>
+  // ✅ GIẢI PHÁP TRIỆT TIÊU LỖI 404/NOT DEFINED: Tạo Namespace chống bẫy bất đồng bộ Vercel CDN
+  window.Settings = window.Settings || {};
+
   document.addEventListener("DOMContentLoaded", () => {
-    if (window.Settings) {
-      window.Settings.switchTab = function (tabId, btn) {
-        document.querySelectorAll('.s-nav__item').forEach(el => {
-          el.classList.remove('active', 'bg-slate-100', 'text-indigo-600');
-          el.classList.add('text-slate-600');
-          const icon = el.querySelector('i');
-          if (icon) { icon.classList.remove('text-indigo-600'); icon.classList.add('text-slate-400'); }
-        });
-        btn.classList.add('active', 'bg-slate-100', 'text-indigo-600');
-        btn.classList.remove('text-slate-600');
-        const btnIcon = btn.querySelector('i');
-        if (btnIcon) { btnIcon.classList.remove('text-slate-400'); btnIcon.classList.add('text-indigo-600'); }
+    
+    // Định nghĩa logic chuyển tab gắn cứng vào đối tượng toàn cục
+    window.Settings.switchTab = function (tabId, btn) {
+      if (!btn || !tabId) return;
+      
+      document.querySelectorAll('.s-nav__item').forEach(el => {
+        el.classList.remove('active', 'bg-slate-100', 'text-indigo-600');
+        el.classList.add('text-slate-600');
+        const icon = el.querySelector('i');
+        if (icon) { icon.classList.remove('text-indigo-600'); icon.classList.add('text-slate-400'); }
+      });
+      
+      btn.classList.add('active', 'bg-slate-100', 'text-indigo-600');
+      btn.classList.remove('text-slate-600');
+      const btnIcon = btn.querySelector('i');
+      if (btnIcon) { btnIcon.classList.remove('text-slate-400'); btnIcon.classList.add('text-indigo-600'); }
 
-        document.querySelectorAll('.s-panel').forEach(p => p.classList.remove('active'));
-        document.getElementById('panel-' + tabId).classList.add('active');
-      };
+      document.querySelectorAll('.s-panel').forEach(p => p.classList.remove('active'));
+      const targetPanel = document.getElementById('panel-' + tabId);
+      if (targetPanel) { targetPanel.classList.add('active'); }
+    };
 
-      // Initialize active tab styling
-      const activeTab = document.querySelector('.s-nav__item.active');
-      if (activeTab) {
-        activeTab.classList.add('bg-slate-100', 'text-indigo-600');
-        activeTab.classList.remove('text-slate-600');
-        const btnIcon = activeTab.querySelector('i');
-        if (btnIcon) { btnIcon.classList.remove('text-slate-400'); btnIcon.classList.add('text-indigo-600'); }
-      }
+    // Khởi tạo giao diện Active mặc định ban đầu cho mượt mà
+    const activeTab = document.querySelector('.s-nav__item.active');
+    if (activeTab) {
+      activeTab.classList.add('bg-slate-100', 'text-indigo-600');
+      activeTab.classList.remove('text-slate-600');
+      const btnIcon = activeTab.querySelector('i');
+      if (btnIcon) { btnIcon.classList.remove('text-slate-400'); btnIcon.classList.add('text-indigo-600'); }
     }
+
+    // ✅ ĐỒNG BỘ: Đăng ký trình nghe click động để dọn sạch lỗi ReferenceError 
+    document.querySelectorAll('.s-nav__item').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const tabId = this.dataset.tab;
+        window.Settings.switchTab(tabId, this);
+      });
+    });
   });
 </script>
+{# Nạp logic lưu trữ dữ liệu thô từ file tĩnh #}
 <script src="{{ url_for('static', filename='js/admin/settings.js') }}"></script>
 {% endblock %}
