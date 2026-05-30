@@ -59,7 +59,6 @@ def settings_page():
 #  2. CẬP NHẬT DỮ LIỆU
 # ═══════════════════════════════════════════════════════════════
 
-
 @admin_bp.route("/settings/update/<section>", methods=["POST"])
 @admin_required
 def update_settings(section):
@@ -71,6 +70,9 @@ def update_settings(section):
         if data is None:
             data = request.form.to_dict()
 
+        # 🟢 FIX QUAN TRỌNG: Loại bỏ csrf_token khỏi dữ liệu để không lưu "rác" vào Database
+        data.pop('csrf_token', None)
+
         if not data and section != "shipping_rules":
             return jsonify({"success": False, "message": "Không có dữ liệu gửi lên."}), 400
 
@@ -78,7 +80,6 @@ def update_settings(section):
         success = SettingModel.update_section(section, data)
 
         if success:
-            # 🔴 ĐÃ SỬA LỖI ĐỒNG BỘ: Sử dụng AuditService.log_action
             try:
                 AuditService.log_action(
                     action="UPDATE",

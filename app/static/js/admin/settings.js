@@ -1,127 +1,189 @@
 /**
  * GUA Maison Admin Dashboard - Settings Management
  * File: app/static/js/admin/settings.js
+ * CHANGELOG: Fix lỗi FormData trống do disabled input + Fetch credentials
  */
 
-// Hàm lấy CSRF Token từ meta tag hoặc input hidden chống lỗi bảo mật
-function getCSRFToken() {
-    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
-                  document.querySelector('input[name="csrf_token"]')?.value;
-    if (token) {
-        console.log(`[CSRF] ✅ Token found (length: ${token.length} )`); // Dòng 17 trong log của bạn
-    } else {
-        console.warn(`[CSRF] ❌ Token not found`);
+(function() {
+    'use strict';
+
+    // ── Hàm quét và lấy CSRF Token tự động ──
+    function getCSRFToken() {
+        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
+                      document.querySelector('input[name="csrf_token"]')?.value;
+        if (!token) {
+            console.warn(`[CSRF] ❌ Token không tồn tại trong DOM!`);
+        }
+        return token;
     }
-    return token;
-}
 
-// Định nghĩa Object điều hướng chức năng Settings
-const Settings = {
-    init() {
-        console.log("GUA Maison Admin Dashboard loaded successfully");
-        this.bindEvents();
-    },
+    // ── Hàm gọi thông báo UI linh hoạt ──
+    function notify(message, type = 'success') {
+        if (window.GUA && typeof window.GUA.snackbar === 'function') {
+            window.GUA.snackbar(message, type);
+        } else if (window.GUA && typeof window.GUA.toast === 'function') {
+            window.GUA.toast(message, type);
+        } else if (typeof showToast === 'function') {
+            showToast(message, type);
+        } else {
+            alert(type === 'error' ? `⚠️ LỖI: ${message}` : `✅ ${message}`);
+        }
+    }
 
-    bindEvents() {
-        // Tự động xem trước (Preview) khi chọn file hình ảnh/video mới
-        const fileInputs = document.querySelectorAll('.settings-file-input');
-        fileInputs.forEach(input => {
-            input.addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                const previewId = e.target.dataset.preview;
-                const previewEl = document.getElementById(previewId);
-                
-                if (file && previewEl) {
-                    const url = URL.createObjectURL(file);
-                    if (file.type.startsWith('video/')) {
-                        previewEl.innerHTML = `<video src="${url}" controls class="w-full h-48 object-cover rounded-lg"></video>`;
-                    } else if (file.type.startsWith('image/')) {
-                        previewEl.innerHTML = `<img src="${url}" class="w-full h-48 object-cover rounded-lg" />`;
-                    }
+    const Settings = {
+        currentTab: 'general',
+
+        init() {
+            console.log("🚀 GUA Maison - Settings Module Loaded");
+            this.initTabs();
+            this.bindEvents();
+        },
+
+        // ── LOGIC CHUYỂN TAB ──
+        initTabs() {
+            const navLinks = document.querySelectorAll('.s-nav');
+            const panels = document.querySelectorAll('.s-panel');
+
+            const switchTab = (tabId) => {
+                panels.forEach(p => p.classList.remove('active'));
+                navLinks.forEach(n => {
+                    n.classList.remove('bg-white', 'shadow-sm', 'text-stone-900', 'font-bold');
+                    n.classList.add('text-stone-500', 'hover:bg-stone-50', 'hover:text-stone-900');
+                });
+
+                const targetPanel = document.getElementById(`panel-${tabId}`);
+                if (targetPanel) targetPanel.classList.add('active');
+
+                const targetNav = document.querySelector(`.s-nav[data-tab="${tabId}"]`);
+                if (targetNav) {
+                    targetNav.classList.remove('text-stone-500', 'hover:bg-stone-50', 'hover:text-stone-900');
+                    targetNav.classList.add('bg-white', 'shadow-sm', 'text-stone-900', 'font-bold');
                 }
+                
+                this.currentTab = tabId;
+                
+                if (history.pushState) {
+                    const newUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?tab=${tabId}`;
+                    window.history.pushState({path: newUrl}, '', newUrl);
+                }
+            };
+
+            const params = new URLSearchParams(window.location.search);
+            if (params.has('tab')) {
+                switchTab(params.get('tab'));
+            } else if (navLinks.length > 0) {
+                switchTab(navLinks[0].dataset.tab);
+            }
+
+            navLinks.forEach(nav => {
+                nav.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    switchTab(this.dataset.tab);
+                });
             });
-        });
-    },
+            
+            this.switchTab = switchTab;
+        },
 
-    // Hàm lưu cấu hình nâng cao nhận tham số tabName (ví dụ: 'storefront')
-    async save(tabName) {
-        const form = document.getElementById(`form-${tabName}`);
-        if (!form) {
-            console.error(`[Settings.save] Form 'form-${tabName}' không tồn tại.`);
-            return;
-        }
+        // ── LOGIC XEM TRƯỚC HÌNH ẢNH (PREVIEW MEDIA) ──
+        bindEvents() {
+            const fileInputs = document.querySelectorAll('.settings-file-input');
+            fileInputs.forEach(input => {
+                input.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    const previewId = e.target.dataset.preview;
+                    const previewEl = document.getElementById(previewId);
+                    
+                    if (file && previewEl) {
+                        const url = URL.createObjectURL(file);
+                        const oldMedia = previewEl.querySelector('img, video');
+                        if (oldMedia && oldMedia.src && oldMedia.src.startsWith('blob:')) {
+                            URL.revokeObjectURL(oldMedia.src);
+                        }
 
-        // Tạo FormData thu thập tất cả input text, file video/hình ảnh
-        const formData = new FormData(form);
-        
-        // Giao diện trạng thái đang xử lý (Loading)
-        const saveBtn = document.querySelector(`button[onclick="Settings.save('${tabName}')"]`);
-        let originalBtnHtml = '';
-        if (saveBtn) {
-            originalBtnHtml = saveBtn.innerHTML;
-            saveBtn.disabled = true;
-            // Dùng icon font chữ thay thế SVG gãy tránh lỗi thuộc tính <path d:...> của trình duyệt
-            saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Đang lưu...';
-        }
+                        if (file.type.startsWith('video/')) {
+                            previewEl.innerHTML = `<video src="${url}" controls class="w-full h-48 object-cover rounded-lg bg-stone-950 shadow-sm border border-stone-200"></video>`;
+                        } else if (file.type.startsWith('image/')) {
+                            previewEl.innerHTML = `<img src="${url}" class="w-full h-48 object-cover rounded-lg shadow-sm border border-stone-200" loading="lazy" />`;
+                        }
+                    }
+                });
+            });
+        },
 
-        try {
+        // ── LOGIC GỬI API LÊN SERVER ──
+        async save(tabName) {
+            const form = document.getElementById(`form-${tabName}`);
+            if (!form) {
+                console.error(`[Settings.save] Không tìm thấy Form id="form-${tabName}"`);
+                return;
+            }
+
+            const saveBtn = document.querySelector(`button[onclick*="Settings.save('${tabName}')"]`) || 
+                            document.querySelector(`button[onclick*='Settings.save("${tabName}")']`) ||
+                            form.querySelector('button[type="submit"]');
+            
+            let originalBtnHtml = '';
+            
+            // 🟢 TẠO FORMDATA TRƯỚC KHI DISABLE INPUT ĐỂ KHÔNG BỊ RỖNG DỮ LIỆU
+            const formData = new FormData(form);
             const csrfToken = getCSRFToken();
 
-            /**
-             * SỬA LỖI TẠI ĐÂY (Dòng 90):
-             * Sử dụng đường dẫn tương đối `/admin/settings/update/${tabName}` thay vì ghi cứng localhost.
-             * Trình duyệt sẽ tự động map theo domain hiện tại của bạn (không lo lệch port).
-             */
-            const response = await fetch(`/admin/settings/update/${tabName}`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': csrfToken
-                },
-                body: formData // Truyền trực tiếp FormData bao gồm cả file video dung lượng lớn
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const result = await response.json();
-
-            if (result.success) {
-                // Nếu backend xử lý thành công (Toast thông báo)
-                if (typeof showToast === 'function') {
-                    showToast(result.message || 'Cập nhật cấu hình thành công!', 'success');
-                } else {
-                    alert(result.message || 'Cập nhật cấu hình thành công!');
-                }
-                
-                // Reload nhẹ lại trang nếu có yêu cầu từ phía server
-                if (result.reload) {
-                    setTimeout(() => window.location.reload(), 1000);
-                }
-            } else {
-                throw new Error(result.message || 'Lưu thất bại từ phản hồi phía máy chủ.');
-            }
-
-        } catch (error) {
-            // Khối bắt lỗi log console (Dòng 106 trong log của bạn)
-            console.error(`[Settings.save] Error:`, error);
-            
-            if (typeof showToast === 'function') {
-                showToast(error.message || 'Không thể lưu. Vui lòng kiểm tra lại kết nối hoặc dung lượng file video!', 'error');
-            } else {
-                alert('Lỗi: Không thể kết nối hoặc lưu dữ liệu cấu hình.');
-            }
-        } finally {
-            // Phục hồi lại trạng thái nút bấm sau khi xử lý xong (dù thành công hay thất bại)
+            // 🔴 BÂY GIỜ MỚI KHÓA FORM
+            const formElements = form.querySelectorAll('input, select, textarea, button');
             if (saveBtn) {
-                saveBtn.disabled = false;
-                saveBtn.innerHTML = originalBtnHtml;
+                originalBtnHtml = saveBtn.innerHTML;
+                saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang lưu...';
+                saveBtn.disabled = true;
+            }
+            formElements.forEach(el => el.disabled = true);
+
+            try {
+                const response = await fetch(`/admin/settings/update/${tabName}`, {
+                    method: 'POST',
+                    credentials: 'same-origin', // Gửi kèm session cookie để pass CSRF
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData 
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.message || `Lỗi máy chủ HTTP ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    notify(result.message || 'Cập nhật cấu hình thành công!', 'success');
+                    if (result.reload) {
+                        setTimeout(() => window.location.reload(), 1200);
+                    }
+                } else {
+                    throw new Error(result.message || 'Từ chối lưu dữ liệu cấu hình.');
+                }
+
+            } catch (error) {
+                console.error(`[Settings.save ERROR]`, error);
+                notify(error.message || 'Mất kết nối tới máy chủ. Vui lòng thử lại!', 'error');
+            } finally {
+                // UI: Mở khóa lại Form sau khi gửi xong
+                formElements.forEach(el => el.disabled = false);
+                if (saveBtn) {
+                    saveBtn.innerHTML = originalBtnHtml;
+                    saveBtn.disabled = false;
+                }
             }
         }
-    }
-};
+    };
 
-// Khởi chạy khi DOM đã sẵn sàng
-document.addEventListener('DOMContentLoaded', () => {
-    Settings.init();
-});
+    window.Settings = Settings;
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => Settings.init());
+    } else {
+        Settings.init();
+    }
+})();

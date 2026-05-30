@@ -312,3 +312,4 @@ def contact():
 def size_guide():
     # Render file size_guide.html nằm trong thư mục templates/products
     return render_template('products/size_guide.html')
+
