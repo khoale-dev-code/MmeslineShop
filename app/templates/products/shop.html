@@ -1,499 +1,544 @@
-  {% extends "base.html" %}
-  {% block title %}{% if keyword %}« {{ keyword }} »{% elif category %}{{ category|title }}{% else %}Shop All{% endif %} — GUA Maison{% endblock %}
+{% extends "base.html" %}
+{% block title %}{% if keyword %}« {{ keyword }} »{% elif category %}{{ category|title }}{% else %}Shop All{% endif %} — GUA Maison{% endblock %}
 
-  {% block extra_head %}
-  <meta name="csrf-token" content="{{ csrf_token() }}">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
-  <style>
-  :root {
-    /* Tông màu Sáng (Light Editorial Theme) */
-    --bg: #ffffff;
-    --card: #fcfcfc;
-    --border: #e5e5e5;
-    --text: #111111;
-    --text-muted: #888888;
-    --text-light: #a3a3a3;
-    --red: #d32f2f;
-    --accent: #f4f4f5;
-    
-    --sm: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    --ff: 'DM Sans', system-ui, sans-serif;
-    --fd: 'Bebas Neue', sans-serif;
-  }
+{% block extra_head %}
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Tông màu Sáng (Light Editorial Theme) */
+  --bg: #ffffff;
+  --card: #fcfcfc;
+  --border: #e5e5e5;
+  --text: #111111;
+  --text-muted: #888888;
+  --text-light: #a3a3a3;
+  --red: #d32f2f;
+  --accent: #f4f4f5;
+  
+  --sm: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  --ff: 'DM Sans', system-ui, sans-serif;
+  --fd: 'Bebas Neue', sans-serif;
+}
 
-  *{margin:0;padding:0;box-sizing:border-box}
-  html{scroll-behavior:smooth}
-  body{background:var(--bg);color:var(--text);font-family:var(--ff);font-size:14px;-webkit-font-smoothing:antialiased;overflow-x:hidden}
-  ::selection{background:var(--text);color:var(--bg)}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--ff);font-size:14px;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+::selection{background:var(--text);color:var(--bg)}
 
-  /* ── SCROLLBAR ── */
-  ::-webkit-scrollbar{width:8px;height:8px}
-  ::-webkit-scrollbar-track{background:var(--bg)}
-  ::-webkit-scrollbar-thumb{background:#d4d4d4;border-radius:10px;border:2px solid var(--bg)}
-  ::-webkit-scrollbar-thumb:hover{background:var(--text-muted)}
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:#d4d4d4;border-radius:10px;border:2px solid var(--bg)}
+::-webkit-scrollbar-thumb:hover{background:var(--text-muted)}
 
-  /* ── HERO BANNER (CÓ GIF) ── */
-  .s-hero{position:relative;height:380px;display:flex;align-items:flex-end;overflow:hidden;border-bottom:1px solid var(--border)}
-  .hero-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;filter:grayscale(20%) contrast(1.1)}
-  .hero-overlay{position:absolute;inset:0;background:linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 50%, transparent 100%);z-index:1}
-  .s-hero-inner{position:relative;z-index:2;max-width:1520px;width:100%;margin:0 auto;padding:0 2.5rem 2.5rem;display:flex;align-items:flex-end;justify-content:space-between;gap:2rem;flex-wrap:wrap}
-  .s-hero-title{font-family:var(--fd);font-size:clamp(3.5rem,8vw,7.5rem);line-height:0.9;letter-spacing:.02em;color:#ffffff;text-shadow:0 4px 12px rgba(0,0,0,0.3)}
-  .s-hero-title em{color:#dcdcdc;font-style:normal}
-  .s-hero-meta{display:flex;flex-direction:column;align-items:flex-end;gap:.5rem}
-  .s-hero-label{font-size:10px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;color:rgba(255,255,255,0.7)}
-  .s-hero-count{font-family:var(--fd);font-size:2.5rem;color:#ffffff;line-height:1;text-shadow:0 2px 8px rgba(0,0,0,0.3)}
+/* ── HERO BANNER RESPONSIVE ── */
+.s-hero {
+  position: relative;
+  height: 45vh; /* Chiều cao thích ứng theo thiết bị */
+  min-height: 380px;
+  max-height: 600px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border);
+  background: var(--accent); /* Fallback màu nền tải */
+}
+.hero-bg {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; z-index: 0;
+  /* Chỉnh màu sắc để text luôn nổi bật */
+  filter: saturate(1.05) brightness(0.85);
+  transform: scale(1.01); /* Ngăn viền trắng do rounding pixel */
+}
+.hero-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.15) 50%, transparent 100%);
+  z-index: 1;
+}
+.s-hero-inner {
+  position: relative; z-index: 2; max-width: 1520px; width: 100%;
+  margin: 0 auto; padding: 0 2.5rem 2.5rem;
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 2rem; flex-wrap: wrap;
+}
+.s-hero-title {
+  font-family: var(--fd); font-size: clamp(3.5rem, 8vw, 7.5rem);
+  line-height: 0.9; letter-spacing: .02em; color: #ffffff;
+  text-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+.s-hero-title em { color: #dcdcdc; font-style: normal; }
+.s-hero-meta { display: flex; flex-direction: column; align-items: flex-end; gap: .5rem; }
+.s-hero-label { font-size: 10px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: rgba(255,255,255,0.7); }
+.s-hero-count { font-family: var(--fd); font-size: 2.5rem; color: #ffffff; line-height: 1; text-shadow: 0 2px 8px rgba(0,0,0,0.3); }
 
-  /* ── TOOLBAR (Ghim lên trên) ── */
-  .s-toolbar{border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:54px;z-index:40}
-  .s-toolbar-inner{max-width:1520px;margin:0 auto;padding:0 2.5rem;height:54px;display:flex;align-items:center;justify-content:space-between;gap:1rem}
-  .s-fbtn{display:flex;align-items:center;gap:.5rem;font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;background:none;border:none;color:var(--text);cursor:pointer;padding:0;transition:opacity .2s;white-space:nowrap}
-  .s-fbtn:hover{opacity:0.6}
+/* Tối ưu riêng cho Mobile */
+@media (max-width: 640px) {
+  .s-hero-inner { padding: 0 1.25rem 2rem; flex-direction: column; align-items: flex-start; gap: 1rem; }
+  .s-hero-meta { align-items: flex-start; }
+}
 
-  /* Thanh tìm kiếm dời vào Toolbar */
-  .s-search{display:flex;align-items:center;gap:.6rem;padding:0 1rem;border:1px solid var(--border);border-radius:30px;height:34px;background:var(--bg);width:100%;max-width:280px;transition:border-color 0.3s}
-  .s-search:focus-within{border-color:var(--text)}
-  .s-search input{background:transparent;border:none;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text);outline:none;width:100%}
-  .s-search input::placeholder{color:var(--text-light)}
-  @media(max-width:768px){.s-search{display:none}} /* Ẩn ở mobile, mang vào Drawer */
+/* ── TOOLBAR (Ghim lên trên) ── */
+.s-toolbar{border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:54px;z-index:40}
+.s-toolbar-inner{max-width:1520px;margin:0 auto;padding:0 2.5rem;height:54px;display:flex;align-items:center;justify-content:space-between;gap:1rem}
+@media (max-width: 640px) { .s-toolbar-inner { padding:0 1.25rem; } }
+.s-fbtn{display:flex;align-items:center;gap:.5rem;font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;background:none;border:none;color:var(--text);cursor:pointer;padding:0;transition:opacity .2s;white-space:nowrap}
+.s-fbtn:hover{opacity:0.6}
 
-  .s-toolbar-right{display:flex;align-items:center;gap:1.5rem}
-  .s-cnt{font-size:11px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted);white-space:nowrap}
-  .s-gcols{display:none;gap:.5rem}
-  @media(min-width:1024px){.s-gcols{display:flex}}
-  .s-gcol{background:none;border:none;cursor:pointer;color:var(--border);transition:color .2s;padding:0;line-height:0}
-  .s-gcol.on,.s-gcol:hover{color:var(--text)}
+/* Thanh tìm kiếm dời vào Toolbar */
+.s-search{display:flex;align-items:center;gap:.6rem;padding:0 1rem;border:1px solid var(--border);border-radius:30px;height:34px;background:var(--bg);width:100%;max-width:280px;transition:border-color 0.3s}
+.s-search:focus-within{border-color:var(--text)}
+.s-search input{background:transparent;border:none;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text);outline:none;width:100%}
+.s-search input::placeholder{color:var(--text-light)}
+@media(max-width:768px){.s-search{display:none}} /* Ẩn ở mobile, mang vào Drawer */
 
-  /* ── GRID ── */
-  .s-grid{max-width:1520px;margin:0 auto;padding:2rem 2.5rem 6rem;display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--border);border:1px solid var(--border)}
-  @media(min-width:640px){.s-grid{grid-template-columns:repeat(3,1fr)}}
-  @media(min-width:1024px){.s-grid{grid-template-columns:repeat(4,1fr)}}
-  @media(min-width:1400px){.s-grid{grid-template-columns:repeat(5,1fr)}}
-  .s-grid.g3{grid-template-columns:repeat(2,1fr)}
-  @media(min-width:640px){.s-grid.g3{grid-template-columns:repeat(3,1fr)}}
+.s-toolbar-right{display:flex;align-items:center;gap:1.5rem}
+.s-cnt{font-size:11px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted);white-space:nowrap}
+.s-gcols{display:none;gap:.5rem}
+@media(min-width:1024px){.s-gcols{display:flex}}
+.s-gcol{background:none;border:none;cursor:pointer;color:var(--border);transition:color .2s;padding:0;line-height:0}
+.s-gcol.on,.s-gcol:hover{color:var(--text)}
 
-  /* ── PRODUCT CARD ── */
-  .p-card{position:relative;display:flex;flex-direction:column;background:var(--card);overflow:hidden;cursor:pointer}
-  .p-card:hover{background:var(--bg)}
+/* ── GRID ── */
+.s-grid{max-width:1520px;margin:0 auto;padding:2rem 2.5rem 6rem;display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--border);border:1px solid var(--border)}
+@media (max-width: 640px) { .s-grid { padding: 1.5rem 1.25rem 4rem; } }
+@media(min-width:640px){.s-grid{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:1024px){.s-grid{grid-template-columns:repeat(4,1fr)}}
+@media(min-width:1400px){.s-grid{grid-template-columns:repeat(5,1fr)}}
+.s-grid.g3{grid-template-columns:repeat(2,1fr)}
+@media(min-width:640px){.s-grid.g3{grid-template-columns:repeat(3,1fr)}}
 
-  /* image */
-  .p-img{position:relative;overflow:hidden;aspect-ratio:3/4;background:var(--accent);flex-shrink:0}
-  .p-img a{position:absolute;inset:0;z-index:4}
-  .p-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top}
-  .p-img .pm{transition:opacity 0.25s ease-in-out, transform 0.6s ease;z-index:1;transform:scale(1.0)}
-  .p-img .ph{opacity:0;z-index:2;transition:opacity 0.4s ease, transform 0.6s ease;transform:scale(1.03)}
-  .p-card:hover .pm{opacity:0;transform:scale(1.03)}
-  .p-card:hover .ph{opacity:1;transform:scale(1.0)}
+/* ── PRODUCT CARD ── */
+.p-card{position:relative;display:flex;flex-direction:column;background:var(--card);overflow:hidden;cursor:pointer}
+.p-card:hover{background:var(--bg)}
 
-  /* arrows */
-  .p-arrows{position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;padding:0 .6rem;opacity:0;transition:opacity .2s;z-index:5;pointer-events:none}
-  .p-card:hover .p-arrows{opacity:1}
-  .p-arw{width:32px;height:32px;background:rgba(255,255,255,0.85);border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;pointer-events:all;transition:all .2s;backdrop-filter:blur(4px);box-shadow:0 2px 8px rgba(0,0,0,0.05)}
-  .p-arw:hover{background:var(--text);color:var(--bg);border-color:var(--text);transform:scale(1.1)}
-  .p-arw svg{width:14px;height:14px;stroke:currentColor}
+/* image */
+.p-img{position:relative;overflow:hidden;aspect-ratio:3/4;background:var(--accent);flex-shrink:0}
+.p-img a{position:absolute;inset:0;z-index:4}
+.p-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top}
+.p-img .pm{transition:opacity 0.25s ease-in-out, transform 0.6s ease;z-index:1;transform:scale(1.0)}
+.p-img .ph{opacity:0;z-index:2;transition:opacity 0.4s ease, transform 0.6s ease;transform:scale(1.03)}
+.p-card:hover .pm{opacity:0;transform:scale(1.03)}
+.p-card:hover .ph{opacity:1;transform:scale(1.0)}
 
-  /* fav */
-  .p-fav{position:absolute;top:.8rem;right:.8rem;z-index:6;width:30px;height:30px;background:rgba(255,255,255,0.9);border:1px solid var(--border);border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;backdrop-filter:blur(4px);box-shadow:0 2px 8px rgba(0,0,0,0.05)}
-  .p-fav:hover{transform:scale(1.1)}
-  .p-fav svg{width:14px;height:14px;transition:all .25s;stroke:var(--text);fill:none}
-  .p-fav.on svg{stroke:var(--red);fill:var(--red)}
+/* arrows */
+.p-arrows{position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;padding:0 .6rem;opacity:0;transition:opacity .2s;z-index:5;pointer-events:none}
+.p-card:hover .p-arrows{opacity:1}
+.p-arw{width:32px;height:32px;background:rgba(255,255,255,0.85);border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;pointer-events:all;transition:all .2s;backdrop-filter:blur(4px);box-shadow:0 2px 8px rgba(0,0,0,0.05)}
+.p-arw:hover{background:var(--text);color:var(--bg);border-color:var(--text);transform:scale(1.1)}
+.p-arw svg{width:14px;height:14px;stroke:currentColor}
 
-  /* badges */
-  .p-sold{position:absolute;bottom:.8rem;left:.8rem;z-index:6;background:var(--text);color:var(--bg);font-size:9px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;padding:.3rem .6rem;border-radius:2px}
-  .p-new{position:absolute;top:.8rem;left:.8rem;z-index:6;background:var(--bg);color:var(--text);border:1px solid var(--border);font-size:9px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;padding:.3rem .6rem;border-radius:2px}
+/* fav */
+.p-fav{position:absolute;top:.8rem;right:.8rem;z-index:6;width:30px;height:30px;background:rgba(255,255,255,0.9);border:1px solid var(--border);border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;backdrop-filter:blur(4px);box-shadow:0 2px 8px rgba(0,0,0,0.05)}
+.p-fav:hover{transform:scale(1.1)}
+.p-fav svg{width:14px;height:14px;transition:all .25s;stroke:var(--text);fill:none}
+.p-fav.on svg{stroke:var(--red);fill:var(--red)}
 
-  /* info */
-  .p-info{padding:1.2rem 1.2rem 1.5rem;flex:1;display:flex;flex-direction:column;gap:.4rem}
-  .p-cat{font-size:9px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:var(--text-muted)}
-  .p-name{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text);line-height:1.4;text-decoration:none;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;transition:color .2s;margin-bottom:auto}
-  .p-name:hover{color:var(--red)}
-  .p-price{font-family:var(--fd);font-size:1.3rem;color:var(--text);letter-spacing:.04em;margin-top:.5rem}
+/* badges */
+.p-sold{position:absolute;bottom:.8rem;left:.8rem;z-index:6;background:var(--text);color:var(--bg);font-size:9px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;padding:.3rem .6rem;border-radius:2px}
+.p-new{position:absolute;top:.8rem;left:.8rem;z-index:6;background:var(--bg);color:var(--text);border:1px solid var(--border);font-size:9px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;padding:.3rem .6rem;border-radius:2px}
 
-  /* ── EMPTY ── */
-  .s-empty{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:50vh;text-align:center;gap:1rem;padding:4rem 2rem}
-  .s-empty.show{display:flex}
-  .s-empty-title{font-family:var(--fd);font-size:3.5rem;color:var(--text);letter-spacing:.05em}
-  .s-empty-btn{font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;background:none;border:none;border-bottom:1px solid var(--text-muted);color:var(--text-muted);cursor:pointer;padding-bottom:.2rem;transition:all .25s}
-  .s-empty-btn:hover{color:var(--text);border-color:var(--text)}
+/* info */
+.p-info{padding:1.2rem 1.2rem 1.5rem;flex:1;display:flex;flex-direction:column;gap:.4rem}
+.p-cat{font-size:9px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:var(--text-muted)}
+.p-name{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text);line-height:1.4;text-decoration:none;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;transition:color .2s;margin-bottom:auto}
+.p-name:hover{color:var(--red)}
+.p-price{font-family:var(--fd);font-size:1.3rem;color:var(--text);letter-spacing:.04em;margin-top:.5rem}
 
-  /* ── DRAWER (Tối ưu vuốt chạm mượt mà) ── */
-  .s-ov{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:90;display:none;opacity:0;transition:opacity .3s;backdrop-filter:blur(2px)}
-  .s-ov.show{display:block}
-  .s-ov.vis{opacity:1}
-  .s-drawer{position:fixed;top:0;right:0;height:100dvh;width:380px;max-width:90vw;background:var(--bg);z-index:100;transform:translateX(100%);transition:transform var(--sm);display:flex;flex-direction:column;border-left:1px solid var(--border);box-shadow:-10px 0 30px rgba(0,0,0,0.05)}
-  .s-drawer.open{transform:translateX(0)}
-  .s-dh{padding:1.5rem 2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-  .s-dh-title{font-family:var(--fd);font-size:1.8rem;letter-spacing:.06em;color:var(--text)}
-  .s-dcls{background:none;border:none;cursor:pointer;color:var(--text-muted);transition:all .3s;line-height:0;padding:4px}
-  .s-dcls:hover{color:var(--red);transform:rotate(90deg)}
-  .s-db{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;padding:2rem;display:flex;flex-direction:column;gap:2.5rem;scrollbar-width:none}
-  .s-db::-webkit-scrollbar{display:none}
-  .s-sec{display:flex;flex-direction:column;gap:1.2rem}
-  .s-sec-title{font-size:10px;font-weight:800;letter-spacing:.3em;text-transform:uppercase;color:var(--text-light);padding-bottom:.5rem;border-bottom:1px solid var(--border)}
-  .s-radio-g,.s-check-g{display:flex;flex-direction:column;gap:.8rem}
-  .s-rl,.s-cl{display:flex;align-items:center;gap:1rem;cursor:pointer;padding:.2rem 0}
-  .s-rl input,.s-cl input{width:16px;height:16px;accent-color:var(--text);cursor:pointer;flex-shrink:0;border:1px solid var(--border)}
-  .s-rl span,.s-cl span{font-size:11px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted);transition:color .2s}
-  .s-rl:hover span,.s-cl:hover span,.s-rl input:checked~span,.s-cl input:checked~span{color:var(--text)}
-  .s-chips{display:flex;flex-wrap:wrap;gap:.5rem}
-  .s-chip-l{cursor:pointer}
-  .s-chip-l input{display:none}
-  .s-chip{display:inline-block;padding:.5rem 1rem;border:1px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);transition:all .2s;border-radius:4px}
-  .s-chip-l input:checked+.s-chip{background:var(--text);border-color:var(--text);color:var(--bg)}
-  .s-chip:hover{border-color:var(--text);color:var(--text)}
-  .s-df{padding:1.5rem 2rem;border-top:1px solid var(--border);display:flex;gap:.75rem;flex-shrink:0;background:var(--bg)}
-  .s-bcl{flex:1;padding:1rem;font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--text-muted);cursor:pointer;transition:all .2s;border-radius:4px}
-  .s-bcl:hover{border-color:var(--text);color:var(--text)}
-  .s-bap{flex:1;padding:1rem;font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;background:var(--text);color:var(--bg);border:none;cursor:pointer;transition:background .2s;border-radius:4px}
-  .s-bap:hover{background:var(--red)}
+/* ── EMPTY ── */
+.s-empty{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:40vh;text-align:center;gap:1rem;padding:4rem 2rem}
+.s-empty.show{display:flex}
+.s-empty-title{font-family:var(--fd);font-size:3.5rem;color:var(--text);letter-spacing:.05em}
+.s-empty-btn{font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;background:none;border:none;border-bottom:1px solid var(--text-muted);color:var(--text-muted);cursor:pointer;padding-bottom:.2rem;transition:all .25s}
+.s-empty-btn:hover{color:var(--text);border-color:var(--text)}
 
-  /* ── TOAST ── */
-  .s-toast{position:fixed;bottom:2.5rem;left:50%;transform:translateX(-50%) translateY(1.5rem);background:var(--text);color:var(--bg);font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;padding:1rem 2rem;opacity:0;pointer-events:none;transition:all .35s;z-index:9999;white-space:nowrap;border-radius:4px;box-shadow:0 10px 30px rgba(0,0,0,0.15)}
-  .s-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* ── DRAWER (Tối ưu vuốt chạm mượt mà) ── */
+.s-ov{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:90;display:none;opacity:0;transition:opacity .3s;backdrop-filter:blur(2px)}
+.s-ov.show{display:block}
+.s-ov.vis{opacity:1}
+.s-drawer{position:fixed;top:0;right:0;height:100dvh;width:380px;max-width:90vw;background:var(--bg);z-index:100;transform:translateX(100%);transition:transform var(--sm);display:flex;flex-direction:column;border-left:1px solid var(--border);box-shadow:-10px 0 30px rgba(0,0,0,0.05)}
+.s-drawer.open{transform:translateX(0)}
+.s-dh{padding:1.5rem 2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.s-dh-title{font-family:var(--fd);font-size:1.8rem;letter-spacing:.06em;color:var(--text)}
+.s-dcls{background:none;border:none;cursor:pointer;color:var(--text-muted);transition:all .3s;line-height:0;padding:4px}
+.s-dcls:hover{color:var(--red);transform:rotate(90deg)}
+.s-db{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;padding:2rem;display:flex;flex-direction:column;gap:2.5rem;scrollbar-width:none}
+.s-db::-webkit-scrollbar{display:none}
+.s-sec{display:flex;flex-direction:column;gap:1.2rem}
+.s-sec-title{font-size:10px;font-weight:800;letter-spacing:.3em;text-transform:uppercase;color:var(--text-light);padding-bottom:.5rem;border-bottom:1px solid var(--border)}
+.s-radio-g,.s-check-g{display:flex;flex-direction:column;gap:.8rem}
+.s-rl,.s-cl{display:flex;align-items:center;gap:1rem;cursor:pointer;padding:.2rem 0}
+.s-rl input,.s-cl input{width:16px;height:16px;accent-color:var(--text);cursor:pointer;flex-shrink:0;border:1px solid var(--border)}
+.s-rl span,.s-cl span{font-size:11px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted);transition:color .2s}
+.s-rl:hover span,.s-cl:hover span,.s-rl input:checked~span,.s-cl input:checked~span{color:var(--text)}
+.s-chips{display:flex;flex-wrap:wrap;gap:.5rem}
+.s-chip-l{cursor:pointer}
+.s-chip-l input{display:none}
+.s-chip{display:inline-block;padding:.5rem 1rem;border:1px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);transition:all .2s;border-radius:4px}
+.s-chip-l input:checked+.s-chip{background:var(--text);border-color:var(--text);color:var(--bg)}
+.s-chip:hover{border-color:var(--text);color:var(--text)}
+.s-df{padding:1.5rem 2rem;border-top:1px solid var(--border);display:flex;gap:.75rem;flex-shrink:0;background:var(--bg)}
+.s-bcl{flex:1;padding:1rem;font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--text-muted);cursor:pointer;transition:all .2s;border-radius:4px}
+.s-bcl:hover{border-color:var(--text);color:var(--text)}
+.s-bap{flex:1;padding:1rem;font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;background:var(--text);color:var(--bg);border:none;cursor:pointer;transition:background .2s;border-radius:4px}
+.s-bap:hover{background:var(--red)}
 
-  /* ── ANIM ── */
-  @keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
-  .fu{animation:fadeUp .7s cubic-bezier(0.16,1,0.3,1) both}
-  .fu1{animation-delay:.05s}.fu2{animation-delay:.1s}
-  </style>
-  {% endblock %}
+/* ── TOAST ── */
+.s-toast{position:fixed;bottom:2.5rem;left:50%;transform:translateX(-50%) translateY(1.5rem);background:var(--text);color:var(--bg);font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;padding:1rem 2rem;opacity:0;pointer-events:none;transition:all .35s;z-index:9999;white-space:nowrap;border-radius:4px;box-shadow:0 10px 30px rgba(0,0,0,0.15)}
+.s-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-  {% block content %}
+/* ── ANIM ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.fu{animation:fadeUp .7s cubic-bezier(0.16,1,0.3,1) both}
+.fu1{animation-delay:.05s}.fu2{animation-delay:.1s}
+</style>
+{% endblock %}
 
-  {# ── HERO BANNER VỚI GIF ── #}
-  <section class="s-hero fu">
-    <img src="https://d2w9rnfcy7mm78.cloudfront.net/29334430/original_f3ab732e0aeafd6b8cd6002334dcc905.gif?1720621365?bc=0" class="hero-bg" alt="GUA Maison Campaign">
-    <div class="hero-overlay"></div>
-    <div class="s-hero-inner">
-      <h1 class="s-hero-title">
-        {% if keyword %}&ldquo;<em>{{ keyword }}</em>&rdquo;
-        {% elif category %}
-          {% set ac = global_categories|selectattr("slug","equalto",category)|first %}
-          {{ ac.name if ac else category|title }}
-        {% else %}Shop<br><em>All</em>{% endif %}
-      </h1>
-      <div class="s-hero-meta">
-        <span class="s-hero-label">GUA Maison — SS26</span>
-        <span class="s-hero-count" id="heroCount">{{ total if total else (products|length) }}</span>
-        <span class="s-hero-label">Artworks</span>
-      </div>
+{% block content %}
+
+{# ── HERO BANNER (Hỗ trợ cả Ảnh tĩnh & Video) ── #}
+<section class="s-hero fu">
+  {# Lấy URL từ cấu hình Admin hoặc ảnh Fallback #}
+  {% set hero_bg_url = storefront.shop_banner_url if storefront and storefront.shop_banner_url else 'https://d2w9rnfcy7mm78.cloudfront.net/29334430/original_f3ab732e0aeafd6b8cd6002334dcc905.gif?1720621365?bc=0' %}
+  
+  {# Tự động nhận diện nếu Admin dán file video .mp4 #}
+  {% if '.mp4' in hero_bg_url|lower %}
+    <video src="{{ hero_bg_url }}" class="hero-bg" autoplay loop muted playsinline fetchpriority="high"></video>
+  {% else %}
+    <img src="{{ hero_bg_url }}" class="hero-bg" alt="GUA Maison Campaign" fetchpriority="high" loading="eager" decoding="async">
+  {% endif %}
+  
+  <div class="hero-overlay"></div>
+  
+  <div class="s-hero-inner">
+    <h1 class="s-hero-title">
+      {% if keyword %}&ldquo;<em>{{ keyword }}</em>&rdquo;
+      {% elif category %}
+        {% set ac = global_categories|selectattr("slug","equalto",category)|first %}
+        {{ ac.name if ac else category|title }}
+      {% else %}Shop<br><em>All</em>{% endif %}
+    </h1>
+    <div class="s-hero-meta">
+      <span class="s-hero-label">GUA Maison — SS26</span>
+      <span class="s-hero-count" id="heroCount">{{ total if total else (products|length) }}</span>
+      <span class="s-hero-label">Artworks</span>
     </div>
-  </section>
+  </div>
+</section>
 
-  {# ── TOOLBAR (Đã bỏ thanh Danh mục, gom Search vào đây) ── #}
-  <div class="s-toolbar fu fu1">
-    <div class="s-toolbar-inner">
-      <button class="s-fbtn" onclick="openDrawer()">
-        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18M6 12h12m-9 6h6"/></svg>
-        Filter & Sort
-      </button>
-      
-      {# Thanh tìm kiếm chuyển vào đây #}
-      <div class="s-search">
-        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--text-light);flex-shrink:0"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
-        <input type="search" id="liveSearch" value="{{ keyword or '' }}" placeholder="Tìm kiếm thiết kế...">
-      </div>
+{# ── TOOLBAR ── #}
+<div class="s-toolbar fu fu1">
+  <div class="s-toolbar-inner">
+    <button class="s-fbtn" onclick="openDrawer()">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18M6 12h12m-9 6h6"/></svg>
+      Filter & Sort
+    </button>
+    
+    {# Thanh tìm kiếm #}
+    <div class="s-search">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--text-light);flex-shrink:0"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+      <input type="search" id="liveSearch" value="{{ keyword or '' }}" placeholder="Tìm kiếm thiết kế...">
+    </div>
 
-      <div class="s-toolbar-right">
-        <span class="s-cnt"><span id="pcount">{{ total if total else (products|length) }}</span> Items</span>
-        <div class="s-gcols">
-          <button class="s-gcol" data-c="3" aria-label="3 cột"><svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24"><path d="M4 4h4v16H4V4zm6 0h4v16h-4V4zm6 0h4v16h-4V4z"/></svg></button>
-          <button class="s-gcol on" data-c="4" aria-label="4 cột"><svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24"><path d="M3 4h3v16H3V4zm5 0h3v16H8V4zm5 0h3v16h-3V4zm5 0h3v16h-3V4z"/></svg></button>
-          <button class="s-gcol" data-c="5" aria-label="5 cột"><svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24"><path d="M2 4h2v16H2V4zm4 0h2v16H6V4zm4 0h2v16h-2V4zm4 0h2v16h-2V4zm4 0h2v16h-2V4z"/></svg></button>
-        </div>
+    <div class="s-toolbar-right">
+      <span class="s-cnt"><span id="pcount">{{ total if total else (products|length) }}</span> Items</span>
+      <div class="s-gcols">
+        <button class="s-gcol" data-c="3" aria-label="3 cột"><svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24"><path d="M4 4h4v16H4V4zm6 0h4v16h-4V4zm6 0h4v16h-4V4z"/></svg></button>
+        <button class="s-gcol on" data-c="4" aria-label="4 cột"><svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24"><path d="M3 4h3v16H3V4zm5 0h3v16H8V4zm5 0h3v16h-3V4zm5 0h3v16h-3V4z"/></svg></button>
+        <button class="s-gcol" data-c="5" aria-label="5 cột"><svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24"><path d="M2 4h2v16H2V4zm4 0h2v16H6V4zm4 0h2v16h-2V4zm4 0h2v16h-2V4zm4 0h2v16h-2V4z"/></svg></button>
       </div>
     </div>
   </div>
+</div>
 
-  {# ── MAIN GRID ── #}
-  <main>
-    <div class="s-empty" id="emptyState">
-      <p class="s-empty-title">Không tìm thấy</p>
-      <button class="s-empty-btn" onclick="clearFilters()">Xóa bộ lọc để xem thêm &rarr;</button>
-    </div>
+{# ── MAIN GRID ── #}
+<main>
+  <div class="s-empty" id="emptyState">
+    <p class="s-empty-title">Không tìm thấy</p>
+    <button class="s-empty-btn" onclick="clearFilters()">Xóa bộ lọc để xem thêm &rarr;</button>
+  </div>
 
-    {% if products %}
-    {% set ns = namespace(sizes=[], colors=[]) %}
-    {% for p in products %}{% for v in (p.product_variants or []) %}
-      {% if v.size and v.size not in ns.sizes %}{% set _ = ns.sizes.append(v.size) %}{% endif %}
-      {% if v.color_name and v.color_name not in ns.colors %}{% set _ = ns.colors.append(v.color_name) %}{% endif %}
-    {% endfor %}{% endfor %}
+  {% if products %}
+  {% set ns = namespace(sizes=[], colors=[]) %}
+  {% for p in products %}{% for v in (p.product_variants or []) %}
+    {% if v.size and v.size not in ns.sizes %}{% set _ = ns.sizes.append(v.size) %}{% endif %}
+    {% if v.color_name and v.color_name not in ns.colors %}{% set _ = ns.colors.append(v.color_name) %}{% endif %}
+  {% endfor %}{% endfor %}
 
-    <div id="productGrid" class="s-grid fu fu2">
-      {% for product in products %}
-      {% set _v = product.product_variants or [] %}
-      {% set _i = product.product_images or [] %}
-      {% set imgs = _i|map(attribute='url')|list %}
-      {% if product.thumbnail_url and product.thumbnail_url not in imgs %}{% set _ = imgs.insert(0, product.thumbnail_url) %}{% endif %}
-      {% set img1 = imgs[0] if imgs else 'https://placehold.co/600x800/f4f4f5/111?text=GUA' %}
-      {% set img2 = imgs[1] if imgs|length > 1 else img1 %}
-      {% set stock = (_v|sum(attribute='stock')) if _v else (product.stock or 0) %}
-      {% set cn = product.categories.name if product.categories else 'Core' %}
-      {% set p_sizes=[] %}{% set p_colors=[] %}
-      {% for v in _v %}
-        {% if v.size and v.size not in p_sizes %}{% set _ = p_sizes.append(v.size) %}{% endif %}
-        {% if v.color_name and v.color_name not in p_colors %}{% set _ = p_colors.append(v.color_name) %}{% endif %}
-      {% endfor %}
+  <div id="productGrid" class="s-grid fu fu2">
+    {% for product in products %}
+    {% set _v = product.product_variants or [] %}
+    {% set _i = product.product_images or [] %}
+    {% set imgs = _i|map(attribute='url')|list %}
+    {% if product.thumbnail_url and product.thumbnail_url not in imgs %}{% set _ = imgs.insert(0, product.thumbnail_url) %}{% endif %}
+    {% set img1 = imgs[0] if imgs else 'https://placehold.co/600x800/f4f4f5/111?text=GUA' %}
+    {% set img2 = imgs[1] if imgs|length > 1 else img1 %}
+    {% set stock = (_v|sum(attribute='stock')) if _v else (product.stock or 0) %}
+    {% set cn = product.categories.name if product.categories else 'Core' %}
+    {% set p_sizes=[] %}{% set p_colors=[] %}
+    {% for v in _v %}
+      {% if v.size and v.size not in p_sizes %}{% set _ = p_sizes.append(v.size) %}{% endif %}
+      {% if v.color_name and v.color_name not in p_colors %}{% set _ = p_colors.append(v.color_name) %}{% endif %}
+    {% endfor %}
 
-      <article class="p-card"
-        data-id="{{ product.id }}"
-        data-name="{{ product.name|lower }}"
-        data-category="{{ cn|lower }}"
-        data-price="{{ product.price }}"
-        data-created="{{ product.created_at }}"
-        data-sold="{{ product.sold_count|default(0) }}"
-        data-sizes='{{ p_sizes|tojson }}'
-        data-colors='{{ p_colors|tojson }}'
-        data-imgs='{{ imgs|tojson }}'>
+    <article class="p-card"
+      data-id="{{ product.id }}"
+      data-name="{{ product.name|lower }}"
+      data-category="{{ cn|lower }}"
+      data-price="{{ product.price }}"
+      data-created="{{ product.created_at }}"
+      data-sold="{{ product.sold_count|default(0) }}"
+      data-sizes='{{ p_sizes|tojson }}'
+      data-colors='{{ p_colors|tojson }}'
+      data-imgs='{{ imgs|tojson }}'>
 
-        <div class="p-img">
-          <a href="/product/{{ product.slug }}" tabindex="-1"></a>
-          <img class="pm" src="{{ img1 }}" alt="{{ product.name }}" loading="eager">
-          <img class="ph" src="{{ img2 }}" alt="{{ product.name }}" loading="lazy">
+      <div class="p-img">
+        <a href="/product/{{ product.slug }}" tabindex="-1"></a>
+        
+        {# Tối ưu hiệu suất: Tải nhanh (eager) cho 8 sản phẩm đầu, các SP sau dùng tải chậm (lazy) #}
+        <img class="pm" src="{{ img1 }}" alt="{{ product.name }}" fetchpriority="{{ 'high' if loop.index <= 4 else 'auto' }}" loading="{{ 'eager' if loop.index <= 8 else 'lazy' }}" decoding="async">
+        <img class="ph" src="{{ img2 }}" alt="{{ product.name }}" loading="lazy" decoding="async">
 
-          {% if imgs|length > 1 %}
-          <div class="p-arrows">
-            <button class="p-arw" onclick="imgSlide(event,'{{ product.id }}',-1)" aria-label="Ảnh trước">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-            </button>
-            <button class="p-arw" onclick="imgSlide(event,'{{ product.id }}',1)" aria-label="Ảnh sau">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-            </button>
-          </div>
-          {% endif %}
-
-          <button class="p-fav" data-pid="{{ product.id }}" onclick="toggleFav(event,this)" aria-label="Yêu thích">
-            <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/></svg>
+        {% if imgs|length > 1 %}
+        <div class="p-arrows">
+          <button class="p-arw" onclick="imgSlide(event,'{{ product.id }}',-1)" aria-label="Ảnh trước">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
           </button>
-
-          {% if stock <= 0 %}<div class="p-sold">Sold Out</div>
-          {% elif product.created_at and (product.created_at | string)[:10] >= (now().strftime('%Y-%m-%d') if now is defined else '2099') %}<div class="p-new">New</div>
-          {% endif %}
+          <button class="p-arw" onclick="imgSlide(event,'{{ product.id }}',1)" aria-label="Ảnh sau">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+          </button>
         </div>
+        {% endif %}
 
-        <div class="p-info">
-          <p class="p-cat">{{ cn }}</p>
-          <a href="/product/{{ product.slug }}" class="p-name">{{ product.name }}</a>
-          <p class="p-price">{{ "{:,.0f}".format(product.price).replace(',','.') }}<small style="font-size:.6em;font-weight:700;margin-left:2px;color:var(--text-light)"> ₫</small></p>
-        </div>
-      </article>
-      {% endfor %}
-    </div>
+        <button class="p-fav" data-pid="{{ product.id }}" onclick="toggleFav(event,this)" aria-label="Yêu thích">
+          <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/></svg>
+        </button>
 
-    <script id="fmeta" type="application/json">{"sizes":{{ ns.sizes|sort|tojson }},"colors":{{ ns.colors|sort|tojson }}}</script>
-    {% endif %}
-  </main>
-
-  {# ── FILTER DRAWER ── #}
-  <div class="s-ov" id="sOv" onclick="closeDrawer()"></div>
-  <aside class="s-drawer" id="sDrawer" aria-label="Bộ lọc">
-    <div class="s-dh">
-      <span class="s-dh-title">Filter & Sort</span>
-      <button class="s-dcls" onclick="closeDrawer()" aria-label="Đóng">
-        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
-      </button>
-    </div>
-    <div class="s-db">
-      
-      {# Thanh tìm kiếm riêng cho Mobile (vì Navbar ẩn search) #}
-      <div class="s-sec sm:hidden">
-        <h4 class="s-sec-title">Tìm kiếm</h4>
-        <div class="s-search" style="display:flex; max-width:100%; border-radius:8px">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--text-light);flex-shrink:0"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
-          <input type="search" id="liveSearchMobile" placeholder="Tìm thiết kế..." oninput="document.getElementById('liveSearch').value=this.value; applyFilters();">
-        </div>
+        {% if stock <= 0 %}<div class="p-sold">Sold Out</div>
+        {% elif product.created_at and (product.created_at | string)[:10] >= (now().strftime('%Y-%m-%d') if now is defined else '2099') %}<div class="p-new">New</div>
+        {% endif %}
       </div>
 
-      <div class="s-sec">
-        <h4 class="s-sec-title">Sắp xếp theo</h4>
-        <div class="s-radio-g">
-          <label class="s-rl"><input type="radio" name="sort" value="newest" checked onchange="applyFilters()"><span>Mới nhất</span></label>
-          <label class="s-rl"><input type="radio" name="sort" value="best" onchange="applyFilters()"><span>Yêu thích nhất</span></label>
-          <label class="s-rl"><input type="radio" name="sort" value="price_asc" onchange="applyFilters()"><span>Giá từ thấp đến cao</span></label>
-          <label class="s-rl"><input type="radio" name="sort" value="price_desc" onchange="applyFilters()"><span>Giá từ cao xuống thấp</span></label>
-        </div>
+      <div class="p-info">
+        <p class="p-cat">{{ cn }}</p>
+        <a href="/product/{{ product.slug }}" class="p-name">{{ product.name }}</a>
+        <p class="p-price">{{ "{:,.0f}".format(product.price).replace(',','.') }}<small style="font-size:.6em;font-weight:700;margin-left:2px;color:var(--text-light)"> ₫</small></p>
       </div>
-      <div class="s-sec">
-        <h4 class="s-sec-title">Danh mục</h4>
-        <div class="s-check-g" id="sCatFilters">
-          {% for cat in global_categories %}
-          <label class="s-cl"><input type="checkbox" class="f-cat" value="{{ cat.name|lower }}" onchange="applyFilters()"><span>{{ cat.name }}</span></label>
-          {% endfor %}
-        </div>
-      </div>
-      <div class="s-sec" id="sSzSec" style="display:none">
-        <h4 class="s-sec-title">Kích cỡ</h4>
-        <div class="s-chips" id="sSzChips"></div>
-      </div>
-      <div class="s-sec" id="sClSec" style="display:none">
-        <h4 class="s-sec-title">Màu sắc</h4>
-        <div class="s-chips" id="sClChips"></div>
+    </article>
+    {% endfor %}
+  </div>
+
+  <script id="fmeta" type="application/json">{"sizes":{{ ns.sizes|sort|tojson }},"colors":{{ ns.colors|sort|tojson }}}</script>
+  {% endif %}
+</main>
+
+{# ── FILTER DRAWER ── #}
+<div class="s-ov" id="sOv" onclick="closeDrawer()"></div>
+<aside class="s-drawer" id="sDrawer" aria-label="Bộ lọc">
+  <div class="s-dh">
+    <span class="s-dh-title">Filter & Sort</span>
+    <button class="s-dcls" onclick="closeDrawer()" aria-label="Đóng">
+      <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="s-db">
+    
+    {# Thanh tìm kiếm riêng cho Mobile #}
+    <div class="s-sec sm:hidden">
+      <h4 class="s-sec-title">Tìm kiếm</h4>
+      <div class="s-search" style="display:flex; max-width:100%; border-radius:8px">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--text-light);flex-shrink:0"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+        <input type="search" id="liveSearchMobile" placeholder="Tìm thiết kế..." oninput="document.getElementById('liveSearch').value=this.value; applyFilters();">
       </div>
     </div>
-    <div class="s-df">
-      <button class="s-bcl" onclick="clearFilters()">Bỏ lọc</button>
-      <button class="s-bap" onclick="closeDrawer()">Áp dụng</button>
+
+    <div class="s-sec">
+      <h4 class="s-sec-title">Sắp xếp theo</h4>
+      <div class="s-radio-g">
+        <label class="s-rl"><input type="radio" name="sort" value="newest" checked onchange="applyFilters()"><span>Mới nhất</span></label>
+        <label class="s-rl"><input type="radio" name="sort" value="best" onchange="applyFilters()"><span>Yêu thích nhất</span></label>
+        <label class="s-rl"><input type="radio" name="sort" value="price_asc" onchange="applyFilters()"><span>Giá từ thấp đến cao</span></label>
+        <label class="s-rl"><input type="radio" name="sort" value="price_desc" onchange="applyFilters()"><span>Giá từ cao xuống thấp</span></label>
+      </div>
     </div>
-  </aside>
+    <div class="s-sec">
+      <h4 class="s-sec-title">Danh mục</h4>
+      <div class="s-check-g" id="sCatFilters">
+        {% for cat in global_categories %}
+        <label class="s-cl"><input type="checkbox" class="f-cat" value="{{ cat.name|lower }}" onchange="applyFilters()"><span>{{ cat.name }}</span></label>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="s-sec" id="sSzSec" style="display:none">
+      <h4 class="s-sec-title">Kích cỡ</h4>
+      <div class="s-chips" id="sSzChips"></div>
+    </div>
+    <div class="s-sec" id="sClSec" style="display:none">
+      <h4 class="s-sec-title">Màu sắc</h4>
+      <div class="s-chips" id="sClChips"></div>
+    </div>
+  </div>
+  <div class="s-df">
+    <button class="s-bcl" onclick="clearFilters()">Bỏ lọc</button>
+    <button class="s-bap" onclick="closeDrawer()">Áp dụng</button>
+  </div>
+</aside>
 
-  <div class="s-toast" id="sToast"></div>
-  {% endblock %}
+<div class="s-toast" id="sToast"></div>
+{% endblock %}
 
-  {% block extra_scripts %}
-  <script>
-  const _idx={};
+{% block extra_scripts %}
+<script>
+const _idx={};
 
-  function openDrawer(){
-    const o=document.getElementById('sOv');
-    o.classList.add('show');
-    setTimeout(()=>o.classList.add('vis'),10);
-    document.getElementById('sDrawer').classList.add('open');
-    document.body.style.overflow='hidden';
-  }
-  function closeDrawer(){
-    const o=document.getElementById('sOv');
-    o.classList.remove('vis');
-    setTimeout(()=>o.classList.remove('show'),320);
-    document.getElementById('sDrawer').classList.remove('open');
-    document.body.style.overflow='';
-  }
+function openDrawer(){
+  const o=document.getElementById('sOv');
+  o.classList.add('show');
+  setTimeout(()=>o.classList.add('vis'),10);
+  document.getElementById('sDrawer').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeDrawer(){
+  const o=document.getElementById('sOv');
+  o.classList.remove('vis');
+  setTimeout(()=>o.classList.remove('show'),320);
+  document.getElementById('sDrawer').classList.remove('open');
+  document.body.style.overflow='';
+}
 
-  /* ── HIỆU ỨNG CHUYỂN ẢNH SIÊU MƯỢT ── */
-  function imgSlide(e, pid, d){
-    e.preventDefault(); e.stopPropagation();
-    const card = document.querySelector(`.p-card[data-id="${pid}"]`);
-    if(!card) return;
-    const imgs = JSON.parse(card.dataset.imgs||'[]');
-    if(imgs.length < 2) return;
-    
-    _idx[pid] = ((_idx[pid]||0) + d + imgs.length) % imgs.length;
-    
-    const pm = card.querySelector('.pm');
-    const ph = card.querySelector('.ph');
-    
-    // Khóa hiệu ứng hover CSS gốc để không bị giật
-    pm.classList.remove('group-hover:opacity-0');
-    ph.style.display = 'none';
-    
-    // Hiệu ứng mờ dần (Fade out)
-    pm.style.transition = 'opacity 0.15s ease-out';
-    pm.style.opacity = '0.3';
-    
-    // Sau khi mờ thì đổi ảnh và hiện lên (Fade in)
-    setTimeout(() => {
-        pm.src = imgs[_idx[pid]];
-        pm.style.opacity = '1';
-    }, 150);
-  }
+/* ── HIỆU ỨNG CHUYỂN ẢNH SIÊU MƯỢT ── */
+function imgSlide(e, pid, d){
+  e.preventDefault(); e.stopPropagation();
+  const card = document.querySelector(`.p-card[data-id="${pid}"]`);
+  if(!card) return;
+  const imgs = JSON.parse(card.dataset.imgs||'[]');
+  if(imgs.length < 2) return;
+  
+  _idx[pid] = ((_idx[pid]||0) + d + imgs.length) % imgs.length;
+  
+  const pm = card.querySelector('.pm');
+  const ph = card.querySelector('.ph');
+  
+  pm.classList.remove('group-hover:opacity-0');
+  ph.style.display = 'none';
+  
+  pm.style.transition = 'opacity 0.15s ease-out';
+  pm.style.opacity = '0.3';
+  
+  setTimeout(() => {
+      pm.src = imgs[_idx[pid]];
+      pm.style.opacity = '1';
+  }, 150);
+}
 
-  function applyFilters(){
-    const ls=document.getElementById('liveSearch');
-    const term=(ls?ls.value:'').toLowerCase().trim();
-    const sort=(document.querySelector('input[name="sort"]:checked')||{value:'newest'}).value;
-    const cats=Array.from(document.querySelectorAll('.f-cat:checked')).map(c=>c.value);
-    const sizes=Array.from(document.querySelectorAll('.f-sz:checked')).map(c=>c.value);
-    const colors=Array.from(document.querySelectorAll('.f-cl:checked')).map(c=>c.value);
-    const cards=Array.from(document.querySelectorAll('.p-card'));
-    let vis=[];
-    cards.forEach(c=>{
-      let ok=true;
-      if(term&&!c.dataset.name.includes(term)&&!c.dataset.category.includes(term))ok=false;
-      if(ok&&cats.length&&!cats.includes(c.dataset.category))ok=false;
-      if(ok&&sizes.length){const s=JSON.parse(c.dataset.sizes||'[]');if(!sizes.some(x=>s.includes(x)))ok=false;}
-      if(ok&&colors.length){const cl=JSON.parse(c.dataset.colors||'[]');if(!colors.some(x=>cl.includes(x)))ok=false;}
-      c.style.display=ok?'flex':'none';
-      if(ok)vis.push(c);
-    });
-    vis.sort((a,b)=>{
-      if(sort==='price_asc')return+a.dataset.price-+b.dataset.price;
-      if(sort==='price_desc')return+b.dataset.price-+a.dataset.price;
-      if(sort==='best')return+b.dataset.sold-+a.dataset.sold;
-      return new Date(b.dataset.created)-new Date(a.dataset.created);
-    });
-    const g=document.getElementById('productGrid');
-    if(g)vis.forEach(c=>g.appendChild(c));
-    const n=vis.length;
-    document.getElementById('pcount').textContent=n;
-    document.getElementById('heroCount').textContent=n;
-    const em=document.getElementById('emptyState');
-    if(g)g.style.display=n?'grid':'none';
-    if(em)em.classList.toggle('show',n===0);
-  }
-
-  function clearFilters(){
-    document.querySelectorAll('.f-cat,.f-sz,.f-cl').forEach(c=>c.checked=false);
-    const r=document.querySelector('input[name="sort"][value="newest"]');if(r)r.checked=true;
-    const ls=document.getElementById('liveSearch');if(ls)ls.value='';
-    const lsm=document.getElementById('liveSearchMobile');if(lsm)lsm.value='';
-    applyFilters();
-  }
-
-  function showToast(m){
-    const t=document.getElementById('sToast');
-    t.textContent=m;t.classList.add('show');
-    clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2400);
-  }
-
-  function getFavs(){try{return JSON.parse(localStorage.getItem('gua_favs')||'[]')}catch{return[]}}
-  function setFavs(l){try{localStorage.setItem('gua_favs',JSON.stringify(l))}catch{}}
-
-  async function toggleFav(e,btn){
-    e.preventDefault();e.stopPropagation();
-    const pid=String(btn.dataset.pid||'');if(!pid)return;
-    const was=btn.classList.contains('on');
-    btn.classList.toggle('on',!was);
-    const csrf=(document.querySelector('meta[name="csrf-token"]')||{}).content||'';
-    try{
-      const r=await fetch('/api/favorites/toggle',{
-        method:'POST',
-        headers:{'Content-Type':'application/json','X-CSRFToken':csrf},
-        body:JSON.stringify({product_id:pid})
-      });
-      if(r.status===401){btn.classList.toggle('on',was);showToast('Vui lòng đăng nhập');return;}
-      if(!r.ok){btn.classList.toggle('on',was);showToast('Có lỗi xảy ra');return;}
-      let favs=getFavs();
-      if(!was){if(!favs.includes(pid))favs.push(pid);}else{favs=favs.filter(id=>id!==pid);}
-      setFavs(favs);
-      showToast(!was?'Đã lưu vào bộ sưu tập ♥':'Đã bỏ yêu thích');
-    }catch{btn.classList.toggle('on',was);showToast('Lỗi kết nối');}
-  }
-
-  document.addEventListener('DOMContentLoaded',()=>{
-    const meta=document.getElementById('fmeta');
-    if(meta){
-      const {sizes,colors}=JSON.parse(meta.textContent);
-      const sc=document.getElementById('sSzChips'),cc=document.getElementById('sClChips');
-      if(sizes.length&&sc){
-        document.getElementById('sSzSec').style.display='';
-        sizes.forEach(s=>{sc.innerHTML+=`<label class="s-chip-l"><input type="checkbox" class="f-sz" value="${s}" onchange="applyFilters()"><span class="s-chip">${s}</span></label>`;});
-      }
-      if(colors.length&&cc){
-        document.getElementById('sClSec').style.display='';
-        colors.forEach(c=>{cc.innerHTML+=`<label class="s-chip-l"><input type="checkbox" class="f-cl" value="${c}" onchange="applyFilters()"><span class="s-chip">${c}</span></label>`;});
-      }
-    }
-
-    getFavs().forEach(pid=>{
-      const b=document.querySelector(`.p-fav[data-pid="${pid}"]`);
-      if(b)b.classList.add('on');
-    });
-
-    let dt;
-    const ls=document.getElementById('liveSearch');
-    if(ls)ls.addEventListener('input',()=>{clearTimeout(dt);dt=setTimeout(applyFilters,280);});
-
-    document.querySelectorAll('.s-gcol').forEach(btn=>{
-      btn.addEventListener('click',function(){
-        document.querySelectorAll('.s-gcol').forEach(b=>b.classList.remove('on'));
-        this.classList.add('on');
-        const g=document.getElementById('productGrid');
-        if(!g)return;
-        const c=this.dataset.c;
-        g.className='s-grid fu fu2'+(c==='3'?' g3':c==='5'?' g5':'');
-      });
-    });
-
-    document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDrawer();});
+function applyFilters(){
+  const ls=document.getElementById('liveSearch');
+  const term=(ls?ls.value:'').toLowerCase().trim();
+  const sort=(document.querySelector('input[name="sort"]:checked')||{value:'newest'}).value;
+  const cats=Array.from(document.querySelectorAll('.f-cat:checked')).map(c=>c.value);
+  const sizes=Array.from(document.querySelectorAll('.f-sz:checked')).map(c=>c.value);
+  const colors=Array.from(document.querySelectorAll('.f-cl:checked')).map(c=>c.value);
+  const cards=Array.from(document.querySelectorAll('.p-card'));
+  let vis=[];
+  cards.forEach(c=>{
+    let ok=true;
+    if(term&&!c.dataset.name.includes(term)&&!c.dataset.category.includes(term))ok=false;
+    if(ok&&cats.length&&!cats.includes(c.dataset.category))ok=false;
+    if(ok&&sizes.length){const s=JSON.parse(c.dataset.sizes||'[]');if(!sizes.some(x=>s.includes(x)))ok=false;}
+    if(ok&&colors.length){const cl=JSON.parse(c.dataset.colors||'[]');if(!colors.some(x=>cl.includes(x)))ok=false;}
+    c.style.display=ok?'flex':'none';
+    if(ok)vis.push(c);
   });
-  </script>
-  {% endblock %}
+  vis.sort((a,b)=>{
+    if(sort==='price_asc')return+a.dataset.price-+b.dataset.price;
+    if(sort==='price_desc')return+b.dataset.price-+a.dataset.price;
+    if(sort==='best')return+b.dataset.sold-+a.dataset.sold;
+    return new Date(b.dataset.created)-new Date(a.dataset.created);
+  });
+  const g=document.getElementById('productGrid');
+  if(g)vis.forEach(c=>g.appendChild(c));
+  const n=vis.length;
+  document.getElementById('pcount').textContent=n;
+  document.getElementById('heroCount').textContent=n;
+  const em=document.getElementById('emptyState');
+  if(g)g.style.display=n?'grid':'none';
+  if(em)em.classList.toggle('show',n===0);
+}
+
+function clearFilters(){
+  document.querySelectorAll('.f-cat,.f-sz,.f-cl').forEach(c=>c.checked=false);
+  const r=document.querySelector('input[name="sort"][value="newest"]');if(r)r.checked=true;
+  const ls=document.getElementById('liveSearch');if(ls)ls.value='';
+  const lsm=document.getElementById('liveSearchMobile');if(lsm)lsm.value='';
+  applyFilters();
+}
+
+function showToast(m){
+  const t=document.getElementById('sToast');
+  t.textContent=m;t.classList.add('show');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2400);
+}
+
+function getFavs(){try{return JSON.parse(localStorage.getItem('gua_favs')||'[]')}catch{return[]}}
+function setFavs(l){try{localStorage.setItem('gua_favs',JSON.stringify(l))}catch{}}
+
+async function toggleFav(e,btn){
+  e.preventDefault();e.stopPropagation();
+  const pid=String(btn.dataset.pid||'');if(!pid)return;
+  const was=btn.classList.contains('on');
+  btn.classList.toggle('on',!was);
+  const csrf=(document.querySelector('meta[name="csrf-token"]')||{}).content||'';
+  try{
+    const r=await fetch('/api/favorites/toggle',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRFToken':csrf},
+      body:JSON.stringify({product_id:pid})
+    });
+    if(r.status===401){btn.classList.toggle('on',was);showToast('Vui lòng đăng nhập');return;}
+    if(!r.ok){btn.classList.toggle('on',was);showToast('Có lỗi xảy ra');return;}
+    let favs=getFavs();
+    if(!was){if(!favs.includes(pid))favs.push(pid);}else{favs=favs.filter(id=>id!==pid);}
+    setFavs(favs);
+    showToast(!was?'Đã lưu vào bộ sưu tập ♥':'Đã bỏ yêu thích');
+  }catch{btn.classList.toggle('on',was);showToast('Lỗi kết nối');}
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const meta=document.getElementById('fmeta');
+  if(meta){
+    const {sizes,colors}=JSON.parse(meta.textContent);
+    const sc=document.getElementById('sSzChips'),cc=document.getElementById('sClChips');
+    if(sizes.length&&sc){
+      document.getElementById('sSzSec').style.display='';
+      sizes.forEach(s=>{sc.innerHTML+=`<label class="s-chip-l"><input type="checkbox" class="f-sz" value="${s}" onchange="applyFilters()"><span class="s-chip">${s}</span></label>`;});
+    }
+    if(colors.length&&cc){
+      document.getElementById('sClSec').style.display='';
+      colors.forEach(c=>{cc.innerHTML+=`<label class="s-chip-l"><input type="checkbox" class="f-cl" value="${c}" onchange="applyFilters()"><span class="s-chip">${c}</span></label>`;});
+    }
+  }
+
+  getFavs().forEach(pid=>{
+    const b=document.querySelector(`.p-fav[data-pid="${pid}"]`);
+    if(b)b.classList.add('on');
+  });
+
+  let dt;
+  const ls=document.getElementById('liveSearch');
+  if(ls)ls.addEventListener('input',()=>{clearTimeout(dt);dt=setTimeout(applyFilters,280);});
+
+  document.querySelectorAll('.s-gcol').forEach(btn=>{
+    btn.addEventListener('click',function(){
+      document.querySelectorAll('.s-gcol').forEach(b=>b.classList.remove('on'));
+      this.classList.add('on');
+      const g=document.getElementById('productGrid');
+      if(!g)return;
+      const c=this.dataset.c;
+      g.className='s-grid fu fu2'+(c==='3'?' g3':c==='5'?' g5':'');
+    });
+  });
+
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDrawer();});
+});
+</script>
+{% endblock %}

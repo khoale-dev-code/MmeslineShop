@@ -1,33 +1,92 @@
 /**
  * GUA Maison Admin Dashboard - Settings Management
  * File: app/static/js/admin/settings.js
+ * CHANGELOG: Fix lỗi FormData trống do disabled input + Fetch credentials
  */
 
-// Sử dụng IIFE (Immediately Invoked Function Expression) để bảo vệ phạm vi biến, tránh xung đột toàn cục
 (function() {
     'use strict';
 
-    // Hàm lấy CSRF Token bảo mật chống lỗi 400 Bad Request / 403 Forbidden
+    // ── Hàm quét và lấy CSRF Token tự động ──
     function getCSRFToken() {
         const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
                       document.querySelector('input[name="csrf_token"]')?.value;
-        if (token) {
-            console.log(`[CSRF] ✅ Token found (length: ${token.length})`);
-        } else {
-            console.warn(`[CSRF] ❌ Token not found! Hãy chắc chắn đã thêm thẻ csrf_token vào Form.`);
+        if (!token) {
+            console.warn(`[CSRF] ❌ Token không tồn tại trong DOM!`);
         }
         return token;
     }
 
-    // Định nghĩa Object điều hướng chức năng Settings
+    // ── Hàm gọi thông báo UI linh hoạt ──
+    function notify(message, type = 'success') {
+        if (window.GUA && typeof window.GUA.snackbar === 'function') {
+            window.GUA.snackbar(message, type);
+        } else if (window.GUA && typeof window.GUA.toast === 'function') {
+            window.GUA.toast(message, type);
+        } else if (typeof showToast === 'function') {
+            showToast(message, type);
+        } else {
+            alert(type === 'error' ? `⚠️ LỖI: ${message}` : `✅ ${message}`);
+        }
+    }
+
     const Settings = {
+        currentTab: 'general',
+
         init() {
-            console.log("GUA Maison Admin Dashboard - Settings Module loaded successfully");
+            console.log("🚀 GUA Maison - Settings Module Loaded");
+            this.initTabs();
             this.bindEvents();
         },
 
+        // ── LOGIC CHUYỂN TAB ──
+        initTabs() {
+            const navLinks = document.querySelectorAll('.s-nav');
+            const panels = document.querySelectorAll('.s-panel');
+
+            const switchTab = (tabId) => {
+                panels.forEach(p => p.classList.remove('active'));
+                navLinks.forEach(n => {
+                    n.classList.remove('bg-white', 'shadow-sm', 'text-stone-900', 'font-bold');
+                    n.classList.add('text-stone-500', 'hover:bg-stone-50', 'hover:text-stone-900');
+                });
+
+                const targetPanel = document.getElementById(`panel-${tabId}`);
+                if (targetPanel) targetPanel.classList.add('active');
+
+                const targetNav = document.querySelector(`.s-nav[data-tab="${tabId}"]`);
+                if (targetNav) {
+                    targetNav.classList.remove('text-stone-500', 'hover:bg-stone-50', 'hover:text-stone-900');
+                    targetNav.classList.add('bg-white', 'shadow-sm', 'text-stone-900', 'font-bold');
+                }
+                
+                this.currentTab = tabId;
+                
+                if (history.pushState) {
+                    const newUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?tab=${tabId}`;
+                    window.history.pushState({path: newUrl}, '', newUrl);
+                }
+            };
+
+            const params = new URLSearchParams(window.location.search);
+            if (params.has('tab')) {
+                switchTab(params.get('tab'));
+            } else if (navLinks.length > 0) {
+                switchTab(navLinks[0].dataset.tab);
+            }
+
+            navLinks.forEach(nav => {
+                nav.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    switchTab(this.dataset.tab);
+                });
+            });
+            
+            this.switchTab = switchTab;
+        },
+
+        // ── LOGIC XEM TRƯỚC HÌNH ẢNH (PREVIEW MEDIA) ──
         bindEvents() {
-            // Tự động xem trước (Preview) khi chọn file hình ảnh/video mới
             const fileInputs = document.querySelectorAll('.settings-file-input');
             fileInputs.forEach(input => {
                 input.addEventListener('change', function(e) {
@@ -37,99 +96,91 @@
                     
                     if (file && previewEl) {
                         const url = URL.createObjectURL(file);
-                        // Giải phóng bộ nhớ cũ để tối ưu RAM trình duyệt
                         const oldMedia = previewEl.querySelector('img, video');
                         if (oldMedia && oldMedia.src && oldMedia.src.startsWith('blob:')) {
                             URL.revokeObjectURL(oldMedia.src);
                         }
 
                         if (file.type.startsWith('video/')) {
-                            previewEl.innerHTML = `<video src="${url}" controls class="w-full h-48 object-cover rounded-lg bg-neutral-900"></video>`;
+                            previewEl.innerHTML = `<video src="${url}" controls class="w-full h-48 object-cover rounded-lg bg-stone-950 shadow-sm border border-stone-200"></video>`;
                         } else if (file.type.startsWith('image/')) {
-                            previewEl.innerHTML = `<img src="${url}" class="w-full h-48 object-cover rounded-lg" loading="lazy" />`;
+                            previewEl.innerHTML = `<img src="${url}" class="w-full h-48 object-cover rounded-lg shadow-sm border border-stone-200" loading="lazy" />`;
                         }
                     }
                 });
             });
         },
 
-        // Hàm lưu cấu hình nâng cao nhận tham số tabName (ví dụ: 'storefront')
+        // ── LOGIC GỬI API LÊN SERVER ──
         async save(tabName) {
             const form = document.getElementById(`form-${tabName}`);
             if (!form) {
-                console.error(`[Settings.save] Form 'form-${tabName}' không tồn tại trong DOM.`);
+                console.error(`[Settings.save] Không tìm thấy Form id="form-${tabName}"`);
                 return;
             }
 
-            // Tạo FormData thu thập tất cả dữ liệu chữ và file media
-            const formData = new FormData(form);
-            
-            // Giao diện trạng thái đang xử lý (Loading)
             const saveBtn = document.querySelector(`button[onclick*="Settings.save('${tabName}')"]`) || 
-                            document.querySelector(`button[onclick*='Settings.save("${tabName}")']`);
+                            document.querySelector(`button[onclick*='Settings.save("${tabName}")']`) ||
+                            form.querySelector('button[type="submit"]');
+            
             let originalBtnHtml = '';
+            
+            // 🟢 TẠO FORMDATA TRƯỚC KHI DISABLE INPUT ĐỂ KHÔNG BỊ RỖNG DỮ LIỆU
+            const formData = new FormData(form);
+            const csrfToken = getCSRFToken();
+
+            // 🔴 BÂY GIỜ MỚI KHÓA FORM
+            const formElements = form.querySelectorAll('input, select, textarea, button');
             if (saveBtn) {
                 originalBtnHtml = saveBtn.innerHTML;
+                saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang lưu...';
                 saveBtn.disabled = true;
-                saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Đang lưu cấu hình...';
             }
+            formElements.forEach(el => el.disabled = true);
 
             try {
-                const csrfToken = getCSRFToken();
-
-                // Gọi API bằng đường dẫn tương đối để tương thích mọi Domain (Vercel, Localhost, Custom Domain)
                 const response = await fetch(`/admin/settings/update/${tabName}`, {
                     method: 'POST',
+                    credentials: 'same-origin', // Gửi kèm session cookie để pass CSRF
                     headers: {
-                        'X-CSRFToken': csrfToken
+                        'X-CSRFToken': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
                     },
-                    body: formData // Gửi trực tiếp multipart/form-data
+                    body: formData 
                 });
 
                 if (!response.ok) {
-                    throw new Error(`Máy chủ phản hồi lỗi mạng HTTP: ${response.status}`);
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.message || `Lỗi máy chủ HTTP ${response.status}`);
                 }
 
                 const result = await response.json();
 
                 if (result.success) {
-                    // Thông báo thành công trực quan
-                    if (typeof showToast === 'function') {
-                        showToast(result.message || 'Cập nhật cấu hình thành công!', 'success');
-                    } else {
-                        alert(result.message || 'Cập nhật cấu hình thành công!');
-                    }
-                    
-                    // Làm mới trang nếu backend yêu cầu cập nhật lại trạng thái giao diện gốc
+                    notify(result.message || 'Cập nhật cấu hình thành công!', 'success');
                     if (result.reload) {
                         setTimeout(() => window.location.reload(), 1200);
                     }
                 } else {
-                    throw new Error(result.message || 'Phía máy chủ từ chối lưu dữ liệu cấu hình.');
+                    throw new Error(result.message || 'Từ chối lưu dữ liệu cấu hình.');
                 }
 
             } catch (error) {
-                console.error(`[Settings.save] Lỗi nghiêm trọng:`, error);
-                if (typeof showToast === 'function') {
-                    showToast(error.message || 'Không thể lưu. Vui lòng kiểm tra lại kết nối mạng hoặc định dạng file!', 'error');
-                } else {
-                    alert(`Lỗi: ${error.message || 'Không thể kết nối hoặc lưu dữ liệu cấu hình.'}`);
-                }
+                console.error(`[Settings.save ERROR]`, error);
+                notify(error.message || 'Mất kết nối tới máy chủ. Vui lòng thử lại!', 'error');
             } finally {
-                // Khôi phục lại trạng thái ban đầu của nút bấm sau khi xử lý xong
+                // UI: Mở khóa lại Form sau khi gửi xong
+                formElements.forEach(el => el.disabled = false);
                 if (saveBtn) {
-                    saveBtn.disabled = false;
                     saveBtn.innerHTML = originalBtnHtml;
+                    saveBtn.disabled = false;
                 }
             }
         }
     };
 
-    // 💡 GIẢI PHÁP QUAN TRỌNG: Gắn chặt Settings vào cửa sổ toàn cục (window)
-    // Giúp các thuộc tính onclick="Settings.save(...)" trong HTML tìm thấy hàm chính xác ở mọi môi trường build
     window.Settings = Settings;
 
-    // Kích hoạt Module khi cấu trúc trang tải xong
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => Settings.init());
     } else {
