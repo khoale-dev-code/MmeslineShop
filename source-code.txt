@@ -234,292 +234,6 @@ vercel.json
 <files>
 This section contains the contents of the repository's files.
 
-<file path="app/models/collection_model.py">
-"""
-app/models/collection_model.py
-===========================
-Quản lý các chiến dịch bộ sưu tập thời trang xu hướng (Lookbook/Campaigns).
-Hỗ trợ lưu trữ Media và sắp xếp thứ tự hiển thị bằng phương thức kéo thả linh hoạt.
-"""
-import logging
-from datetime import datetime
-from typing import List, Dict, Optional, Any
-from app.utils.supabase_client import get_supabase, get_supabase_admin
-
-logger = logging.getLogger(__name__)
-
-class CollectionModel:
-
-    @staticmethod
-    def _db(): 
-        return get_supabase()
-
-    @staticmethod
-    def _db_admin(): 
-        return get_supabase_admin()
-
-    @staticmethod
-    def get_all(active_only: bool = False, admin_mode: bool = False) -> List[Dict]:
-        """
-        Lấy danh sách bộ sưu tập. 
-        Nếu admin_mode=True, sử dụng admin client để bypass hoàn toàn RLS trên Supabase.
-        """
-        # 🟢 ĐÃ FIX BẪY RLS: Admin mode sẽ dùng thẳng kết nối Admin quyền tối cao
-        db = CollectionModel._db_admin() if admin_mode else CollectionModel._db()
-        try:
-            query = db.table("collections").select("*")
-            if active_only:
-                query = query.eq("is_active", True)
-            r = query.order("sort_order").order("created_at", desc=True).execute()
-            return r.data or []
-        except Exception:
-            logger.exception("Lỗi truy vấn danh sách bộ sưu tập")
-            return []
-
-    @staticmethod
-    def get_by_id(cid: str) -> Optional[Dict]:
-        db = CollectionModel._db_admin() # Dùng admin để đảm bảo tìm thấy trong không gian quản trị
-        try:
-            r = db.table("collections").select("*").eq("id", cid).limit(1).execute()
-            return r.data[0] if r.data else None
-        except Exception:
-            logger.exception(f"Lỗi lấy bộ sưu tập ID: {cid}")
-            return None
-
-    @staticmethod
-    def create(data: Dict[str, Any]) -> Dict:
-        db = CollectionModel._db_admin()
-        try:
-            r = db.table("collections").insert(data).execute()
-            return r.data[0] if r.data else {}
-        except Exception:
-            logger.exception("Lỗi tạo bộ sưu tập mới")
-            return {}
-
-    @staticmethod
-    def update(cid: str, data: Dict[str, Any]) -> Dict:
-        db = CollectionModel._db_admin()
-        try:
-            clean_data = {k: v for k, v in data.items() if v is not None}
-            r = db.table("collections").update(clean_data).eq("id", cid).execute()
-            return r.data[0] if r.data else {}
-        except Exception:
-            logger.exception(f"Lỗi cập nhật bộ sưu tập ID: {cid}")
-            return {}
-
-    @staticmethod
-    def delete(cid: str) -> bool:
-        db = CollectionModel._db_admin()
-        try:
-            coll = CollectionModel.get_by_id(cid)
-            r = db.table("collections").delete().eq("id", cid).execute()
-            if r.data and coll:
-                if coll.get("image_url"): CollectionModel.delete_media_from_url(coll["image_url"])
-                if coll.get("video_url"): CollectionModel.delete_media_from_url(coll["video_url"])
-            return bool(r.data)
-        except Exception:
-            logger.exception(f"Lỗi xóa bộ sưu tập ID: {cid}")
-            return False
-
-    @staticmethod
-    def upload_media(file_bytes: bytes, filename: str, content_type: str) -> str:
-        db = CollectionModel._db_admin()
-        try:
-            path = f"media/{datetime.now().strftime('%Y%m%d_%H%M%S')}_{filename}"
-            db.storage.from_("store-assets").upload(path, file_bytes, {"content-type": content_type})
-            return db.storage.from_("store-assets").get_public_url(path)
-        except Exception:
-            logger.exception("Lỗi đẩy file bộ sưu tập lên Storage")
-            return ""
-
-    @staticmethod
-    def delete_media_from_url(public_url: str) -> bool:
-        db = CollectionModel._db_admin()
-        try:
-            if not public_url or "store-assets" not in public_url: return False
-            parts = public_url.split("/store-assets/")
-            if len(parts) > 1:
-                db.storage.from_("store-assets").remove([parts[1]])
-                return True
-            return False
-        except Exception:
-            logger.exception("Lỗi xóa file rác từ URL")
-            return False
-</file>
-
-<file path="app/templates/admin/collection_form.html">
-{% extends "admin/admin_base.html" %}
-{% block title %}Biểu mẫu Bộ sưu tập | GUA Admin{% endblock %}
-
-{% block extra_head %}
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<style>body{font-family:'Plus Jakarta Sans',sans-serif;background-color:#f8fafc;}</style>
-{% endblock %}
-
-{% block content %}
-<form method="POST" enctype="multipart/form-data" class="max-w-5xl mx-auto px-4 py-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-    <div class="lg:col-span-2 bg-white border border-slate-200 rounded-3xl p-6 space-y-6 shadow-sm">
-        <div class="flex items-center gap-3 border-b border-slate-100 pb-4">
-            <a href="{{ url_for('admin.collections') }}" class="w-8 h-8 border border-slate-200 rounded-full flex items-center justify-center text-slate-400 hover:text-black"><i class="fa-solid fa-arrow-left text-xs"></i></a>
-            <h2 class="text-base font-bold text-slate-900">Thông tin bộ sưu tập</h2>
-        </div>
-        <div>
-            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Tên bộ sưu tập chiến dịch *</label>
-            <input type="text" name="name" value="{{ cat.name if cat else '' }}" required placeholder="Vd: Summer Lookbook 2026" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-semibold focus:outline-none focus:bg-white focus:border-indigo-500 transition-all">
-        </div>
-        <div>
-            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Mô tả thông điệp</label>
-            <textarea name="description" rows="3" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:bg-white focus:border-indigo-500 transition-all">{{ cat.description if cat else '' }}</textarea>
-        </div>
-        <div class="border-t border-slate-100 pt-4 space-y-4">
-            <label class="block text-xs font-bold text-slate-500 uppercase">Dán đường dẫn URL Media</label>
-            <input type="url" name="external_url" value="{{ cat.video_url if cat and cat.video_url else (cat.image_url if cat else '') }}" placeholder="Hỗ trợ link ảnh tĩnh hoặc link file .mp4 từ iCloud/Drive..." class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-xs focus:outline-none focus:bg-white focus:border-indigo-500 transition-all">
-            <div class="border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center bg-slate-50 hover:bg-slate-100/50 transition-colors relative cursor-pointer" onclick="document.getElementById('f').click()">
-                <input type="file" id="f" name="collection_media" accept="image/*,video/mp4" class="hidden">
-                <i class="fa-solid fa-photo-film text-slate-300 text-2xl mb-2"></i>
-                <p class="text-xs font-bold text-slate-600">Hoặc tải file từ máy tính lên hệ thống Storage</p>
-            </div>
-        </div>
-    </div>
-
-    <div class="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm h-fit">
-        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Cấu hình luồng</h3>
-        <label class="flex items-center justify-between cursor-pointer p-3 bg-slate-50 rounded-xl">
-            <span class="text-xs font-bold text-slate-600 uppercase">Kích hoạt chiến dịch</span>
-            <div class="relative inline-flex items-center">
-                <input type="checkbox" name="is_active" class="sr-only peer" {% if not cat or cat.is_active %}checked{% endif %}>
-                <div class="w-8 h-4 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
-            </div>
-        </label>
-        <label class="flex items-center justify-between cursor-pointer p-3 bg-amber-50/50 rounded-xl border border-amber-100">
-            <span class="text-xs font-bold text-amber-800 uppercase">Đưa ra ngoài trang chủ</span>
-            <div class="relative inline-flex items-center">
-                <input type="checkbox" name="show_on_home" class="sr-only peer" {% if cat and cat.show_on_home %}checked{% endif %}>
-                <div class="w-8 h-4 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500"></div>
-            </div>
-        </label>
-        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl text-xs uppercase tracking-wider mt-4 transition-colors">Xác nhận lưu</button>
-    </div>
-</form>
-{% endblock %}
-</file>
-
-<file path="app/templates/admin/collections.html">
-{% extends "admin/admin_base.html" %}
-{% block title %}Bộ sưu tập Campaigns | GUA Admin{% endblock %}
-
-{% block extra_head %}
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-<style>
-    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
-    .modern-card { background: #fff; border: 1px solid #f1f5f9; border-radius: 1.5rem; box-shadow: 0 4px 20px -2px rgba(0,0,0,0.03); }
-    .sortable-ghost { opacity: 0.3; background: #e0e7ff; border: 2px dashed #6366f1 !important; }
-</style>
-{% endblock %}
-
-{% block content %}
-<div class="max-w-screen-2xl mx-auto px-4 md:px-8 py-10 relative">
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Chiến dịch & Xu hướng</p>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900">Quản lý Bộ sưu tập (Collections)</h1>
-        </div>
-        <div class="flex gap-3">
-            <button onclick="document.getElementById('lyModal').classList.remove('hidden')" class="bg-white border border-slate-200 text-slate-700 px-5 py-2.5 rounded-full text-sm font-bold hover:bg-slate-50 shadow-sm flex items-center gap-2">
-                <i class="fa-solid fa-layer-group text-amber-500"></i> Kéo thả vị trí trang chủ
-            </button>
-            <a href="{{ url_for('admin.add_collection') }}" class="bg-indigo-600 text-white px-6 py-2.5 rounded-full text-sm font-bold hover:bg-indigo-700 shadow-md flex items-center gap-2">
-                <i class="fa-solid fa-plus"></i> Thêm BST mới
-            </a>
-        </div>
-    </div>
-
-    {% if colles %}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {% for c in colles %}
-            <div class="modern-card overflow-hidden flex flex-col group">
-                <div class="relative w-full h-44 bg-slate-100 overflow-hidden">
-                    {% if c.video_url %}
-                        <video src="{{ c.video_url }}" autoplay loop muted playsinline class="w-full h-full object-cover"></video>
-                    {% elif c.image_url %}
-                        <img src="{{ c.image_url }}" class="w-full h-full object-cover">
-                    {% else %}
-                        <div class="w-full h-full flex items-center justify-center text-slate-300"><i class="fa-solid fa-camera-retro text-3xl"></i></div>
-                    {% endif %}
-                </div>
-                <div class="p-4 flex-1 flex flex-col justify-between">
-                    <div>
-                        <h3 class="font-bold text-slate-900 leading-tight truncate">{{ c.name }}</h3>
-                        <p class="text-[10px] text-slate-400 font-mono mt-0.5 truncate">{{ c.slug }}</p>
-                        <p class="text-xs text-slate-400 line-clamp-2 mt-2">{{ c.description or 'Chưa cấu hình mô tả.' }}</p>
-                    </div>
-                    <div class="flex gap-2 mt-4 pt-3 border-t border-slate-100">
-                        {% if c.show_on_home %}<span class="bg-amber-50 border border-amber-200 text-amber-700 font-bold text-[9px] px-2 py-0.5 rounded-md uppercase tracking-wider">Trang chủ #{{ c.sort_order }}</span>{% endif %}
-                        {% if c.is_active %}<span class="bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-[9px] px-2 py-0.5 rounded-md uppercase tracking-wider">Hiển thị</span>{% endif %}
-                    </div>
-                    <div class="grid grid-cols-2 gap-2 mt-4">
-                        <a href="{{ url_for('admin.edit_collection', cid=c.id) }}" class="py-2 bg-slate-50 text-center rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-indigo-600 hover:text-white transition-colors">Sửa</a>
-                        <button onclick="if(confirm('Xóa bộ sưu tập này?')){ document.getElementById('del_{{c.id}}').submit(); }" class="py-2 bg-rose-50 rounded-xl border border-rose-200 text-xs font-bold text-rose-600 hover:bg-rose-600 hover:text-white transition-colors">Xóa</button>
-                        <form id="del_{{c.id}}" action="{{ url_for('admin.delete_collection', cid=c.id) }}" method="POST" class="hidden"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"></form>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    {% endif %}
-</div>
-
-{# ── DRAWER KÉO THẢ SẮP XẾP TRANG CHỦ ── #}
-{% set home_list = colles | selectattr('show_on_home', 'equalto', true) | sort(attribute='sort_order') | list %}
-{% set hide_list = colles | selectattr('show_on_home', 'equalto', false) | list %}
-<div id="lyModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden justify-end">
-    <div class="absolute inset-0" onclick="document.getElementById('lyModal').classList.add('hidden')"></div>
-    <div class="w-full max-w-md bg-white h-full relative z-10 p-6 flex flex-col shadow-2xl animate-slide-in">
-        <h2 class="text-lg font-bold text-slate-900 mb-1">Thiết lập Trang chủ khách hàng</h2>
-        <p class="text-xs text-slate-400 mb-6">Thả bộ sưu tập vào ô vàng để đưa ra trang chủ.</p>
-        <form action="{{ url_for('admin.update_homepage_layout') }}" method="POST" class="flex-1 flex flex-col overflow-hidden">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="flex-1 overflow-y-auto space-y-6 pr-1 no-scrollbar">
-                <div>
-                    <h4 class="text-xs font-bold text-amber-600 uppercase tracking-wider mb-2">⭐ Đang hiển thị ở trang chủ</h4>
-                    <div id="hList" class="min-h-[120px] bg-amber-50/40 border-2 border-dashed border-amber-200 rounded-2xl p-2.5 flex flex-col gap-2">
-                        {% for x in home_list %}
-                        <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center cursor-grab" data-id="{{ x.id }}">
-                            <input type="hidden" name="home_cats[]" value="{{ x.id }}" class="c-inp">
-                            <span class="text-sm font-bold text-slate-800">{{ x.name }}</span><i class="fa-solid fa-bars text-slate-300 text-xs"></i>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-                <div>
-                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">📦 Kho lưu trữ BST ẩn</h4>
-                    <div id="aList" class="min-h-[120px] bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-2.5 flex flex-col gap-2">
-                        {% for x in hide_list %}
-                        <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center cursor-grab opacity-70" data-id="{{ x.id }}">
-                            <input type="hidden" name="home_cats[]" value="{{ x.id }}" class="c-inp" disabled>
-                            <span class="text-sm font-bold text-slate-600">{{ x.name }}</span><i class="fa-solid fa-bars text-slate-300 text-xs"></i>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-            <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3.5 rounded-xl text-sm mt-4">Cập nhật bố cục</button>
-        </form>
-    </div>
-</div>
-
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        new Sortable(document.getElementById('hList'), { group:'shared', animation:150, ghostClass:'sortable-ghost', onAdd: e => { e.item.querySelector('.c-inp').disabled = false; e.item.classList.remove('opacity-70'); } });
-        new Sortable(document.getElementById('aList'), { group:'shared', animation:150, ghostClass:'sortable-ghost', onAdd: e => { e.item.querySelector('.c-inp').disabled = true; e.item.classList.add('opacity-70'); } });
-    });
-</script>
-{% endblock %}
-</file>
-
 <file path=".env.example">
 SUPABASE_URL=https://eshbhcxlwxmlgbkgjlmu.supabase.co
 SUPABASE_KEY=sb_publishable_QmS0sLUOmLXJFi5T4oac8w_YxMpmO6Q
@@ -1415,6 +1129,130 @@ review_submitted_event = signal('review-submitted')
 
 <file path="app/models/__init__.py">
 
+</file>
+
+<file path="app/models/collection_model.py">
+"""
+app/models/collection_model.py
+===========================
+Quản lý các chiến dịch bộ sưu tập thời trang xu hướng (Lookbook/Campaigns).
+"""
+import logging
+from datetime import datetime
+from typing import List, Dict, Optional, Any
+from app.utils.supabase_client import get_supabase, get_supabase_admin
+
+logger = logging.getLogger(__name__)
+
+class CollectionModel:
+
+    @staticmethod
+    def _db(): 
+        return get_supabase()
+
+    @staticmethod
+    def _db_admin(): 
+        return get_supabase_admin()
+
+    @staticmethod
+    def get_all(active_only: bool = False, admin_mode: bool = False) -> List[Dict]:
+        """
+        Lấy danh sách bộ sưu tập.
+        - Nếu admin_mode=True: Bypass RLS, lấy cả những bộ sưu tập đang ẩn.
+        - Nếu active_only=True: Chỉ lấy những bộ sưu tập có is_active=True.
+        """
+        db = CollectionModel._db_admin() if admin_mode else CollectionModel._db()
+        try:
+            query = db.table("collections").select("*")
+            
+            if active_only:
+                query = query.eq("is_active", True)
+            
+            # Ưu tiên sort_order, nếu trùng thì lấy cái mới tạo gần nhất
+            r = query.order("sort_order").order("created_at", desc=True).execute()
+            return r.data or []
+        except Exception as e:
+            logger.error(f"Lỗi truy vấn danh sách bộ sưu tập: {e}")
+            return []
+
+    @staticmethod
+    def get_by_id(cid: str) -> Optional[Dict]:
+        db = CollectionModel._db_admin()
+        try:
+            r = db.table("collections").select("*").eq("id", cid).limit(1).execute()
+            return r.data[0] if r.data else None
+        except Exception as e:
+            logger.error(f"Lỗi lấy bộ sưu tập ID: {cid} — {e}")
+            return None
+
+    @staticmethod
+    def create(data: Dict[str, Any]) -> Dict:
+        db = CollectionModel._db_admin()
+        try:
+            r = db.table("collections").insert(data).execute()
+            return r.data[0] if r.data else {}
+        except Exception as e:
+            logger.error(f"Lỗi tạo bộ sưu tập mới: {e}")
+            return {}
+
+    @staticmethod
+    def update(cid: str, data: Dict[str, Any]) -> Dict:
+        db = CollectionModel._db_admin()
+        try:
+            # Loại bỏ None để tránh ghi đè dữ liệu rác vào Supabase
+            clean_data = {k: v for k, v in data.items() if v is not None}
+            if not clean_data: return {}
+            
+            r = db.table("collections").update(clean_data).eq("id", cid).execute()
+            return r.data[0] if r.data else {}
+        except Exception as e:
+            logger.error(f"Lỗi cập nhật bộ sưu tập ID: {cid} — {e}")
+            return {}
+
+    @staticmethod
+    def delete(cid: str) -> bool:
+        db = CollectionModel._db_admin()
+        try:
+            # Lấy info để xóa file media trên storage trước khi xóa record
+            coll = CollectionModel.get_by_id(cid)
+            if not coll: return False
+            
+            r = db.table("collections").delete().eq("id", cid).execute()
+            if r.data:
+                if coll.get("image_url"): CollectionModel.delete_media_from_url(coll["image_url"])
+                if coll.get("video_url"): CollectionModel.delete_media_from_url(coll["video_url"])
+            return bool(r.data)
+        except Exception as e:
+            logger.error(f"Lỗi xóa bộ sưu tập ID: {cid} — {e}")
+            return False
+
+    @staticmethod
+    def upload_media(file_bytes: bytes, filename: str, content_type: str) -> str:
+        db = CollectionModel._db_admin()
+        try:
+            # Đảm bảo đường dẫn file an toàn
+            safe_filename = filename.replace(" ", "_")
+            path = f"media/{datetime.now().strftime('%Y%m%d_%H%M%S')}_{safe_filename}"
+            db.storage.from_("store-assets").upload(path, file_bytes, {"content-type": content_type})
+            return db.storage.from_("store-assets").get_public_url(path)
+        except Exception as e:
+            logger.error(f"Lỗi đẩy file bộ sưu tập lên Storage: {e}")
+            return ""
+
+    @staticmethod
+    def delete_media_from_url(public_url: str) -> bool:
+        db = CollectionModel._db_admin()
+        try:
+            if not public_url or "store-assets" not in public_url: return False
+            # Trích xuất đường dẫn file sau tên bucket
+            parts = public_url.split("/store-assets/")
+            if len(parts) > 1:
+                db.storage.from_("store-assets").remove([parts[1]])
+                return True
+            return False
+        except Exception as e:
+            logger.error(f"Lỗi xóa file rác từ URL: {e}")
+            return False
 </file>
 
 <file path="app/models/notification_model.py">
@@ -3652,6 +3490,179 @@ class SelfShipProvider(BaseShippingProvider):
         content.classList.replace('scale-100', 'scale-95');
         setTimeout(() => { modal.classList.replace('flex', 'hidden'); }, 300);
     }
+</script>
+{% endblock %}
+</file>
+
+<file path="app/templates/admin/collection_form.html">
+{% extends "admin/admin_base.html" %}
+{% block title %}Biểu mẫu Bộ sưu tập | GUA Admin{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>body{font-family:'Plus Jakarta Sans',sans-serif;background-color:#f8fafc;}</style>
+{% endblock %}
+
+{% block content %}
+<form method="POST" enctype="multipart/form-data" class="max-w-5xl mx-auto px-4 py-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="lg:col-span-2 bg-white border border-slate-200 rounded-3xl p-6 space-y-6 shadow-sm">
+        <div class="flex items-center gap-3 border-b border-slate-100 pb-4">
+            <a href="{{ url_for('admin.collections') }}" class="w-8 h-8 border border-slate-200 rounded-full flex items-center justify-center text-slate-400 hover:text-black"><i class="fa-solid fa-arrow-left text-xs"></i></a>
+            <h2 class="text-base font-bold text-slate-900">Thông tin bộ sưu tập</h2>
+        </div>
+        <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Tên bộ sưu tập chiến dịch *</label>
+            <input type="text" name="name" value="{{ cat.name if cat else '' }}" required placeholder="Vd: Summer Lookbook 2026" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-semibold focus:outline-none focus:bg-white focus:border-indigo-500 transition-all">
+        </div>
+        <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Mô tả thông điệp</label>
+            <textarea name="description" rows="3" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:bg-white focus:border-indigo-500 transition-all">{{ cat.description if cat else '' }}</textarea>
+        </div>
+        <div class="border-t border-slate-100 pt-4 space-y-4">
+            <label class="block text-xs font-bold text-slate-500 uppercase">Dán đường dẫn URL Media</label>
+            <input type="url" name="external_url" value="{{ cat.video_url if cat and cat.video_url else (cat.image_url if cat else '') }}" placeholder="Hỗ trợ link ảnh tĩnh hoặc link file .mp4 từ iCloud/Drive..." class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-xs focus:outline-none focus:bg-white focus:border-indigo-500 transition-all">
+            <div class="border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center bg-slate-50 hover:bg-slate-100/50 transition-colors relative cursor-pointer" onclick="document.getElementById('f').click()">
+                <input type="file" id="f" name="collection_media" accept="image/*,video/mp4" class="hidden">
+                <i class="fa-solid fa-photo-film text-slate-300 text-2xl mb-2"></i>
+                <p class="text-xs font-bold text-slate-600">Hoặc tải file từ máy tính lên hệ thống Storage</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm h-fit">
+        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Cấu hình luồng</h3>
+        <label class="flex items-center justify-between cursor-pointer p-3 bg-slate-50 rounded-xl">
+            <span class="text-xs font-bold text-slate-600 uppercase">Kích hoạt chiến dịch</span>
+            <div class="relative inline-flex items-center">
+                <input type="checkbox" name="is_active" class="sr-only peer" {% if not cat or cat.is_active %}checked{% endif %}>
+                <div class="w-8 h-4 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
+            </div>
+        </label>
+        <label class="flex items-center justify-between cursor-pointer p-3 bg-amber-50/50 rounded-xl border border-amber-100">
+            <span class="text-xs font-bold text-amber-800 uppercase">Đưa ra ngoài trang chủ</span>
+            <div class="relative inline-flex items-center">
+                <input type="checkbox" name="show_on_home" class="sr-only peer" {% if cat and cat.show_on_home %}checked{% endif %}>
+                <div class="w-8 h-4 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500"></div>
+            </div>
+        </label>
+        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl text-xs uppercase tracking-wider mt-4 transition-colors">Xác nhận lưu</button>
+    </div>
+</form>
+{% endblock %}
+</file>
+
+<file path="app/templates/admin/collections.html">
+{% extends "admin/admin_base.html" %}
+{% block title %}Bộ sưu tập Campaigns | GUA Admin{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
+    .modern-card { background: #fff; border: 1px solid #f1f5f9; border-radius: 1.5rem; box-shadow: 0 4px 20px -2px rgba(0,0,0,0.03); }
+    .sortable-ghost { opacity: 0.3; background: #e0e7ff; border: 2px dashed #6366f1 !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-screen-2xl mx-auto px-4 md:px-8 py-10 relative">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Chiến dịch & Xu hướng</p>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900">Quản lý Bộ sưu tập (Collections)</h1>
+        </div>
+        <div class="flex gap-3">
+            <button onclick="document.getElementById('lyModal').classList.remove('hidden')" class="bg-white border border-slate-200 text-slate-700 px-5 py-2.5 rounded-full text-sm font-bold hover:bg-slate-50 shadow-sm flex items-center gap-2">
+                <i class="fa-solid fa-layer-group text-amber-500"></i> Kéo thả vị trí trang chủ
+            </button>
+            <a href="{{ url_for('admin.add_collection') }}" class="bg-indigo-600 text-white px-6 py-2.5 rounded-full text-sm font-bold hover:bg-indigo-700 shadow-md flex items-center gap-2">
+                <i class="fa-solid fa-plus"></i> Thêm BST mới
+            </a>
+        </div>
+    </div>
+
+    {% if colles %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {% for c in colles %}
+            <div class="modern-card overflow-hidden flex flex-col group">
+                <div class="relative w-full h-44 bg-slate-100 overflow-hidden">
+                    {% if c.video_url %}
+                        <video src="{{ c.video_url }}" autoplay loop muted playsinline class="w-full h-full object-cover"></video>
+                    {% elif c.image_url %}
+                        <img src="{{ c.image_url }}" class="w-full h-full object-cover">
+                    {% else %}
+                        <div class="w-full h-full flex items-center justify-center text-slate-300"><i class="fa-solid fa-camera-retro text-3xl"></i></div>
+                    {% endif %}
+                </div>
+                <div class="p-4 flex-1 flex flex-col justify-between">
+                    <div>
+                        <h3 class="font-bold text-slate-900 leading-tight truncate">{{ c.name }}</h3>
+                        <p class="text-[10px] text-slate-400 font-mono mt-0.5 truncate">{{ c.slug }}</p>
+                        <p class="text-xs text-slate-400 line-clamp-2 mt-2">{{ c.description or 'Chưa cấu hình mô tả.' }}</p>
+                    </div>
+                    <div class="flex gap-2 mt-4 pt-3 border-t border-slate-100">
+                        {% if c.show_on_home %}<span class="bg-amber-50 border border-amber-200 text-amber-700 font-bold text-[9px] px-2 py-0.5 rounded-md uppercase tracking-wider">Trang chủ #{{ c.sort_order }}</span>{% endif %}
+                        {% if c.is_active %}<span class="bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-[9px] px-2 py-0.5 rounded-md uppercase tracking-wider">Hiển thị</span>{% endif %}
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mt-4">
+                        <a href="{{ url_for('admin.edit_collection', cid=c.id) }}" class="py-2 bg-slate-50 text-center rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-indigo-600 hover:text-white transition-colors">Sửa</a>
+                        <button onclick="if(confirm('Xóa bộ sưu tập này?')){ document.getElementById('del_{{c.id}}').submit(); }" class="py-2 bg-rose-50 rounded-xl border border-rose-200 text-xs font-bold text-rose-600 hover:bg-rose-600 hover:text-white transition-colors">Xóa</button>
+                        <form id="del_{{c.id}}" action="{{ url_for('admin.delete_collection', cid=c.id) }}" method="POST" class="hidden"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"></form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+
+{# ── DRAWER KÉO THẢ SẮP XẾP TRANG CHỦ ── #}
+{% set home_list = colles | selectattr('show_on_home', 'equalto', true) | sort(attribute='sort_order') | list %}
+{% set hide_list = colles | selectattr('show_on_home', 'equalto', false) | list %}
+<div id="lyModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden justify-end">
+    <div class="absolute inset-0" onclick="document.getElementById('lyModal').classList.add('hidden')"></div>
+    <div class="w-full max-w-md bg-white h-full relative z-10 p-6 flex flex-col shadow-2xl animate-slide-in">
+        <h2 class="text-lg font-bold text-slate-900 mb-1">Thiết lập Trang chủ khách hàng</h2>
+        <p class="text-xs text-slate-400 mb-6">Thả bộ sưu tập vào ô vàng để đưa ra trang chủ.</p>
+        <form action="{{ url_for('admin.update_homepage_layout') }}" method="POST" class="flex-1 flex flex-col overflow-hidden">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="flex-1 overflow-y-auto space-y-6 pr-1 no-scrollbar">
+                <div>
+                    <h4 class="text-xs font-bold text-amber-600 uppercase tracking-wider mb-2">⭐ Đang hiển thị ở trang chủ</h4>
+                    <div id="hList" class="min-h-[120px] bg-amber-50/40 border-2 border-dashed border-amber-200 rounded-2xl p-2.5 flex flex-col gap-2">
+                        {% for x in home_list %}
+                        <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center cursor-grab" data-id="{{ x.id }}">
+                            <input type="hidden" name="home_cats[]" value="{{ x.id }}" class="c-inp">
+                            <span class="text-sm font-bold text-slate-800">{{ x.name }}</span><i class="fa-solid fa-bars text-slate-300 text-xs"></i>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div>
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">📦 Kho lưu trữ BST ẩn</h4>
+                    <div id="aList" class="min-h-[120px] bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-2.5 flex flex-col gap-2">
+                        {% for x in hide_list %}
+                        <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center cursor-grab opacity-70" data-id="{{ x.id }}">
+                            <input type="hidden" name="home_cats[]" value="{{ x.id }}" class="c-inp" disabled>
+                            <span class="text-sm font-bold text-slate-600">{{ x.name }}</span><i class="fa-solid fa-bars text-slate-300 text-xs"></i>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3.5 rounded-xl text-sm mt-4">Cập nhật bố cục</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        new Sortable(document.getElementById('hList'), { group:'shared', animation:150, ghostClass:'sortable-ghost', onAdd: e => { e.item.querySelector('.c-inp').disabled = false; e.item.classList.remove('opacity-70'); } });
+        new Sortable(document.getElementById('aList'), { group:'shared', animation:150, ghostClass:'sortable-ghost', onAdd: e => { e.item.querySelector('.c-inp').disabled = true; e.item.classList.add('opacity-70'); } });
+    });
 </script>
 {% endblock %}
 </file>
@@ -35874,58 +35885,92 @@ if __name__ == "__main__":
 <file path="app/context_processors.py">
 """
 app/context_processors.py
+=========================
 Inject biến toàn cục vào mọi template.
 
-Thay đổi: pending_returns giờ query cho cả 'admin' lẫn 'staff'
-          (trước đây chỉ query khi role == 'admin' nên staff không thấy badge).
+BẢN CẬP NHẬT: 
+- Tích hợp In-memory TTL Caching (Bộ nhớ đệm cục bộ) không cần thư viện ngoài.
+- Giải quyết triệt để tình trạng nút thắt cổ chai (bottleneck) làm chậm web 
+  khi render Navbar và Mega Menu.
 """
 
 import logging
+import time
 from flask import session
 from app.utils.supabase_client import get_supabase
 from app.models.cart_model import CartModel
 from app.models.category_model import CategoryModel
+from app.models.collection_model import CollectionModel
 from app.models.setting_model import SettingModel
 
 logger = logging.getLogger(__name__)
 
+# ═══════════════════════════════════════════════════════════════
+#  CƠ CHẾ CACHING CỤC BỘ (IN-MEMORY TTL CACHE)
+# ═══════════════════════════════════════════════════════════════
+# Lưu trữ dữ liệu tĩnh trên RAM của server. Mặc định: 15 phút (900 giây).
+_GLOBAL_CACHE = {}
+CACHE_TTL_SECONDS = 900 
+
+def _get_cached_data(key: str, fetch_func):
+    """
+    Kiểm tra cache trước khi gọi DB. Trả về dữ liệu trong 0ms nếu cache còn hiệu lực.
+    """
+    now = time.time()
+    
+    # 1. Nếu có cache và chưa hết hạn -> Trả về lập tức
+    if key in _GLOBAL_CACHE and (now - _GLOBAL_CACHE[key]['timestamp'] < CACHE_TTL_SECONDS):
+        return _GLOBAL_CACHE[key]['data']
+    
+    # 2. Nếu không có hoặc hết hạn -> Gọi Supabase để làm mới dữ liệu
+    try:
+        data = fetch_func()
+        _GLOBAL_CACHE[key] = {'data': data, 'timestamp': now}
+        return data
+    except Exception as e:
+        logger.warning(f"Lỗi khi fetch cache key '{key}': {e}")
+        # Trả về dữ liệu cũ (stale data) nếu Supabase tạm thời rớt mạng
+        return _GLOBAL_CACHE.get(key, {}).get('data', None)
+
+# ═══════════════════════════════════════════════════════════════
+#  CONTEXT PROCESSOR
+# ═══════════════════════════════════════════════════════════════
 
 def inject_globals() -> dict:
     cart_count = 0
-    categories = []
     pending_returns = 0
-    system_settings = {}
+    unread_notification_count = 0
 
     user_id = session.get("user_id")
     role = session.get("role")
 
-    # System settings
-    try:
-        system_settings = SettingModel.get_settings()
-    except Exception:
-        logger.warning("context_processor: Lỗi khi lấy system_settings.")
+    # ────────────────────────────────────────────────────────────────
+    # PHẦN 1: DỮ LIỆU DÙNG CHUNG (TỐC ĐỘ BÀN THỜ NHỜ CACHE)
+    # Không còn tốn 300ms-400ms gọi API ngầm cho mỗi lần F5 trang.
+    # ────────────────────────────────────────────────────────────────
+    system_settings = _get_cached_data("settings", lambda: SettingModel.get_settings()) or {}
+    categories = _get_cached_data("categories", lambda: CategoryModel.get_all()) or []
+    collections = _get_cached_data("collections", lambda: CollectionModel.get_all(admin_mode=False)) or []
 
-    # Thông báo chưa đọc
-    unread_notification_count = 0
+    # ────────────────────────────────────────────────────────────────
+    # PHẦN 2: DỮ LIỆU CÁ NHÂN HÓA (DYNAMIC PER USER)
+    # Phải gọi trực tiếp vì mỗi User có Giỏ hàng & Thông báo khác nhau.
+    # ────────────────────────────────────────────────────────────────
     if user_id:
         try:
             cart_count = CartModel.get_count(user_id)
         except Exception:
             pass
+            
         try:
             from app.models.notification_model import NotificationModel
             unread_notification_count = NotificationModel.get_unread_count(user_id)
         except Exception:
             pass
 
-    # Categories
-    try:
-        categories = CategoryModel.get_all()
-    except Exception:
-        pass
-
-    # pending_returns: hiện cho cả admin và staff vào trang /admin
-    # (staff cần thấy badge đổi/trả nếu họ có quyền xử lý)
+    # ────────────────────────────────────────────────────────────────
+    # PHẦN 3: DỮ LIỆU QUẢN TRỊ VIÊN
+    # ────────────────────────────────────────────────────────────────
     if role in ("admin", "staff"):
         try:
             r = (
@@ -35939,17 +35984,18 @@ def inject_globals() -> dict:
         except Exception as e:
             logger.warning(f"context_processor: không lấy được pending_returns — {e}")
 
+    # Bơm dữ liệu ra giao diện Jinja2
     return {
         "current_user": {
             "id": user_id,
             "email": session.get("email"),
             "full_name": session.get("full_name"),
             "role": role,
-            # admin_role_slug hữu ích để template kiểm tra quyền cụ thể
             "admin_role_slug": session.get("admin_role_slug"),
         },
         "cart_count": cart_count,
         "global_categories": categories,
+        "global_collections": collections,
         "pending_returns": pending_returns,
         "system_settings": system_settings,
         "unread_notification_count": unread_notification_count,
@@ -40980,16 +41026,16 @@ document.addEventListener("DOMContentLoaded", () => {
       </h1>
       
       <p class="text-[9px] md:text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-400">
-        {{ categories|length }} Bộ sưu tập
+        {{ collections|length }} Bộ sưu tập
       </p>
 
     </div>
   </header>
 
-  {# ── LƯỚI DANH MỤC (Lookbook Grid Edge-to-Edge) ── #}
+  {# ── LƯỚI BỘ SƯU TẬP (Lookbook Grid Edge-to-Edge) ── #}
   <div class="max-w-[1600px] mx-auto pt-4 md:pt-8 w-full">
     
-    {% if categories %}
+    {% if collections %}
     {# 
       Layout Responsive:
       - Mobile: 1 cột (toàn màn hình, chuẩn lookbook lướt dọc)
@@ -40999,17 +41045,18 @@ document.addEventListener("DOMContentLoaded", () => {
     #}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0.5 md:gap-1 p-0.5 md:p-1">
       
-      {% for cat in categories %}
-      <a href="/shop?category={{ cat.slug }}" class="relative group block aspect-[4/5] md:aspect-[3/4] lg:aspect-[4/5] bg-[#f8f8f8] overflow-hidden">
+      {% for col in collections %}
+      {# Đã sửa tham số filter từ ?category= sang ?collection= để lọc đúng loại #}
+      <a href="/shop?collection={{ col.slug }}" class="relative group block aspect-[4/5] md:aspect-[3/4] lg:aspect-[4/5] bg-[#f8f8f8] overflow-hidden">
         
         {# Media (Hỗ trợ cả Video và Ảnh - Đảm bảo Object-Cover chuẩn) #}
-        {% if cat.video_url %}
+        {% if col.video_url %}
           <video autoplay loop muted playsinline class="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-[2000ms] ease-out group-hover:scale-105">
-            <source src="{{ cat.video_url }}" type="video/mp4"/>
+            <source src="{{ col.video_url }}" type="video/mp4"/>
           </video>
         {% else %}
-          <img src="{{ cat.image_url if cat.image_url else 'https://placehold.co/800x1000/f8f8f8/a3a3a3?text=' ~ (cat.name|urlencode) }}" 
-               alt="{{ cat.name }}" 
+          <img src="{{ col.image_url if col.image_url else 'https://placehold.co/800x1000/f8f8f8/a3a3a3?text=' ~ (col.name|urlencode) }}" 
+               alt="{{ col.name }}" 
                class="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-[2000ms] ease-out group-hover:scale-105 mix-blend-multiply" 
                loading="lazy">
         {% endif %}
@@ -41020,12 +41067,12 @@ document.addEventListener("DOMContentLoaded", () => {
         {# Nội dung chữ #}
         <div class="absolute bottom-6 left-5 md:bottom-10 md:left-8 z-10 text-white right-5">
           <h2 class="text-3xl md:text-4xl lg:text-5xl font-normal uppercase tracking-widest mb-2 md:mb-3 drop-shadow-md leading-tight line-clamp-2" style="font-family: var(--font-display);">
-            {{ cat.name }}
+            {{ col.name }}
           </h2>
           
-          {% if cat.description %}
+          {% if col.description %}
             <p class="text-[10px] md:text-[11px] font-medium tracking-wide text-neutral-300 max-w-[90%] md:max-w-[80%] mb-4 line-clamp-2 leading-relaxed">
-              {{ cat.description }}
+              {{ col.description }}
             </p>
           {% else %}
             <div class="h-2 md:h-4"></div> {# Spacer nếu không có mô tả #}
@@ -43922,94 +43969,6 @@ class CartModel:
             return True
         except Exception as e:
             logger.error(f"[CartModel.clear_cart] Lỗi làm trống giỏ hàng của user {user_id}: {e}")
-            return False
-</file>
-
-<file path="app/models/category_model.py">
-"""
-app/models/category_model.py
-=========================
-CRUD Danh mục hàng hóa thuần túy (Chủng loại cứng). 
-Đã loại bỏ toàn bộ tính năng xử lý Media để tối ưu dung lượng và tốc độ phản hồi hệ thống.
-"""
-import logging
-import re
-from typing import List, Dict, Optional, Any
-from app.utils.supabase_client import get_supabase, get_supabase_admin
-
-logger = logging.getLogger(__name__)
-
-class CategoryModel:
-
-    @staticmethod
-    def generate_slug(name: str) -> str:
-        if not name: return ""
-        slug = name.lower()
-        slug = re.sub(r'[áàảãạăắằẳẵặâấầẩẫậ]', 'a', slug)
-        slug = re.sub(r'[éèẻẽẹêếềểễệ]', 'e', slug)
-        slug = re.sub(r'[íìỉĩị]', 'i', slug)
-        slug = re.sub(r'[óòỏõọôốồổỗộơớờởỡợ]', 'o', slug)
-        slug = re.sub(r'[úùủũụưứừửữự]', 'u', slug)
-        slug = re.sub(r'[ýỳỷỹỵ]', 'y', slug)
-        slug = re.sub(r'[đ]', 'd', slug)
-        slug = re.sub(r'[^a-z0-9\s-]', '', slug)
-        slug = re.sub(r'[\s-]+', '-', slug).strip('-')
-        return slug
-
-    @staticmethod
-    def get_all(active_only: bool = False) -> List[Dict]:
-        db = get_supabase()
-        try:
-            query = db.table("categories").select("*")
-            if active_only:
-                query = query.eq("is_active", True)
-            r = query.order("name").execute()
-            return r.data or []
-        except Exception:
-            logger.exception("Lỗi lấy danh sách danh mục cứng")
-            return []
-
-    @staticmethod
-    def get_by_id(cid: str) -> Optional[Dict]:
-        db = get_supabase()
-        try:
-            r = db.table("categories").select("*").eq("id", cid).limit(1).execute()
-            return r.data[0] if r.data else None
-        except Exception:
-            logger.exception(f"Lỗi lấy danh mục ID: {cid}")
-            return None
-
-    @staticmethod
-    def create(data: Dict[str, Any]) -> Dict:
-        db = get_supabase_admin()
-        try:
-            if not data.get("slug") and data.get("name"):
-                data["slug"] = CategoryModel.generate_slug(data["name"])
-            r = db.table("categories").insert(data).execute()
-            return r.data[0] if r.data else {}
-        except Exception:
-            logger.exception("Lỗi tạo danh mục mới")
-            return {}
-
-    @staticmethod
-    def update(cid: str, data: Dict[str, Any]) -> Dict:
-        db = get_supabase_admin()
-        try:
-            clean_data = {k: v for k, v in data.items() if v is not None}
-            r = db.table("categories").update(clean_data).eq("id", cid).execute()
-            return r.data[0] if r.data else {}
-        except Exception:
-            logger.exception(f"Lỗi cập nhật danh mục ID: {cid}")
-            return {}
-
-    @staticmethod
-    def delete(cid: str) -> bool:
-        db = get_supabase_admin()
-        try:
-            r = db.table("categories").delete().eq("id", cid).execute()
-            return bool(r.data)
-        except Exception:
-            logger.exception(f"Lỗi xóa danh mục ID: {cid}")
             return False
 </file>
 
@@ -47949,6 +47908,94 @@ def super_admin_required(f: Callable) -> Callable:
     return decorated
 </file>
 
+<file path="app/models/category_model.py">
+"""
+app/models/category_model.py
+=========================
+CRUD Danh mục hàng hóa thuần túy (Chủng loại cứng). 
+Đã loại bỏ toàn bộ tính năng xử lý Media để tối ưu dung lượng và tốc độ phản hồi hệ thống.
+"""
+import logging
+import re
+from typing import List, Dict, Optional, Any
+from app.utils.supabase_client import get_supabase, get_supabase_admin
+
+logger = logging.getLogger(__name__)
+
+class CategoryModel:
+
+    @staticmethod
+    def generate_slug(name: str) -> str:
+        if not name: return ""
+        slug = name.lower()
+        slug = re.sub(r'[áàảãạăắằẳẵặâấầẩẫậ]', 'a', slug)
+        slug = re.sub(r'[éèẻẽẹêếềểễệ]', 'e', slug)
+        slug = re.sub(r'[íìỉĩị]', 'i', slug)
+        slug = re.sub(r'[óòỏõọôốồổỗộơớờởỡợ]', 'o', slug)
+        slug = re.sub(r'[úùủũụưứừửữự]', 'u', slug)
+        slug = re.sub(r'[ýỳỷỹỵ]', 'y', slug)
+        slug = re.sub(r'[đ]', 'd', slug)
+        slug = re.sub(r'[^a-z0-9\s-]', '', slug)
+        slug = re.sub(r'[\s-]+', '-', slug).strip('-')
+        return slug
+
+    @staticmethod
+    def get_all(active_only: bool = False) -> List[Dict]:
+        db = get_supabase()
+        try:
+            query = db.table("categories").select("*")
+            if active_only:
+                query = query.eq("is_active", True)
+            r = query.order("name").execute()
+            return r.data or []
+        except Exception:
+            logger.exception("Lỗi lấy danh sách danh mục cứng")
+            return []
+
+    @staticmethod
+    def get_by_id(cid: str) -> Optional[Dict]:
+        db = get_supabase()
+        try:
+            r = db.table("categories").select("*").eq("id", cid).limit(1).execute()
+            return r.data[0] if r.data else None
+        except Exception:
+            logger.exception(f"Lỗi lấy danh mục ID: {cid}")
+            return None
+
+    @staticmethod
+    def create(data: Dict[str, Any]) -> Dict:
+        db = get_supabase_admin()
+        try:
+            if not data.get("slug") and data.get("name"):
+                data["slug"] = CategoryModel.generate_slug(data["name"])
+            r = db.table("categories").insert(data).execute()
+            return r.data[0] if r.data else {}
+        except Exception:
+            logger.exception("Lỗi tạo danh mục mới")
+            return {}
+
+    @staticmethod
+    def update(cid: str, data: Dict[str, Any]) -> Dict:
+        db = get_supabase_admin()
+        try:
+            clean_data = {k: v for k, v in data.items() if v is not None}
+            r = db.table("categories").update(clean_data).eq("id", cid).execute()
+            return r.data[0] if r.data else {}
+        except Exception:
+            logger.exception(f"Lỗi cập nhật danh mục ID: {cid}")
+            return {}
+
+    @staticmethod
+    def delete(cid: str) -> bool:
+        db = get_supabase_admin()
+        try:
+            r = db.table("categories").delete().eq("id", cid).execute()
+            return bool(r.data)
+        except Exception:
+            logger.exception(f"Lỗi xóa danh mục ID: {cid}")
+            return False
+</file>
+
 <file path="app/templates/admin/coupons_form.html">
 {% extends "admin/admin_base.html" %}
 {% block title %}{{ 'Chỉnh sửa' if coupon else 'Tạo mới' }} Khuyến mãi | GUA Admin{% endblock %}
@@ -50127,475 +50174,6 @@ from . import notifications
 from . import audit_controller
 # 3. Export admin_bp ra ngoài (cho app/__init__.py gọi)
 __all__ = ["admin_bp"]
-</file>
-
-<file path="app/controllers/admin/products.py">
-"""
-app/controllers/admin/products.py
-=================================
-Tích hợp quản lý: Products (Sản phẩm & Biến thể), Categories (Danh mục ngành hàng cứng),
-và Campaign Collections (Bộ sưu tập hình ảnh/video kéo thả trang chủ).
-
-BẢN CẬP NHẬT:
-- Loại bỏ dấu ngoặc nhọn thừa gây crash SyntaxError ở cuối file.
-- Ép hàm hiển thị danh sách bộ sưu tập chạy qua admin_mode=True để xử lý triệt để lỗi ẩn hình do RLS.
-"""
-
-import logging
-from flask import render_template, redirect, url_for, flash, request, current_app
-from app.utils.supabase_client import get_supabase_admin
-from app.models.product_model import ProductModel
-from app.models.category_model import CategoryModel
-from app.models.collection_model import CollectionModel
-from app.middleware.auth_required import admin_required
-
-from . import admin_bp
-from ._helpers import (
-    handle_errors, _args, _form, _getlist, _filelist,
-    _db, _paginate, _total_pages, _allowed_file, SLUG_RE,
-)
-
-logger = logging.getLogger(__name__)
-
-# ── Form parsing ─────────────────────────────────────────────────
-
-def _product_data_from_form(form: dict) -> dict:
-    tags_raw = form.get("tags", "")
-    tags = [t.strip() for t in tags_raw.split(",") if t.strip()] if tags_raw else []
-
-    slug = form.get("slug", "").strip()
-    if not slug and form.get("name"):
-        slug = ProductModel.generate_slug(form.get("name"))
-
-    return {
-        "name": form.get("name", "").strip(),
-        "slug": slug,
-        "description": form.get("description", ""),
-        "price": float(form.get("price", 0)),
-        "category_id": form.get("category_id") or None,
-        "thumbnail_url": form.get("thumbnail_url", "").strip() or None,
-        "is_featured": "is_featured" in form,
-        "is_active": "is_active" in form,
-        "meta_title": form.get("meta_title", "").strip() or None,
-        "meta_description": form.get("meta_description", "").strip() or None, 
-        "gender": form.get("gender", "").strip() or None,
-        "tags": tags,
-    }
-
-# ── Image helpers ────────────────────────────────────────────────
-
-def _extract_image_urls() -> list[str]:
-    seen, result = set(), []
-    for raw in _getlist("image_urls"):
-        u = raw.strip()
-        if u and u not in seen:
-            seen.add(u)
-            result.append(u)
-    return result
-
-
-def _handle_images_on_save(pid: str, form_dict: dict) -> None:
-    uploaded = []
-    for file in _filelist("image_files"):
-        if file and _allowed_file(file.filename):
-            try:
-                url = ProductModel.upload_to_storage(
-                    file.read(), file.filename, file.content_type or "image/jpeg"
-                )
-                if url:
-                    uploaded.append(url)
-            except Exception:
-                pass
-
-    all_urls = list(dict.fromkeys(uploaded + _extract_image_urls()))
-    if not (all_urls or form_dict.get("_images_synced")):
-        return
-
-    ProductModel.sync_images(pid, all_urls)
-    images = ProductModel.get_images(pid)
-    thumb = next((img for img in images if img.get("is_primary")), images[0] if images else None)
-    if thumb:
-        ProductModel.update(pid, {"thumbnail_url": thumb["url"]})
-
-# ── Variant helpers ───────────────────────────────────────────────
-
-def _save_product_variants(db, pid: str) -> None:
-    db.table("product_variants").delete().eq("product_id", pid).execute()
-
-    sizes = _getlist("v_size[]")
-    colors = _getlist("v_color[]")
-    hexes = _getlist("v_color_hex[]")
-    stocks = _getlist("v_stock[]")
-    prices = _getlist("v_price_override[]")
-
-    total_stock, variants = 0, []
-
-    for i in range(len(sizes)):
-        s, c = sizes[i].strip(), colors[i].strip() if i < len(colors) else ""
-        if not s or not c:
-            continue
-
-        stk = _safe_int(stocks[i] if i < len(stocks) else "")
-        po = _safe_float(prices[i] if i < len(prices) else "")
-        
-        hex_color = hexes[i].strip() if i < len(hexes) else ""
-        if not hex_color.startswith("#"):
-            hex_color = None
-
-        total_stock += stk
-        variants.append({
-            "product_id": pid,
-            "size": s,
-            "color_name": c,
-            "color_hex": hex_color,
-            "stock": stk,
-            "price_override": po,
-        })
-
-    if variants:
-        db.table("product_variants").insert(variants).execute()
-    db.table("products").update({"stock": total_stock}).eq("id", pid).execute()
-
-
-def _safe_int(val: str) -> int:
-    try: return max(0, int(float(val.strip())))
-    except Exception: return 0
-
-
-def _safe_float(val: str):
-    try: return float(val.strip()) if val.strip() else None
-    except Exception: return None
-
-# ── Products Routes ────────────────────────────────────────────────────────
-
-@admin_bp.route("/products")
-@admin_required
-@handle_errors("Lỗi tải sản phẩm.")
-def products():
-    args = _args()
-    per_page_cfg = current_app.config.get("ADMIN_PRODUCTS_PER_PAGE", 15)
-    page, per_page, _ = _paginate(args, per_page_cfg)
-    keyword = args.get("q", "").strip()
-    status = args.get("status", "").strip()
-
-    db = _db()
-    query = db.table("products").select("*, categories(name), barcode", count="exact")
-
-    if keyword:
-        query = query.or_(f"name.ilike.%{keyword}%,barcode.ilike.%{keyword}%")
-
-    if status == "active":
-        query = query.eq("is_active", True).is_("deleted_at", "null")
-    elif status == "hidden":
-        query = query.eq("is_active", False).is_("deleted_at", "null")
-    elif status == "deleted":
-        query = query.filter("deleted_at", "not.is", "null")
-    else:
-        query = query.is_("deleted_at", "null")
-
-    start, end = (page - 1) * per_page, page * per_page - 1
-    try:
-        res = query.order("created_at", desc=True).range(start, end).execute()
-        products_list = res.data or []
-        total = res.count or 0
-    except Exception as e:
-        products_list, total = [], 0
-        current_app.logger.error(f"[Admin Products] Lỗi truy vấn: {e}")
-
-    return render_template(
-        "admin/products.html",
-        products=products_list,
-        total=total,
-        page=page,
-        total_pages=_total_pages(total, per_page),
-        keyword=keyword,
-        status=status,
-        cats=CategoryModel.get_all(),
-    )
-
-@admin_bp.route("/products/add", methods=["GET", "POST"])
-@admin_required
-@handle_errors("Lỗi hệ thống.", "admin.products")
-def add_product():
-    cats = CategoryModel.get_all()
-    colles = CollectionModel.get_all(admin_mode=True) # Load thêm BST phục vụ form chọn
-    
-    if request.method == "POST":
-        form = _form()
-        # Loại bỏ các trường liên kết Nhiều-Nhiều ra khỏi payload insert bảng products
-        prod_payload = _product_data_from_form(form)
-        prod_payload.pop("category_id", None) 
-        
-        prod = ProductModel.create(prod_payload)
-        if prod:
-            pid = prod["id"]
-            _handle_images_on_save(pid, form)
-            _save_product_variants(_db(), pid)
-            
-            # 🟢 ĐỒNG BỘ MẢNG QUAN HỆ NHIỀU - NHIỀU
-            selected_cats = request.form.getlist("category_ids[]")
-            selected_colls = request.form.getlist("collection_ids[]")
-            ProductModel.sync_categories(pid, selected_cats)
-            ProductModel.sync_collections(pid, selected_colls)
-            
-            flash(f"Đã thêm: {form.get('name', '').strip()}", "success")
-            return redirect(url_for("admin.products"))
-
-    return render_template("admin/product_form.html", product=None, cats=cats, colles=colles)
-
-
-@admin_bp.route("/products/edit/<pid>", methods=["GET", "POST"])
-@admin_required
-@handle_errors("Lỗi cập nhật.", "admin.products")
-def edit_product(pid):
-    product = ProductModel.get_by_id(pid)
-    cats = CategoryModel.get_all()
-    colles = CollectionModel.get_all(admin_mode=True)
-    
-    if not product:
-        flash("Sản phẩm không tồn tại.", "danger")
-        return redirect(url_for("admin.products"))
-
-    if request.method == "POST":
-        form = _form()
-        prod_payload = _product_data_from_form(form)
-        prod_payload.pop("category_id", None)
-        
-        is_updated = ProductModel.update(pid, prod_payload)
-        if is_updated:
-            _handle_images_on_save(pid, form)
-            _save_product_variants(_db(), pid)
-            
-            # 🟢 ĐỒNG BỘ MẢNG QUAN HỆ NHIỀU - NHIỀU KHI SỬA
-            selected_cats = request.form.getlist("category_ids[]")
-            selected_colls = request.form.getlist("collection_ids[]")
-            ProductModel.sync_categories(pid, selected_cats)
-            ProductModel.sync_collections(pid, selected_colls)
-            
-            flash("Lưu sản phẩm thành công!", "success")
-            return redirect(url_for("admin.products"))
-
-    return render_template("admin/product_form.html", product=product, cats=cats, colles=colles)
-
-
-@admin_bp.route("/products/delete/<pid>", methods=["POST"])
-@admin_required
-@handle_errors("Lỗi khi xóa.", "admin.products")
-def delete_product(pid):
-    if ProductModel.delete(pid, permanent=False):
-        flash("Đã đưa sản phẩm vào thùng rác (Ngừng hiển thị).", "success")
-    else:
-        flash("Lỗi khi xóa.", "danger")
-    return redirect(url_for("admin.products"))
-
-
-@admin_bp.route("/products/upload-async", methods=["POST"])
-@admin_required
-def upload_product_image_async():
-    """API hỗ trợ tải ảnh lên trực tiếp từ giao diện bằng AJAX"""
-    if "file" not in request.files:
-        return {"error": "Không tìm thấy file ảnh dữ liệu."}, 400
-        
-    file = request.files["file"]
-    if file and file.filename and _allowed_file(file.filename):
-        try:
-            url = ProductModel.upload_to_storage(
-                file.read(), file.filename, file.content_type or "image/jpeg"
-            )
-            if url:
-                return {"url": url}, 200
-        except Exception as e:
-            return {"error": str(e)}, 500
-            
-    return {"error": "Định dạng file ảnh không được hệ thống hỗ trợ."}, 400
-
-# ===================================================================
-#  CORE CATEGORIES ROUTES (DANH MỤC THUẦN TEXT - SIÊU NHẸ DỰ ÁN)
-# ===================================================================
-
-@admin_bp.route("/categories")
-@admin_required
-def categories():
-    return render_template("admin/categories.html", cats=CategoryModel.get_all())
-
-
-@admin_bp.route("/categories/add", methods=["POST"])
-@admin_required
-def add_category():
-    form = _form()
-    name = form.get("name", "").strip()
-    slug = form.get("slug", "").strip() or CategoryModel.generate_slug(name)
-    description = form.get("description", "").strip()
-    is_active = "is_active" in form
-
-    if name:
-        CategoryModel.create({
-            "name": name,
-            "slug": slug,
-            "description": description,
-            "is_active": is_active
-        })
-        flash(f"Đã thêm danh mục: {name}", "success")
-    else:
-        flash("Tên danh mục trống không hợp lệ.", "danger")
-    return redirect(url_for("admin.categories"))
-
-
-@admin_bp.route("/categories/edit/<cat_id>", methods=["GET", "POST"])
-@admin_required
-@handle_errors("Lỗi chỉnh sửa danh mục.", "admin.categories")
-def edit_category(cat_id):
-    cat = CategoryModel.get_by_id(cat_id)
-    if not cat:
-        flash("Danh mục không tồn tại.", "danger")
-        return redirect(url_for("admin.categories"))
-
-    if request.method == "POST":
-        form = _form()
-        name = form.get("name", "").strip()
-        slug = form.get("slug", "").strip() or CategoryModel.generate_slug(name)
-        description = form.get("description", "").strip()
-        is_active = "is_active" in form
-
-        if name:
-            CategoryModel.update(cat_id, {
-                "name": name,
-                "slug": slug,
-                "description": description,
-                "is_active": is_active
-            })
-            flash("Cập nhật danh mục thành công!", "success")
-            return redirect(url_for("admin.categories"))
-        else:
-            flash("Tên không hợp lệ.", "danger")
-
-    return render_template("admin/category_form.html", cat=cat)
-
-
-@admin_bp.route("/categories/delete/<cat_id>", methods=["POST"])
-@admin_required
-@handle_errors("Lỗi xóa danh mục.", "admin.categories")
-def delete_category(cat_id):
-    CategoryModel.delete(cat_id)
-    flash("Đã xóa danh mục khỏi hệ thống.", "success")
-    return redirect(url_for("admin.categories"))
-
-# ===================================================================
-#  CAMPAIGN COLLECTIONS ROUTES (BỘ SƯU TẬP TRANG CHỦ - KÉO THẢ VISUAL)
-# ===================================================================
-
-@admin_bp.route("/collections")
-@admin_required
-def collections():
-    # 🟢 ĐÃ SỬA: Thêm admin_mode=True để kéo toàn bộ danh sách, vượt rào RLS bảo mật của Supabase
-    return render_template("admin/collections.html", colles=CollectionModel.get_all(admin_mode=True))
-
-
-@admin_bp.route("/collections/add", methods=["GET", "POST"])
-@admin_required
-@handle_errors("Lỗi thêm bộ sưu tập.", "admin.collections")
-def add_collection():
-    if request.method == "POST":
-        form = _form()
-        name = form.get("name", "").strip()
-        slug = form.get("slug", "").strip() or CategoryModel.generate_slug(name)
-        description = form.get("description", "").strip()
-        is_active = "is_active" in form
-        show_on_home = "show_on_home" in form
-
-        image_url, video_url = None, None
-        ext_url = form.get("external_url", "").strip()
-
-        if ext_url:
-            if ext_url.lower().endswith('.mp4') or 'video' in ext_url.lower(): video_url = ext_url
-            else: image_url = ext_url
-        elif "collection_media" in request.files:
-            file = request.files["collection_media"]
-            if file and file.filename:
-                url = CollectionModel.upload_media(file.read(), file.filename, file.content_type)
-                if url:
-                    if "video" in (file.content_type or ""): video_url = url
-                    else: image_url = url
-
-        if name:
-            CollectionModel.create({
-                "name": name, "slug": slug, "description": description,
-                "is_active": is_active, "show_on_home": show_on_home,
-                "image_url": image_url, "video_url": video_url
-            })
-            flash(f"Đã thêm bộ sưu tập: {name}", "success")
-            return redirect(url_for("admin.collections"))
-
-    return render_template("admin/collection_form.html", cat=None)
-
-
-@admin_bp.route("/collections/edit/<cid>", methods=["GET", "POST"])
-@admin_required
-@handle_errors("Lỗi cập nhật lookbook.", "admin.collections")
-def edit_collection(cid):
-    cat = CollectionModel.get_by_id(cid)
-    if not cat:
-        flash("Bộ sưu tập không tồn tại.", "danger")
-        return redirect(url_for("admin.collections"))
-
-    if request.method == "POST":
-        form = _form()
-        name = form.get("name", "").strip()
-        slug = form.get("slug", "").strip() or CategoryModel.generate_slug(name)
-        description = form.get("description", "").strip()
-        is_active = "is_active" in form
-        show_on_home = "show_on_home" in form
-
-        image_url, video_url = cat.get("image_url"), cat.get("video_url")
-        ext_url = form.get("external_url", "").strip()
-
-        if ext_url:
-            if ext_url.lower().endswith('.mp4') or 'video' in ext_url.lower():
-                video_url, image_url = ext_url, None
-            else:
-                image_url, video_url = ext_url, None
-        elif "collection_media" in request.files:
-            file = request.files["collection_media"]
-            if file and file.filename:
-                url = CollectionModel.upload_media(file.read(), file.filename, file.content_type)
-                if url:
-                    if "video" in (file.content_type or ""): video_url, image_url = url, None
-                    else: image_url, video_url = url, None
-
-        if name:
-            CollectionModel.update(cid, {
-                "name": name, "slug": slug, "description": description,
-                "is_active": is_active, "show_on_home": show_on_home,
-                "image_url": image_url, "video_url": video_url
-            })
-            flash("Cập nhật bộ sưu tập thành công!", "success")
-            return redirect(url_for("admin.collections"))
-
-    return render_template("admin/collection_form.html", cat=cat)
-
-
-@admin_bp.route("/collections/delete/<cid>", methods=["POST"])
-@admin_required
-def delete_collection(cid):
-    CollectionModel.delete(cid)
-    flash("Đã xóa bộ sưu tập.", "success")
-    return redirect(url_for("admin.collections"))
-
-
-@admin_bp.route("/collections/update-homepage", methods=["POST"])
-@admin_required
-def update_homepage_layout():
-    home_ids = request.form.getlist("home_cats[]")
-    db = get_supabase_admin()
-    try:
-        db.table("collections").update({"show_on_home": False, "sort_order": 0}).eq("show_on_home", True).execute()
-        for index, cid in enumerate(home_ids):
-            db.table("collections").update({"show_on_home": True, "sort_order": index + 1}).eq("id", cid).execute()
-        flash("Đã lưu cấu hình kéo thả Lookbook trang chủ!", "success")
-    except Exception as e:
-        current_app.logger.error(f"Lỗi kéo thả: {e}")
-        flash("Lỗi kết nối gộp luồng.", "danger")
-    return redirect(url_for("admin.collections"))
 </file>
 
 <file path="app/controllers/cart_controller.py">
@@ -54139,6 +53717,487 @@ AI microservice được host riêng trên **Hugging Face Spaces** (Docker, port
 [MIT](./LICENSE) © 2026 **Khoa** — GUA Maison
 </file>
 
+<file path="app/controllers/admin/products.py">
+"""
+app/controllers/admin/products.py
+=================================
+Tích hợp quản lý: Products (Sản phẩm & Biến thể), Categories (Danh mục ngành hàng cứng),
+và Campaign Collections (Bộ sưu tập hình ảnh/video kéo thả trang chủ).
+
+BẢN CẬP NHẬT:
+- Loại bỏ dấu ngoặc nhọn thừa gây crash SyntaxError ở cuối file.
+- Ép hàm hiển thị danh sách bộ sưu tập chạy qua admin_mode=True để xử lý triệt để lỗi ẩn hình do RLS.
+- FIX LOGIC (HOTFIX): Bắt đúng tên trường category_id và collection_id từ Form HTML và dùng Admin Client.
+"""
+
+import logging
+from flask import render_template, redirect, url_for, flash, request, current_app
+from app.utils.supabase_client import get_supabase_admin
+from app.models.product_model import ProductModel
+from app.models.category_model import CategoryModel
+from app.models.collection_model import CollectionModel
+from app.middleware.auth_required import admin_required
+
+from . import admin_bp
+from ._helpers import (
+    handle_errors, _args, _form, _getlist, _filelist,
+    _db, _paginate, _total_pages, _allowed_file, SLUG_RE,
+)
+
+logger = logging.getLogger(__name__)
+
+# ── Form parsing ─────────────────────────────────────────────────
+
+def _product_data_from_form(form: dict) -> dict:
+    tags_raw = form.get("tags", "")
+    tags = [t.strip() for t in tags_raw.split(",") if t.strip()] if tags_raw else []
+
+    slug = form.get("slug", "").strip()
+    if not slug and form.get("name"):
+        slug = ProductModel.generate_slug(form.get("name"))
+
+    return {
+        "name": form.get("name", "").strip(),
+        "slug": slug,
+        "description": form.get("description", ""),
+        "price": float(form.get("price", 0)),
+        "thumbnail_url": form.get("thumbnail_url", "").strip() or None,
+        "is_featured": "is_featured" in form,
+        "is_active": "is_active" in form,
+        "meta_title": form.get("meta_title", "").strip() or None,
+        "meta_description": form.get("meta_description", "").strip() or None, 
+        "gender": form.get("gender", "").strip() or None,
+        "tags": tags,
+    }
+
+# ── Image helpers ────────────────────────────────────────────────
+
+def _extract_image_urls() -> list[str]:
+    seen, result = set(), []
+    for raw in _getlist("image_urls"):
+        u = raw.strip()
+        if u and u not in seen:
+            seen.add(u)
+            result.append(u)
+    return result
+
+
+def _handle_images_on_save(pid: str, form_dict: dict) -> None:
+    uploaded = []
+    for file in _filelist("image_files"):
+        if file and _allowed_file(file.filename):
+            try:
+                url = ProductModel.upload_to_storage(
+                    file.read(), file.filename, file.content_type or "image/jpeg"
+                )
+                if url:
+                    uploaded.append(url)
+            except Exception:
+                pass
+
+    all_urls = list(dict.fromkeys(uploaded + _extract_image_urls()))
+    if not (all_urls or form_dict.get("_images_synced")):
+        return
+
+    ProductModel.sync_images(pid, all_urls)
+    images = ProductModel.get_images(pid)
+    thumb = next((img for img in images if img.get("is_primary")), images[0] if images else None)
+    if thumb:
+        ProductModel.update(pid, {"thumbnail_url": thumb["url"]})
+
+# ── Variant helpers ───────────────────────────────────────────────
+
+def _save_product_variants(db, pid: str) -> None:
+    db.table("product_variants").delete().eq("product_id", pid).execute()
+
+    sizes = _getlist("v_size[]")
+    colors = _getlist("v_color[]")
+    hexes = _getlist("v_color_hex[]")
+    stocks = _getlist("v_stock[]")
+    prices = _getlist("v_price_override[]")
+
+    total_stock, variants = 0, []
+
+    for i in range(len(sizes)):
+        s, c = sizes[i].strip(), colors[i].strip() if i < len(colors) else ""
+        if not s or not c:
+            continue
+
+        stk = _safe_int(stocks[i] if i < len(stocks) else "")
+        po = _safe_float(prices[i] if i < len(prices) else "")
+        
+        hex_color = hexes[i].strip() if i < len(hexes) else ""
+        if not hex_color.startswith("#"):
+            hex_color = None
+
+        total_stock += stk
+        variants.append({
+            "product_id": pid,
+            "size": s,
+            "color_name": c,
+            "color_hex": hex_color,
+            "stock": stk,
+            "price_override": po,
+        })
+
+    if variants:
+        db.table("product_variants").insert(variants).execute()
+    db.table("products").update({"stock": total_stock}).eq("id", pid).execute()
+
+
+def _safe_int(val: str) -> int:
+    try: return max(0, int(float(val.strip())))
+    except Exception: return 0
+
+
+def _safe_float(val: str):
+    try: return float(val.strip()) if val.strip() else None
+    except Exception: return None
+
+# ── Products Routes ────────────────────────────────────────────────────────
+@admin_bp.route("/products")
+@admin_required
+@handle_errors("Lỗi tải sản phẩm.")
+def products():
+    args = _args()
+    per_page_cfg = current_app.config.get("ADMIN_PRODUCTS_PER_PAGE", 15)
+    page, per_page, _ = _paginate(args, per_page_cfg)
+    keyword = args.get("q", "").strip()
+    status = args.get("status", "").strip()
+
+    # 🟢 FIX TẠI ĐÂY: Dùng Admin Client để bypass RLS, lấy full data mảng trung gian
+    db = get_supabase_admin() 
+    query = db.table("products").select("*, product_categories(categories(id, name)), collection_products(collections(id, name)), barcode", count="exact")
+
+    if keyword:
+        query = query.or_(f"name.ilike.%{keyword}%,barcode.ilike.%{keyword}%")
+
+    if status == "active":
+        query = query.eq("is_active", True).is_("deleted_at", "null")
+    elif status == "hidden":
+        query = query.eq("is_active", False).is_("deleted_at", "null")
+    elif status == "deleted":
+        query = query.filter("deleted_at", "not.is", "null")
+    else:
+        query = query.is_("deleted_at", "null")
+
+    start, end = (page - 1) * per_page, page * per_page - 1
+    try:
+        res = query.order("created_at", desc=True).range(start, end).execute()
+        products_list = res.data or []
+        total = res.count or 0
+    except Exception as e:
+        products_list, total = [], 0
+        current_app.logger.error(f"[Admin Products] Lỗi truy vấn: {e}")
+
+    return render_template(
+        "admin/products.html",
+        products=products_list,
+        total=total,
+        page=page,
+        total_pages=_total_pages(total, per_page),
+        keyword=keyword,
+        status=status,
+        cats=CategoryModel.get_all(),
+    )
+
+@admin_bp.route("/products/add", methods=["GET", "POST"])
+@admin_required
+@handle_errors("Lỗi hệ thống.", "admin.products")
+def add_product():
+    cats = CategoryModel.get_all()
+    colles = CollectionModel.get_all(admin_mode=True)
+    
+    if request.method == "POST":
+        form = _form()
+        prod_payload = _product_data_from_form(form)
+        
+        prod = ProductModel.create(prod_payload)
+        if prod:
+            pid = prod["id"]
+            
+            # 🟢 FIX TẠI ĐÂY: Ép hàm phụ trợ dùng Admin Client để không bị chặn lưu Variants
+            db = get_supabase_admin()
+            _handle_images_on_save(pid, form)
+            _save_product_variants(db, pid)
+            
+            c_ids = _getlist("category_ids[]") or _getlist("category_ids")
+            if not c_ids and form.get("category_id"): 
+                c_ids = [form.get("category_id")]
+                
+            coll_ids = _getlist("collection_ids[]") or _getlist("collection_ids")
+            if not coll_ids and form.get("collection_id"): 
+                coll_ids = [form.get("collection_id")]
+            
+            ProductModel.sync_categories(pid, c_ids)
+            ProductModel.sync_collections(pid, coll_ids)
+            
+            flash(f"Đã thêm: {form.get('name', '').strip()}", "success")
+            return redirect(url_for("admin.products"))
+
+    return render_template("admin/product_form.html", product=None, cats=cats, colles=colles)
+
+
+@admin_bp.route("/products/edit/<pid>", methods=["GET", "POST"])
+@admin_required
+@handle_errors("Lỗi cập nhật.", "admin.products")
+def edit_product(pid):
+    product = ProductModel.get_by_id(pid)
+    cats = CategoryModel.get_all()
+    colles = CollectionModel.get_all(admin_mode=True)
+    
+    if not product:
+        flash("Sản phẩm không tồn tại.", "danger")
+        return redirect(url_for("admin.products"))
+
+    if request.method == "POST":
+        form = _form()
+        prod_payload = _product_data_from_form(form)
+        
+        is_updated = ProductModel.update(pid, prod_payload)
+        if is_updated:
+            
+            # 🟢 FIX TẠI ĐÂY: Ép hàm phụ trợ dùng Admin Client
+            db = get_supabase_admin()
+            _handle_images_on_save(pid, form)
+            _save_product_variants(db, pid)
+            
+            c_ids = _getlist("category_ids[]") or _getlist("category_ids")
+            if not c_ids and form.get("category_id"): 
+                c_ids = [form.get("category_id")]
+                
+            coll_ids = _getlist("collection_ids[]") or _getlist("collection_ids")
+            if not coll_ids and form.get("collection_id"): 
+                coll_ids = [form.get("collection_id")]
+            
+            ProductModel.sync_categories(pid, c_ids)
+            ProductModel.sync_collections(pid, coll_ids)
+            
+            flash("Lưu sản phẩm thành công!", "success")
+            return redirect(url_for("admin.products"))
+
+    return render_template("admin/product_form.html", product=product, cats=cats, colles=colles)
+
+
+@admin_bp.route("/products/delete/<pid>", methods=["POST"])
+@admin_required
+@handle_errors("Lỗi khi xóa.", "admin.products")
+def delete_product(pid):
+    if ProductModel.delete(pid, permanent=False):
+        flash("Đã đưa sản phẩm vào thùng rác (Ngừng hiển thị).", "success")
+    else:
+        flash("Lỗi khi xóa.", "danger")
+    return redirect(url_for("admin.products"))
+
+
+@admin_bp.route("/products/upload-async", methods=["POST"])
+@admin_required
+def upload_product_image_async():
+    """API hỗ trợ tải ảnh lên trực tiếp từ giao diện bằng AJAX"""
+    if "file" not in request.files:
+        return {"error": "Không tìm thấy file ảnh dữ liệu."}, 400
+        
+    file = request.files["file"]
+    if file and file.filename and _allowed_file(file.filename):
+        try:
+            url = ProductModel.upload_to_storage(
+                file.read(), file.filename, file.content_type or "image/jpeg"
+            )
+            if url:
+                return {"url": url}, 200
+        except Exception as e:
+            return {"error": str(e)}, 500
+            
+    return {"error": "Định dạng file ảnh không được hệ thống hỗ trợ."}, 400
+
+# ===================================================================
+#  CORE CATEGORIES ROUTES (DANH MỤC THUẦN TEXT - SIÊU NHẸ DỰ ÁN)
+# ===================================================================
+
+@admin_bp.route("/categories")
+@admin_required
+def categories():
+    return render_template("admin/categories.html", cats=CategoryModel.get_all())
+
+
+@admin_bp.route("/categories/add", methods=["POST"])
+@admin_required
+def add_category():
+    form = _form()
+    name = form.get("name", "").strip()
+    slug = form.get("slug", "").strip() or CategoryModel.generate_slug(name)
+    description = form.get("description", "").strip()
+    is_active = "is_active" in form
+
+    if name:
+        CategoryModel.create({
+            "name": name,
+            "slug": slug,
+            "description": description,
+            "is_active": is_active
+        })
+        flash(f"Đã thêm danh mục: {name}", "success")
+    else:
+        flash("Tên danh mục trống không hợp lệ.", "danger")
+    return redirect(url_for("admin.categories"))
+
+
+@admin_bp.route("/categories/edit/<cat_id>", methods=["GET", "POST"])
+@admin_required
+@handle_errors("Lỗi chỉnh sửa danh mục.", "admin.categories")
+def edit_category(cat_id):
+    cat = CategoryModel.get_by_id(cat_id)
+    if not cat:
+        flash("Danh mục không tồn tại.", "danger")
+        return redirect(url_for("admin.categories"))
+
+    if request.method == "POST":
+        form = _form()
+        name = form.get("name", "").strip()
+        slug = form.get("slug", "").strip() or CategoryModel.generate_slug(name)
+        description = form.get("description", "").strip()
+        is_active = "is_active" in form
+
+        if name:
+            CategoryModel.update(cat_id, {
+                "name": name,
+                "slug": slug,
+                "description": description,
+                "is_active": is_active
+            })
+            flash("Cập nhật danh mục thành công!", "success")
+            return redirect(url_for("admin.categories"))
+        else:
+            flash("Tên không hợp lệ.", "danger")
+
+    return render_template("admin/category_form.html", cat=cat)
+
+
+@admin_bp.route("/categories/delete/<cat_id>", methods=["POST"])
+@admin_required
+@handle_errors("Lỗi xóa danh mục.", "admin.categories")
+def delete_category(cat_id):
+    CategoryModel.delete(cat_id)
+    flash("Đã xóa danh mục khỏi hệ thống.", "success")
+    return redirect(url_for("admin.categories"))
+
+# ===================================================================
+#  CAMPAIGN COLLECTIONS ROUTES (BỘ SƯU TẬP TRANG CHỦ - KÉO THẢ VISUAL)
+# ===================================================================
+
+@admin_bp.route("/collections")
+@admin_required
+def collections():
+    return render_template("admin/collections.html", colles=CollectionModel.get_all(admin_mode=True))
+
+
+@admin_bp.route("/collections/add", methods=["GET", "POST"])
+@admin_required
+@handle_errors("Lỗi thêm bộ sưu tập.", "admin.collections")
+def add_collection():
+    if request.method == "POST":
+        form = _form()
+        name = form.get("name", "").strip()
+        slug = form.get("slug", "").strip() or CategoryModel.generate_slug(name)
+        description = form.get("description", "").strip()
+        is_active = "is_active" in form
+        show_on_home = "show_on_home" in form
+
+        image_url, video_url = None, None
+        ext_url = form.get("external_url", "").strip()
+
+        if ext_url:
+            if ext_url.lower().endswith('.mp4') or 'video' in ext_url.lower(): video_url = ext_url
+            else: image_url = ext_url
+        elif "collection_media" in request.files:
+            file = request.files["collection_media"]
+            if file and file.filename:
+                url = CollectionModel.upload_media(file.read(), file.filename, file.content_type)
+                if url:
+                    if "video" in (file.content_type or ""): video_url = url
+                    else: image_url = url
+
+        if name:
+            CollectionModel.create({
+                "name": name, "slug": slug, "description": description,
+                "is_active": is_active, "show_on_home": show_on_home,
+                "image_url": image_url, "video_url": video_url
+            })
+            flash(f"Đã thêm bộ sưu tập: {name}", "success")
+            return redirect(url_for("admin.collections"))
+
+    return render_template("admin/collection_form.html", cat=None)
+
+
+@admin_bp.route("/collections/edit/<cid>", methods=["GET", "POST"])
+@admin_required
+@handle_errors("Lỗi cập nhật lookbook.", "admin.collections")
+def edit_collection(cid):
+    cat = CollectionModel.get_by_id(cid)
+    if not cat:
+        flash("Bộ sưu tập không tồn tại.", "danger")
+        return redirect(url_for("admin.collections"))
+
+    if request.method == "POST":
+        form = _form()
+        name = form.get("name", "").strip()
+        slug = form.get("slug", "").strip() or CategoryModel.generate_slug(name)
+        description = form.get("description", "").strip()
+        is_active = "is_active" in form
+        show_on_home = "show_on_home" in form
+
+        image_url, video_url = cat.get("image_url"), cat.get("video_url")
+        ext_url = form.get("external_url", "").strip()
+
+        if ext_url:
+            if ext_url.lower().endswith('.mp4') or 'video' in ext_url.lower():
+                video_url, image_url = ext_url, None
+            else:
+                image_url, video_url = ext_url, None
+        elif "collection_media" in request.files:
+            file = request.files["collection_media"]
+            if file and file.filename:
+                url = CollectionModel.upload_media(file.read(), file.filename, file.content_type)
+                if url:
+                    if "video" in (file.content_type or ""): video_url, image_url = url, None
+                    else: image_url, video_url = url, None
+
+        if name:
+            CollectionModel.update(cid, {
+                "name": name, "slug": slug, "description": description,
+                "is_active": is_active, "show_on_home": show_on_home,
+                "image_url": image_url, "video_url": video_url
+            })
+            flash("Cập nhật bộ sưu tập thành công!", "success")
+            return redirect(url_for("admin.collections"))
+
+    return render_template("admin/collection_form.html", cat=cat)
+
+
+@admin_bp.route("/collections/delete/<cid>", methods=["POST"])
+@admin_required
+def delete_collection(cid):
+    CollectionModel.delete(cid)
+    flash("Đã xóa bộ sưu tập.", "success")
+    return redirect(url_for("admin.collections"))
+
+
+@admin_bp.route("/collections/update-homepage", methods=["POST"])
+@admin_required
+def update_homepage_layout():
+    home_ids = request.form.getlist("home_cats[]")
+    db = get_supabase_admin()
+    try:
+        db.table("collections").update({"show_on_home": False, "sort_order": 0}).eq("show_on_home", True).execute()
+        for index, cid in enumerate(home_ids):
+            db.table("collections").update({"show_on_home": True, "sort_order": index + 1}).eq("id", cid).execute()
+        flash("Đã lưu cấu hình kéo thả Lookbook trang chủ!", "success")
+    except Exception as e:
+        current_app.logger.error(f"Lỗi kéo thả: {e}")
+        flash("Lỗi kết nối gộp luồng.", "danger")
+    return redirect(url_for("admin.collections"))
+</file>
+
 <file path="app/templates/features/styling_lab.html">
 {% extends "base.html" %}
 {% block title %}Phòng Thử Đồ AI | GUA Maison{% endblock %}
@@ -55207,324 +55266,6 @@ window.saveOutfit = function() {
 }
 </file>
 
-<file path="app/controllers/product_controller.py">
-"""
-app/controllers/product_controller.py
-======================================
-Quản lý luồng hiển thị sản phẩm Storefront dành cho Khách hàng.
-Tích hợp hệ thống tìm kiếm bằng hình ảnh (AI Visual Search) và xử lý phân tách 
-hoàn toàn giữa Danh mục (Category) và Bộ sưu tập (Collection) chuẩn E-commerce.
-"""
-
-import logging
-import requests
-from flask import Blueprint, render_template, request, current_app, flash, redirect, url_for
-from typing import Optional
-
-from app.models.product_model import ProductModel
-from app.models.category_model import CategoryModel
-from app.models.collection_model import CollectionModel
-from app.utils.supabase_client import get_supabase
-
-products_bp = Blueprint("products", __name__)
-logger = logging.getLogger(__name__)
-
-# ═══════════════════════════════════════════════════════════════
-#  INTERNAL HELPERS (HÀM TRỢ GIÚP NỘI BỘ)
-# ═══════════════════════════════════════════════════════════════
-
-def _get_ai_headers() -> dict:
-    """Trả về Authorization header nếu Hugging Face Space đang ở chế độ Private."""
-    token = current_app.config.get("HF_TOKEN")
-    return {"Authorization": f"Bearer {token}"} if token else {}
-
-
-def _build_color_groups(variants: list, base_price: float) -> dict:
-    """
-    Gom nhóm product_variants theo màu sắc phục vụ trải nghiệm mua sắm Visual.
-    Trả về cấu trúc dict: { color_name: { hex, sizes: [...] } }
-    """
-    color_groups: dict = {}
-    for v in variants:
-        c_name = v.get("color_name")
-        if not c_name:
-            continue
-        if c_name not in color_groups:
-            color_groups[c_name] = {
-                "hex": v.get("color_hex") or "#1a1a1a",
-                "sizes": [],
-            }
-        color_groups[c_name]["sizes"].append({
-            "variant_id": v["id"],
-            "size": v.get("size"),
-            "stock": int(v.get("stock") or 0),
-            "price": float(v.get("price_override") or base_price or 0),
-        })
-    return color_groups
-
-
-def _clean_str(val) -> Optional[str]:
-    """Trả về None nếu chuỗi rỗng — tránh query DB với param trống hoặc lỗi cú pháp."""
-    v = (val or "").strip()
-    return v if v else None
-
-# ═══════════════════════════════════════════════════════════════
-#  STOREFRONT ROUTES (LUỒNG HIỂN THỊ TRANG KHÁCH HÀNG)
-# ═══════════════════════════════════════════════════════════════
-
-@products_bp.route("/")
-def index():
-    """Trang chủ Storefront — Nạp hình ảnh/video Bộ sưu tập và sản phẩm nổi bật."""
-    try:
-        # Lấy sản phẩm nổi bật trưng bày ra trang chủ
-        res = ProductModel.get_all(page=1, per_page=8, admin_mode=False)
-        featured = res.get("items", [])
-    except Exception as e:
-        logger.error(f"[index] Lỗi kéo sản phẩm nổi bật: {e}")
-        featured = []
-
-    try:
-        # 🟢 ĐÃ FIX LOGIC: Thay thế hàm cũ bằng việc gọi CollectionModel lấy các chiến dịch đang hoạt động
-        homepage_collections = CollectionModel.get_all(active_only=True)
-    except Exception as e:
-        logger.error(f"[index] Lỗi kéo bộ sưu tập trang chủ: {e}")
-        homepage_collections = []
-
-    # 🟢 TRUYỀN ĐÚNG BIẾN collections RA NGOÀI HTML KHỚP VỚI INDEX.HTML MỚI
-    return render_template(
-        "products/index.html",
-        featured_products=featured,
-        collections=homepage_collections
-    )
-
-
-@products_bp.route("/shop")
-def shop():
-    """
-    Trang cửa hàng danh sách sản phẩm.
-    Hỗ trợ bộ lọc động học: ?page= | ?category= | ?collection= | ?gender= | ?q=
-    """
-    try:
-        page = max(1, int(request.args.get("page", 1)))
-    except (ValueError, TypeError):
-        page = 1
-
-    category_slug = _clean_str(request.args.get("category"))
-    collection_slug = _clean_str(request.args.get("collection")) # 🟢 THÊM: Hứng bộ lọc Bộ sưu tập từ trang chủ ghim kéo thả
-    gender = _clean_str(request.args.get("gender"))
-    keyword = _clean_str(request.args.get("q"))
-
-    products_list = []
-    total_items = 0
-
-    # 🟢 ĐÃ NÂNG CẤP: Nếu có bộ lọc collection, truy vấn bảng trung gian Nhiều - Nhiều
-    if collection_slug:
-        try:
-            db = get_supabase()
-            # Tìm ID bộ sưu tập từ slug trước công khai
-            coll_res = db.table("collections").select("id").eq("slug", collection_slug).eq("is_active", True).limit(1).execute()
-            if coll_res.data:
-                coll_id = coll_res.data[0]["id"]
-                # Truy vấn bảng ánh xạ và join sâu lấy thông tin sản phẩm
-                offset = (page - 1) * 30
-                res = db.table("collection_products")\
-                        .select("products(*, categories(name, slug), product_images(*), product_variants(*))", count="exact")\
-                        .eq("collection_id", coll_id)\
-                        .range(offset, offset + 29)\
-                        .execute()
-                
-                # Khử bóc tách lồng mảng dữ liệu do Supabase trả về
-                raw_items = [item["products"] for item in (res.data or []) if item.get("products")]
-                products_list = [ProductModel._format_product(p) for p in raw_items if p.get("deleted_at") is None and p.get("is_active") == True]
-                total_items = res.count or len(products_list)
-        except Exception as coll_err:
-            logger.error(f"[shop] Lỗi nạp sản phẩm theo bộ sưu tập '{collection_slug}': {coll_err}")
-    else:
-        # Nếu là bộ lọc danh mục cứng hoặc tìm kiếm text thông thường
-        try:
-            result = ProductModel.get_all(
-                page=page,
-                per_page=30,  # Phục vụ hiệu ứng Load More mượt mà trên Mobile/PC
-                category_slug=category_slug,
-                gender=gender,
-                keyword=keyword,
-                admin_mode=False,
-            )
-            products_list = result.get("items", [])
-            total_items = result.get("total", 0)
-        except Exception as e:
-            logger.error(f"[shop] Lỗi ProductModel.get_all: {e}")
-
-    total_pages = max(1, (total_items + 29) // 30)
-
-    return render_template(
-        "products/shop.html",
-        products=products_list,
-        total=total_items,
-        total_pages=total_pages,
-        page=page,
-        category=category_slug,
-        collection=collection_slug, # Truyền ra ngoài để giữ trạng thái bộ lọc phân trang URL
-        current_gender=gender,
-        keyword=keyword,
-    )
-
-
-@products_bp.route("/product/<slug>")
-def detail(slug: str):
-    """Trang cấu hình thông tin chi tiết sản phẩm theo đường dẫn tĩnh (Slug)."""
-    if not slug or slug in ("None", "null", "undefined", ""):
-        flash("Đường dẫn sản phẩm không hợp lệ.", "warning")
-        return redirect(url_for("products.shop"))
-
-    try:
-        product = ProductModel.get_by_slug(slug)
-    except Exception as e:
-        logger.error(f"[detail] Lỗi get_by_slug('{slug}'): {e}")
-        product = None
-
-    if not product:
-        flash("Sản phẩm không tồn tại hoặc đã ngừng kinh doanh.", "warning")
-        return redirect(url_for("products.shop"))
-
-    # Gom nhóm biến thể (Kích cỡ, Số lượng tồn, Giá override) theo dải màu sắc trực quan
-    product["color_groups"] = _build_color_groups(
-        variants=product.get("product_variants") or [],
-        base_price=float(product.get("price") or 0),
-    )
-
-    # Đề xuất sản phẩm liên quan (Cùng danh mục ngành hàng, loại trừ bản thân sản phẩm hiện tại)
-    related_products: list = []
-    try:
-        cat_slug = (product.get("categories") or {}).get("slug")
-        if cat_slug:
-            related_res = ProductModel.get_all(page=1, per_page=5, category_slug=cat_slug)
-            related_products = [
-                p for p in related_res.get("items", [])
-                if p["id"] != product["id"]
-            ][:4]
-    except Exception as e:
-        logger.warning(f"[detail] Không lấy được related products: {e}")
-
-    return render_template(
-        "products/detail.html",
-        product=product,
-        related_products=related_products,
-    )
-
-# ═══════════════════════════════════════════════════════════════
-#  AI VISUAL SEARCH (TÌM KIẾM BẰNG HÌNH ẢNH)
-# ═══════════════════════════════════════════════════════════════
-
-@products_bp.route("/visual-search", methods=["POST"])
-def visual_search():
-    """Tìm kiếm sản phẩm bằng hình ảnh qua Hugging Face AI Engine."""
-    file = request.files["image"] if "image" in request.files else None
-    if not file or not file.filename:
-        flash("Vui lòng tải lên một hình ảnh để tìm kiếm.", "warning")
-        return redirect(request.referrer or url_for("products.shop"))
-
-    engine_url = current_app.config.get("AI_ENGINE_URL")
-    if not engine_url:
-        logger.error("[visual_search] AI_ENGINE_URL chưa được cấu hình.")
-        flash("Hệ thống AI chưa được cấu hình. Vui lòng liên hệ quản trị viên.", "danger")
-        return redirect(request.referrer or url_for("products.shop"))
-
-    matched_products = []
-
-    try:
-        response = requests.post(
-            f"{engine_url}/search",
-            files={"image": (file.filename, file.stream, file.mimetype)},
-            headers=_get_ai_headers(),
-            timeout=20,
-        )
-        response.raise_for_status()
-
-        ai_results = response.json().get("results", [])
-        matched_product_ids = [item["id"] for item in ai_results if "id" in item]
-
-        # Ánh xạ ID nhận từ mô hình AI ngược lại Database để đồng bộ Real-time kho hàng
-        if matched_product_ids:
-            try:
-                db = get_supabase()
-                db_res = (
-                    db.table("products")
-                    .select("*, categories(name, slug), product_images(*), product_variants(*)")
-                    .in_("id", matched_product_ids)
-                    .eq("is_active", True)
-                    .is_("deleted_at", "null")
-                    .execute()
-                )
-                raw_data = db_res.data or []
-                # Format dải cấu trúc ảnh bìa/biến thể
-                matched_products = [ProductModel._format_product(p) for p in raw_data]
-            except Exception as db_err:
-                logger.error(f"[visual_search] Lỗi map DB: {db_err}")
-
-        flash(
-            f"Tìm thấy {len(matched_products)} thiết kế tương tự từ kho mẫu GUA Maison." if matched_products
-            else "Không tìm thấy sản phẩm phù hợp với hình ảnh này.",
-            "success" if matched_products else "info",
-        )
-
-    except requests.exceptions.Timeout:
-        logger.error("[visual_search] AI Engine timeout.")
-        flash("Hệ thống AI đang xử lý quá tải. Vui lòng thử lại sau.", "danger")
-        return redirect(request.referrer or url_for("products.shop"))
-
-    except Exception as e:
-        logger.error(f"[visual_search] Lỗi không xác định: {e}", exc_info=True)
-        flash("Lỗi kết nối đến máy chủ xử lý ảnh AI.", "danger")
-        return redirect(request.referrer or url_for("products.shop"))
-
-    return render_template(
-        "products/shop.html",
-        products=matched_products,
-        total=len(matched_products),
-        keyword="Kết quả Visual Search",
-        category=None,
-        collection=None,
-        current_gender=None,
-        page=1,
-        total_pages=1,
-    )
-
-
-@products_bp.route("/collections")
-def collections():
-    """Trang Lookbook — Hiển thị TOÀN BỘ danh sách Bộ sưu tập chiến dịch đang kích hoạt."""
-    try:
-        # 🟢 ĐÃ FIX HOÀN TOÀN: Đổi cấu trúc gọi dữ liệu sang CollectionModel chuẩn xác
-        all_colles = CollectionModel.get_all(active_only=True)
-    except Exception as e:
-        logger.error(f"[collections] Lỗi kéo danh sách bộ sưu tập Lookbook: {e}")
-        all_colles = []
-
-    return render_template("products/collections.html", collections=all_colles)
-
-# ═══════════════════════════════════════════════════════════════
-#  STATIC PAGES (TẤP TIN TINH TĨNH THƯƠNG HIỆU)
-# ═══════════════════════════════════════════════════════════════
-
-@products_bp.route("/about")
-def about():
-    """Trang giới thiệu câu chuyện thương hiệu GUA Maison."""
-    return render_template("partials/about.html")
-
-
-@products_bp.route("/contact")
-def contact():
-    """Trang liên hệ hỗ trợ vận hành và CSKH."""
-    return render_template("partials/contact.html")
-
-
-@products_bp.route('/size-guide')
-def size_guide():
-    """Bảng quy chuẩn thông số kích cỡ (Size Guide) sản phẩm thời trang."""
-    return render_template('products/size_guide.html')
-</file>
-
 <file path="app/models/order_model.py">
 """
 app/models/order_model.py
@@ -56390,161 +56131,6 @@ class OrderModel:
   {% block extra_scripts %}{% endblock %}
 </body>
 </html>
-</file>
-
-<file path="app/templates/admin/categories.html">
-{% extends "admin/admin_base.html" %}
-{% block title %}Danh mục sản phẩm | GUA Admin{% endblock %}
-
-{% block extra_head %}
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<style>
-    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
-</style>
-{% endblock %}
-
-{% block content %}
-<div class="max-w-screen-2xl mx-auto px-4 md:px-8 py-10">
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Cấu trúc phân loại cứng</p>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900">Danh mục ngành hàng</h1>
-        </div>
-        
-        <button onclick="toggleModal('addModal', true)" class="inline-flex items-center justify-center gap-2 bg-black text-white px-6 py-2.5 rounded-full text-sm font-bold hover:bg-stone-800 transition-all shadow-sm">
-            <i class="fa-solid fa-plus"></i> Thêm danh mục
-        </button>
-    </div>
-
-    {% if cats %}
-    <div class="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                        <th class="px-6 py-4">Tên danh mục</th>
-                        <th class="px-6 py-4">Đường dẫn (Slug)</th>
-                        <th class="px-6 py-4">Mô tả</th>
-                        <th class="px-6 py-4">Trạng thái</th>
-                        <th class="px-6 py-4 text-right">Thao tác</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 text-sm font-medium text-slate-700">
-                    {% for cat in cats %}
-                    <tr class="hover:bg-slate-50/80 transition-colors">
-                        <td class="px-6 py-4 font-bold text-slate-900">{{ cat.name }}</td>
-                        <td class="px-6 py-4 font-mono text-xs text-slate-400">{{ cat.slug }}</td>
-                        <td class="px-6 py-4 text-slate-400 text-xs max-w-xs truncate">{{ cat.description or '—' }}</td>
-                        <td class="px-6 py-4">
-                            {% if cat.is_active %}
-                                <span class="bg-emerald-50 text-emerald-600 border border-emerald-100 text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full">Bật bán</span>
-                            {% else %}
-                                <span class="bg-slate-100 text-slate-400 border border-slate-200 text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full">Tạm ẩn</span>
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4 text-right">
-                            <div class="flex justify-end gap-3">
-                                <a href="{{ url_for('admin.edit_category', cat_id=cat.id) }}" class="text-indigo-600 hover:text-indigo-900 text-sm"><i class="fa-regular fa-pen-to-square"></i> Sửa</a>
-                                <form action="{{ url_for('admin.delete_category', cat_id=cat.id) }}" method="POST" onsubmit="return confirm('Xóa danh mục này?');" class="inline m-0">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="text-rose-600 hover:text-rose-900 text-sm"><i class="fa-regular fa-trash-can"></i> Xóa</button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-    {% else %}
-    <div class="text-center py-16 bg-white border border-dashed border-slate-200 rounded-3xl">
-        <p class="text-sm text-slate-400 font-medium">Chưa có danh mục nào tồn tại.</p>
-    </div>
-    {% endif %}
-</div>
-
-{# ── MODAL THÊM NHANH DANH MỤC ── #}
-<div id="addModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center p-4 animate-fade-in">
-    <div class="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl border border-slate-100">
-        <div class="flex justify-between items-center mb-6">
-            <h3 class="text-lg font-bold text-slate-900">Thêm danh mục</h3>
-            <button onclick="toggleModal('addModal', false)" class="text-slate-400 hover:text-black"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <form action="{{ url_for('admin.add_category') }}" method="POST" class="space-y-4 m-0">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div>
-                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Tên danh mục *</label>
-                <input type="text" name="name" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:bg-white focus:border-black transition-all">
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Mô tả</label>
-                <textarea name="description" rows="2" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:bg-white focus:border-black transition-all"></textarea>
-            </div>
-            <label class="flex items-center justify-between cursor-pointer p-1">
-                <span class="text-xs font-bold text-slate-500 uppercase">Kích hoạt bán</span>
-                <input type="checkbox" name="is_active" class="sr-only peer" checked>
-                <div class="w-9 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-black relative"></div>
-            </label>
-            <button type="submit" class="w-full bg-black text-white font-bold py-3 rounded-xl text-sm hover:bg-stone-800 transition-colors">Tạo ngay</button>
-        </form>
-    </div>
-</div>
-
-<script>
-    function toggleModal(id, show) {
-        document.getElementById(id).style.display = show ? 'flex' : 'none';
-    }
-</script>
-{% endblock %}
-</file>
-
-<file path="app/templates/admin/category_form.html">
-{% extends "admin/admin_base.html" %}
-{% block title %}Sửa Danh mục | GUA Admin{% endblock %}
-
-{% block extra_head %}
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<style>
-    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
-</style>
-{% endblock %}
-
-{% block content %}
-<form method="POST" class="max-w-xl mx-auto px-4 py-12 space-y-6">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-    <div class="flex items-center justify-between border-b border-slate-200/60 pb-5">
-        <div class="flex items-center gap-3">
-            <a href="{{ url_for('admin.categories') }}" class="w-9 h-9 border border-slate-200 rounded-full flex items-center justify-center text-slate-400 hover:text-black hover:border-black transition-all"><i class="fa-solid fa-arrow-left text-xs"></i></a>
-            <h1 class="text-xl font-bold text-slate-900">Sửa đổi danh mục</h1>
-        </div>
-        <button type="submit" class="bg-black text-white text-xs font-bold uppercase tracking-wide px-5 py-2.5 rounded-full hover:bg-stone-800 transition-colors">Lưu lại</button>
-    </div>
-
-    <div class="bg-white border border-slate-200 rounded-2xl p-6 space-y-4 shadow-sm">
-        <div>
-            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Tên danh mục</label>
-            <input type="text" name="name" value="{{ cat.name }}" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:bg-white focus:border-black transition-all">
-        </div>
-        <div>
-            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Đường dẫn tĩnh (Slug)</label>
-            <input type="text" name="slug" value="{{ cat.slug }}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-mono text-slate-400 focus:outline-none focus:bg-white focus:border-black transition-all">
-        </div>
-        <div>
-            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Mô tả</label>
-            <textarea name="description" rows="4" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white focus:border-black transition-all">{{ cat.description or '' }}</textarea>
-        </div>
-        <label class="flex items-center justify-between cursor-pointer pt-2">
-            <span class="text-xs font-bold text-slate-500 uppercase">Trạng thái bật bán</span>
-            <div class="relative">
-                <input type="checkbox" name="is_active" class="sr-only peer" {% if cat.is_active %}checked{% endif %}>
-                <div class="w-9 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-black"></div>
-            </div>
-        </label>
-    </div>
-</form>
-{% endblock %}
 </file>
 
 <file path="app/templates/admin/dashboard.html">
@@ -58005,6 +57591,479 @@ def reset_password(token):
     return render_template("auth/reset_password.html", token=token)
 </file>
 
+<file path="app/controllers/product_controller.py">
+"""
+app/controllers/product_controller.py
+======================================
+Quản lý luồng hiển thị sản phẩm Storefront dành cho Khách hàng.
+Tích hợp hệ thống tìm kiếm bằng hình ảnh (AI Visual Search) và xử lý phân tách 
+hoàn toàn giữa Danh mục (Category) và Bộ sưu tập (Collection) chuẩn E-commerce.
+"""
+
+import logging
+import requests
+from flask import Blueprint, render_template, request, current_app, flash, redirect, url_for
+from typing import Optional
+
+from app.models.product_model import ProductModel
+from app.models.category_model import CategoryModel
+from app.models.collection_model import CollectionModel
+from app.utils.supabase_client import get_supabase
+
+products_bp = Blueprint("products", __name__)
+logger = logging.getLogger(__name__)
+
+# ═══════════════════════════════════════════════════════════════
+#  INTERNAL HELPERS (HÀM TRỢ GIÚP NỘI BỘ)
+# ═══════════════════════════════════════════════════════════════
+
+def _get_ai_headers() -> dict:
+    """Trả về Authorization header nếu Hugging Face Space đang ở chế độ Private."""
+    token = current_app.config.get("HF_TOKEN")
+    return {"Authorization": f"Bearer {token}"} if token else {}
+
+
+def _build_color_groups(variants: list, base_price: float) -> dict:
+    """
+    Gom nhóm product_variants theo màu sắc phục vụ trải nghiệm mua sắm Visual.
+    Trả về cấu trúc dict: { color_name: { hex, sizes: [...] } }
+    """
+    color_groups: dict = {}
+    for v in variants:
+        c_name = v.get("color_name")
+        if not c_name:
+            continue
+        if c_name not in color_groups:
+            color_groups[c_name] = {
+                "hex": v.get("color_hex") or "#1a1a1a",
+                "sizes": [],
+            }
+        color_groups[c_name]["sizes"].append({
+            "variant_id": v["id"],
+            "size": v.get("size"),
+            "stock": int(v.get("stock") or 0),
+            "price": float(v.get("price_override") or base_price or 0),
+        })
+    return color_groups
+
+
+def _clean_str(val) -> Optional[str]:
+    """Trả về None nếu chuỗi rỗng — tránh query DB với param trống hoặc lỗi cú pháp."""
+    v = (val or "").strip()
+    return v if v else None
+
+# ═══════════════════════════════════════════════════════════════
+#  STOREFRONT ROUTES (LUỒNG HIỂN THỊ TRANG KHÁCH HÀNG)
+# ═══════════════════════════════════════════════════════════════
+
+@products_bp.route("/")
+def index():
+    """Trang chủ Storefront — Nạp hình ảnh/video Bộ sưu tập và sản phẩm nổi bật."""
+    try:
+        # Lấy sản phẩm nổi bật trưng bày ra trang chủ
+        res = ProductModel.get_all(page=1, per_page=8, admin_mode=False)
+        featured = res.get("items", [])
+    except Exception as e:
+        logger.error(f"[index] Lỗi kéo sản phẩm nổi bật: {e}")
+        featured = []
+
+    try:
+        # 🟢 ĐÃ FIX LỖI CRASH PARAMETER: Dùng admin_mode=False thay vì active_only=True
+        homepage_collections = CollectionModel.get_all(admin_mode=False)
+    except Exception as e:
+        logger.error(f"[index] Lỗi kéo bộ sưu tập trang chủ: {e}")
+        homepage_collections = []
+
+    # 🟢 TRUYỀN ĐÚNG BIẾN collections RA NGOÀI HTML KHỚP VỚI INDEX.HTML MỚI
+    return render_template(
+        "products/index.html",
+        featured_products=featured,
+        collections=homepage_collections
+    )
+
+
+@products_bp.route("/shop")
+def shop():
+    """
+    Trang cửa hàng danh sách sản phẩm.
+    Hỗ trợ bộ lọc động học: ?page= | ?category= | ?collection= | ?gender= | ?q=
+    """
+    try:
+        page = max(1, int(request.args.get("page", 1)))
+    except (ValueError, TypeError):
+        page = 1
+
+    category_slug = _clean_str(request.args.get("category"))
+    collection_slug = _clean_str(request.args.get("collection")) # 🟢 THÊM: Hứng bộ lọc Bộ sưu tập từ trang chủ ghim kéo thả
+    gender = _clean_str(request.args.get("gender"))
+    keyword = _clean_str(request.args.get("q"))
+
+    products_list = []
+    total_items = 0
+
+    # 🟢 ĐÃ NÂNG CẤP: Nếu có bộ lọc collection, truy vấn bảng trung gian Nhiều - Nhiều
+    if collection_slug:
+        try:
+            db = get_supabase()
+            # Tìm ID bộ sưu tập từ slug trước công khai
+            coll_res = db.table("collections").select("id").eq("slug", collection_slug).eq("is_active", True).limit(1).execute()
+            if coll_res.data:
+                coll_id = coll_res.data[0]["id"]
+                # Truy vấn bảng ánh xạ và join sâu lấy thông tin sản phẩm
+                offset = (page - 1) * 30
+                res = db.table("collection_products")\
+                        .select("products(*, categories(name, slug), product_images(*), product_variants(*))", count="exact")\
+                        .eq("collection_id", coll_id)\
+                        .range(offset, offset + 29)\
+                        .execute()
+                
+                # Khử bóc tách lồng mảng dữ liệu do Supabase trả về
+                raw_items = [item["products"] for item in (res.data or []) if item.get("products")]
+                products_list = [ProductModel._format_product(p) for p in raw_items if p.get("deleted_at") is None and p.get("is_active") == True]
+                total_items = res.count or len(products_list)
+        except Exception as coll_err:
+            logger.error(f"[shop] Lỗi nạp sản phẩm theo bộ sưu tập '{collection_slug}': {coll_err}")
+    else:
+        # Nếu là bộ lọc danh mục cứng hoặc tìm kiếm text thông thường
+        try:
+            result = ProductModel.get_all(
+                page=page,
+                per_page=30,  # Phục vụ hiệu ứng Load More mượt mà trên Mobile/PC
+                category_slug=category_slug,
+                gender=gender,
+                keyword=keyword,
+                admin_mode=False,
+            )
+            products_list = result.get("items", [])
+            total_items = result.get("total", 0)
+        except Exception as e:
+            logger.error(f"[shop] Lỗi ProductModel.get_all: {e}")
+
+    total_pages = max(1, (total_items + 29) // 30)
+
+    return render_template(
+        "products/shop.html",
+        products=products_list,
+        total=total_items,
+        total_pages=total_pages,
+        page=page,
+        category=category_slug,
+        collection=collection_slug, # Truyền ra ngoài để giữ trạng thái bộ lọc phân trang URL
+        current_gender=gender,
+        keyword=keyword,
+    )
+
+
+@products_bp.route("/product/<slug>")
+def detail(slug: str):
+    """Trang cấu hình thông tin chi tiết sản phẩm theo đường dẫn tĩnh (Slug)."""
+    if not slug or slug in ("None", "null", "undefined", ""):
+        flash("Đường dẫn sản phẩm không hợp lệ.", "warning")
+        return redirect(url_for("products.shop"))
+
+    try:
+        product = ProductModel.get_by_slug(slug)
+    except Exception as e:
+        logger.error(f"[detail] Lỗi get_by_slug('{slug}'): {e}")
+        product = None
+
+    if not product:
+        flash("Sản phẩm không tồn tại hoặc đã ngừng kinh doanh.", "warning")
+        return redirect(url_for("products.shop"))
+
+    # Gom nhóm biến thể (Kích cỡ, Số lượng tồn, Giá override) theo dải màu sắc trực quan
+    product["color_groups"] = _build_color_groups(
+        variants=product.get("product_variants") or [],
+        base_price=float(product.get("price") or 0),
+    )
+
+    # Đề xuất sản phẩm liên quan (Cùng danh mục ngành hàng, loại trừ bản thân sản phẩm hiện tại)
+    related_products: list = []
+    try:
+        cat_slug = (product.get("categories") or {}).get("slug")
+        if cat_slug:
+            related_res = ProductModel.get_all(page=1, per_page=5, category_slug=cat_slug)
+            related_products = [
+                p for p in related_res.get("items", [])
+                if p["id"] != product["id"]
+            ][:4]
+    except Exception as e:
+        logger.warning(f"[detail] Không lấy được related products: {e}")
+
+    return render_template(
+        "products/detail.html",
+        product=product,
+        related_products=related_products,
+    )
+
+# ═══════════════════════════════════════════════════════════════
+#  AI VISUAL SEARCH (TÌM KIẾM BẰNG HÌNH ẢNH)
+# ═══════════════════════════════════════════════════════════════
+
+@products_bp.route("/visual-search", methods=["POST"])
+def visual_search():
+    """Tìm kiếm sản phẩm bằng hình ảnh qua Hugging Face AI Engine."""
+    file = request.files["image"] if "image" in request.files else None
+    if not file or not file.filename:
+        flash("Vui lòng tải lên một hình ảnh để tìm kiếm.", "warning")
+        return redirect(request.referrer or url_for("products.shop"))
+
+    engine_url = current_app.config.get("AI_ENGINE_URL")
+    if not engine_url:
+        logger.error("[visual_search] AI_ENGINE_URL chưa được cấu hình.")
+        flash("Hệ thống AI chưa được cấu hình. Vui lòng liên hệ quản trị viên.", "danger")
+        return redirect(request.referrer or url_for("products.shop"))
+
+    matched_products = []
+
+    try:
+        response = requests.post(
+            f"{engine_url}/search",
+            files={"image": (file.filename, file.stream, file.mimetype)},
+            headers=_get_ai_headers(),
+            timeout=20,
+        )
+        response.raise_for_status()
+
+        ai_results = response.json().get("results", [])
+        matched_product_ids = [item["id"] for item in ai_results if "id" in item]
+
+        # Ánh xạ ID nhận từ mô hình AI ngược lại Database để đồng bộ Real-time kho hàng
+        if matched_product_ids:
+            try:
+                db = get_supabase()
+                db_res = (
+                    db.table("products")
+                    .select("*, categories(name, slug), product_images(*), product_variants(*)")
+                    .in_("id", matched_product_ids)
+                    .eq("is_active", True)
+                    .is_("deleted_at", "null")
+                    .execute()
+                )
+                raw_data = db_res.data or []
+                # Format dải cấu trúc ảnh bìa/biến thể
+                matched_products = [ProductModel._format_product(p) for p in raw_data]
+            except Exception as db_err:
+                logger.error(f"[visual_search] Lỗi map DB: {db_err}")
+
+        flash(
+            f"Tìm thấy {len(matched_products)} thiết kế tương tự từ kho mẫu GUA Maison." if matched_products
+            else "Không tìm thấy sản phẩm phù hợp với hình ảnh này.",
+            "success" if matched_products else "info",
+        )
+
+    except requests.exceptions.Timeout:
+        logger.error("[visual_search] AI Engine timeout.")
+        flash("Hệ thống AI đang xử lý quá tải. Vui lòng thử lại sau.", "danger")
+        return redirect(request.referrer or url_for("products.shop"))
+
+    except Exception as e:
+        logger.error(f"[visual_search] Lỗi không xác định: {e}", exc_info=True)
+        flash("Lỗi kết nối đến máy chủ xử lý ảnh AI.", "danger")
+        return redirect(request.referrer or url_for("products.shop"))
+
+    return render_template(
+        "products/shop.html",
+        products=matched_products,
+        total=len(matched_products),
+        keyword="Kết quả Visual Search",
+        category=None,
+        collection=None,
+        current_gender=None,
+        page=1,
+        total_pages=1,
+    )
+
+
+@products_bp.route("/collections")
+def collections():
+    """Trang Lookbook — Hiển thị TOÀN BỘ danh sách Bộ sưu tập chiến dịch đang kích hoạt."""
+    try:
+        # 🟢 ĐÃ FIX HOÀN TOÀN: Dùng tham số admin_mode=False thay vì active_only gây lỗi TypeError
+        all_colles = CollectionModel.get_all(admin_mode=False)
+    except Exception as e:
+        logger.error(f"[collections] Lỗi kéo danh sách bộ sưu tập Lookbook: {e}")
+        all_colles = []
+
+    return render_template("products/collections.html", collections=all_colles)
+
+# ═══════════════════════════════════════════════════════════════
+#  STATIC PAGES (TẤP TIN TINH TĨNH THƯƠNG HIỆU)
+# ═══════════════════════════════════════════════════════════════
+
+@products_bp.route("/about")
+def about():
+    """Trang giới thiệu câu chuyện thương hiệu GUA Maison."""
+    return render_template("partials/about.html")
+
+
+@products_bp.route("/contact")
+def contact():
+    """Trang liên hệ hỗ trợ vận hành và CSKH."""
+    return render_template("partials/contact.html")
+
+
+@products_bp.route('/size-guide')
+def size_guide():
+    """Bảng quy chuẩn thông số kích cỡ (Size Guide) sản phẩm thời trang."""
+    return render_template('products/size_guide.html')
+</file>
+
+<file path="app/templates/admin/categories.html">
+{% extends "admin/admin_base.html" %}
+{% block title %}Danh mục sản phẩm | GUA Admin{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-screen-2xl mx-auto px-4 md:px-8 py-10">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Cấu trúc phân loại cứng</p>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900">Danh mục ngành hàng</h1>
+        </div>
+        
+        <button onclick="toggleModal('addModal', true)" class="inline-flex items-center justify-center gap-2 bg-black text-white px-6 py-2.5 rounded-full text-sm font-bold hover:bg-stone-800 transition-all shadow-sm">
+            <i class="fa-solid fa-plus"></i> Thêm danh mục
+        </button>
+    </div>
+
+    {% if cats %}
+    <div class="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                        <th class="px-6 py-4">Tên danh mục</th>
+                        <th class="px-6 py-4">Đường dẫn (Slug)</th>
+                        <th class="px-6 py-4">Mô tả</th>
+                        <th class="px-6 py-4">Trạng thái</th>
+                        <th class="px-6 py-4 text-right">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-sm font-medium text-slate-700">
+                    {% for cat in cats %}
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="px-6 py-4 font-bold text-slate-900">{{ cat.name }}</td>
+                        <td class="px-6 py-4 font-mono text-xs text-slate-400">{{ cat.slug }}</td>
+                        <td class="px-6 py-4 text-slate-400 text-xs max-w-xs truncate">{{ cat.description or '—' }}</td>
+                        <td class="px-6 py-4">
+                            {% if cat.is_active %}
+                                <span class="bg-emerald-50 text-emerald-600 border border-emerald-100 text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full">Bật bán</span>
+                            {% else %}
+                                <span class="bg-slate-100 text-slate-400 border border-slate-200 text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full">Tạm ẩn</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <div class="flex justify-end gap-3">
+                                <a href="{{ url_for('admin.edit_category', cat_id=cat.id) }}" class="text-indigo-600 hover:text-indigo-900 text-sm"><i class="fa-regular fa-pen-to-square"></i> Sửa</a>
+                                <form action="{{ url_for('admin.delete_category', cat_id=cat.id) }}" method="POST" onsubmit="return confirm('Xóa danh mục này?');" class="inline m-0">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="text-rose-600 hover:text-rose-900 text-sm"><i class="fa-regular fa-trash-can"></i> Xóa</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="text-center py-16 bg-white border border-dashed border-slate-200 rounded-3xl">
+        <p class="text-sm text-slate-400 font-medium">Chưa có danh mục nào tồn tại.</p>
+    </div>
+    {% endif %}
+</div>
+
+{# ── MODAL THÊM NHANH DANH MỤC ── #}
+<div id="addModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center p-4 animate-fade-in">
+    <div class="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl border border-slate-100">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-bold text-slate-900">Thêm danh mục</h3>
+            <button onclick="toggleModal('addModal', false)" class="text-slate-400 hover:text-black"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form action="{{ url_for('admin.add_category') }}" method="POST" class="space-y-4 m-0">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Tên danh mục *</label>
+                <input type="text" name="name" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:bg-white focus:border-black transition-all">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Mô tả</label>
+                <textarea name="description" rows="2" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:bg-white focus:border-black transition-all"></textarea>
+            </div>
+            <label class="flex items-center justify-between cursor-pointer p-1">
+                <span class="text-xs font-bold text-slate-500 uppercase">Kích hoạt bán</span>
+                <input type="checkbox" name="is_active" class="sr-only peer" checked>
+                <div class="w-9 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-black relative"></div>
+            </label>
+            <button type="submit" class="w-full bg-black text-white font-bold py-3 rounded-xl text-sm hover:bg-stone-800 transition-colors">Tạo ngay</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function toggleModal(id, show) {
+        document.getElementById(id).style.display = show ? 'flex' : 'none';
+    }
+</script>
+{% endblock %}
+</file>
+
+<file path="app/templates/admin/category_form.html">
+{% extends "admin/admin_base.html" %}
+{% block title %}Sửa Danh mục | GUA Admin{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
+</style>
+{% endblock %}
+
+{% block content %}
+<form method="POST" class="max-w-xl mx-auto px-4 py-12 space-y-6">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="flex items-center justify-between border-b border-slate-200/60 pb-5">
+        <div class="flex items-center gap-3">
+            <a href="{{ url_for('admin.categories') }}" class="w-9 h-9 border border-slate-200 rounded-full flex items-center justify-center text-slate-400 hover:text-black hover:border-black transition-all"><i class="fa-solid fa-arrow-left text-xs"></i></a>
+            <h1 class="text-xl font-bold text-slate-900">Sửa đổi danh mục</h1>
+        </div>
+        <button type="submit" class="bg-black text-white text-xs font-bold uppercase tracking-wide px-5 py-2.5 rounded-full hover:bg-stone-800 transition-colors">Lưu lại</button>
+    </div>
+
+    <div class="bg-white border border-slate-200 rounded-2xl p-6 space-y-4 shadow-sm">
+        <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Tên danh mục</label>
+            <input type="text" name="name" value="{{ cat.name }}" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:bg-white focus:border-black transition-all">
+        </div>
+        <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Đường dẫn tĩnh (Slug)</label>
+            <input type="text" name="slug" value="{{ cat.slug }}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-mono text-slate-400 focus:outline-none focus:bg-white focus:border-black transition-all">
+        </div>
+        <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Mô tả</label>
+            <textarea name="description" rows="4" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white focus:border-black transition-all">{{ cat.description or '' }}</textarea>
+        </div>
+        <label class="flex items-center justify-between cursor-pointer pt-2">
+            <span class="text-xs font-bold text-slate-500 uppercase">Trạng thái bật bán</span>
+            <div class="relative">
+                <input type="checkbox" name="is_active" class="sr-only peer" {% if cat.is_active %}checked{% endif %}>
+                <div class="w-9 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-black"></div>
+            </div>
+        </label>
+    </div>
+</form>
+{% endblock %}
+</file>
+
 <file path="app/templates/admin/reports.html">
 {% extends "admin/admin_base.html" %}
 {% block title %}Báo cáo & Phân tích Đa kênh | GUA Admin{% endblock %}
@@ -59213,6 +59272,7 @@ CHANGELOG (Tối ưu hóa Lazy Initialization & Khắc phục bẫy RLS Admin):
 - Ép các hàm ghi dữ liệu (create, update, delete, sync_images) chạy qua admin client để bypass RLS.
 - Đã Fix: Sử dụng bucket 'product_image' mới tạo để lưu trữ hình ảnh.
 - Đã Fix: Sửa lỗi update trả về False khi res.data rỗng, đảm bảo luôn chạy tiếp hàm đồng bộ ảnh.
+- Đã Fix (HOTFIX): Cập nhật toàn bộ truy vấn read sang cấu trúc Nhiều-Nhiều (N-N) cho danh mục và bộ sưu tập.
 """
 
 import logging
@@ -59329,6 +59389,7 @@ class ProductModel:
         product["product_variants"] = variants
 
         return product
+
     @staticmethod
     def fix_missing_slugs() -> int:
         """Backfill slug cho các sản phẩm bị thiếu trong DB (Dùng Admin Client)."""
@@ -59393,9 +59454,10 @@ class ProductModel:
     def get_featured(limit: int = 8) -> list:
         db = ProductModel._db()
         try:
+            # FIX: Gọi qua bảng trung gian product_categories để nhả ra list danh mục
             res = (
                 db.table("products")
-                .select("*, categories(name, slug), product_images(*), product_variants(*)")
+                .select("*, product_categories(categories(name, slug)), product_images(*), product_variants(*)")
                 .is_("deleted_at", "null")
                 .eq("is_active", True)
                 .order("created_at", desc=True)
@@ -59420,17 +59482,29 @@ class ProductModel:
         db = ProductModel._db_admin() if admin_mode else ProductModel._db()
         offset = (page - 1) * per_page
         try:
+            # FIX: Gọi bảng trung gian để in ra tag Danh mục / Collection
             query = db.table("products").select(
-                "*, categories(name, slug), product_variants(*), product_images(*)", count="exact"
+                "*, product_categories(categories(name, slug)), collection_products(collections(name, slug)), product_variants(*), product_images(*)", 
+                count="exact"
             )
+            
             if not admin_mode:
                 query = query.is_("deleted_at", "null").eq("is_active", True)
 
+            # FIX CỰC KỲ QUAN TRỌNG: Lọc theo bảng N-N
             if category_slug:
                 try:
                     cat_res = db.table("categories").select("id").eq("slug", category_slug).limit(1).execute()
                     if cat_res.data:
-                        query = query.eq("category_id", cat_res.data[0]["id"])
+                        cat_id = cat_res.data[0]["id"]
+                        # Tìm tất cả product_id liên kết với category này
+                        pc_res = db.table("product_categories").select("product_id").eq("category_id", cat_id).execute()
+                        product_ids = [pc["product_id"] for pc in (pc_res.data or [])]
+                        
+                        if product_ids:
+                            query = query.in_("id", product_ids)
+                        else:
+                            return {"items": [], "total": 0, "page": page, "per_page": per_page}
                     else:
                         return {"items": [], "total": 0, "page": page, "per_page": per_page}
                 except Exception as cat_err:
@@ -59510,9 +59584,10 @@ class ProductModel:
             return None
         db = ProductModel._db()
         try:
+            # FIX: Gọi qua bảng trung gian
             res = (
                 db.table("products")
-                .select("*, categories(name, slug), product_images(*), product_variants(*)")
+                .select("*, product_categories(categories(name, slug)), collection_products(collections(name, slug)), product_images(*), product_variants(*)")
                 .eq("slug", slug)
                 .is_("deleted_at", "null")
                 .limit(1)
@@ -60695,21 +60770,20 @@ class ProductModel:
               {% endif %}
             </td>
             
-            {# 🟢 CỘP HIỂN THỊ DANH MỤC VÀ BỘ SƯU TẬP (MANY-TO-MANY) #}
+            {# 🟢 CỘT HIỂN THỊ DANH MỤC VÀ BỘ SƯU TẬP ĐÃ UPDATE (N-N) #}
             <td class="px-6 py-4">
               <div class="space-y-2 max-w-[220px]">
+                
                 <div class="flex flex-wrap gap-1 items-center">
                   <span class="text-[10px] font-bold text-stone-400 tracking-wider uppercase mr-1 select-none">Mục:</span>
-                  {% if p.categories %}
-                    {% if p.categories is mapping %}
-                      <span class="px-2 py-0.5 text-xs font-medium text-stone-600 bg-stone-100 rounded-md">{{ p.categories.name }}</span>
-                    {% else %}
-                      {% for cat in p.categories %}
+                  {% if p.product_categories %}
+                    {% for pc in p.product_categories %}
+                      {% if pc.categories %}
                         <span class="px-2 py-0.5 text-[11px] font-medium text-stone-600 bg-stone-100 rounded-md">
-                          {{ cat.name if cat.name else (cat.categories.name if cat.categories is mapping else '') }}
+                          {{ pc.categories.name }}
                         </span>
-                      {% endfor %}
-                    {% endif %}
+                      {% endif %}
+                    {% endfor %}
                   {% else %}
                     <span class="text-xs text-stone-300 italic">Chưa chọn</span>
                   {% endif %}
@@ -60717,20 +60791,19 @@ class ProductModel:
                 
                 <div class="flex flex-wrap gap-1 items-center">
                   <span class="text-[10px] font-bold text-amber-500 tracking-wider uppercase mr-1 select-none">BST:</span>
-                  {% if p.collections %}
-                    {% if p.collections is mapping %}
-                      <span class="px-2 py-0.5 text-xs font-medium text-amber-800 bg-amber-50 border border-amber-100 rounded-md">{{ p.collections.name }}</span>
-                    {% else %}
-                      {% for coll in p.collections %}
+                  {% if p.collection_products %}
+                    {% for cp in p.collection_products %}
+                      {% if cp.collections %}
                         <span class="px-2 py-0.5 text-[11px] font-medium text-amber-800 bg-amber-50 border border-amber-100 rounded-md">
-                          {{ coll.name if coll.name else (coll.collections.name if coll.collections is mapping else '') }}
+                          {{ cp.collections.name }}
                         </span>
-                      {% endfor %}
-                    {% endif %}
+                      {% endif %}
+                    {% endfor %}
                   {% else %}
                     <span class="text-xs text-stone-300 italic">Chưa chọn</span>
                   {% endif %}
                 </div>
+                
               </div>
             </td>
 
@@ -60831,34 +60904,32 @@ class ProductModel:
         <div class="font-bold text-sm text-stone-900 line-clamp-2 mb-2 leading-snug" title="{{ p.name }}">{{ p.name }}</div>
         <div class="font-bold text-lg text-stone-900 mb-3">{{ "{:,.0f}".format(p.price) }} <span class="text-sm font-normal text-stone-500 underline decoration-stone-300">đ</span></div>
         
-        {# 🟢 PHẦN THẺ FOOTER CỦA GRID VIEW ĐƯỢC TỐI ƯU HIỂN THỊ ĐA LỰA CHỌN #}
+        {# 🟢 THẺ FOOTER GRID VIEW ĐÃ UPDATE VÒNG LẶP #}
         <div class="mt-auto border-t border-stone-50 pt-3 space-y-2">
           <div class="flex flex-wrap gap-1 max-h-[44px] overflow-hidden">
-            {% if p.categories %}
-              {% if p.categories is mapping %}
-                <span class="text-[10px] font-medium text-stone-600 bg-stone-50 px-1.5 py-0.5 rounded">{{ p.categories.name }}</span>
-              {% else %}
-                {% for cat in p.categories[:2] %}
-                  <span class="text-[10px] font-medium text-stone-600 bg-stone-50 px-1.5 py-0.5 rounded">
-                    {{ cat.name if cat.name else (cat.categories.name if cat.categories is mapping else '') }}
-                  </span>
-                {% endfor %}
-                {% if p.categories|length > 2 %}<span class="text-[10px] text-stone-400 font-bold">+{{ p.categories|length - 2 }}</span>{% endif %}
+            
+            {% if p.product_categories %}
+              {% for pc in p.product_categories[:2] %}
+                {% if pc.categories %}
+                  <span class="text-[10px] font-medium text-stone-600 bg-stone-50 px-1.5 py-0.5 rounded">{{ pc.categories.name }}</span>
+                {% endif %}
+              {% endfor %}
+              {% if p.product_categories|length > 2 %}
+                <span class="text-[10px] text-stone-400 font-bold">+{{ p.product_categories|length - 2 }}</span>
               {% endif %}
             {% endif %}
 
-            {% if p.collections %}
-              {% if p.collections is mapping %}
-                <span class="text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">{{ p.collections.name }}</span>
-              {% else %}
-                {% for coll in p.collections[:1] %}
-                  <span class="text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
-                    {{ coll.name if coll.name else (coll.collections.name if coll.collections is mapping else '') }}
-                  </span>
-                {% endfor %}
-                {% if p.collections|length > 1 %}<span class="text-[10px] text-amber-600 font-bold">+{{ p.collections|length - 1 }}</span>{% endif %}
+            {% if p.collection_products %}
+              {% for cp in p.collection_products[:1] %}
+                {% if cp.collections %}
+                  <span class="text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">{{ cp.collections.name }}</span>
+                {% endif %}
+              {% endfor %}
+              {% if p.collection_products|length > 1 %}
+                <span class="text-[10px] text-amber-600 font-bold">+{{ p.collection_products|length - 1 }}</span>
               {% endif %}
             {% endif %}
+            
           </div>
           
           <div class="flex items-center justify-between text-xs pt-1 border-t border-stone-50/50">
@@ -61451,341 +61522,329 @@ document.addEventListener('DOMContentLoaded', renderAllMiniBarcodes);
 
 <file path="app/templates/partials/navbar.html">
 {# ═══════════════════════════════════════════════════════════
-   partials/navbar.html — GUA Maison 2026 (High-Performance Supercharged)
-   Thay đổi cốt lõi:
-   - Tối ưu hóa GPU Hardware Acceleration bằng transform 3D cho Mobile Drawer (chống lag).
-   - Throttle Scroll Event (Tiết giảm tần suất tính toán DOM giúp chuyển trang nhanh lập tức).
-   - Đồng bộ CSS mượt mà và Live-update thông báo an toàn.
+   partials/navbar.html — GUA Maison (BARAVAS Style - Supercharged ⚡)
+   Tối ưu hóa:
+   - GPU Hardware Acceleration: will-change-transform, transform-gpu.
+   - Specific Transitions: Tránh dùng transition-all gây tốn CPU.
+   - Zero Render-Blocking: Đẩy JS vào requestIdleCallback.
 ═══════════════════════════════════════════════════════════ #}
 
-<nav id="mainNav"
-     aria-label="Điều hướng chính"
-     class="fixed top-0 w-full z-[150] transition-all duration-300 border-b bg-transparent text-white border-transparent transform translate-z-0 backface-hidden">
+<nav id="mainNav" aria-label="Điều hướng chính" class="fixed top-0 left-0 w-full z-[150] bg-white text-black border-b border-black/20">
 
-  <div class="max-w-[1440px] mx-auto px-5 md:px-8 flex items-center justify-between h-[72px] md:h-[88px]">
+  {# ── DESKTOP LAYOUT (2 TIERS) ── #}
+  <div class="hidden lg:flex flex-col w-full max-w-[1920px] mx-auto">
+    
+    {# Tầng 1: Logo & Icons (Chiều cao ~65px) #}
+    <div class="relative flex items-center justify-center h-[65px] px-8">
+      
+      {# Logo Center #}
+      <a href="/" data-nav aria-label="MMÉSTLINE" class="text-[26px] font-black tracking-[0.15em] uppercase font-serif" style="font-family: 'Times New Roman', Times, serif;">
+        MMÉSTLINE 
+      </a>
 
-    {# ── 1. MOBILE HAMBURGER ── #}
-    <div class="flex lg:hidden items-center flex-1">
-      <button id="openMenu" aria-label="Mở menu" onclick="MobileMenuOverlay.open()"
-              class="flex flex-col gap-[5px] p-2 -ml-2 hover:opacity-60 transition-opacity cursor-pointer">
-        <span class="w-5 h-[1.5px] bg-current block transition-all duration-300"></span>
-        <span class="w-3.5 h-[1.5px] bg-current block transition-all duration-300"></span>
+      {# Icons Right #}
+      <div class="absolute right-8 flex items-center gap-5">
+        {# Search #}
+        <button aria-label="Tìm kiếm" class="hover:opacity-60 transition-opacity duration-200">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M19 10.5a8.5 8.5 0 11-17 0 8.5 8.5 0 0117 0z"/>
+          </svg>
+        </button>
+
+        {# User / Account #}
+        <div class="relative group">
+          <a href="{% if current_user.id %}/profile/{% else %}/auth/login{% endif %}" data-nav class="block hover:opacity-60 transition-opacity duration-200">
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+              <path fill-rule="evenodd" d="M12 2.25a5.25 5.25 0 00-5.25 5.25v.11a5.25 5.25 0 005.25 5.25h.01a5.25 5.25 0 005.25-5.25V7.5A5.25 5.25 0 0012 2.25zM6 19.5c0-2.88 3.55-4.5 6-4.5s6 1.62 6 4.5v1.5a.75.75 0 01-.75.75H6.75a.75.75 0 01-.75-.75V19.5z" clip-rule="evenodd"/>
+            </svg>
+          </a>
+          
+          {# Menu thả xuống cá nhân (Tối ưu GPU) #}
+          {% if current_user.id %}
+          <div class="absolute right-0 top-[24px] w-48 bg-white border border-neutral-200 shadow-sm
+                      opacity-0 invisible group-hover:opacity-100 group-hover:visible 
+                      transform-gpu translate-y-1 group-hover:translate-y-0
+                      transition-[opacity,transform,visibility] duration-200 z-50 pt-2 will-change-[opacity,transform]">
+            {% if current_user.role in ('admin', 'staff') %}
+            <a href="/admin/" class="block px-4 py-2 text-[11px] font-medium uppercase text-black hover:bg-neutral-50 transition-colors">Admin Panel</a>
+            <div class="border-b border-neutral-100 my-1"></div>
+            {% endif %}
+            <a href="/profile/" class="block px-4 py-2 text-[11px] font-medium uppercase text-black hover:bg-neutral-50 transition-colors">Profile</a>
+            <a href="/profile/orders" class="block px-4 py-2 text-[11px] font-medium uppercase text-black hover:bg-neutral-50 transition-colors">Orders</a>
+            <form action="/auth/logout" method="POST" class="m-0 border-t border-neutral-100 mt-1">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="w-full text-left px-4 py-2 text-[11px] font-medium uppercase text-red-600 hover:bg-red-50 transition-colors cursor-pointer">Logout</button>
+            </form>
+          </div>
+          {% endif %}
+        </div>
+
+        {# Shopping Bag #}
+        <a href="/cart/" data-nav aria-label="Giỏ hàng" class="relative flex items-center justify-center hover:opacity-60 transition-opacity duration-200">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z"/>
+          </svg>
+          <span class="absolute inset-0 flex items-center justify-center text-[10px] font-bold mt-[5px]">
+            {{ cart_count|default(0) }}
+          </span>
+        </a>
+      </div>
+    </div>
+
+    {# Tầng 2: Navigation Links (Chiều cao ~50px) #}
+    {% set path = request.path %}
+    <div class="flex items-center justify-center gap-10 h-[50px] text-[13px] font-medium text-[#4a4a4a] uppercase tracking-wide">
+      
+      {# ── 1. SHOP ── #}
+      <div class="group static h-full flex items-center">
+        <a href="/shop" data-nav class="{% if path.startswith('/shop') %}text-[#ff4e00]{% else %}text-[#4a4a4a] hover:text-[#ff4e00]{% endif %} transition-colors py-2 relative">
+          Shop
+        </a>
+        
+        {# Mega Menu (Tối ưu GPU Render) #}
+        <div class="absolute top-[115px] left-0 w-full bg-white text-[#333] border-b border-black
+                    opacity-0 invisible group-hover:opacity-100 group-hover:visible
+                    transform-gpu origin-top
+                    transition-[opacity,visibility] duration-200 z-50 will-change-[opacity]">
+          <div class="grid grid-cols-5 w-full border-t border-black/30">
+            <div class="px-8 py-8 border-r border-black/20 flex flex-col gap-5">
+              <a href="/shop?sort=new" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">NEW</a>
+              {% if global_categories and global_categories[0] %}
+                <a href="/shop?category={{ global_categories[0].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_categories[0].name }}</a>
+              {% endif %}
+              {% if global_categories and global_categories[1] %}
+                <a href="/shop?category={{ global_categories[1].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_categories[1].name }}</a>
+              {% endif %}
+            </div>
+            <div class="px-8 py-8 border-r border-black/20 flex flex-col gap-5">
+              {% if global_categories and global_categories[2] %}
+                <a href="/shop?category={{ global_categories[2].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_categories[2].name }}</a>
+              {% endif %}
+              {% if global_categories and global_categories[3] %}
+                <a href="/shop?category={{ global_categories[3].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_categories[3].name }}</a>
+              {% endif %}
+              {% if global_categories and global_categories[4] %}
+                <a href="/shop?category={{ global_categories[4].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_categories[4].name }}</a>
+              {% endif %}
+            </div>
+            <div class="px-8 py-8 border-r border-black/20 flex flex-col gap-5">
+              {% if global_categories and global_categories[5] %}
+                <a href="/shop?category={{ global_categories[5].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_categories[5].name }}</a>
+              {% endif %}
+              {% if global_categories and global_categories[6] %}
+                <a href="/shop?category={{ global_categories[6].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_categories[6].name }}</a>
+              {% endif %}
+              {% if global_categories and global_categories[7] %}
+                <a href="/shop?category={{ global_categories[7].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_categories[7].name }}</a>
+              {% endif %}
+            </div>
+            <div class="px-8 py-8 border-r border-black/20 flex flex-col gap-5">
+              {% if global_categories and global_categories[8] %}
+                <a href="/shop?category={{ global_categories[8].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_categories[8].name }}</a>
+              {% endif %}
+              {% if global_categories and global_categories[9] %}
+                <a href="/shop?category={{ global_categories[9].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_categories[9].name }}</a>
+              {% endif %}
+            </div>
+            <div class="px-8 py-8 flex flex-col gap-5 bg-[#fafafa]/30"></div>
+          </div>
+        </div>
+      </div>
+
+      {# ── 2. COLLECTION ── #}
+      <div class="group static h-full flex items-center">
+        <a href="/collections" data-nav class="{% if path.startswith('/collections') %}text-[#ff4e00]{% else %}text-[#4a4a4a] hover:text-[#ff4e00]{% endif %} transition-colors py-2 relative">
+          Collection
+        </a>
+        
+        <div class="absolute top-[115px] left-0 w-full bg-white text-[#333] border-b border-black
+                    opacity-0 invisible group-hover:opacity-100 group-hover:visible
+                    transform-gpu origin-top
+                    transition-[opacity,visibility] duration-200 z-50 will-change-[opacity]">
+          <div class="grid grid-cols-5 w-full border-t border-black/30">
+            <div class="px-8 py-8 border-r border-black/20 flex flex-col gap-3">
+              <a href="/collections" data-nav class="text-[12px] font-bold uppercase tracking-widest hover:text-[#ff4e00] transition-colors mb-1">
+                VIEW ALL
+              </a>
+              <p class="text-[11px] text-neutral-500 leading-relaxed normal-case pr-4">
+                Khám phá toàn bộ Lookbook và chiến dịch mới nhất.
+              </p>
+            </div>
+            <div class="px-8 py-8 border-r border-black/20 flex flex-col gap-5">
+              {% if global_collections|length > 0 %}
+                <a href="/shop?collection={{ global_collections[0].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_collections[0].name }}</a>
+              {% endif %}
+              {% if global_collections|length > 4 %}
+                <a href="/shop?collection={{ global_collections[4].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_collections[4].name }}</a>
+              {% endif %}
+            </div>
+            <div class="px-8 py-8 border-r border-black/20 flex flex-col gap-5">
+              {% if global_collections|length > 1 %}
+                <a href="/shop?collection={{ global_collections[1].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_collections[1].name }}</a>
+              {% endif %}
+              {% if global_collections|length > 5 %}
+                <a href="/shop?collection={{ global_collections[5].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_collections[5].name }}</a>
+              {% endif %}
+            </div>
+            <div class="px-8 py-8 border-r border-black/20 flex flex-col gap-5">
+              {% if global_collections|length > 2 %}
+                <a href="/shop?collection={{ global_collections[2].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_collections[2].name }}</a>
+              {% endif %}
+              {% if global_collections|length > 6 %}
+                <a href="/shop?collection={{ global_collections[6].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_collections[6].name }}</a>
+              {% endif %}
+            </div>
+            <div class="px-8 py-8 flex flex-col gap-5 bg-[#fafafa]/30">
+              {% if global_collections|length > 3 %}
+                <a href="/shop?collection={{ global_collections[3].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_collections[3].name }}</a>
+              {% endif %}
+              {% if global_collections|length > 7 %}
+                <a href="/shop?collection={{ global_collections[7].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_collections[7].name }}</a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# ── 3. CUSTOM & CONTACT & ABOUT ── #}
+      <a href="/custom" data-nav class="{% if path.startswith('/custom') %}text-[#ff4e00]{% else %}text-[#4a4a4a] hover:text-[#ff4e00]{% endif %} transition-colors">Custom</a>
+      <a href="/contact" data-nav class="{% if path.startswith('/contact') %}text-[#ff4e00]{% else %}text-[#4a4a4a] hover:text-[#ff4e00]{% endif %} transition-colors">Contact</a>
+      <a href="/about" data-nav class="{% if path.startswith('/about') %}text-[#ff4e00]{% else %}text-[#4a4a4a] hover:text-[#ff4e00]{% endif %} transition-colors">About Us</a>
+
+    </div>
+  </div>
+
+  {# ── MOBILE LAYOUT (Thu gọn lại 1 dòng) ── #}
+  <div class="flex lg:hidden items-center justify-between h-[64px] px-5">
+    
+    {# Hamburger #}
+    <div class="flex items-center flex-1">
+      <button id="openMenu" aria-label="Mở menu" class="flex flex-col gap-[5px] py-2 hover:opacity-60 transition-opacity duration-200">
+        <span class="w-5 h-[1.5px] bg-black block"></span>
+        <span class="w-3.5 h-[1.5px] bg-black block"></span>
       </button>
     </div>
 
-    {# ── 2. DESKTOP NAV LINKS ── #}
-    <div class="hidden lg:flex flex-1 items-center gap-8 text-[10px] font-bold uppercase tracking-[0.2em]">
-
-      {# Cửa hàng + Dropdown #}
-      <div class="relative group h-[88px] flex items-center">
-        <a href="/shop" class="flex items-center gap-2 hover:opacity-60 transition-opacity py-2" data-nav>
-          Cửa hàng
-          <svg class="w-2.5 h-2.5 group-hover:rotate-180 transition-transform duration-300"
-               fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
-          </svg>
-        </a>
-        <div class="absolute top-[88px] left-0 w-56 bg-white text-black border border-neutral-100 shadow-xl
-                    opacity-0 invisible translate-y-3
-                    group-hover:opacity-100 group-hover:visible group-hover:translate-y-0
-                    transition-all duration-300 ease-out z-50 rounded-sm overflow-hidden">
-          <div class="py-1">
-            <a href="/shop" data-nav
-               class="block px-6 py-3 text-[10px] font-black tracking-[0.2em] hover:bg-neutral-50 transition-colors border-b border-neutral-100">
-              Tất cả thiết kế
-            </a>
-            {% if global_categories %}
-              {% for cat in global_categories[:3] %}
-              <a href="/shop?category={{ cat.slug }}" data-nav
-                 class="block px-6 py-3 text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-500 hover:text-black hover:bg-neutral-50 transition-colors">
-                {{ cat.name }}
-              </a>
-              {% endfor %}
-            {% endif %}
-            <a href="/collections" data-nav
-               class="block px-6 py-3 text-[9px] font-black uppercase tracking-[0.2em] text-black hover:bg-neutral-50 transition-colors border-t border-neutral-100">
-              Xem Lookbook &rarr;
-            </a>
-          </div>
-        </div>
-      </div>
-
-      <a href="/about" data-nav class="hover:opacity-60 transition-opacity">Giới thiệu</a>
-      <a href="/contact" data-nav class="hover:opacity-60 transition-opacity">Liên hệ</a>
-      <a href="/promotions" data-nav class="hover:opacity-60 transition-opacity flex items-center gap-1.5">
-        Voucher <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
-      </a>
+    {# Logo Mobile #}
+    <div class="flex justify-center flex-1">
+      <a href="/" data-nav aria-label="GUA Maison" class="text-xl font-black tracking-widest uppercase font-serif" style="font-family: 'Times New Roman', Times, serif;">GUA</a>
     </div>
 
-    {# ── 3. LOGO ── #}
-    <div class="flex justify-center flex-1 lg:flex-none">
-      <a href="/" data-nav aria-label="GUA Maison"
-         class="text-2xl md:text-3xl tracking-[0.2em] uppercase hover:opacity-70 transition-opacity font-serif">GUA</a>
-    </div>
-
-    {# ── 4. RIGHT ICONS ── #}
-    <div class="flex flex-1 items-center justify-end gap-3 md:gap-5">
-      
-      {# ── THÔNG BÁO ── #}
-      {% if current_user.id %}
-      <div class="relative group hidden sm:block">
-        <a href="{{ url_for('notification.index') }}" data-nav
-           aria-label="Thông báo"
-           class="relative flex items-center justify-center w-8 h-8 hover:opacity-60 transition-opacity"
-           id="navBellBtn">
-          <svg class="w-4 h-4 md:w-[18px] md:h-[18px]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/>
-          </svg>
-          <span class="notif-badge absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-black text-white text-[8px] font-black rounded-full flex items-center justify-center border border-white shadow-sm {% if not unread_notification_count or unread_notification_count == 0 %}is-zero{% endif %}">
-            {{ unread_notification_count | default(0) }}
-          </span>
-        </a>
-
-        {# Dropdown mini #}
-        <div class="absolute right-0 top-[calc(100%+10px)] w-80 bg-white text-black border border-neutral-100 shadow-2xl rounded-sm opacity-0 invisible translate-y-2 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-200 ease-out z-50" id="notifDropdown">
-          <div class="flex items-center justify-between px-4 py-3 border-b border-neutral-100">
-            <span class="text-[10px] font-black uppercase tracking-[0.2em]">Thông báo</span>
-            <a href="{{ url_for('notification.index') }}?filter=unread" data-nav class="text-[9px] font-bold uppercase tracking-wider text-neutral-400 hover:text-black transition-colors">Xem tất cả</a>
-          </div>
-          <div id="notifDropdownList" class="divide-y divide-neutral-50 max-h-72 overflow-y-auto custom-scrollbar">
-            <div class="px-4 py-8 text-center text-[11px] text-neutral-400" id="notifDropdownEmpty">Đang tải...</div>
-          </div>
-          <div class="border-t border-neutral-100 px-4 py-2.5">
-            <a href="{{ url_for('notification.index') }}" data-nav class="block text-center text-[9px] font-black uppercase tracking-[0.2em] text-neutral-500 hover:text-black transition-colors">Xem trang thông báo &rarr;</a>
-          </div>
-        </div>
-      </div>
-
-      {# Mobile Bell #}
-      <a href="{{ url_for('notification.index') }}" data-nav aria-label="Thông báo" class="relative flex sm:hidden items-center justify-center w-8 h-8 hover:opacity-60 transition-opacity">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/>
+    {# Icons Mobile #}
+    <div class="flex items-center justify-end flex-1 gap-4">
+      <a href="{% if current_user.id %}/profile/{% else %}/auth/login{% endif %}" data-nav class="hover:opacity-60 transition-opacity duration-200">
+        <svg class="w-[22px] h-[22px]" viewBox="0 0 24 24" fill="currentColor">
+          <path fill-rule="evenodd" d="M12 2.25a5.25 5.25 0 00-5.25 5.25v.11a5.25 5.25 0 005.25 5.25h.01a5.25 5.25 0 005.25-5.25V7.5A5.25 5.25 0 0012 2.25zM6 19.5c0-2.88 3.55-4.5 6-4.5s6 1.62 6 4.5v1.5a.75.75 0 01-.75.75H6.75a.75.75 0 01-.75-.75V19.5z" clip-rule="evenodd"/>
         </svg>
-        <span class="notif-badge absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-black text-white text-[8px] font-black rounded-full flex items-center justify-center border border-white shadow-sm {% if not unread_notification_count or unread_notification_count == 0 %}is-zero{% endif %}">
-          {{ unread_notification_count | default(0) }}
+      </a>
+      <a href="/cart/" data-nav class="relative flex items-center justify-center hover:opacity-60 transition-opacity duration-200">
+        <svg class="w-[22px] h-[22px]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z"/>
+        </svg>
+        <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold mt-[4px]">
+          {{ cart_count|default(0) }}
         </span>
       </a>
-      {% endif %}
-
-      {# ── Tài khoản (Desktop) ── #}
-      <div class="relative group hidden lg:flex h-[88px] items-center">
-        <a href="{% if current_user.id %}/profile/{% else %}/auth/login{% endif %}" data-nav aria-label="Tài khoản" class="hover:opacity-60 transition-opacity p-1.5">
-          <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/>
-          </svg>
-        </a>
-
-        {% if current_user.id %}
-        <div class="absolute right-0 top-[88px] w-56 bg-white text-black border border-neutral-100 shadow-xl opacity-0 invisible translate-y-3 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-300 ease-out z-50 rounded-sm overflow-hidden">
-          <div class="px-6 py-4 bg-[#f8f8f8] border-b border-neutral-100">
-            <p class="text-xs font-black uppercase tracking-wider truncate">{{ current_user.full_name }}</p>
-            <p class="text-[9px] font-medium text-neutral-400 truncate mt-1 tracking-widest">{{ current_user.email }}</p>
-          </div>
-          <div class="py-1">
-            {% if current_user.role in ('admin', 'staff') %}
-            <a href="/admin/"
-               class="flex items-center justify-between px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-black hover:bg-neutral-50 transition-colors group/adminlink">
-              <span class="flex items-center gap-2">
-                <span class="w-1.5 h-1.5 rounded-full {% if current_user.role == 'admin' %}bg-black{% else %}bg-blue-500{% endif %}"></span>
-                {% if current_user.role == 'admin' %}Studio Admin{% else %}Quản trị viên{% endif %}
-              </span>
-              <span class="opacity-0 group-hover/adminlink:opacity-100 transition-opacity">&rarr;</span>
-            </a>
-            <div class="h-px bg-neutral-100 mx-4 my-1"></div>
-            {% endif %}
-            <a href="/profile/" data-nav class="block px-6 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 hover:text-black hover:bg-neutral-50 transition-colors">Tài khoản</a>
-            <a href="/profile/orders" data-nav class="block px-6 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 hover:text-black hover:bg-neutral-50 transition-colors">Đơn hàng</a>
-            <a href="{{ url_for('notification.index') }}" data-nav class="flex items-center justify-between px-6 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 hover:text-black hover:bg-neutral-50 transition-colors">
-              <span>Thông báo</span>
-              {% if unread_notification_count and unread_notification_count > 0 %}
-              <span class="bg-black text-white text-[8px] font-black px-1.5 py-0.5 rounded-full">{{ unread_notification_count }}</span>
-              {% endif %}
-            </a>
-            <div class="h-px bg-neutral-100 mx-4 my-1"></div>
-            <form action="/auth/logout" method="POST" class="m-0">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <button type="submit" class="w-full text-left px-6 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-red-500 hover:bg-red-50 transition-colors cursor-pointer">Đăng xuất</button>
-            </form>
-          </div>
-        </div>
-        {% endif %}
-      </div>
-
-      {# ── Giỏ hàng ── #}
-      <a href="/cart/" data-nav aria-label="Giỏ hàng" class="relative hover:opacity-60 transition-opacity p-1.5 -mr-1.5">
-        <svg class="w-4 h-4 md:w-[18px] md:h-[18px]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/>
-        </svg>
-        {% if cart_count and cart_count > 0 %}
-        <span class="absolute top-0 right-0 bg-red-500 text-white text-[8px] font-black w-3.5 h-3.5 flex items-center justify-center rounded-full border border-white">{{ cart_count }}</span>
-        {% endif %}
-      </a>
     </div>
+
   </div>
 </nav>
 
-{# ── 5. MOBILE MENU OVERLAY (TỐI ƯU TRANSLATE X CHẠY 60FPS BẰNG GPU) ── #}
-<div id="mobileMenu"
-     class="fixed inset-y-0 left-0 w-full max-w-sm bg-white z-[200] flex flex-col shadow-2xl border-r border-neutral-100 pointer-events-none transform -translate-x-full transition-transform duration-400 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform">
-
-  <div class="flex items-center justify-between px-5 h-[72px] border-b border-neutral-100 text-black shrink-0">
-    <span class="text-2xl tracking-[0.2em] uppercase font-serif">GUA</span>
-    <button id="closeMenu" aria-label="Đóng menu" onclick="MobileMenuOverlay.close()"
-            class="p-2 -mr-2 text-neutral-400 hover:text-black transition-colors cursor-pointer">
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-      </svg>
+{# ── MOBILE MENU OVERLAY (Tối ưu GPU Rendering) ── #}
+<div id="mobileMenu" class="fixed inset-y-0 left-0 w-full max-w-sm bg-white z-[200] flex flex-col border-r border-black/20 
+                            pointer-events-none transform-gpu -translate-x-full transition-transform duration-300 ease-out will-change-transform">
+  
+  <div class="flex items-center justify-between px-6 h-[64px] border-b border-black/20 text-black shrink-0">
+    <span class="text-xl font-black tracking-widest uppercase font-serif">GUA</span>
+    <button id="closeMenu" aria-label="Đóng menu" class="p-2 -mr-2 text-black hover:opacity-60 transition-opacity duration-200">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
     </button>
   </div>
 
-  <div class="flex-1 overflow-y-auto px-6 py-8 flex flex-col justify-between custom-scrollbar">
+  <div class="flex-1 overflow-y-auto px-6 py-8 flex flex-col justify-between">
     <div class="space-y-5">
-      <a href="/shop" data-nav class="block text-xl font-bold uppercase tracking-widest text-black">Cửa hàng</a>
-      <div class="pl-4 space-y-3 border-l border-neutral-200 py-1 my-2">
+      <a href="/shop" data-nav class="block text-[15px] font-medium uppercase tracking-wide {% if path.startswith('/shop') %}text-[#ff4e00]{% else %}text-black{% endif %} transition-colors">Shop</a>
+      <div class="pl-4 space-y-4 py-1 my-2 border-l border-neutral-200">
         {% if global_categories %}
-          {% for cat in global_categories[:4] %}
-          <a href="/shop?category={{ cat.slug }}" data-nav
-             class="block text-[11px] font-bold uppercase tracking-[0.2em] text-neutral-500 hover:text-black transition-colors">{{ cat.name }}</a>
+          {% for cat in global_categories[:8] %}
+          <a href="/shop?category={{ cat.slug }}" data-nav class="block text-[12px] font-medium uppercase tracking-widest text-neutral-600 hover:text-black transition-colors">{{ cat.name }}</a>
           {% endfor %}
         {% endif %}
       </div>
-      <a href="/about" data-nav class="block text-xl font-bold uppercase tracking-widest text-black">Giới thiệu</a>
-      <a href="/contact" data-nav class="block text-xl font-bold uppercase tracking-widest text-black">Liên hệ</a>
-      <a href="/promotions" data-nav class="flex items-center gap-3 text-xl font-bold uppercase tracking-widest text-black">
-        Voucher <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse mt-0.5"></span>
-      </a>
-
-      {% if current_user.id %}
-      <a href="{{ url_for('notification.index') }}" data-nav
-         class="flex items-center justify-between text-xl font-bold uppercase tracking-widest text-black">
-        <span>Thông báo</span>
-        {% if unread_notification_count and unread_notification_count > 0 %}
-        <span class="text-xs font-black bg-black text-white px-2 py-0.5 rounded-full">{{ unread_notification_count }}</span>
+      
+      <a href="/collections" data-nav class="block text-[15px] font-medium uppercase tracking-wide {% if path.startswith('/collections') %}text-[#ff4e00]{% else %}text-black{% endif %} transition-colors">Collection</a>
+      <div class="pl-4 space-y-4 py-1 my-2 border-l border-neutral-200">
+        <a href="/collections" data-nav class="block text-[12px] font-bold uppercase tracking-widest text-black hover:text-[#ff4e00] transition-colors">VIEW ALL</a>
+        {% if global_collections %}
+          {% for coll in global_collections[:4] %}
+          <a href="/shop?collection={{ coll.slug }}" data-nav class="block text-[12px] font-medium uppercase tracking-widest text-neutral-600 hover:text-black transition-colors">{{ coll.name }}</a>
+          {% endfor %}
         {% endif %}
-      </a>
-      {% endif %}
+      </div>
+
+      <a href="/custom" data-nav class="block text-[15px] font-medium uppercase tracking-wide {% if path.startswith('/custom') %}text-[#ff4e00]{% else %}text-black{% endif %} transition-colors">Custom</a>
+      <a href="/contact" data-nav class="block text-[15px] font-medium uppercase tracking-wide {% if path.startswith('/contact') %}text-[#ff4e00]{% else %}text-black{% endif %} transition-colors">Contact</a>
+      <a href="/about" data-nav class="block text-[15px] font-medium uppercase tracking-wide {% if path.startswith('/about') %}text-[#ff4e00]{% else %}text-black{% endif %} transition-colors">About Us</a>
     </div>
 
-    <div class="pt-8 border-t border-neutral-100 shrink-0">
+    <div class="pt-8 border-t border-black/20 shrink-0">
       {% if current_user.id %}
-        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-3">Xin chào, {{ current_user.full_name }}</p>
-        <div class="grid grid-cols-2 gap-3">
-          <a href="/profile/" data-nav class="text-[11px] font-bold uppercase tracking-[0.15em] text-black border border-neutral-200 text-center py-3 hover:bg-neutral-50 transition-colors">Tài khoản</a>
-          <a href="/profile/orders" data-nav class="text-[11px] font-bold uppercase tracking-[0.15em] text-black border border-neutral-200 text-center py-3 hover:bg-neutral-50 transition-colors">Đơn hàng</a>
-        </div>
-        {% if current_user.role in ('admin', 'staff') %}
-        <a href="/admin/"
-           class="mt-3 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest {% if current_user.role == 'admin' %}text-black border border-neutral-900 bg-neutral-50{% else %}text-blue-700 border border-blue-200 bg-blue-50{% endif %} py-3 hover:opacity-80 transition-opacity">
-          Studio Admin &rarr;
-        </a>
-        {% endif %}
+        <p class="text-[10px] font-medium uppercase tracking-widest text-neutral-400 mb-4">Hi, {{ current_user.full_name }}</p>
+        <a href="/profile/" data-nav class="block text-[12px] font-medium uppercase tracking-widest mb-3 text-black hover:text-[#ff4e00] transition-colors">Profile</a>
+        <a href="/profile/orders" data-nav class="block text-[12px] font-medium uppercase tracking-widest text-black hover:text-[#ff4e00] transition-colors">Orders</a>
         <form action="/auth/logout" method="POST" class="mt-4 m-0">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="w-full text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 underline py-2 cursor-pointer">Đăng xuất</button>
+          <button type="submit" class="text-[11px] font-medium uppercase tracking-widest text-red-600 cursor-pointer hover:text-red-800 transition-colors">Logout</button>
         </form>
       {% else %}
-        <a href="/auth/login" data-nav class="block w-full bg-black text-white text-center py-4 text-[11px] font-bold uppercase tracking-[0.2em]">Đăng nhập / Đăng ký</a>
+        <a href="/auth/login" data-nav class="block w-full border border-black text-black text-center py-3 text-[12px] font-medium uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Login / Register</a>
       {% endif %}
     </div>
   </div>
 </div>
 
-{# Nền mờ Mobile Menu #}
-<div id="mobileMenuBackdrop" onclick="MobileMenuOverlay.close()" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[190] opacity-0 pointer-events-none transition-opacity duration-300 lg:hidden"></div>
+<div id="mobileMenuBackdrop" class="fixed inset-0 bg-black/50 z-[190] opacity-0 pointer-events-none transition-opacity duration-300 lg:hidden"></div>
 
-{# ── SCROLL FX + HIGH-PERFORMANCE SCRIPT ── #}
+{# ── SCROLL FX + HIGH-PERFORMANCE SCRIPT (Zero Render Blocking) ── #}
 <script>
-// ✅ OBJECT QUẢN LÝ MENU OVERLAY CHẠY BẰNG PHẦN CỨNG GPU
-const MobileMenuOverlay = {
-  menu: document.getElementById('mobileMenu'),
-  backdrop: document.getElementById('mobileMenuBackdrop'),
-  open() {
-    if(!this.menu) return;
-    this.menu.classList.remove('-translate-x-full', 'pointer-events-none');
-    this.backdrop.classList.remove('opacity-0', 'pointer-events-none');
-    this.backdrop.classList.add('opacity-100');
-    document.body.style.overflow = 'hidden';
-  },
-  close() {
-    if(!this.menu) return;
-    this.menu.classList.add('-translate-x-full', 'pointer-events-none');
-    this.backdrop.classList.remove('opacity-100');
-    this.backdrop.classList.add('opacity-0', 'pointer-events-none');
-    document.body.style.overflow = '';
-  }
-};
-
 document.addEventListener('DOMContentLoaded', () => {
-  // Đồng bộ nút kích hoạt cũ sang cấu trúc Hardware Accelerated mới
-  document.getElementById('openMenu')?.addEventListener('click', (e) => {
-    e.preventDefault(); MobileMenuOverlay.open();
-  });
+  // 1. Mobile Menu Logic
+  const menu = document.getElementById('mobileMenu');
+  const backdrop = document.getElementById('mobileMenuBackdrop');
+  const openBtn = document.getElementById('openMenu');
+  const closeBtn = document.getElementById('closeMenu');
 
-  // ── SỬA ĐỒNG BỘ: TIẾT GIẢM SỰ KIỆN CUỘN CHUỘT (THROTTLE) GIÚP CHUYỂN TRANG SIÊU TỐC
-  const nav = document.getElementById('mainNav');
-  let isThrottled = false;
-
-  const updateNavTheme = () => {
-    const isHome = window.location.pathname === '/';
-    const scrolled = window.scrollY > 40;
-    if (isHome && !scrolled) {
-      nav.classList.add('bg-transparent', 'text-white', 'border-transparent');
-      nav.classList.remove('bg-white/95', 'backdrop-blur-md', 'text-black', 'border-neutral-100');
-    } else {
-      nav.classList.remove('bg-transparent', 'text-white', 'border-transparent');
-      nav.classList.add('bg-white/95', 'backdrop-blur-md', 'text-black', 'border-neutral-100');
-    }
+  const openMenu = () => {
+    menu.classList.remove('-translate-x-full', 'pointer-events-none');
+    backdrop.classList.remove('opacity-0', 'pointer-events-none');
+    backdrop.classList.add('opacity-100');
+    document.body.style.overflow = 'hidden';
   };
 
-  updateNavTheme();
+  const closeMenu = () => {
+    menu.classList.add('-translate-x-full', 'pointer-events-none');
+    backdrop.classList.remove('opacity-100');
+    backdrop.classList.add('opacity-0', 'pointer-events-none');
+    document.body.style.overflow = '';
+  };
 
-  window.addEventListener('scroll', () => {
-    if (!isThrottled) {
-      // Chỉ cho phép xử lý tính toán lại giao diện tối đa 1 lần mỗi 16ms (Chuẩn 60 FPS)
-      window.requestAnimationFrame(() => {
-        updateNavTheme();
-        isThrottled = false;
-      });
-      isThrottled = true;
-    }
-  }, { passive: true });
+  openBtn?.addEventListener('click', (e) => { e.preventDefault(); openMenu(); });
+  closeBtn?.addEventListener('click', closeMenu);
+  backdrop?.addEventListener('click', closeMenu);
 
-  // ── Dropdown mini: load thông báo khi hover ──────────────
-  const dropdown = document.getElementById('notifDropdown');
-  const emptyEl = document.getElementById('notifDropdownEmpty');
-  const bellParent = dropdown?.closest('.group');
-  
-  if (bellParent && emptyEl) {
-    let loaded = false;
-    bellParent.addEventListener('mouseenter', async () => {
-      if (loaded) return;
-      try {
-        const count = parseInt(document.querySelector('.notif-badge')?.textContent?.trim() || '0');
-        if (count === 0) {
-          emptyEl.innerHTML = `
-            <svg class="w-8 h-8 mx-auto mb-2 text-neutral-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/>
-            </svg> Không có thông báo mới`;
-        } else {
-          emptyEl.innerHTML = `
-            <a href="/notifications/" class="text-[11px] font-bold text-black uppercase tracking-wider hover:underline">
-              Bạn có ${count} thông báo chưa đọc →
-            </a>`;
-        }
-        loaded = true;
-      } catch (_) {
-        emptyEl.textContent = 'Không thể tải thông báo.';
-      }
-    });
+  // 2. Notification Lazy-Load Logic (Sử dụng requestIdleCallback để không làm chậm lúc load trang)
+  const initNotifications = () => {
+    // Đoạn code này đã được gỡ bỏ logic thừa để trang web chạy nhẹ nhất có thể 
+    // vì thiết kế BARAVAS không yêu cầu popup thông báo dạng Text như cũ.
+  };
+
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(initNotifications);
+  } else {
+    setTimeout(initNotifications, 500);
   }
 });
 </script>
-
-<style>
-.custom-scrollbar::-webkit-scrollbar { width: 3px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
-</style>
 </file>
 
 <file path="app/templates/products/shop.html">

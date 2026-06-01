@@ -74,8 +74,8 @@ def index():
         featured = []
 
     try:
-        # 🟢 ĐÃ FIX LOGIC: Thay thế hàm cũ bằng việc gọi CollectionModel lấy các chiến dịch đang hoạt động
-        homepage_collections = CollectionModel.get_all(active_only=True)
+        # 🟢 ĐÃ FIX LỖI CRASH PARAMETER: Dùng admin_mode=False thay vì active_only=True
+        homepage_collections = CollectionModel.get_all(admin_mode=False)
     except Exception as e:
         logger.error(f"[index] Lỗi kéo bộ sưu tập trang chủ: {e}")
         homepage_collections = []
@@ -285,8 +285,8 @@ def visual_search():
 def collections():
     """Trang Lookbook — Hiển thị TOÀN BỘ danh sách Bộ sưu tập chiến dịch đang kích hoạt."""
     try:
-        # 🟢 ĐÃ FIX HOÀN TOÀN: Đổi cấu trúc gọi dữ liệu sang CollectionModel chuẩn xác
-        all_colles = CollectionModel.get_all(active_only=True)
+        # 🟢 ĐÃ FIX HOÀN TOÀN: Dùng tham số admin_mode=False thay vì active_only gây lỗi TypeError
+        all_colles = CollectionModel.get_all(admin_mode=False)
     except Exception as e:
         logger.error(f"[collections] Lỗi kéo danh sách bộ sưu tập Lookbook: {e}")
         all_colles = []
