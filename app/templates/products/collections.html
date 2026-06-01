@@ -26,16 +26,16 @@
       </h1>
       
       <p class="text-[9px] md:text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-400">
-        {{ categories|length }} Bộ sưu tập
+        {{ collections|length }} Bộ sưu tập
       </p>
 
     </div>
   </header>
 
-  {# ── LƯỚI DANH MỤC (Lookbook Grid Edge-to-Edge) ── #}
+  {# ── LƯỚI BỘ SƯU TẬP (Lookbook Grid Edge-to-Edge) ── #}
   <div class="max-w-[1600px] mx-auto pt-4 md:pt-8 w-full">
     
-    {% if categories %}
+    {% if collections %}
     {# 
       Layout Responsive:
       - Mobile: 1 cột (toàn màn hình, chuẩn lookbook lướt dọc)
@@ -45,17 +45,18 @@
     #}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0.5 md:gap-1 p-0.5 md:p-1">
       
-      {% for cat in categories %}
-      <a href="/shop?category={{ cat.slug }}" class="relative group block aspect-[4/5] md:aspect-[3/4] lg:aspect-[4/5] bg-[#f8f8f8] overflow-hidden">
+      {% for col in collections %}
+      {# Đã sửa tham số filter từ ?category= sang ?collection= để lọc đúng loại #}
+      <a href="/shop?collection={{ col.slug }}" class="relative group block aspect-[4/5] md:aspect-[3/4] lg:aspect-[4/5] bg-[#f8f8f8] overflow-hidden">
         
         {# Media (Hỗ trợ cả Video và Ảnh - Đảm bảo Object-Cover chuẩn) #}
-        {% if cat.video_url %}
+        {% if col.video_url %}
           <video autoplay loop muted playsinline class="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-[2000ms] ease-out group-hover:scale-105">
-            <source src="{{ cat.video_url }}" type="video/mp4"/>
+            <source src="{{ col.video_url }}" type="video/mp4"/>
           </video>
         {% else %}
-          <img src="{{ cat.image_url if cat.image_url else 'https://placehold.co/800x1000/f8f8f8/a3a3a3?text=' ~ (cat.name|urlencode) }}" 
-               alt="{{ cat.name }}" 
+          <img src="{{ col.image_url if col.image_url else 'https://placehold.co/800x1000/f8f8f8/a3a3a3?text=' ~ (col.name|urlencode) }}" 
+               alt="{{ col.name }}" 
                class="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-[2000ms] ease-out group-hover:scale-105 mix-blend-multiply" 
                loading="lazy">
         {% endif %}
@@ -66,12 +67,12 @@
         {# Nội dung chữ #}
         <div class="absolute bottom-6 left-5 md:bottom-10 md:left-8 z-10 text-white right-5">
           <h2 class="text-3xl md:text-4xl lg:text-5xl font-normal uppercase tracking-widest mb-2 md:mb-3 drop-shadow-md leading-tight line-clamp-2" style="font-family: var(--font-display);">
-            {{ cat.name }}
+            {{ col.name }}
           </h2>
           
-          {% if cat.description %}
+          {% if col.description %}
             <p class="text-[10px] md:text-[11px] font-medium tracking-wide text-neutral-300 max-w-[90%] md:max-w-[80%] mb-4 line-clamp-2 leading-relaxed">
-              {{ cat.description }}
+              {{ col.description }}
             </p>
           {% else %}
             <div class="h-2 md:h-4"></div> {# Spacer nếu không có mô tả #}

@@ -1,13 +1,21 @@
 """
 app/models/notification_model.py
-Quản lý thông báo hệ thống – Admin CRUD + User notifications
 
-CHANGELOG:
-- Fix: upsert on_conflict="user_id,notification_id" thay bằng insert thủ công
-  vì bảng user_notifications KHÔNG có unique constraint trên cặp đó (chỉ có PK là id).
-- Fix: toàn bộ write operation dùng _admin_db() để bypass RLS nhất quán.
-- Fix: lazy_sync dùng admin client cho cả read lẫn write.
-- Fix: get_user_notifications sắp xếp theo created_at của notifications (ổn định hơn).
+PERF FIX (v2) — dựa trên schema thực tế:
+  Bảng user_notifications:
+    id uuid PK, user_id uuid FK→users, notification_id uuid FK→notifications,
+    is_read bool, is_deleted bool, read_at timestamptz, created_at, updated_at
+
+  Bảng notifications:
+    id uuid PK, title, content, is_active bool, is_permanent bool,
+    start_at timestamptz, end_at timestamptz, link, link_text, sort_order,
+    created_at, updated_at
+
+  THAY ĐỔI CHÍNH:
+  - get_unread_count(): trước đây load toàn bộ rows rồi filter Python → cực chậm.
+    Bây giờ dùng Supabase RPC gọi SQL function đếm thẳng trong DB.
+    Cần tạo function SQL 1 lần (xem comment bên dưới hàm).
+    Fallback tự động nếu RPC chưa tồn tại.
 """
 import logging
 from datetime import datetime
@@ -32,7 +40,7 @@ class NotificationModel:
         return get_supabase_admin()
 
     # ═══════════════════════════════════════════════════════════════
-    #  ADMIN METHODS (CRUD)
+    #  ADMIN METHODS (CRUD) — không thay đổi logic, giữ nguyên
     # ═══════════════════════════════════════════════════════════════
 
     @staticmethod
@@ -85,10 +93,8 @@ class NotificationModel:
         """
         Fan-out dùng service role client (bypass RLS).
         Lấy toàn bộ user role='customer', batch-insert vào user_notifications.
-
-        FIX: Không dùng upsert(on_conflict=...) vì bảng user_notifications
-        không có unique constraint trên (user_id, notification_id).
-        Thay bằng: kiểm tra existing rồi chỉ insert những bản ghi còn thiếu.
+        Schema thực: user_notifications không có UNIQUE(user_id, notification_id)
+        nên phải kiểm tra existing trước khi insert.
         """
         db = NotificationModel._admin_db()
 
@@ -116,7 +122,7 @@ class NotificationModel:
             logger.warning("fan_out: không có customer nào.")
             return 0
 
-        # 2. Lấy danh sách user đã có bản ghi cho notification này (tránh duplicate)
+        # 2. Lấy danh sách user đã có bản ghi (tránh duplicate do không có unique constraint)
         existing_user_ids: set = set()
         try:
             ex_res = db.table("user_notifications") \
@@ -133,7 +139,7 @@ class NotificationModel:
             logger.info(f"fan_out: tất cả {len(user_ids)} user đã có bản ghi rồi.")
             return 0
 
-        # 4. Batch-insert
+        # 4. Batch-insert (created_at/updated_at để DB tự điền DEFAULT now())
         total = 0
         try:
             rows = [
@@ -152,7 +158,7 @@ class NotificationModel:
         except Exception as e:
             logger.error(f"fan_out – insert thất bại: {e}")
 
-        logger.info(f"fan_out_to_all_users: insert {total}/{len(missing_ids)} bản ghi cho notification {notification_id}")
+        logger.info(f"fan_out_to_all_users: {total}/{len(missing_ids)} bản ghi cho notification {notification_id}")
         return total
 
     @staticmethod
@@ -174,6 +180,7 @@ class NotificationModel:
     def delete(notif_id: str) -> bool:
         try:
             db = NotificationModel._admin_db()
+            # Xóa user_notifications trước (FK constraint)
             db.table("user_notifications").delete().eq("notification_id", notif_id).execute()
             db.table("notifications").delete().eq("id", notif_id).execute()
             return True
@@ -193,8 +200,8 @@ class NotificationModel:
     # ═══════════════════════════════════════════════════════════════
 
     @staticmethod
-    def get_all_active(limit: int=10) -> List[Dict]:
-        """Thông báo active cho navbar public."""
+    def get_all_active(limit: int = 10) -> List[Dict]:
+        """Thông báo active cho navbar public (không cần user_id)."""
         now = datetime.now().isoformat()
         try:
             res = NotificationModel._db().table("notifications") \
@@ -212,16 +219,11 @@ class NotificationModel:
 
     @staticmethod
     def _lazy_sync_missing(user_id: str, active_notif_ids: List[str]) -> None:
-        """
-        Dùng admin client để tạo bản ghi user_notifications còn thiếu.
-        FIX: Dùng _admin_db() cho cả read lẫn write để bypass RLS nhất quán.
-        """
+        """Tạo bản ghi user_notifications còn thiếu cho user."""
         if not active_notif_ids:
             return
         try:
             db = NotificationModel._admin_db()
-
-            # Dùng admin để read – đảm bảo thấy đủ bản ghi bất kể RLS
             existing = db.table("user_notifications") \
                 .select("notification_id") \
                 .eq("user_id", user_id) \
@@ -234,12 +236,7 @@ class NotificationModel:
                 return
 
             rows = [
-                {
-                    "user_id": user_id,
-                    "notification_id": nid,
-                    "is_read": False,
-                    "is_deleted": False,
-                }
+                {"user_id": user_id, "notification_id": nid, "is_read": False, "is_deleted": False}
                 for nid in missing
             ]
             db.table("user_notifications").insert(rows).execute()
@@ -250,12 +247,12 @@ class NotificationModel:
     @staticmethod
     def get_user_notifications(
         user_id: str,
-        page: int=1,
-        per_page: int=15,
-        filter_type: str="all"
+        page: int = 1,
+        per_page: int = 15,
+        filter_type: str = "all"
     ) -> Dict:
         """Danh sách thông báo của user, có phân trang và lazy-sync."""
-        db = NotificationModel._admin_db()  # FIX: dùng admin để tránh RLS block
+        db = NotificationModel._admin_db()
         offset = (page - 1) * per_page
         now = datetime.now().isoformat()
 
@@ -270,9 +267,10 @@ class NotificationModel:
             # 2. Lazy-sync bản ghi còn thiếu
             NotificationModel._lazy_sync_missing(user_id, active_notif_ids)
 
-            # 3. Query user_notifications join notifications
+            # 3. Query user_notifications JOIN notifications
+            # Schema: user_notifications.notification_id FK→notifications.id
             query = db.table("user_notifications") \
-                .select("id, notification_id, is_read, read_at, notifications(*)") \
+                .select("id, notification_id, is_read, read_at, notifications(id, title, content, link, link_text, is_active, start_at, end_at, created_at)") \
                 .eq("user_id", user_id) \
                 .eq("is_deleted", False)
 
@@ -281,9 +279,10 @@ class NotificationModel:
             elif filter_type == "read":
                 query = query.eq("is_read", True)
 
+            # Sắp xếp theo created_at của user_notifications (khi row được tạo)
             res = query.order("created_at", desc=True).execute()
 
-            # 4. Lọc Python: chỉ giữ notification active và trong thời hạn
+            # 4. Filter Python: chỉ giữ notification active và trong thời hạn
             def _visible(notif: Dict) -> bool:
                 if not notif or not notif.get("is_active"):
                     return False
@@ -327,13 +326,11 @@ class NotificationModel:
             }
         except Exception as e:
             logger.error(f"get_user_notifications user {user_id}: {e}")
-            return {"items": [], "total": 0, "page": 1,
-                    "per_page": per_page, "total_pages": 1}
+            return {"items": [], "total": 0, "page": 1, "per_page": per_page, "total_pages": 1}
 
     @staticmethod
     def mark_as_read(user_id: str, notification_id: str) -> bool:
         try:
-            # FIX: dùng admin để tránh RLS block write
             NotificationModel._admin_db().table("user_notifications") \
                 .update({"is_read": True, "read_at": datetime.now().isoformat()}) \
                 .eq("user_id", user_id) \
@@ -347,7 +344,6 @@ class NotificationModel:
     @staticmethod
     def mark_all_as_read(user_id: str) -> bool:
         try:
-            # FIX: dùng admin để tránh RLS block write
             NotificationModel._admin_db().table("user_notifications") \
                 .update({"is_read": True, "read_at": datetime.now().isoformat()}) \
                 .eq("user_id", user_id) \
@@ -362,7 +358,6 @@ class NotificationModel:
     @staticmethod
     def delete_notification(user_id: str, notification_id: str) -> bool:
         try:
-            # FIX: dùng admin để tránh RLS block write
             NotificationModel._admin_db().table("user_notifications") \
                 .update({"is_deleted": True}) \
                 .eq("user_id", user_id) \
@@ -375,34 +370,85 @@ class NotificationModel:
 
     @staticmethod
     def get_unread_count(user_id: str) -> int:
-        """Badge navbar: đếm thông báo chưa đọc."""
-        now = datetime.now().isoformat()
+        """
+        Badge navbar: đếm thông báo chưa đọc.
+
+        PERF FIX: Thay vì load toàn bộ rows JOIN notifications rồi đếm trong Python
+        (mạng phải truyền N rows), dùng RPC để DB đếm và trả về 1 số duy nhất.
+
+        ── SQL FUNCTION CẦN TẠO TRONG SUPABASE (chạy 1 lần) ──────────────────────
+        Vào Supabase Dashboard → SQL Editor → chạy đoạn sau:
+
+          CREATE OR REPLACE FUNCTION get_unread_notification_count(p_user_id UUID)
+          RETURNS INTEGER
+          LANGUAGE sql
+          STABLE
+          SECURITY DEFINER
+          SET search_path = public
+          AS $$
+              SELECT COUNT(*)::INTEGER
+              FROM user_notifications un
+              JOIN notifications n ON n.id = un.notification_id
+              WHERE un.user_id    = p_user_id
+                AND un.is_read    = FALSE
+                AND un.is_deleted = FALSE
+                AND n.is_active   = TRUE
+                AND (n.start_at IS NULL OR n.start_at <= NOW())
+                AND (n.end_at   IS NULL OR n.end_at   >= NOW());
+          $$;
+
+        SECURITY DEFINER cho phép function chạy với quyền owner (postgres),
+        bypass RLS — không cần service role key cho query này nữa.
+        SET search_path = public là bắt buộc khi dùng SECURITY DEFINER (best practice).
+        ───────────────────────────────────────────────────────────────────────────
+        """
         try:
-            # FIX: dùng admin để đọc chính xác, tránh RLS lọc mất bản ghi
+            res = NotificationModel._admin_db().rpc(
+                "get_unread_notification_count",
+                {"p_user_id": user_id}
+            ).execute()
+
+            # Supabase RPC scalar: res.data là int trực tiếp hoặc list[int]
+            if isinstance(res.data, int):
+                return max(0, res.data)
+            if isinstance(res.data, list) and res.data:
+                return max(0, int(res.data[0]))
+            return 0
+
+        except Exception as e:
+            # Nếu RPC chưa được tạo (PostgreSQLError: function does not exist)
+            # → tự động fallback, không crash app
+            logger.warning(
+                f"get_unread_count RPC failed cho user {user_id}: {e}. "
+                "Fallback to simple count. Hãy tạo SQL function để tối ưu hơn."
+            )
+            return NotificationModel._get_unread_count_fallback(user_id)
+
+    @staticmethod
+    def _get_unread_count_fallback(user_id: str) -> int:
+        """
+        Fallback khi SQL function chưa được tạo.
+
+        Dùng count="exact" — 1 round-trip, không trả về rows, nhanh hơn cách cũ nhiều.
+        Nhược điểm: không lọc được is_active/start_at/end_at của notifications,
+        nên badge có thể cao hơn thực tế một chút nếu có notification đã tắt.
+        Chấp nhận được như giải pháp tạm.
+        """
+        try:
             res = NotificationModel._admin_db().table("user_notifications") \
-                .select("id, notifications(is_active, start_at, end_at)") \
+                .select("id", count="exact") \
                 .eq("user_id", user_id) \
                 .eq("is_read", False) \
                 .eq("is_deleted", False) \
                 .execute()
-            count = 0
-            for row in res.data or []:
-                notif = row.get("notifications") or {}
-                if not notif.get("is_active"):
-                    continue
-                if notif.get("start_at") and notif["start_at"] > now:
-                    continue
-                if notif.get("end_at") and notif["end_at"] < now:
-                    continue
-                count += 1
-            return count
+            return res.count or 0
         except Exception as e:
-            logger.error(f"get_unread_count {user_id}: {e}")
+            logger.error(f"get_unread_count fallback {user_id}: {e}")
             return 0
 
     @staticmethod
     def sync_user_notification(user_id: str, notification_id: str) -> None:
-        """Sync một notification cụ thể cho một user (dùng khi cần thiết)."""
+        """Sync một notification cụ thể cho một user."""
         try:
             db = NotificationModel._admin_db()
             existing = db.table("user_notifications") \
