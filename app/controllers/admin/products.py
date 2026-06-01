@@ -1,6 +1,13 @@
 """
 app/controllers/admin/products.py
-Tích hợp: Variants, SEO, Soft Delete, Filter.
+=================================
+Tích hợp quản lý: Products (Sản phẩm & Biến thể), Categories (Danh mục ngành hàng cứng),
+và Campaign Collections (Bộ sưu tập hình ảnh/video kéo thả trang chủ).
+
+BẢN CẬP NHẬT:
+- Loại bỏ dấu ngoặc nhọn thừa gây crash SyntaxError ở cuối file.
+- Ép hàm hiển thị danh sách bộ sưu tập chạy qua admin_mode=True để xử lý triệt để lỗi ẩn hình do RLS.
+- FIX LOGIC (HOTFIX): Bắt đúng tên trường category_id và collection_id từ Form HTML và dùng Admin Client.
 """
 
 import logging
@@ -8,6 +15,7 @@ from flask import render_template, redirect, url_for, flash, request, current_ap
 from app.utils.supabase_client import get_supabase_admin
 from app.models.product_model import ProductModel
 from app.models.category_model import CategoryModel
+from app.models.collection_model import CollectionModel
 from app.middleware.auth_required import admin_required
 
 from . import admin_bp
@@ -19,7 +27,6 @@ from ._helpers import (
 logger = logging.getLogger(__name__)
 
 # ── Form parsing ─────────────────────────────────────────────────
-
 
 def _product_data_from_form(form: dict) -> dict:
     tags_raw = form.get("tags", "")
@@ -34,7 +41,6 @@ def _product_data_from_form(form: dict) -> dict:
         "slug": slug,
         "description": form.get("description", ""),
         "price": float(form.get("price", 0)),
-        "category_id": form.get("category_id") or None,
         "thumbnail_url": form.get("thumbnail_url", "").strip() or None,
         "is_featured": "is_featured" in form,
         "is_active": "is_active" in form,
@@ -45,7 +51,6 @@ def _product_data_from_form(form: dict) -> dict:
     }
 
 # ── Image helpers ────────────────────────────────────────────────
-
 
 def _extract_image_urls() -> list[str]:
     seen, result = set(), []
@@ -82,7 +87,6 @@ def _handle_images_on_save(pid: str, form_dict: dict) -> None:
 
 # ── Variant helpers ───────────────────────────────────────────────
 
-
 def _save_product_variants(db, pid: str) -> None:
     db.table("product_variants").delete().eq("product_id", pid).execute()
 
@@ -102,10 +106,9 @@ def _save_product_variants(db, pid: str) -> None:
         stk = _safe_int(stocks[i] if i < len(stocks) else "")
         po = _safe_float(prices[i] if i < len(prices) else "")
         
-        # 🔴 BẢN CẬP NHẬT: Không ép mặc định thành #1a1a1a nữa
         hex_color = hexes[i].strip() if i < len(hexes) else ""
         if not hex_color.startswith("#"):
-            hex_color = None  # Để rỗng (null) để Model xử lý tự động
+            hex_color = None
 
         total_stock += stk
         variants.append({
@@ -131,9 +134,7 @@ def _safe_float(val: str):
     try: return float(val.strip()) if val.strip() else None
     except Exception: return None
 
-# ── Routes ────────────────────────────────────────────────────────
-
-
+# ── Products Routes ────────────────────────────────────────────────────────
 @admin_bp.route("/products")
 @admin_required
 @handle_errors("Lỗi tải sản phẩm.")
@@ -144,11 +145,11 @@ def products():
     keyword = args.get("q", "").strip()
     status = args.get("status", "").strip()
 
-    db = _db()
-    query = db.table("products").select("*, categories(name), barcode", count="exact")
+    # 🟢 FIX TẠI ĐÂY: Dùng Admin Client để bypass RLS, lấy full data mảng trung gian
+    db = get_supabase_admin() 
+    query = db.table("products").select("*, product_categories(categories(id, name)), collection_products(collections(id, name)), barcode", count="exact")
 
     if keyword:
-        # Tìm theo tên hoặc barcode
         query = query.or_(f"name.ilike.%{keyword}%,barcode.ilike.%{keyword}%")
 
     if status == "active":
@@ -180,23 +181,42 @@ def products():
         cats=CategoryModel.get_all(),
     )
 
-
 @admin_bp.route("/products/add", methods=["GET", "POST"])
 @admin_required
 @handle_errors("Lỗi hệ thống.", "admin.products")
 def add_product():
     cats = CategoryModel.get_all()
+    colles = CollectionModel.get_all(admin_mode=True)
+    
     if request.method == "POST":
         form = _form()
-        prod = ProductModel.create(_product_data_from_form(form))
+        prod_payload = _product_data_from_form(form)
+        
+        prod = ProductModel.create(prod_payload)
         if prod:
             pid = prod["id"]
+            
+            # 🟢 FIX TẠI ĐÂY: Ép hàm phụ trợ dùng Admin Client để không bị chặn lưu Variants
+            db = get_supabase_admin()
             _handle_images_on_save(pid, form)
-            _save_product_variants(_db(), pid)
+            _save_product_variants(db, pid)
+            
+            c_ids = _getlist("category_ids[]") or _getlist("category_ids")
+            if not c_ids and form.get("category_id"): 
+                c_ids = [form.get("category_id")]
+                
+            coll_ids = _getlist("collection_ids[]") or _getlist("collection_ids")
+            if not coll_ids and form.get("collection_id"): 
+                coll_ids = [form.get("collection_id")]
+            
+            ProductModel.sync_categories(pid, c_ids)
+            ProductModel.sync_collections(pid, coll_ids)
+            
             flash(f"Đã thêm: {form.get('name', '').strip()}", "success")
             return redirect(url_for("admin.products"))
 
-    return render_template("admin/product_form.html", product=None, cats=cats)
+    return render_template("admin/product_form.html", product=None, cats=cats, colles=colles)
+
 
 @admin_bp.route("/products/edit/<pid>", methods=["GET", "POST"])
 @admin_required
@@ -204,27 +224,40 @@ def add_product():
 def edit_product(pid):
     product = ProductModel.get_by_id(pid)
     cats = CategoryModel.get_all()
+    colles = CollectionModel.get_all(admin_mode=True)
+    
     if not product:
         flash("Sản phẩm không tồn tại.", "danger")
         return redirect(url_for("admin.products"))
 
     if request.method == "POST":
         form = _form()
+        prod_payload = _product_data_from_form(form)
         
-         
-        is_updated = ProductModel.update(pid, _product_data_from_form(form))
-        
+        is_updated = ProductModel.update(pid, prod_payload)
         if is_updated:
+            
+            # 🟢 FIX TẠI ĐÂY: Ép hàm phụ trợ dùng Admin Client
+            db = get_supabase_admin()
             _handle_images_on_save(pid, form)
-            _save_product_variants(_db(), pid)
+            _save_product_variants(db, pid)
+            
+            c_ids = _getlist("category_ids[]") or _getlist("category_ids")
+            if not c_ids and form.get("category_id"): 
+                c_ids = [form.get("category_id")]
+                
+            coll_ids = _getlist("collection_ids[]") or _getlist("collection_ids")
+            if not coll_ids and form.get("collection_id"): 
+                coll_ids = [form.get("collection_id")]
+            
+            ProductModel.sync_categories(pid, c_ids)
+            ProductModel.sync_collections(pid, coll_ids)
+            
             flash("Lưu sản phẩm thành công!", "success")
             return redirect(url_for("admin.products"))
-        else:
-            # Nếu thất bại, giữ người dùng lại form và báo lỗi cho họ biết
-            flash("Cập nhật thất bại. Vui lòng kiểm tra lỗi cấu trúc cột hoặc quyền RLS trong Terminal!", "danger")
 
-    product["images"] = ProductModel.get_images(pid)
-    return render_template("admin/product_form.html", product=product, cats=cats)
+    return render_template("admin/product_form.html", product=product, cats=cats, colles=colles)
+
 
 @admin_bp.route("/products/delete/<pid>", methods=["POST"])
 @admin_required
@@ -235,6 +268,8 @@ def delete_product(pid):
     else:
         flash("Lỗi khi xóa.", "danger")
     return redirect(url_for("admin.products"))
+
+
 @admin_bp.route("/products/upload-async", methods=["POST"])
 @admin_required
 def upload_product_image_async():
@@ -254,8 +289,10 @@ def upload_product_image_async():
             return {"error": str(e)}, 500
             
     return {"error": "Định dạng file ảnh không được hệ thống hỗ trợ."}, 400
-# ── Categories Routes ──────────────────
 
+# ===================================================================
+#  CORE CATEGORIES ROUTES (DANH MỤC THUẦN TEXT - SIÊU NHẸ DỰ ÁN)
+# ===================================================================
 
 @admin_bp.route("/categories")
 @admin_required
@@ -268,50 +305,20 @@ def categories():
 def add_category():
     form = _form()
     name = form.get("name", "").strip()
-    slug = form.get("slug", "").strip() or ProductModel.generate_slug(name)
-    
-    # 🔴 ĐÃ THÊM: Hứng dữ liệu từ giao diện Admin
+    slug = form.get("slug", "").strip() or CategoryModel.generate_slug(name)
     description = form.get("description", "").strip()
     is_active = "is_active" in form
-    show_on_home = "show_on_home" in form
-    
-    external_url = form.get("external_url", "").strip()
-    image_url = None
-    video_url = None
 
-    # Xử lý: Ưu tiên nhận link dán vào
-    if external_url:
-        if external_url.lower().endswith('.mp4') or 'video' in external_url.lower():
-            video_url = external_url
-        else:
-            image_url = external_url
-            
-    # Xử lý: Hứng file upload từ máy tính
-    elif "category_media" in request.files:
-        file = request.files["category_media"]
-        if file and file.filename:
-            url = CategoryModel.upload_media(file.read(), file.filename, file.content_type)
-            if url:
-                if "video" in (file.content_type or ""):
-                    video_url = url
-                else:
-                    image_url = url
-
-    if name and slug:
-        # 🔴 ĐÃ THÊM: Lưu các trường mới vào Database
+    if name:
         CategoryModel.create({
             "name": name,
             "slug": slug,
             "description": description,
-            "is_active": is_active,
-            "show_on_home": show_on_home,
-            "image_url": image_url,
-            "video_url": video_url
+            "is_active": is_active
         })
         flash(f"Đã thêm danh mục: {name}", "success")
     else:
-        flash("Tên danh mục không hợp lệ.", "danger")
-        
+        flash("Tên danh mục trống không hợp lệ.", "danger")
     return redirect(url_for("admin.categories"))
 
 
@@ -327,47 +334,21 @@ def edit_category(cat_id):
     if request.method == "POST":
         form = _form()
         name = form.get("name", "").strip()
-        slug = form.get("slug", "").strip() or ProductModel.generate_slug(name)
-        
-        # 🔴 ĐÃ THÊM: Hứng dữ liệu từ giao diện Admin
+        slug = form.get("slug", "").strip() or CategoryModel.generate_slug(name)
         description = form.get("description", "").strip()
         is_active = "is_active" in form
-        show_on_home = "show_on_home" in form
-        
-        external_url = form.get("external_url", "").strip()
-        image_url = None
-        video_url = None
 
-        if external_url:
-            if external_url.lower().endswith('.mp4') or 'video' in external_url.lower():
-                video_url = external_url
-            else:
-                image_url = external_url
-        elif "category_media" in request.files:
-            file = request.files["category_media"]
-            if file and file.filename:
-                url = CategoryModel.upload_media(file.read(), file.filename, file.content_type)
-                if url:
-                    if "video" in (file.content_type or ""):
-                        video_url = url
-                    else:
-                        image_url = url
-
-        if name and slug:
-            # 🔴 ĐÃ THÊM: Lưu các trường mới vào Database
+        if name:
             CategoryModel.update(cat_id, {
                 "name": name,
                 "slug": slug,
                 "description": description,
-                "is_active": is_active,
-                "show_on_home": show_on_home,
-                "image_url": image_url,
-                "video_url": video_url
+                "is_active": is_active
             })
             flash("Cập nhật danh mục thành công!", "success")
             return redirect(url_for("admin.categories"))
         else:
-            flash("Tên danh mục không hợp lệ.", "danger")
+            flash("Tên không hợp lệ.", "danger")
 
     return render_template("admin/category_form.html", cat=cat)
 
@@ -377,36 +358,121 @@ def edit_category(cat_id):
 @handle_errors("Lỗi xóa danh mục.", "admin.categories")
 def delete_category(cat_id):
     CategoryModel.delete(cat_id)
-    flash("Đã xóa danh mục.", "success")
+    flash("Đã xóa danh mục khỏi hệ thống.", "success")
     return redirect(url_for("admin.categories"))
 
-@admin_bp.route("/categories/update-homepage", methods=["POST"])
+# ===================================================================
+#  CAMPAIGN COLLECTIONS ROUTES (BỘ SƯU TẬP TRANG CHỦ - KÉO THẢ VISUAL)
+# ===================================================================
+
+@admin_bp.route("/collections")
 @admin_required
-@handle_errors("Lỗi cập nhật trang chủ.", "admin.categories")
+def collections():
+    return render_template("admin/collections.html", colles=CollectionModel.get_all(admin_mode=True))
+
+
+@admin_bp.route("/collections/add", methods=["GET", "POST"])
+@admin_required
+@handle_errors("Lỗi thêm bộ sưu tập.", "admin.collections")
+def add_collection():
+    if request.method == "POST":
+        form = _form()
+        name = form.get("name", "").strip()
+        slug = form.get("slug", "").strip() or CategoryModel.generate_slug(name)
+        description = form.get("description", "").strip()
+        is_active = "is_active" in form
+        show_on_home = "show_on_home" in form
+
+        image_url, video_url = None, None
+        ext_url = form.get("external_url", "").strip()
+
+        if ext_url:
+            if ext_url.lower().endswith('.mp4') or 'video' in ext_url.lower(): video_url = ext_url
+            else: image_url = ext_url
+        elif "collection_media" in request.files:
+            file = request.files["collection_media"]
+            if file and file.filename:
+                url = CollectionModel.upload_media(file.read(), file.filename, file.content_type)
+                if url:
+                    if "video" in (file.content_type or ""): video_url = url
+                    else: image_url = url
+
+        if name:
+            CollectionModel.create({
+                "name": name, "slug": slug, "description": description,
+                "is_active": is_active, "show_on_home": show_on_home,
+                "image_url": image_url, "video_url": video_url
+            })
+            flash(f"Đã thêm bộ sưu tập: {name}", "success")
+            return redirect(url_for("admin.collections"))
+
+    return render_template("admin/collection_form.html", cat=None)
+
+
+@admin_bp.route("/collections/edit/<cid>", methods=["GET", "POST"])
+@admin_required
+@handle_errors("Lỗi cập nhật lookbook.", "admin.collections")
+def edit_collection(cid):
+    cat = CollectionModel.get_by_id(cid)
+    if not cat:
+        flash("Bộ sưu tập không tồn tại.", "danger")
+        return redirect(url_for("admin.collections"))
+
+    if request.method == "POST":
+        form = _form()
+        name = form.get("name", "").strip()
+        slug = form.get("slug", "").strip() or CategoryModel.generate_slug(name)
+        description = form.get("description", "").strip()
+        is_active = "is_active" in form
+        show_on_home = "show_on_home" in form
+
+        image_url, video_url = cat.get("image_url"), cat.get("video_url")
+        ext_url = form.get("external_url", "").strip()
+
+        if ext_url:
+            if ext_url.lower().endswith('.mp4') or 'video' in ext_url.lower():
+                video_url, image_url = ext_url, None
+            else:
+                image_url, video_url = ext_url, None
+        elif "collection_media" in request.files:
+            file = request.files["collection_media"]
+            if file and file.filename:
+                url = CollectionModel.upload_media(file.read(), file.filename, file.content_type)
+                if url:
+                    if "video" in (file.content_type or ""): video_url, image_url = url, None
+                    else: image_url, video_url = url, None
+
+        if name:
+            CollectionModel.update(cid, {
+                "name": name, "slug": slug, "description": description,
+                "is_active": is_active, "show_on_home": show_on_home,
+                "image_url": image_url, "video_url": video_url
+            })
+            flash("Cập nhật bộ sưu tập thành công!", "success")
+            return redirect(url_for("admin.collections"))
+
+    return render_template("admin/collection_form.html", cat=cat)
+
+
+@admin_bp.route("/collections/delete/<cid>", methods=["POST"])
+@admin_required
+def delete_collection(cid):
+    CollectionModel.delete(cid)
+    flash("Đã xóa bộ sưu tập.", "success")
+    return redirect(url_for("admin.collections"))
+
+
+@admin_bp.route("/collections/update-homepage", methods=["POST"])
+@admin_required
 def update_homepage_layout():
-    # Mảng này chứa ID của các danh mục ĐÃ ĐƯỢC KÉO VÀO TRANG CHỦ, theo đúng thứ tự từ trên xuống dưới
     home_ids = request.form.getlist("home_cats[]")
     db = get_supabase_admin()
-
     try:
-        # 1. Quét dọn: Tìm tất cả danh mục đang ghim và hạ chúng xuống (Reset vị trí)
-        res = db.table("categories").select("id").eq("show_on_home", True).execute()
-        for item in (res.data or []):
-            db.table("categories").update({
-                "show_on_home": False, 
-                "sort_order": 0
-            }).eq("id", item["id"]).execute()
-
-        # 2. Xếp lại: Lấy mảng ID mới từ giao diện Kéo thả để cập nhật lại đúng thứ tự (Index + 1)
+        db.table("collections").update({"show_on_home": False, "sort_order": 0}).eq("show_on_home", True).execute()
         for index, cid in enumerate(home_ids):
-            db.table("categories").update({
-                "show_on_home": True,
-                "sort_order": index + 1
-            }).eq("id", cid).execute()
-
-        flash("Đã lưu bố cục trang chủ thành công!", "success")
+            db.table("collections").update({"show_on_home": True, "sort_order": index + 1}).eq("id", cid).execute()
+        flash("Đã lưu cấu hình kéo thả Lookbook trang chủ!", "success")
     except Exception as e:
-        current_app.logger.error(f"Lỗi Update Homepage Layout: {e}")
-        flash("Có lỗi xảy ra khi lưu cấu hình.", "danger")
-
-    return redirect(url_for("admin.categories"))
+        current_app.logger.error(f"Lỗi kéo thả: {e}")
+        flash("Lỗi kết nối gộp luồng.", "danger")
+    return redirect(url_for("admin.collections"))

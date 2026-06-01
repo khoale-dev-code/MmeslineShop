@@ -30,7 +30,7 @@
     backface-visibility: hidden;
   }
 
-  /* 💡 TỐI ƯU SÂU: Chặn Trình duyệt tính toán Layout/Paint cho các Section ở dưới khi chưa cuộn tới */
+  /* Chặn Trình duyệt tính toán Layout/Paint cho các Section ở dưới khi chưa cuộn tới */
   .lazy-render-section {
     content-visibility: auto;
     contain-intrinsic-size: 1000px;
@@ -40,11 +40,11 @@
 
 {% block content %}
 
-{# ── LỌC DANH MỤC ĐƯỢC GHIM LÊN TRANG CHỦ (show_on_home) ── #}
-{% set home_cats = categories | selectattr('show_on_home', 'equalto', true) | list if categories else [] %}
-{# Fallback thông minh: Nếu Admin chưa ghim danh mục nào, lấy tất cả để hiển thị #}
-{% set grid_cats = home_cats if home_cats|length > 0 else (categories if categories else []) %}
-{% set total_cats = grid_cats|length %}
+{# ── CHUẨN HÓA: LỌC BỘ SƯU TẬP ĐƯỢC GHIM LÊN TRANG CHỦ (show_on_home) ── #}
+{% set home_colls = collections | selectattr('show_on_home', 'equalto', true) | list if collections else [] %}
+{# Fallback thông minh: Nếu chưa ghim bộ sưu tập nào, lấy toàn bộ danh sách để hiển thị sinh động #}
+{% set display_collections = home_colls if home_colls|length > 0 else (collections if collections else []) %}
+{% set total_colls = display_collections|length %}
 
 {# ── Trích xuất phân vùng storefront an toàn bằng .get() ── #}
 {% set sf = system_settings.get('storefront', {}) %}
@@ -89,32 +89,33 @@
     </div>
   </section>
 
-  {# ══ 2. CATEGORY GRID (Hiển thị linh hoạt: Ít thì giãn rộng, Nhiều thì lướt ngang) ══ #}
-  {% if total_cats > 0 %}
-  <section class="w-full p-1 md:p-2 flex overflow-x-auto snap-x snap-mandatory no-scrollbar gap-1 md:gap-2">
-    {% for cat in grid_cats %}
+  {# ══ 2. CAMPAIGN COLLECTIONS GRID (Hiển thị linh hoạt co giãn hoặc lướt ngang) ══ #}
+  {% if total_colls > 0 %}
+  <section class="w-full p-1 md:p-2 flex overflow-x-auto snap-x snap-mandatory no-scrollbar gap-1 md:gap-2 bg-white">
+    {% for collection in display_collections %}
       
-      {# THUẬT TOÁN GRID ĐỘNG HỌC (ELASTIC GRID) #}
-      {% if total_cats == 1 %}
+      {# THUẬT TOÁN ĐIỀU CHỈNH FRAME CHUYÊN NGHIỆP THEO SỐ LƯỢNG #}
+      {% if total_colls == 1 %}
         {% set w_class = "w-full min-w-full" %}
-      {% elif total_cats == 2 %}
+      {% elif total_colls == 2 %}
         {% set w_class = "w-[calc(50%-2px)] md:w-[calc(50%-0.25rem)] min-w-[calc(50%-2px)] md:min-w-[calc(50%-0.25rem)]" %}
-      {% elif total_cats == 3 %}
+      {% elif total_colls == 3 %}
         {% set w_class = "w-[85vw] md:w-[calc(33.333%-0.33rem)] min-w-[85vw] md:min-w-[calc(33.333%-0.33rem)]" %}
       {% else %}
-        {# Từ 4 trở lên: Mobile lướt ngang 85vw, Tablet chia 3, PC chia 4 #}
+        {# Nếu từ 4 cái trở lên: Tự động kích hoạt chế độ lướt tràn viền mượt mà #}
         {% set w_class = "w-[85vw] sm:w-[calc(50%-2px)] md:w-[calc(33.333%-0.33rem)] lg:w-[calc(25%-0.375rem)] min-w-[85vw] sm:min-w-[calc(50%-2px)] md:min-w-[calc(33.333%-0.33rem)] lg:min-w-[calc(25%-0.375rem)]" %}
       {% endif %}
 
-      <a href="/shop?category={{ cat.slug }}" class="relative group block aspect-[3/4] md:aspect-[4/5] overflow-hidden bg-[#f8f8f8] snap-start shrink-0 {{ w_class }}">
+      <a href="/shop?collection={{ collection.slug }}" class="relative group block aspect-[3/4] md:aspect-[4/5] overflow-hidden bg-[#f8f8f8] snap-start shrink-0 {{ w_class }}">
         
-        {% if cat.video_url %}
-          <video src="{{ cat.video_url }}" autoplay loop muted playsinline 
+        {# Hỗ trợ render linh hoạt luồng Video/Hình ảnh của Bộ sưu tập chiến dịch #}
+        {% if collection.video_url %}
+          <video src="{{ collection.video_url }}" autoplay loop muted playsinline 
                  class="w-full h-full object-cover object-center img-pan" 
                  {% if loop.index <= 4 %}fetchpriority="high"{% endif %}></video>
         {% else %}
-          <img src="{{ cat.image_url if cat.image_url else 'https://placehold.co/600x800/ede4d8/1a1714?text=' ~ cat.name|urlencode }}" 
-               alt="{{ cat.name }}" 
+          <img src="{{ collection.image_url if collection.image_url else 'https://placehold.co/600x800/f8f8f8/cccccc?text=' ~ collection.name|urlencode }}" 
+               alt="{{ collection.name }}" 
                class="w-full h-full object-cover object-center img-pan"
                decoding="async"
                {% if loop.index <= 4 %}fetchpriority="high" loading="eager"{% else %}loading="lazy"{% endif %}>
@@ -124,11 +125,11 @@
         
         <div class="absolute bottom-5 left-5 z-10 flex flex-col items-start gap-2 pr-5">
           <h3 class="text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-black bg-white px-4 py-2 shadow-sm transform group-hover:-translate-y-1 transition-transform duration-300">
-            {{ cat.name }}
+            {{ collection.name }}
           </h3>
-          {% if cat.description %}
+          {% if collection.description %}
             <p class="text-white text-[11px] font-medium leading-relaxed opacity-0 group-hover:opacity-100 transform translate-y-3 group-hover:translate-y-0 transition-all duration-300 line-clamp-2 drop-shadow-md">
-              {{ cat.description }}
+              {{ collection.description }}
             </p>
           {% endif %}
         </div>
@@ -282,7 +283,7 @@ document.addEventListener('DOMContentLoaded', function() {
           }
           video.play().catch(err => {});
         } else {
-          video.pause(); // Giải phóng CPU/GPU
+          video.pause(); 
         }
       });
     }, { root: null, rootMargin: '150px', threshold: 0.1 });

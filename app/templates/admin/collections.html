@@ -1,0 +1,111 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Bộ sưu tập Campaigns | GUA Admin{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
+    .modern-card { background: #fff; border: 1px solid #f1f5f9; border-radius: 1.5rem; box-shadow: 0 4px 20px -2px rgba(0,0,0,0.03); }
+    .sortable-ghost { opacity: 0.3; background: #e0e7ff; border: 2px dashed #6366f1 !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-screen-2xl mx-auto px-4 md:px-8 py-10 relative">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Chiến dịch & Xu hướng</p>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900">Quản lý Bộ sưu tập (Collections)</h1>
+        </div>
+        <div class="flex gap-3">
+            <button onclick="document.getElementById('lyModal').classList.remove('hidden')" class="bg-white border border-slate-200 text-slate-700 px-5 py-2.5 rounded-full text-sm font-bold hover:bg-slate-50 shadow-sm flex items-center gap-2">
+                <i class="fa-solid fa-layer-group text-amber-500"></i> Kéo thả vị trí trang chủ
+            </button>
+            <a href="{{ url_for('admin.add_collection') }}" class="bg-indigo-600 text-white px-6 py-2.5 rounded-full text-sm font-bold hover:bg-indigo-700 shadow-md flex items-center gap-2">
+                <i class="fa-solid fa-plus"></i> Thêm BST mới
+            </a>
+        </div>
+    </div>
+
+    {% if colles %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {% for c in colles %}
+            <div class="modern-card overflow-hidden flex flex-col group">
+                <div class="relative w-full h-44 bg-slate-100 overflow-hidden">
+                    {% if c.video_url %}
+                        <video src="{{ c.video_url }}" autoplay loop muted playsinline class="w-full h-full object-cover"></video>
+                    {% elif c.image_url %}
+                        <img src="{{ c.image_url }}" class="w-full h-full object-cover">
+                    {% else %}
+                        <div class="w-full h-full flex items-center justify-center text-slate-300"><i class="fa-solid fa-camera-retro text-3xl"></i></div>
+                    {% endif %}
+                </div>
+                <div class="p-4 flex-1 flex flex-col justify-between">
+                    <div>
+                        <h3 class="font-bold text-slate-900 leading-tight truncate">{{ c.name }}</h3>
+                        <p class="text-[10px] text-slate-400 font-mono mt-0.5 truncate">{{ c.slug }}</p>
+                        <p class="text-xs text-slate-400 line-clamp-2 mt-2">{{ c.description or 'Chưa cấu hình mô tả.' }}</p>
+                    </div>
+                    <div class="flex gap-2 mt-4 pt-3 border-t border-slate-100">
+                        {% if c.show_on_home %}<span class="bg-amber-50 border border-amber-200 text-amber-700 font-bold text-[9px] px-2 py-0.5 rounded-md uppercase tracking-wider">Trang chủ #{{ c.sort_order }}</span>{% endif %}
+                        {% if c.is_active %}<span class="bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-[9px] px-2 py-0.5 rounded-md uppercase tracking-wider">Hiển thị</span>{% endif %}
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mt-4">
+                        <a href="{{ url_for('admin.edit_collection', cid=c.id) }}" class="py-2 bg-slate-50 text-center rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-indigo-600 hover:text-white transition-colors">Sửa</a>
+                        <button onclick="if(confirm('Xóa bộ sưu tập này?')){ document.getElementById('del_{{c.id}}').submit(); }" class="py-2 bg-rose-50 rounded-xl border border-rose-200 text-xs font-bold text-rose-600 hover:bg-rose-600 hover:text-white transition-colors">Xóa</button>
+                        <form id="del_{{c.id}}" action="{{ url_for('admin.delete_collection', cid=c.id) }}" method="POST" class="hidden"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"></form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+
+{# ── DRAWER KÉO THẢ SẮP XẾP TRANG CHỦ ── #}
+{% set home_list = colles | selectattr('show_on_home', 'equalto', true) | sort(attribute='sort_order') | list %}
+{% set hide_list = colles | selectattr('show_on_home', 'equalto', false) | list %}
+<div id="lyModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden justify-end">
+    <div class="absolute inset-0" onclick="document.getElementById('lyModal').classList.add('hidden')"></div>
+    <div class="w-full max-w-md bg-white h-full relative z-10 p-6 flex flex-col shadow-2xl animate-slide-in">
+        <h2 class="text-lg font-bold text-slate-900 mb-1">Thiết lập Trang chủ khách hàng</h2>
+        <p class="text-xs text-slate-400 mb-6">Thả bộ sưu tập vào ô vàng để đưa ra trang chủ.</p>
+        <form action="{{ url_for('admin.update_homepage_layout') }}" method="POST" class="flex-1 flex flex-col overflow-hidden">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="flex-1 overflow-y-auto space-y-6 pr-1 no-scrollbar">
+                <div>
+                    <h4 class="text-xs font-bold text-amber-600 uppercase tracking-wider mb-2">⭐ Đang hiển thị ở trang chủ</h4>
+                    <div id="hList" class="min-h-[120px] bg-amber-50/40 border-2 border-dashed border-amber-200 rounded-2xl p-2.5 flex flex-col gap-2">
+                        {% for x in home_list %}
+                        <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center cursor-grab" data-id="{{ x.id }}">
+                            <input type="hidden" name="home_cats[]" value="{{ x.id }}" class="c-inp">
+                            <span class="text-sm font-bold text-slate-800">{{ x.name }}</span><i class="fa-solid fa-bars text-slate-300 text-xs"></i>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div>
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">📦 Kho lưu trữ BST ẩn</h4>
+                    <div id="aList" class="min-h-[120px] bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-2.5 flex flex-col gap-2">
+                        {% for x in hide_list %}
+                        <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center cursor-grab opacity-70" data-id="{{ x.id }}">
+                            <input type="hidden" name="home_cats[]" value="{{ x.id }}" class="c-inp" disabled>
+                            <span class="text-sm font-bold text-slate-600">{{ x.name }}</span><i class="fa-solid fa-bars text-slate-300 text-xs"></i>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3.5 rounded-xl text-sm mt-4">Cập nhật bố cục</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        new Sortable(document.getElementById('hList'), { group:'shared', animation:150, ghostClass:'sortable-ghost', onAdd: e => { e.item.querySelector('.c-inp').disabled = false; e.item.classList.remove('opacity-70'); } });
+        new Sortable(document.getElementById('aList'), { group:'shared', animation:150, ghostClass:'sortable-ghost', onAdd: e => { e.item.querySelector('.c-inp').disabled = true; e.item.classList.add('opacity-70'); } });
+    });
+</script>
+{% endblock %}

@@ -1,182 +1,45 @@
 {% extends "admin/admin_base.html" %}
-{% block title %}{{ 'Chỉnh sửa' if cat else 'Thêm mới' }} Danh mục | GUA Admin{% endblock %}
+{% block title %}Sửa Danh mục | GUA Admin{% endblock %}
 
 {% block extra_head %}
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
-    :root { --font-jakarta: 'Plus Jakarta Sans', sans-serif; }
-    body { font-family: var(--font-jakarta); background-color: #f8fafc; }
-    
-    .modern-card {
-        background: #ffffff;
-        border: 1px solid #f1f5f9;
-        border-radius: 1.5rem;
-        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
-    }
-    
-    .glass-nav { 
-        background: rgba(255, 255, 255, 0.85); 
-        backdrop-filter: blur(16px); 
-        -webkit-backdrop-filter: blur(16px); 
-    }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
 </style>
 {% endblock %}
 
 {% block content %}
-<form method="POST" enctype="multipart/form-data" class="pb-24">
+<form method="POST" class="max-w-xl mx-auto px-4 py-12 space-y-6">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-    {# ── TOP BAR (Sticky) ── #}
-    <div class="sticky top-0 z-40 glass-nav border-b border-slate-200/60 shadow-sm mb-8">
-        <div class="max-w-5xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
-            <div class="flex items-center gap-4">
-                <a href="{{ url_for('admin.categories') }}" class="w-10 h-10 flex items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:text-black hover:border-black hover:bg-slate-50 transition-all">
-                    <i class="fa-solid fa-arrow-left"></i>
-                </a>
-                <div>
-                    <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Quản lý Danh mục</p>
-                    <h1 class="text-xl font-bold tracking-tight text-slate-900">{{ 'Chỉnh sửa' if cat else 'Thêm danh mục mới' }}</h1>
-                </div>
-            </div>
-            <button type="submit" class="bg-indigo-600 text-white px-6 py-2.5 rounded-full text-sm font-bold hover:bg-indigo-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2">
-                <i class="fa-solid fa-floppy-disk"></i> Lưu danh mục
-            </button>
+    <div class="flex items-center justify-between border-b border-slate-200/60 pb-5">
+        <div class="flex items-center gap-3">
+            <a href="{{ url_for('admin.categories') }}" class="w-9 h-9 border border-slate-200 rounded-full flex items-center justify-center text-slate-400 hover:text-black hover:border-black transition-all"><i class="fa-solid fa-arrow-left text-xs"></i></a>
+            <h1 class="text-xl font-bold text-slate-900">Sửa đổi danh mục</h1>
         </div>
+        <button type="submit" class="bg-black text-white text-xs font-bold uppercase tracking-wide px-5 py-2.5 rounded-full hover:bg-stone-800 transition-colors">Lưu lại</button>
     </div>
 
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {# ── CỘT TRÁI (2/3): THÔNG TIN CHUNG ── #}
-        <div class="lg:col-span-2 space-y-6">
-            <div class="modern-card p-6 md:p-8 space-y-6">
-                <h3 class="text-sm font-bold text-slate-800 uppercase tracking-widest flex items-center gap-2 mb-6">
-                    <i class="fa-solid fa-pen-nib text-indigo-500"></i> Thông tin cơ bản
-                </h3>
-                
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide">Tên danh mục <span class="text-rose-500">*</span></label>
-                    <input type="text" name="name" value="{{ cat.name if cat else '' }}" required placeholder="Ví dụ: Áo Thun Nam"
-                           class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 text-sm font-medium focus:outline-none focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 transition-all">
-                </div>
-                
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide">Đường dẫn (Slug)</label>
-                    <input type="text" name="slug" value="{{ cat.slug if cat else '' }}" placeholder="Để trống để tự tạo (vd: ao-thun-nam)"
-                           class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 text-sm font-mono focus:outline-none focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 transition-all">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide">Mô tả ngắn</label>
-                    <textarea name="description" rows="3" placeholder="Mô tả bộ sưu tập hoặc dòng sản phẩm này..."
-                              class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 text-sm focus:outline-none focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 transition-all">{{ cat.description if cat else '' }}</textarea>
-                </div>
-            </div>
-
-            {# ── Media (Hình ảnh / Video) ── #}
-            <div class="modern-card p-6 md:p-8">
-                <h3 class="text-sm font-bold text-slate-800 uppercase tracking-widest flex items-center gap-2 mb-6">
-                    <i class="fa-solid fa-image text-indigo-500"></i> Hình ảnh / Video Đại diện
-                </h3>
-                
-                <div class="space-y-4">
-                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide">Dán Link URL (Ưu tiên nếu file lớn)</label>
-                    <div class="flex gap-2">
-                        <input type="url" name="external_url" id="external_url" placeholder="https://..." value="{{ cat.video_url if cat and cat.video_url else (cat.image_url if cat else '') }}"
-                               class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs focus:outline-none focus:bg-white focus:border-indigo-400 transition-all">
-                        <button type="button" onclick="applyMediaLink()" class="px-4 bg-slate-100 text-slate-700 font-bold rounded-xl border border-slate-200 hover:bg-slate-200 transition-all">Xem trước</button>
-                    </div>
-
-                    <div class="relative w-full border-2 border-dashed border-slate-300 rounded-2xl p-8 bg-slate-50 text-center hover:bg-slate-100 transition-colors cursor-pointer group" onclick="document.getElementById('fPick').click()">
-                        <input type="file" id="fPick" name="category_media" accept="image/*,video/mp4" class="hidden">
-                        
-                        <div id="placeholder" class="{% if cat and (cat.image_url or cat.video_url) %}hidden{% endif %}">
-                            <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto shadow-sm text-slate-400 group-hover:text-indigo-500 group-hover:scale-110 transition-all">
-                                <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
-                            </div>
-                            <p class="mt-3 text-sm font-bold text-slate-700" id="fileNameDisplay">Tải file từ máy tính</p>
-                            <p class="text-xs text-slate-400 mt-1">Hỗ trợ JPG, PNG, WEBP, MP4</p>
-                        </div>
-
-                        {# Hiển thị Preview #}
-                        {% set has_media = cat and (cat.image_url or cat.video_url) %}
-                        <div id="ph" class="{% if not has_media %}hidden{% endif %} relative rounded-xl overflow-hidden shadow-sm mx-auto max-w-sm">
-                            {% if cat and cat.video_url %}
-                                <video id="pVid" src="{{ cat.video_url }}" autoplay loop muted playsinline class="w-full h-auto rounded-xl"></video>
-                                <img id="pImg" class="hidden w-full h-auto rounded-xl object-cover">
-                            {% else %}
-                                <video id="pVid" class="hidden w-full h-auto rounded-xl"></video>
-                                <img id="pImg" src="{{ cat.image_url if cat else '' }}" class="w-full h-auto rounded-xl object-cover">
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <div class="bg-white border border-slate-200 rounded-2xl p-6 space-y-4 shadow-sm">
+        <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Tên danh mục</label>
+            <input type="text" name="name" value="{{ cat.name }}" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:bg-white focus:border-black transition-all">
         </div>
-
-        {# ── CỘT PHẢI (1/3): TRẠNG THÁI HIỂN THỊ ── #}
-        <div class="space-y-6">
-            <div class="modern-card p-6 md:p-8 space-y-4">
-                <h3 class="text-sm font-bold text-slate-800 uppercase tracking-widest flex items-center gap-2 mb-4">
-                    <i class="fa-solid fa-eye text-indigo-500"></i> Trạng thái
-                </h3>
-                
-                <div class="flex items-center justify-between p-4 bg-slate-50/70 rounded-2xl border border-slate-100">
-                    <div class="pr-3">
-                        <p class="text-[13px] font-bold text-slate-800">Hiển thị danh mục</p>
-                        <p class="text-[11px] text-slate-500 mt-0.5 leading-tight">Bật để khách hàng có thể thấy và truy cập</p>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer shrink-0">
-                        <input type="checkbox" name="is_active" class="sr-only peer" {% if not cat or cat.is_active %}checked{% endif %}>
-                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                    </label>
-                </div>
-
-                <div class="flex items-center justify-between p-4 bg-amber-50/30 rounded-2xl border border-amber-100">
-                    <div class="pr-3">
-                        <p class="text-[13px] font-bold text-amber-900">Ghim lên Trang chủ</p>
-                        <p class="text-[11px] text-amber-700 mt-0.5 leading-tight">Hiển thị ở khu vực "Danh mục nổi bật" (Nên chọn tối đa 4)</p>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer shrink-0">
-                        <input type="checkbox" name="show_on_home" class="sr-only peer" {% if cat and cat.show_on_home %}checked{% endif %}>
-                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
-                    </label>
-                </div>
-            </div>
+        <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Đường dẫn tĩnh (Slug)</label>
+            <input type="text" name="slug" value="{{ cat.slug }}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-mono text-slate-400 focus:outline-none focus:bg-white focus:border-black transition-all">
         </div>
-
+        <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Mô tả</label>
+            <textarea name="description" rows="4" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white focus:border-black transition-all">{{ cat.description or '' }}</textarea>
+        </div>
+        <label class="flex items-center justify-between cursor-pointer pt-2">
+            <span class="text-xs font-bold text-slate-500 uppercase">Trạng thái bật bán</span>
+            <div class="relative">
+                <input type="checkbox" name="is_active" class="sr-only peer" {% if cat.is_active %}checked{% endif %}>
+                <div class="w-9 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-black"></div>
+            </div>
+        </label>
     </div>
 </form>
-
-<script>
-    document.getElementById('fPick').addEventListener('change', function(){
-        const file = this.files[0];
-        if (file) {
-            document.getElementById('fileNameDisplay').innerText = file.name.length > 25 ? file.name.substring(0, 25) + '...' : file.name;
-            const url = URL.createObjectURL(file);
-            showPreview(url, file.type.includes('video') ? 'video' : 'image');
-        }
-    });
-
-    window.applyMediaLink = function() {
-        const url = document.getElementById('external_url').value.trim();
-        if (!url) return alert("Vui lòng nhập đường dẫn URL hợp lệ!");
-        showPreview(url, (url.toLowerCase().endsWith('.mp4') || url.includes('video')) ? 'video' : 'image');
-    };
-
-    function showPreview(src, type) {
-        document.getElementById('placeholder').classList.add('hidden');
-        document.getElementById('ph').classList.remove('hidden');
-        const pVid = document.getElementById('pVid');
-        const pImg = document.getElementById('pImg');
-        
-        if (type === 'video') {
-            pVid.src = src; pVid.classList.remove('hidden');
-            pImg.classList.add('hidden');
-        } else {
-            pImg.src = src; pImg.classList.remove('hidden');
-            pVid.classList.add('hidden');
-        }
-    }
-</script>
 {% endblock %}

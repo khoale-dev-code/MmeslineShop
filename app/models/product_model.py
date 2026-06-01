@@ -9,6 +9,7 @@ CHANGELOG (Tối ưu hóa Lazy Initialization & Khắc phục bẫy RLS Admin):
 - Ép các hàm ghi dữ liệu (create, update, delete, sync_images) chạy qua admin client để bypass RLS.
 - Đã Fix: Sử dụng bucket 'product_image' mới tạo để lưu trữ hình ảnh.
 - Đã Fix: Sửa lỗi update trả về False khi res.data rỗng, đảm bảo luôn chạy tiếp hàm đồng bộ ảnh.
+- Đã Fix (HOTFIX): Cập nhật toàn bộ truy vấn read sang cấu trúc Nhiều-Nhiều (N-N) cho danh mục và bộ sưu tập.
 """
 
 import logging
@@ -95,10 +96,10 @@ class ProductModel:
 
     @staticmethod
     def _format_product(product: dict) -> dict:
-        """Format dữ liệu 1 sản phẩm: sắp xếp ảnh, tính giảm giá, map màu."""
         if not product:
             return product
 
+        # Sắp xếp thư viện ảnh
         imgs = sorted(product.get("product_images") or [], key=lambda x: x.get("sort_order", 0))
         product["product_images"] = imgs
         product["images"] = imgs
@@ -107,6 +108,7 @@ class ProductModel:
             primary = next((img["url"] for img in imgs if img.get("is_primary")), None)
             product["thumbnail_url"] = primary or (imgs[0]["url"] if imgs else "https://placehold.co/600x800/f8f8f8/cccccc?text=GUA")
 
+        # Tính toán phần trăm giảm giá công khai
         price = product.get("price")
         old_price = product.get("old_price")
         if price and old_price and old_price > price:
@@ -114,6 +116,7 @@ class ProductModel:
         else:
             product["discount_percent"] = None
 
+        # Format hex màu sắc cho biến thể
         variants = product.get("product_variants") or []
         for v in variants:
             c_hex = v.get("color_hex")
@@ -188,9 +191,10 @@ class ProductModel:
     def get_featured(limit: int = 8) -> list:
         db = ProductModel._db()
         try:
+            # FIX: Gọi qua bảng trung gian product_categories để nhả ra list danh mục
             res = (
                 db.table("products")
-                .select("*, categories(name, slug), product_images(*), product_variants(*)")
+                .select("*, product_categories(categories(name, slug)), product_images(*), product_variants(*)")
                 .is_("deleted_at", "null")
                 .eq("is_active", True)
                 .order("created_at", desc=True)
@@ -215,17 +219,29 @@ class ProductModel:
         db = ProductModel._db_admin() if admin_mode else ProductModel._db()
         offset = (page - 1) * per_page
         try:
+            # FIX: Gọi bảng trung gian để in ra tag Danh mục / Collection
             query = db.table("products").select(
-                "*, categories(name, slug), product_variants(*), product_images(*)", count="exact"
+                "*, product_categories(categories(name, slug)), collection_products(collections(name, slug)), product_variants(*), product_images(*)", 
+                count="exact"
             )
+            
             if not admin_mode:
                 query = query.is_("deleted_at", "null").eq("is_active", True)
 
+            # FIX CỰC KỲ QUAN TRỌNG: Lọc theo bảng N-N
             if category_slug:
                 try:
                     cat_res = db.table("categories").select("id").eq("slug", category_slug).limit(1).execute()
                     if cat_res.data:
-                        query = query.eq("category_id", cat_res.data[0]["id"])
+                        cat_id = cat_res.data[0]["id"]
+                        # Tìm tất cả product_id liên kết với category này
+                        pc_res = db.table("product_categories").select("product_id").eq("category_id", cat_id).execute()
+                        product_ids = [pc["product_id"] for pc in (pc_res.data or [])]
+                        
+                        if product_ids:
+                            query = query.in_("id", product_ids)
+                        else:
+                            return {"items": [], "total": 0, "page": page, "per_page": per_page}
                     else:
                         return {"items": [], "total": 0, "page": page, "per_page": per_page}
                 except Exception as cat_err:
@@ -249,21 +265,55 @@ class ProductModel:
 
     @staticmethod
     def get_by_id(pid: str):
-        if not pid:
-            return None
-        db = ProductModel._db()
+        if not pid: return None
+        db = ProductModel._db_admin() # Dùng quyền admin để tránh lỗi RLS khi load form
         try:
-            res = (
-                db.table("products")
-                .select("*, categories(name, slug), product_images(*), product_variants(*)")
-                .eq("id", str(pid).strip())
-                .limit(1)
-                .execute()
-            )
-            return ProductModel._format_product(res.data[0]) if res.data else None
+            res = db.table("products").select("*, product_images(*), product_variants(*)").eq("id", str(pid).strip()).limit(1).execute()
+            if not res.data: return None
+            product = res.data[0]
+
+            # 🟢 NẠP MẢNG DANH MỤC LIÊN KẾT (Nhiều - Nhiều)
+            cat_res = db.table("product_categories").select("category_id").eq("product_id", product["id"]).execute()
+            product["category_ids"] = [c["category_id"] for c in (cat_res.data or [])]
+
+            # 🟢 NẠP MẢNG BỘ SƯU TẬP LIÊN KẾT (Nhiều - Nhiều)
+            coll_res = db.table("collection_products").select("collection_id").eq("product_id", product["id"]).execute()
+            product["collection_ids"] = [c["collection_id"] for c in (coll_res.data or [])]
+
+            return ProductModel._format_product(product)
         except Exception as e:
             logger.error(f"Lỗi get_by_id product '{pid}': {e}")
             return None
+        
+    @staticmethod
+    def sync_categories(pid: str, category_ids: list) -> bool:
+        """Đồng bộ mảng danh mục Nhiều - Nhiều của sản phẩm."""
+        db = ProductModel._db_admin()
+        try:
+            db.table("product_categories").delete().eq("product_id", pid).execute()
+            if category_ids:
+                db.table("product_categories").insert([
+                    {"product_id": pid, "category_id": cid} for cid in category_ids if cid
+                ]).execute()
+            return True
+        except Exception as e:
+            logger.error(f"Lỗi sync_categories sản phẩm {pid}: {e}")
+            return False
+
+    @staticmethod
+    def sync_collections(pid: str, collection_ids: list) -> bool:
+        """Đồng bộ mảng bộ sưu tập Nhiều - Nhiều của sản phẩm."""
+        db = ProductModel._db_admin()
+        try:
+            db.table("collection_products").delete().eq("product_id", pid).execute()
+            if collection_ids:
+                db.table("collection_products").insert([
+                    {"product_id": pid, "collection_id": cid} for cid in collection_ids if cid
+                ]).execute()
+            return True
+        except Exception as e:
+            logger.error(f"Lỗi sync_collections sản phẩm {pid}: {e}")
+            return False
 
     @staticmethod
     def get_by_slug(slug: str):
@@ -271,9 +321,10 @@ class ProductModel:
             return None
         db = ProductModel._db()
         try:
+            # FIX: Gọi qua bảng trung gian
             res = (
                 db.table("products")
-                .select("*, categories(name, slug), product_images(*), product_variants(*)")
+                .select("*, product_categories(categories(name, slug)), collection_products(collections(name, slug)), product_images(*), product_variants(*)")
                 .eq("slug", slug)
                 .is_("deleted_at", "null")
                 .limit(1)

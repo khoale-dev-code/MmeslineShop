@@ -3,259 +3,102 @@
 
 {% block extra_head %}
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<!-- Tích hợp thư viện kéo thả xịn nhất hiện nay -->
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-
 <style>
-    :root { --font-jakarta: 'Plus Jakarta Sans', sans-serif; }
-    body { font-family: var(--font-jakarta); background-color: #f8fafc; }
-    
-    .modern-card {
-        background: #ffffff;
-        border: 1px solid #f1f5f9;
-        border-radius: 1.5rem;
-        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .modern-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.06);
-    }
-
-    /* Hiệu ứng Drag & Drop */
-    .sortable-ghost { opacity: 0.4; transform: scale(0.98); background: #f8fafc; border: 2px dashed #94a3b8; }
-    .sortable-drag { cursor: grabbing !important; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="max-w-screen-2xl mx-auto px-4 md:px-8 py-10 relative min-h-screen">
-    
-    {# Header #}
+<div class="max-w-screen-2xl mx-auto px-4 md:px-8 py-10">
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Hệ thống phân loại</p>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900">Quản lý Danh mục</h1>
+            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Cấu trúc phân loại cứng</p>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900">Danh mục ngành hàng</h1>
         </div>
         
-        <div class="flex items-center gap-3">
-            <button onclick="openLayoutModal()" class="bg-white border border-slate-200 text-slate-700 px-5 py-2.5 rounded-full text-sm font-bold hover:bg-slate-50 transition-all shadow-sm flex items-center gap-2">
-                <i class="fa-solid fa-layer-group text-amber-500"></i> Bố cục Trang chủ
-            </button>
-            <a href="{{ url_for('admin.add_category') }}" class="inline-flex items-center justify-center gap-2 bg-indigo-600 text-white px-6 py-2.5 rounded-full text-sm font-bold hover:bg-indigo-700 transition-all shadow-md">
-                <i class="fa-solid fa-plus"></i> Thêm mới
-            </a>
-        </div>
+        <button onclick="toggleModal('addModal', true)" class="inline-flex items-center justify-center gap-2 bg-black text-white px-6 py-2.5 rounded-full text-sm font-bold hover:bg-stone-800 transition-all shadow-sm">
+            <i class="fa-solid fa-plus"></i> Thêm danh mục
+        </button>
     </div>
 
-    {# Grid Danh mục (Chỉ hiển thị thông tin) #}
     {% if cats %}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-12">
-            {% for cat in cats %}
-            <div class="modern-card overflow-hidden flex flex-col group relative">
-                
-                {# Media Preview #}
-                <div class="relative w-full h-48 bg-slate-100 overflow-hidden border-b border-slate-100">
-                    {% if cat.video_url %}
-                        <video src="{{ cat.video_url }}" autoplay loop muted playsinline class="w-full h-full object-cover"></video>
-                        <div class="absolute top-3 right-3 bg-black/50 backdrop-blur text-white text-[10px] font-bold px-2 py-1 rounded-md"><i class="fa-solid fa-video"></i></div>
-                    {% elif cat.image_url %}
-                        <img src="{{ cat.image_url }}" alt="{{ cat.name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-                    {% else %}
-                        <div class="w-full h-full flex items-center justify-center text-slate-300">
-                            <i class="fa-solid fa-image text-4xl"></i>
-                        </div>
-                    {% endif %}
-                    
-                    <div class="absolute top-3 left-3 flex flex-col gap-1.5 items-start">
-                        {% if cat.is_active %}
-                            <span class="bg-emerald-500/90 backdrop-blur text-white text-[9px] font-bold uppercase px-2 py-1 rounded-md tracking-wider shadow-sm">Hoạt động</span>
-                        {% else %}
-                            <span class="bg-slate-500/90 backdrop-blur text-white text-[9px] font-bold uppercase px-2 py-1 rounded-md tracking-wider shadow-sm">Đã ẩn</span>
-                        {% endif %}
-                    </div>
-                </div>
-
-                {# Nội dung #}
-                <div class="p-5 flex-1 flex flex-col">
-                    <div class="mb-4">
-                        <h3 class="font-bold text-slate-900 text-lg leading-tight truncate">{{ cat.name }}</h3>
-                        <p class="text-[10px] text-slate-400 font-mono mt-0.5 truncate">{{ cat.slug }}</p>
-                    </div>
-
-                    {% if cat.show_on_home %}
-                        <div class="mt-auto bg-amber-50 rounded-xl border border-amber-100 p-3 mb-4 flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-full bg-amber-200/50 flex items-center justify-center text-amber-600 shrink-0">
-                                <i class="fa-solid fa-star text-xs"></i>
+    <div class="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                        <th class="px-6 py-4">Tên danh mục</th>
+                        <th class="px-6 py-4">Đường dẫn (Slug)</th>
+                        <th class="px-6 py-4">Mô tả</th>
+                        <th class="px-6 py-4">Trạng thái</th>
+                        <th class="px-6 py-4 text-right">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-sm font-medium text-slate-700">
+                    {% for cat in cats %}
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="px-6 py-4 font-bold text-slate-900">{{ cat.name }}</td>
+                        <td class="px-6 py-4 font-mono text-xs text-slate-400">{{ cat.slug }}</td>
+                        <td class="px-6 py-4 text-slate-400 text-xs max-w-xs truncate">{{ cat.description or '—' }}</td>
+                        <td class="px-6 py-4">
+                            {% if cat.is_active %}
+                                <span class="bg-emerald-50 text-emerald-600 border border-emerald-100 text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full">Bật bán</span>
+                            {% else %}
+                                <span class="bg-slate-100 text-slate-400 border border-slate-200 text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full">Tạm ẩn</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <div class="flex justify-end gap-3">
+                                <a href="{{ url_for('admin.edit_category', cat_id=cat.id) }}" class="text-indigo-600 hover:text-indigo-900 text-sm"><i class="fa-regular fa-pen-to-square"></i> Sửa</a>
+                                <form action="{{ url_for('admin.delete_category', cat_id=cat.id) }}" method="POST" onsubmit="return confirm('Xóa danh mục này?');" class="inline m-0">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="text-rose-600 hover:text-rose-900 text-sm"><i class="fa-regular fa-trash-can"></i> Xóa</button>
+                                </form>
                             </div>
-                            <div>
-                                <p class="text-[10px] font-bold text-amber-700 uppercase tracking-widest">Trang chủ</p>
-                                <p class="text-xs text-amber-600 font-medium">Đang hiển thị ở vị trí số {{ cat.sort_order }}</p>
-                            </div>
-                        </div>
-                    {% else %}
-                        <div class="mt-auto mb-4"></div> {# Spacer để đẩy nút xuống đáy #}
-                    {% endif %}
-
-                    {# Buttons #}
-                    <div class="grid grid-cols-2 gap-2 border-t border-slate-100 pt-4">
-                        <a href="{{ url_for('admin.edit_category', cat_id=cat.id) }}" class="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-indigo-50 text-indigo-600 text-xs font-bold hover:bg-indigo-600 hover:text-white transition-all">
-                            <i class="fa-regular fa-pen-to-square"></i> Chỉnh sửa
-                        </a>
-                        <form action="{{ url_for('admin.delete_category', cat_id=cat.id) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn xóa danh mục này?');" class="m-0">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-rose-50 text-rose-600 text-xs font-bold hover:bg-rose-600 hover:text-white transition-all">
-                                <i class="fa-regular fa-trash-can"></i> Xóa
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
+    </div>
     {% else %}
-        <div class="text-center py-20 bg-white border border-dashed border-slate-300 rounded-3xl">
-            <i class="fa-solid fa-folder-open text-4xl text-slate-300 mb-4"></i>
-            <h3 class="text-lg font-bold text-slate-800">Chưa có danh mục nào</h3>
-            <p class="text-slate-500 text-sm mt-1 mb-6">Hãy tạo danh mục đầu tiên để phân loại sản phẩm của bạn.</p>
-            <a href="{{ url_for('admin.add_category') }}" class="inline-flex items-center gap-2 bg-indigo-600 text-white px-6 py-2.5 rounded-full text-sm font-bold hover:bg-indigo-700 transition-all shadow-md">
-                <i class="fa-solid fa-plus"></i> Thêm ngay
-            </a>
-        </div>
+    <div class="text-center py-16 bg-white border border-dashed border-slate-200 rounded-3xl">
+        <p class="text-sm text-slate-400 font-medium">Chưa có danh mục nào tồn tại.</p>
+    </div>
     {% endif %}
 </div>
 
-{# ── DRAWER (NGĂN KÉO CẤU HÌNH TRANG CHỦ BẰNG KÉO THẢ) ── #}
-{% set home_cats = cats | selectattr('show_on_home', 'equalto', true) | sort(attribute='sort_order') | list %}
-{% set other_cats = cats | selectattr('show_on_home', 'equalto', false) | list %}
-
-<div id="layoutModal" class="fixed inset-0 z-[100] hidden">
-    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm cursor-pointer" onclick="closeLayoutModal()"></div>
-    
-    <div id="layoutDrawer" class="absolute top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl flex flex-col transform translate-x-full transition-transform duration-300 ease-in-out">
-        <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-            <div>
-                <h2 class="text-lg font-bold text-slate-900">Sắp xếp Trang chủ</h2>
-                <p class="text-xs text-slate-500 font-medium mt-0.5">Kéo thả để điều chỉnh vị trí</p>
-            </div>
-            <button onclick="closeLayoutModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 text-slate-600 hover:bg-rose-100 hover:text-rose-600 transition-colors">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
+{# ── MODAL THÊM NHANH DANH MỤC ── #}
+<div id="addModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center p-4 animate-fade-in">
+    <div class="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl border border-slate-100">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-bold text-slate-900">Thêm danh mục</h3>
+            <button onclick="toggleModal('addModal', false)" class="text-slate-400 hover:text-black"><i class="fa-solid fa-xmark"></i></button>
         </div>
-
-        <form action="{{ url_for('admin.update_homepage_layout') }}" method="POST" class="flex-1 flex flex-col overflow-hidden">
+        <form action="{{ url_for('admin.add_category') }}" method="POST" class="space-y-4 m-0">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-            <div class="flex-1 overflow-y-auto p-6 space-y-8 bg-slate-50/30">
-                
-                {# KHU VỰC 1: ĐANG HIỂN THỊ TRÊN TRANG CHỦ #}
-                <div>
-                    <div class="flex items-center justify-between mb-3">
-                        <div class="flex items-center gap-2">
-                            <i class="fa-solid fa-star text-amber-400"></i>
-                            <h3 class="text-xs font-bold text-slate-800 uppercase tracking-widest">Đang ghim (Trang chủ)</h3>
-                        </div>
-                    </div>
-                    <div id="homeList" class="min-h-[140px] bg-amber-50/50 border-2 border-dashed border-amber-200 rounded-2xl p-3 flex flex-col gap-2.5">
-                        {% for cat in home_cats %}
-                            <div class="sortable-item bg-white border border-slate-200 rounded-xl p-3 flex items-center gap-3 cursor-grab hover:border-indigo-300 shadow-sm" data-id="{{ cat.id }}">
-                                <input type="hidden" name="home_cats[]" value="{{ cat.id }}" class="cat-input">
-                                <div class="w-10 h-10 rounded-lg bg-slate-100 overflow-hidden shrink-0">
-                                    {% if cat.image_url %}<img src="{{ cat.image_url }}" class="w-full h-full object-cover">{% else %}<div class="w-full h-full flex justify-center items-center"><i class="fa-solid fa-image text-slate-300"></i></div>{% endif %}
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <h4 class="text-sm font-bold text-slate-900 truncate">{{ cat.name }}</h4>
-                                </div>
-                                <i class="fa-solid fa-grip-vertical text-slate-300"></i>
-                            </div>
-                        {% endfor %}
-                    </div>
-                    <p class="text-[10px] text-slate-400 text-center mt-2 font-medium">Kéo thả để đổi thứ tự ưu tiên</p>
-                </div>
-
-                {# KHU VỰC 2: CÁC DANH MỤC KHÁC #}
-                <div>
-                    <div class="flex items-center gap-2 mb-3">
-                        <i class="fa-solid fa-box-archive text-slate-400"></i>
-                        <h3 class="text-xs font-bold text-slate-800 uppercase tracking-widest">Danh mục đang ẩn</h3>
-                    </div>
-                    <div id="availableList" class="min-h-[140px] bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-3 flex flex-col gap-2.5">
-                        {% for cat in other_cats %}
-                            <div class="sortable-item bg-white border border-slate-200 rounded-xl p-3 flex items-center gap-3 cursor-grab hover:border-slate-400 shadow-sm opacity-80" data-id="{{ cat.id }}">
-                                <input type="hidden" name="home_cats[]" value="{{ cat.id }}" class="cat-input" disabled>
-                                <div class="w-10 h-10 rounded-lg bg-slate-100 overflow-hidden shrink-0">
-                                    {% if cat.image_url %}<img src="{{ cat.image_url }}" class="w-full h-full object-cover grayscale">{% else %}<div class="w-full h-full flex justify-center items-center"><i class="fa-solid fa-image text-slate-300"></i></div>{% endif %}
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <h4 class="text-sm font-bold text-slate-600 truncate">{{ cat.name }}</h4>
-                                </div>
-                                <i class="fa-solid fa-grip-vertical text-slate-300"></i>
-                            </div>
-                        {% endfor %}
-                    </div>
-                </div>
-
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Tên danh mục *</label>
+                <input type="text" name="name" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:bg-white focus:border-black transition-all">
             </div>
-
-            <div class="p-5 border-t border-slate-100 bg-white">
-                <button type="submit" class="w-full bg-indigo-600 text-white py-3.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-colors shadow-sm flex justify-center items-center gap-2">
-                    <i class="fa-solid fa-check"></i> Lưu cấu hình Trang chủ
-                </button>
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Mô tả</label>
+                <textarea name="description" rows="2" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:bg-white focus:border-black transition-all"></textarea>
             </div>
+            <label class="flex items-center justify-between cursor-pointer p-1">
+                <span class="text-xs font-bold text-slate-500 uppercase">Kích hoạt bán</span>
+                <input type="checkbox" name="is_active" class="sr-only peer" checked>
+                <div class="w-9 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-black relative"></div>
+            </label>
+            <button type="submit" class="w-full bg-black text-white font-bold py-3 rounded-xl text-sm hover:bg-stone-800 transition-colors">Tạo ngay</button>
         </form>
     </div>
 </div>
 
 <script>
-    // Xử lý bật/tắt Drawer
-    function openLayoutModal() {
-        const modal = document.getElementById('layoutModal');
-        const drawer = document.getElementById('layoutDrawer');
-        modal.classList.remove('hidden');
-        void modal.offsetWidth; // Trigger reflow để animation hoạt động
-        drawer.classList.remove('translate-x-full');
+    function toggleModal(id, show) {
+        document.getElementById(id).style.display = show ? 'flex' : 'none';
     }
-    
-    function closeLayoutModal() {
-        const modal = document.getElementById('layoutModal');
-        const drawer = document.getElementById('layoutDrawer');
-        drawer.classList.add('translate-x-full');
-        setTimeout(() => modal.classList.add('hidden'), 300); // Đợi CSS transition chạy xong
-    }
-
-    // Khởi tạo tính năng Drag & Drop 2 chiều
-    document.addEventListener('DOMContentLoaded', function () {
-        const homeList = document.getElementById('homeList');
-        const availableList = document.getElementById('availableList');
-
-        // Danh sách ghim
-        new Sortable(homeList, {
-            group: 'shared', 
-            animation: 200,
-            ghostClass: 'sortable-ghost',
-            onAdd: function (evt) {
-                // Khi kéo từ "Đang ẩn" vào "Trang chủ", bật input ẩn để submit dữ liệu
-                evt.item.querySelector('.cat-input').disabled = false;
-                evt.item.classList.remove('opacity-80');
-                evt.item.querySelector('img')?.classList.remove('grayscale');
-                evt.item.querySelector('h4').classList.replace('text-slate-600', 'text-slate-900');
-            }
-        });
-
-        // Danh sách dự phòng
-        new Sortable(availableList, {
-            group: 'shared',
-            animation: 200,
-            ghostClass: 'sortable-ghost',
-            onAdd: function (evt) {
-                // Khi kéo danh mục ra khỏi "Trang chủ", vô hiệu hóa input ẩn
-                evt.item.querySelector('.cat-input').disabled = true;
-                evt.item.classList.add('opacity-80');
-                evt.item.querySelector('img')?.classList.add('grayscale');
-                evt.item.querySelector('h4').classList.replace('text-slate-900', 'text-slate-600');
-            }
-        });
-    });
 </script>
 {% endblock %}
