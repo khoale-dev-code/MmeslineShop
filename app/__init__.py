@@ -206,7 +206,7 @@ def create_app() -> Flask:
         logger.info("✅ AI / Chat blueprints enabled.")
 
     # Admin: chỉ bật khi cần. Không nên load admin vào storefront production nếu đang tối ưu tốc độ.
-    if _env_enabled("ENABLE_ADMIN", "false"):
+    if _env_enabled("ENABLE_ADMIN", "true"):
         from app.controllers.admin import admin_bp
         from app.controllers.admin.admin_shipping_controller import admin_shipping_bp
         from app.controllers.admin.admin_shipping_providers_controller import admin_providers_bp
