@@ -22,35 +22,59 @@
 {% set selected_collection_ids = p.collection_ids if p and p.collection_ids is defined and p.collection_ids else [] %}
 
 {% block extra_head %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='admin/css/product_form.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/css/product_form.css') }}?v=20260606-product-form">
 
-  <script src="https://cdn.jsdelivr.net/npm/ckeditor4@4.25.1/ckeditor.js"></script>
+  {# CKEditor 4.22.1: tránh license LTS. Tắt version security popup trước khi editor khởi tạo. #}
+  <script>
+    window.CKEDITOR_BASEPATH = "https://cdn.ckeditor.com/4.22.1/standard/";
+    window.CKEDITOR_CONFIG_VERSION_CHECK_DISABLED = true;
+  </script>
+
+  <script src="https://cdn.ckeditor.com/4.22.1/standard/ckeditor.js"></script>
+
+  <script>
+    if (window.CKEDITOR) {
+      CKEDITOR.config.versionCheck = false;
+      CKEDITOR.config.notification_duration = 0;
+    }
+  </script>
 
   <style>
-    :root {
-      --mm-admin-nav-safe-top: 92px;
-      }
+    /*
+      Layout page-level cho product form.
+      Không cộng padding-top ở đây vì admin_base.html đã chừa khoảng trống cho navbar fixed.
+    */
 
-      .mm-product-page {
-        width: 100%;
-        max-width: 1500px;
-        margin: 0 auto;
-        padding-top: var(--mm-admin-nav-safe-top);
-        padding-bottom: 32px;
-      }
-
-      .mm-product-form {
-        position: relative;
-        min-width: 0;
-        isolation: isolate;
-      }
+    .mm-product-page {
+      width: 100%;
+      max-width: 1500px;
+      margin: 0 auto;
+      padding-top: 0 !important;
+      padding-bottom: 32px;
+      color: #241207;
+    }
 
     .mm-product-form {
       position: relative;
       min-width: 0;
+      isolation: isolate;
     }
 
-   .mm-product-head {
+    /*
+      Ẩn cảnh báo đỏ của CKEditor 4.22.1:
+      "This CKEditor 4.22.1 version is not secure..."
+      Đây chỉ ẩn UI cảnh báo. Về lâu dài nên đổi editor hoặc dùng CKEditor LTS có license.
+    */
+    .cke_notifications_area,
+    .cke_notification,
+    .cke_notification_warning {
+      display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+
+    .mm-product-head {
       position: relative;
       z-index: 3;
       display: flex;
@@ -65,7 +89,7 @@
         radial-gradient(circle at top right, rgba(185, 139, 98, 0.18), transparent 34%),
         linear-gradient(135deg, #fffaf5, #fbf7f1);
       box-shadow: 0 24px 70px -50px rgba(36, 18, 7, 0.62);
-      overflow: visible;
+      overflow: hidden;
     }
 
     .mm-product-head::before {
@@ -132,42 +156,6 @@
       flex-shrink: 0;
     }
 
-    .mm-save-btn {
-      min-height: 52px;
-      border: 0;
-      border-radius: 18px;
-      background: #3b2414;
-      color: #fff;
-      padding: 0 22px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      font-size: 12px;
-      font-weight: 950;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      cursor: pointer;
-      white-space: nowrap;
-      transition:
-        transform 0.16s ease,
-        background 0.16s ease,
-        box-shadow 0.16s ease,
-        opacity 0.16s ease;
-      box-shadow: 0 18px 36px -24px rgba(36, 18, 7, 0.78);
-    }
-
-    .mm-save-btn:hover {
-      background: #241207;
-      transform: translateY(-1px);
-    }
-
-    .mm-save-btn:disabled {
-      opacity: 0.72;
-      cursor: wait;
-      transform: none;
-    }
-
     .mm-product-alert {
       position: relative;
       z-index: 2;
@@ -203,17 +191,53 @@
 
     .mm-product-main,
     .mm-product-side {
-      position: sticky;
-      top: 112px;
-      z-index: 1;
-      align-self: start;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
     }
 
     .mm-product-side {
       position: sticky;
-      top: 96px;
-      z-index: 0;
+      top: calc(var(--admin-topbar-height, 76px) + 20px);
+      z-index: 1;
       align-self: start;
+    }
+
+    .mm-save-btn {
+      min-height: 52px;
+      border: 0;
+      border-radius: 18px;
+      background: #3b2414;
+      color: #fff;
+      padding: 0 22px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 12px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      cursor: pointer;
+      white-space: nowrap;
+      transition:
+        transform 0.16s ease,
+        background 0.16s ease,
+        box-shadow 0.16s ease,
+        opacity 0.16s ease;
+      box-shadow: 0 18px 36px -24px rgba(36, 18, 7, 0.78);
+    }
+
+    .mm-save-btn:hover {
+      background: #241207;
+      transform: translateY(-1px);
+    }
+
+    .mm-save-btn:disabled {
+      opacity: 0.72;
+      cursor: wait;
+      transform: none;
     }
 
     .mm-form-mobile-save {
@@ -362,7 +386,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-  <script src="{{ url_for('static', filename='admin/js/product_form.js') }}"></script>
-  <script src="{{ url_for('static', filename='admin/js/mm_variants_lite.js') }}"></script>
-  <script src="{{ url_for('static', filename='admin/js/mm_product_media.js') }}"></script>
+  <script src="{{ url_for('static', filename='admin/js/product_form.js') }}?v=20260606-ckeditor-fix"></script>
+  <script src="{{ url_for('static', filename='admin/js/mm_variants_lite.js') }}?v=20260606-variants"></script>
+  <script src="{{ url_for('static', filename='admin/js/mm_product_media.js') }}?v=20260606-media"></script>
 {% endblock %}

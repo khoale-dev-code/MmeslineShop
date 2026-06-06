@@ -1,6 +1,12 @@
 (function () {
   "use strict";
 
+  if (window.__MM_PRODUCT_FORM_BOUND__ === true) {
+    return;
+  }
+
+  window.__MM_PRODUCT_FORM_BOUND__ = true;
+
   const VND = new Intl.NumberFormat("vi-VN");
 
   const SELECTOR = {
@@ -11,11 +17,21 @@
 
     seoTitle: "#seoTitle",
     seoDescription: "#seoDescription",
+    seoKeywords: "#seoKeywords",
+    searchKeywords: "#searchKeywords",
     seoTitleCount: "#seoTitleCount",
     seoDescriptionCount: "#seoDescriptionCount",
+    seoTitleCounterState: "#seoTitleCounterState",
+    seoDescriptionCounterState: "#seoDescriptionCounterState",
     seoCheckName: "#seoCheckName",
     seoCheckTitle: "#seoCheckTitle",
     seoCheckDesc: "#seoCheckDesc",
+    seoScoreBadge: "#seoScoreBadge",
+    seoPreviewTitle: "#seoPreviewTitle",
+    seoPreviewDescription: "#seoPreviewDescription",
+    seoPreviewUrl: "#seoPreviewUrl",
+    seoGenerateBtn: "#seoGenerateBtn",
+    seoCopyNameBtn: "#seoCopyNameBtn",
 
     pricePreview: "#pricePreview",
     comparePreview: "#comparePreview",
@@ -36,16 +52,25 @@
     tagDropdown: "#tagDropdown",
     tagsHidden: "#tagsHidden",
     currentTagsJson: "currentTagsJson",
-    tagOptionsJson: "tagOptionsJson"
+    tagOptionsJson: "tagOptionsJson",
+
+    descriptionEditor: "#descriptionEditor"
   };
 
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
 
-  const digits = (value) => String(value || "").replace(/[^\d]/g, "");
-  const toNumber = (value) => Number(digits(value) || 0);
-  const formatMoney = (value) => digits(value) ? VND.format(Number(digits(value))) : "";
+  const moneyDigits = (value) => String(value || "").replace(/[^\d]/g, "");
+  const toMoneyNumber = (value) => Number(moneyDigits(value) || 0);
+  const formatMoneyInput = (value) => {
+    const digits = moneyDigits(value);
+    return digits ? VND.format(Number(digits)) : "";
+  };
   const formatVnd = (value) => VND.format(Number(value || 0)) + "đ";
+
+  function cleanText(value) {
+    return String(value || "").trim();
+  }
 
   function escapeHtml(value) {
     return String(value || "")
@@ -72,7 +97,8 @@
     if (!el) return fallback;
 
     try {
-      return JSON.parse(el.textContent || "[]");
+      const parsed = JSON.parse(el.textContent || "[]");
+      return parsed || fallback;
     } catch {
       return fallback;
     }
@@ -83,9 +109,13 @@
     if (el) el.textContent = String(value);
   }
 
-  function setHidden(selector, hidden) {
+  function toggleHidden(selector, hidden) {
     const el = $(selector);
     if (el) el.classList.toggle("hidden", Boolean(hidden));
+  }
+
+  function getFieldValue(selector) {
+    return cleanText($(selector)?.value || "");
   }
 
   function randomDigits(length) {
@@ -94,9 +124,11 @@
     if (window.crypto && window.crypto.getRandomValues) {
       const arr = new Uint8Array(length);
       window.crypto.getRandomValues(arr);
+
       arr.forEach((n) => {
         output += String(n % 10);
       });
+
       return output;
     }
 
@@ -122,16 +154,32 @@
     return "MM-" + (base || "ITEM") + "-" + randomDigits(4);
   }
 
+  function getBrandName() {
+    return cleanText(document.querySelector("[name='brand']")?.value) || "MMESTLINE";
+  }
+
+  function getGenderText() {
+    const gender = document.querySelector("[name='gender']")?.value || "unisex";
+
+    return {
+      unisex: "phù hợp phong cách unisex",
+      women: "dành cho nữ",
+      men: "dành cho nam",
+      kids: "dành cho trẻ em",
+      accessories: "thuộc nhóm phụ kiện"
+    }[gender] || "phù hợp nhiều phong cách";
+  }
+
   const MoneyInputs = {
     init(context = document) {
       $$("[data-money]", context).forEach((input) => {
         if (input.dataset.moneyBound === "1") return;
 
         input.dataset.moneyBound = "1";
-        input.value = formatMoney(input.value);
+        input.value = formatMoneyInput(input.value);
 
         input.addEventListener("input", () => {
-          input.value = formatMoney(input.value);
+          input.value = formatMoneyInput(input.value);
 
           try {
             input.setSelectionRange(input.value.length, input.value.length);
@@ -141,7 +189,7 @@
         });
 
         input.addEventListener("blur", () => {
-          input.value = formatMoney(input.value);
+          input.value = formatMoneyInput(input.value);
           PricePreview.update();
         });
       });
@@ -149,23 +197,23 @@
 
     normalizeBeforeSubmit() {
       $$("[data-money]").forEach((input) => {
-        input.value = digits(input.value);
+        input.value = moneyDigits(input.value);
       });
     }
   };
 
   const PricePreview = {
     update() {
-      const price = toNumber($("[name='price']")?.value);
-      const compare = toNumber($("[name='compare_at_price']")?.value);
-      const cost = toNumber($("[name='cost_price']")?.value);
+      const price = toMoneyNumber(document.querySelector("[name='price']")?.value);
+      const compare = toMoneyNumber(document.querySelector("[name='compare_at_price']")?.value);
+      const cost = toMoneyNumber(document.querySelector("[name='cost_price']")?.value);
 
       setText(SELECTOR.pricePreview, price ? formatVnd(price) : "0đ");
 
       const validCompare = Boolean(compare && price && compare > price);
 
-      setHidden(SELECTOR.comparePreview, !validCompare);
-      setHidden(SELECTOR.discountPreview, !validCompare);
+      toggleHidden(SELECTOR.comparePreview, !validCompare);
+      toggleHidden(SELECTOR.discountPreview, !validCompare);
 
       if (validCompare) {
         const discount = Math.round(((compare - price) / compare) * 100);
@@ -218,53 +266,205 @@
       const slug = $(SELECTOR.productSlug);
       const seoTitle = $(SELECTOR.seoTitle);
       const seoDesc = $(SELECTOR.seoDescription);
+      const generateBtn = $(SELECTOR.seoGenerateBtn);
+      const copyNameBtn = $(SELECTOR.seoCopyNameBtn);
 
-      if (name) {
+      if (name && name.dataset.seoBound !== "1") {
+        name.dataset.seoBound = "1";
+
         name.addEventListener("input", () => {
           if (slug && !slug.dataset.touched && !slug.value.trim()) {
             slug.value = slugifyVi(name.value);
           }
 
-          if (seoTitle && !seoTitle.dataset.touched) {
-            seoTitle.value = name.value.slice(0, 70);
+          if (seoTitle && !seoTitle.dataset.touched && !seoTitle.value.trim()) {
+            seoTitle.value = this.makeTitle().slice(0, 70);
           }
 
           this.update();
         });
       }
 
-      if (slug) {
+      if (slug && slug.dataset.seoBound !== "1") {
+        slug.dataset.seoBound = "1";
+
         slug.addEventListener("input", () => {
           slug.dataset.touched = "1";
           slug.value = slugifyVi(slug.value);
+          this.update();
         });
       }
 
-      if (seoTitle) {
+      if (seoTitle && seoTitle.dataset.seoBound !== "1") {
+        seoTitle.dataset.seoBound = "1";
+
         seoTitle.addEventListener("input", () => {
           seoTitle.dataset.touched = "1";
           this.update();
         });
       }
 
-      if (seoDesc) {
+      if (seoDesc && seoDesc.dataset.seoBound !== "1") {
+        seoDesc.dataset.seoBound = "1";
         seoDesc.addEventListener("input", () => this.update());
+      }
+
+      if (generateBtn && generateBtn.dataset.seoBound !== "1") {
+        generateBtn.dataset.seoBound = "1";
+        generateBtn.addEventListener("click", () => this.generate());
+      }
+
+      if (copyNameBtn && copyNameBtn.dataset.seoBound !== "1") {
+        copyNameBtn.dataset.seoBound = "1";
+        copyNameBtn.addEventListener("click", () => this.copyName());
+      }
+
+      this.update();
+    },
+
+    makeTitle() {
+      const name = getFieldValue(SELECTOR.productName);
+      const brand = getBrandName();
+
+      if (!name) return "";
+
+      if (name.toLowerCase().includes(brand.toLowerCase())) {
+        return name;
+      }
+
+      return `${name} | ${brand}`;
+    },
+
+    makeDescription() {
+      const name = getFieldValue(SELECTOR.productName) || "Sản phẩm MMESTLINE";
+      const tags = getFieldValue(SELECTOR.tagsHidden);
+
+      const tagText = tags
+        ? ` Gợi ý phong cách: ${tags
+            .split(",")
+            .map((x) => cleanText(x))
+            .filter(Boolean)
+            .slice(0, 3)
+            .join(", ")}.`
+        : "";
+
+      return `${name} ${getGenderText()}, thiết kế tối giản, dễ phối đồ và phù hợp sử dụng hằng ngày.${tagText}`.slice(0, 170);
+    },
+
+    makeKeywords() {
+      const name = getFieldValue(SELECTOR.productName);
+      const brand = getBrandName();
+      const gender = document.querySelector("[name='gender']")?.value || "";
+      const tags = getFieldValue(SELECTOR.tagsHidden);
+
+      return [
+        name,
+        brand,
+        gender,
+        tags,
+        "local brand",
+        "thời trang basic"
+      ]
+        .join(", ")
+        .split(",")
+        .map((x) => cleanText(x))
+        .filter(Boolean)
+        .filter((x, index, arr) => {
+          return arr.findIndex((y) => y.toLowerCase() === x.toLowerCase()) === index;
+        })
+        .slice(0, 12)
+        .join(", ");
+    },
+
+    generate() {
+      const seoTitle = $(SELECTOR.seoTitle);
+      const seoDesc = $(SELECTOR.seoDescription);
+      const seoKeywords = $(SELECTOR.seoKeywords);
+      const searchKeywords = $(SELECTOR.searchKeywords);
+
+      if (seoTitle) {
+        seoTitle.value = this.makeTitle().slice(0, 70);
+        seoTitle.dataset.touched = "1";
+      }
+
+      if (seoDesc) {
+        seoDesc.value = this.makeDescription();
+      }
+
+      const keywords = this.makeKeywords();
+
+      if (seoKeywords && !seoKeywords.value.trim()) {
+        seoKeywords.value = keywords;
+      }
+
+      if (searchKeywords && !searchKeywords.value.trim()) {
+        searchKeywords.value = keywords;
+      }
+
+      this.update();
+    },
+
+    copyName() {
+      const seoTitle = $(SELECTOR.seoTitle);
+
+      if (seoTitle) {
+        seoTitle.value = this.makeTitle().slice(0, 70);
+        seoTitle.dataset.touched = "1";
+        seoTitle.focus();
       }
 
       this.update();
     },
 
     update() {
-      const nameLen = ($(SELECTOR.productName)?.value || "").trim().length;
-      const titleLen = ($(SELECTOR.seoTitle)?.value || "").trim().length;
-      const descLen = ($(SELECTOR.seoDescription)?.value || "").trim().length;
+      const nameLen = getFieldValue(SELECTOR.productName).length;
+      const title = getFieldValue(SELECTOR.seoTitle);
+      const desc = getFieldValue(SELECTOR.seoDescription);
+      const slug = getFieldValue(SELECTOR.productSlug);
+
+      const titleLen = title.length;
+      const descLen = desc.length;
 
       setText(SELECTOR.seoTitleCount, titleLen);
       setText(SELECTOR.seoDescriptionCount, descLen);
 
-      this.setState(SELECTOR.seoCheckName, nameLen >= 8);
-      this.setState(SELECTOR.seoCheckTitle, titleLen >= 30 && titleLen <= 70);
-      this.setState(SELECTOR.seoCheckDesc, descLen >= 80 && descLen <= 170);
+      const nameOk = nameLen >= 8;
+      const titleOk = titleLen >= 30 && titleLen <= 70;
+      const descOk = descLen >= 80 && descLen <= 170;
+
+      this.setState(SELECTOR.seoCheckName, nameOk);
+      this.setState(SELECTOR.seoCheckTitle, titleOk);
+      this.setState(SELECTOR.seoCheckDesc, descOk);
+
+      this.setCounterState(SELECTOR.seoTitleCounterState, titleLen, 30, 70);
+      this.setCounterState(SELECTOR.seoDescriptionCounterState, descLen, 80, 170);
+
+      const score = [nameOk, titleOk, descOk].filter(Boolean).length;
+
+      setText(SELECTOR.seoScoreBadge, `${score}/3`);
+      setText(SELECTOR.seoPreviewTitle, title || this.makeTitle() || "Tên sản phẩm | MMESTLINE");
+      setText(
+        SELECTOR.seoPreviewDescription,
+        desc || "Mô tả ngắn giúp khách hàng hiểu sản phẩm, chất liệu, form dáng và điểm nổi bật."
+      );
+      setText(SELECTOR.seoPreviewUrl, "/product/" + (slug || "duong-dan-san-pham"));
+    },
+
+    setCounterState(selector, value, min, max) {
+      const el = $(selector);
+      if (!el) return;
+
+      el.classList.remove("is-ok", "is-warning", "is-bad");
+
+      if (value === 0) {
+        el.classList.add("is-warning");
+      } else if (value >= min && value <= max) {
+        el.classList.add("is-ok");
+      } else if (value > max) {
+        el.classList.add("is-bad");
+      } else {
+        el.classList.add("is-warning");
+      }
     },
 
     setState(selector, ok) {
@@ -315,6 +515,9 @@
       const list = $(SELECTOR.tagList);
 
       if (!input || !dropdown || !list) return;
+      if (input.dataset.tagsBound === "1") return;
+
+      input.dataset.tagsBound = "1";
 
       const current = readJsonScript(SELECTOR.currentTagsJson, []);
       const options = readJsonScript(SELECTOR.tagOptionsJson, []);
@@ -334,7 +537,7 @@
       input.addEventListener("input", () => this.filter());
 
       input.addEventListener("blur", () => {
-        setTimeout(() => dropdown.classList.add("hidden"), 160);
+        window.setTimeout(() => dropdown.classList.add("hidden"), 160);
       });
 
       input.addEventListener("keydown", (event) => {
@@ -356,6 +559,7 @@
 
       document.addEventListener("click", (event) => {
         const box = $(SELECTOR.tagBox);
+
         if (box && !box.contains(event.target)) {
           dropdown.classList.add("hidden");
         }
@@ -366,7 +570,9 @@
       const tag = this.normalize(value);
       if (!tag) return;
 
-      if (this.items.some((item) => item.toLowerCase() === tag.toLowerCase())) return;
+      if (this.items.some((item) => item.toLowerCase() === tag.toLowerCase())) {
+        return;
+      }
 
       this.items.push(tag);
 
@@ -376,12 +582,16 @@
       }
 
       this.render();
+      SeoChecker.update();
     },
 
     remove(value) {
       const key = this.normalize(value).toLowerCase();
+
       this.items = this.items.filter((tag) => tag.toLowerCase() !== key);
+
       this.render();
+      SeoChecker.update();
     },
 
     sync() {
@@ -442,9 +652,9 @@
       $$(".mm-tag-option", dropdown).forEach((button) => {
         const tag = this.normalize(button.dataset.addTag);
         const key = tag.toLowerCase();
-        const hide = selected.has(key) || (query && !key.includes(query));
+        const hide = selected.has(key) || Boolean(query && !key.includes(query));
 
-        button.classList.toggle("is-hidden", Boolean(hide));
+        button.classList.toggle("is-hidden", hide);
       });
 
       const visible = $$(".mm-tag-option:not(.is-hidden)", dropdown).length;
@@ -457,13 +667,17 @@
       const sku = $(SELECTOR.productSku);
       const barcode = $(SELECTOR.productBarcode);
 
-      if (sku) {
+      if (sku && sku.dataset.codeBound !== "1") {
+        sku.dataset.codeBound = "1";
+
         sku.addEventListener("input", () => {
           sku.value = sku.value.toUpperCase().replace(/\s+/g, "-");
         });
       }
 
-      if (barcode) {
+      if (barcode && barcode.dataset.codeBound !== "1") {
+        barcode.dataset.codeBound = "1";
+
         barcode.addEventListener("input", () => {
           barcode.value = barcode.value.replace(/[^\dA-Za-z\-]/g, "").toUpperCase();
         });
@@ -492,15 +706,70 @@
     normalizeBeforeSubmit() {
       const barcode = $(SELECTOR.productBarcode);
 
-      if (barcode && !barcode.value.trim()) {
-        barcode.value = makeBarcode();
+      if (barcode) {
+        barcode.value = barcode.value.replace(/[^\dA-Za-z\-]/g, "").toUpperCase();
+      }
+
+      const sku = $(SELECTOR.productSku);
+
+      if (sku) {
+        sku.value = sku.value.toUpperCase().replace(/\s+/g, "-");
       }
     }
   };
 
+  const DescriptionEditor = {
+  init() {
+    const textarea = $(SELECTOR.descriptionEditor);
+
+    if (!textarea) return;
+
+    if (
+      window.CKEDITOR &&
+      typeof window.CKEDITOR.replace === "function" &&
+      !window.CKEDITOR.instances.descriptionEditor
+    ) {
+      window.CKEDITOR.config.versionCheck = false;
+
+      window.CKEDITOR.replace("descriptionEditor", {
+        height: 430,
+        versionCheck: false,
+        allowedContent: true,
+        removePlugins: "elementspath",
+        resize_enabled: true,
+        toolbar: [
+          { name: "document", items: ["Source"] },
+          { name: "clipboard", items: ["Undo", "Redo"] },
+          { name: "styles", items: ["Format", "FontSize"] },
+          { name: "basicstyles", items: ["Bold", "Italic", "Underline", "Strike", "RemoveFormat"] },
+          { name: "paragraph", items: ["NumberedList", "BulletedList", "Blockquote"] },
+          { name: "alignment", items: ["JustifyLeft", "JustifyCenter", "JustifyRight", "JustifyBlock"] },
+          { name: "links", items: ["Link", "Unlink"] },
+          { name: "insert", items: ["Image", "Table", "HorizontalRule", "SpecialChar"] },
+          { name: "tools", items: ["Maximize"] }
+        ]
+      });
+    }
+
+    window.MMDescriptionEditor = window.MMDescriptionEditor || {};
+    window.MMDescriptionEditor.sync = () => this.sync();
+  },
+
+  sync() {
+    if (
+      window.CKEDITOR &&
+      window.CKEDITOR.instances &&
+      window.CKEDITOR.instances.descriptionEditor
+    ) {
+      window.CKEDITOR.instances.descriptionEditor.updateElement();
+    }
+  }
+};
+
   const Submit = {
     init() {
       const form = $(SELECTOR.form);
+
       if (!form || form.dataset.productFormJsBound === "1") return;
 
       form.dataset.productFormJsBound = "1";
@@ -509,10 +778,7 @@
         Codes.normalizeBeforeSubmit();
         MoneyInputs.normalizeBeforeSubmit();
         Tags.sync();
-
-        if (window.MMDescriptionEditor && typeof window.MMDescriptionEditor.sync === "function") {
-          window.MMDescriptionEditor.sync();
-        }
+        DescriptionEditor.sync();
 
         if (
           window.MM &&
@@ -535,9 +801,7 @@
     },
 
     disableSubmitButtons(form) {
-      const buttons = $$(".mm-save-btn", form);
-
-      buttons.forEach((button) => {
+      $$(".mm-save-btn", form).forEach((button) => {
         button.disabled = true;
         button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang lưu...';
       });
@@ -545,6 +809,10 @@
   };
 
   function bindDelegatedEvents() {
+    if (document.documentElement.dataset.productDelegatedBound === "1") return;
+
+    document.documentElement.dataset.productDelegatedBound = "1";
+
     document.addEventListener("click", (event) => {
       const addTagBtn = event.target.closest("[data-add-tag]");
       if (addTagBtn) {
@@ -581,24 +849,40 @@
     MoneyInputs.init(document);
     PricePreview.update();
 
-    SeoChecker.init();
     Tags.init();
+    SeoChecker.init();
     Codes.init();
+    DescriptionEditor.init();
 
     bindDelegatedEvents();
     Submit.init();
+
+    console.info("[MMProductForm] ready");
   }
 
-  document.addEventListener("DOMContentLoaded", init);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
 
   window.MM = window.MM || {};
 
   window.MM.ProductForm = {
-    formatMoney,
-    digits,
+    digits: moneyDigits,
+    formatMoney: formatMoneyInput,
+    formatVnd,
+    slugifyVi,
     updatePricePreview: () => PricePreview.update(),
     generateSku: () => Codes.generateSku(),
-    generateBarcode: () => Codes.generateBarcode()
+    generateBarcode: () => Codes.generateBarcode(),
+    syncDescription: () => DescriptionEditor.sync(),
+    normalizeBeforeSubmit: () => {
+      Codes.normalizeBeforeSubmit();
+      MoneyInputs.normalizeBeforeSubmit();
+      Tags.sync();
+      DescriptionEditor.sync();
+    }
   };
 
   window.ProductForm = window.ProductForm || {};
