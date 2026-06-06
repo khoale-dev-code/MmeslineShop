@@ -9,9 +9,8 @@
   {% endif %}
 
   {% set general_settings = system_settings.get('general', {}) if system_settings is defined and system_settings else {} %}
-  {% set shop_name = general_settings.get('shop_name') %}
   {% set support_email = general_settings.get('email') %}
-  {% set display_shop_name = shop_name or 'MMESTLINE' %}
+  {% set display_shop_name = 'MMESTLINE' %}
   {% set admin_logo_url = url_for('static', filename='images/mmestlinelogo.svg') %}
   {% set favicon_url = url_for('static', filename='images/favicon.png') %}
 
@@ -23,17 +22,38 @@
 
   <link rel="icon" href="{{ favicon_url }}" type="image/png">
 
+  <script>
+    /*
+      Apply trạng thái sidebar thật sớm để tránh layout bị giật khi reload.
+      Lưu ý: đoạn này chỉ apply class, KHÔNG gắn event click.
+      Event click thu gọn/mở rộng để mm_admin_nav.js xử lý.
+    */
+    (function () {
+      try {
+        var collapsed =
+          localStorage.getItem("mmAdminSidebarCollapsed") === "1" ||
+          localStorage.getItem("mm_admin_sidebar_collapsed") === "1";
+
+        if (collapsed) {
+          document.documentElement.classList.add("mm-sidebar-collapsed");
+          document.documentElement.classList.add("admin-sidebar-collapsed");
+          document.documentElement.classList.add("mm-admin-sidebar-collapsed");
+        }
+      } catch (_) {}
+    })();
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
   <link
-    href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,500;0,600;0,700;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,500;0,600;0,700;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap"
     rel="stylesheet"
   >
 
   {% if config.get('USE_TAILWIND_CDN', True) %}
-    <script src="https://cdn.tailwindcss.com"></script>
     <script>
+      window.tailwind = window.tailwind || {};
       tailwind.config = {
         content: [],
         theme: {
@@ -52,6 +72,7 @@
         }
       };
     </script>
+    <script src="https://cdn.tailwindcss.com"></script>
   {% else %}
     <link rel="stylesheet" href="{{ url_for('static', filename='admin/css/tailwind_admin.css') }}">
   {% endif %}
@@ -77,15 +98,33 @@
       --mm-card: #fffdf9;
       --mm-line: #eadfd4;
 
-      --admin-sidebar-width: 280px;
-      --admin-sidebar-mini-width: 84px;
+      /*
+        Đồng bộ với _admin_sidebar.html:
+        sidebar full = 348px
+        sidebar collapsed = 92px
+      */
+      --admin-sidebar-width: 348px;
+      --admin-sidebar-mini-width: 92px;
       --admin-topbar-height: 76px;
       --admin-mobilebar-height: 64px;
       --admin-content-ml: var(--admin-sidebar-width);
       --admin-bg: #fbf7f1;
     }
 
-    html {
+    html.mm-sidebar-collapsed,
+    html.admin-sidebar-collapsed,
+    html.mm-admin-sidebar-collapsed {
+      --admin-content-ml: var(--admin-sidebar-mini-width);
+    }
+
+    body.mm-sidebar-collapsed,
+    body.admin-sidebar-collapsed,
+    body.mm-admin-sidebar-collapsed {
+      --admin-content-ml: var(--admin-sidebar-mini-width);
+    }
+
+    html,
+    body {
       min-height: 100%;
       background:
         radial-gradient(circle at top left, rgba(185, 139, 98, 0.14), transparent 34%),
@@ -93,16 +132,13 @@
     }
 
     body {
-      min-height: 100vh;
       margin: 0;
       color: var(--mm-brown-950);
-      background:
-        radial-gradient(circle at 0% 0%, rgba(185, 139, 98, 0.10), transparent 30%),
-        linear-gradient(180deg, #fbf7f1 0%, #f8efe7 46%, #fbf7f1 100%);
       font-family: "Plus Jakarta Sans", system-ui, sans-serif;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       text-rendering: optimizeLegibility;
+      overflow-x: hidden;
     }
 
     ::selection {
@@ -140,11 +176,15 @@
       font: inherit;
     }
 
+    button {
+      cursor: pointer;
+    }
+
     .admin-main,
     .admin-footer {
       margin-left: 0;
       transition:
-        margin-left 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+        margin-left 0.24s cubic-bezier(0.16, 1, 0.3, 1),
         padding-top 0.2s ease,
         background-color 0.2s ease;
     }
@@ -164,6 +204,74 @@
       min-width: 0;
     }
 
+    /*
+      Override width từ class Tailwind trong _admin_sidebar.html.
+      Nhờ vậy dù sidebar có w-[348px] thì collapse vẫn chạy.
+    */
+    .mm-admin-sidebar {
+      width: var(--admin-sidebar-width) !important;
+      transition:
+        width 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+        transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    body.mm-sidebar-collapsed .mm-admin-sidebar,
+    body.admin-sidebar-collapsed .mm-admin-sidebar,
+    body.mm-admin-sidebar-collapsed .mm-admin-sidebar,
+    html.mm-sidebar-collapsed body .mm-admin-sidebar,
+    html.admin-sidebar-collapsed body .mm-admin-sidebar,
+    html.mm-admin-sidebar-collapsed body .mm-admin-sidebar {
+      width: var(--admin-sidebar-mini-width) !important;
+    }
+
+    body.mm-sidebar-collapsed .mm-sidebar-brand-text,
+    body.mm-sidebar-collapsed .mm-sidebar-label,
+    body.mm-sidebar-collapsed .mm-sidebar-section-title,
+    body.mm-sidebar-collapsed .mm-sidebar-badge,
+    body.admin-sidebar-collapsed .mm-sidebar-brand-text,
+    body.admin-sidebar-collapsed .mm-sidebar-label,
+    body.admin-sidebar-collapsed .mm-sidebar-section-title,
+    body.admin-sidebar-collapsed .mm-sidebar-badge,
+    body.mm-admin-sidebar-collapsed .mm-sidebar-brand-text,
+    body.mm-admin-sidebar-collapsed .mm-sidebar-label,
+    body.mm-admin-sidebar-collapsed .mm-sidebar-section-title,
+    body.mm-admin-sidebar-collapsed .mm-sidebar-badge {
+      width: 0 !important;
+      max-width: 0 !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      overflow: hidden !important;
+      white-space: nowrap !important;
+    }
+
+    body.mm-sidebar-collapsed .mm-sidebar-link,
+    body.admin-sidebar-collapsed .mm-sidebar-link,
+    body.mm-admin-sidebar-collapsed .mm-sidebar-link {
+      justify-content: center !important;
+      gap: 0 !important;
+      padding-left: 12px !important;
+      padding-right: 12px !important;
+    }
+
+    body.mm-sidebar-collapsed .mm-sidebar-section,
+    body.admin-sidebar-collapsed .mm-sidebar-section,
+    body.mm-admin-sidebar-collapsed .mm-sidebar-section {
+      margin-bottom: 18px !important;
+    }
+
+    body.mm-sidebar-collapsed .mm-admin-sidebar .custom-scrollbar,
+    body.admin-sidebar-collapsed .mm-admin-sidebar .custom-scrollbar,
+    body.mm-admin-sidebar-collapsed .mm-admin-sidebar .custom-scrollbar {
+      padding-left: 12px !important;
+      padding-right: 12px !important;
+    }
+
+    body.mm-sidebar-collapsed [data-admin-sidebar-toggle] i,
+    body.admin-sidebar-collapsed [data-admin-sidebar-toggle] i,
+    body.mm-admin-sidebar-collapsed [data-admin-sidebar-toggle] i {
+      transform: rotate(180deg);
+    }
+
     @media (min-width: 1024px) {
       .admin-main,
       .admin-footer {
@@ -172,16 +280,6 @@
 
       .admin-main {
         padding-top: var(--admin-topbar-height);
-      }
-
-      body.mm-sidebar-collapsed,
-      body.admin-sidebar-collapsed {
-        --admin-content-ml: var(--admin-sidebar-mini-width);
-      }
-
-      body.mm-sidebar-hidden,
-      body.admin-sidebar-hidden {
-        --admin-content-ml: 0px;
       }
     }
 
@@ -192,6 +290,10 @@
 
       .admin-footer {
         margin-left: 0;
+      }
+
+      .mm-admin-sidebar {
+        width: min(348px, 92vw) !important;
       }
     }
 
@@ -326,7 +428,9 @@
         <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 text-[#9b7b63]">
           <div class="inline-flex items-center gap-2">
             <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span class="font-bold">Hệ thống {{ display_shop_name }} đang hoạt động ổn định</span>
+            <span class="font-bold">
+              Hệ thống {{ display_shop_name }} đang hoạt động ổn định
+            </span>
           </div>
 
           {% if pending_returns is defined and pending_returns > 0 %}
@@ -425,32 +529,13 @@
   {% endwith %}
 
   <script>
+    /*
+      Script này chỉ xử lý toast + reveal.
+      Không xử lý sidebar toggle ở đây để tránh double click/double function.
+      Sidebar toggle nằm trong static/admin/js/mm_admin_nav.js.
+    */
     (function () {
       "use strict";
-
-      function setBodyState(name, enabled) {
-        document.body.classList.toggle(name, Boolean(enabled));
-      }
-
-      function applySidebarState() {
-        try {
-          var collapsed = localStorage.getItem("mmAdminSidebarCollapsed") === "1";
-          var hidden = localStorage.getItem("mmAdminSidebarHidden") === "1";
-
-          setBodyState("mm-sidebar-collapsed", collapsed && !hidden);
-          setBodyState("admin-sidebar-collapsed", collapsed && !hidden);
-
-          setBodyState("mm-sidebar-hidden", hidden);
-          setBodyState("admin-sidebar-hidden", hidden);
-        } catch (error) {
-          document.body.classList.remove(
-            "mm-sidebar-collapsed",
-            "admin-sidebar-collapsed",
-            "mm-sidebar-hidden",
-            "admin-sidebar-hidden"
-          );
-        }
-      }
 
       function initToasts() {
         var toasts = document.querySelectorAll(".mm-admin-toast");
@@ -501,24 +586,7 @@
         });
       }
 
-      applySidebarState();
-
-      window.MMAdminLayout = window.MMAdminLayout || {};
-      window.MMAdminLayout.applySidebarState = applySidebarState;
-
-      window.addEventListener("mm-admin-sidebar-change", applySidebarState);
-
-      window.addEventListener("storage", function (event) {
-        if (
-          event.key === "mmAdminSidebarCollapsed" ||
-          event.key === "mmAdminSidebarHidden"
-        ) {
-          applySidebarState();
-        }
-      });
-
       document.addEventListener("DOMContentLoaded", function () {
-        applySidebarState();
         initToasts();
         initReveal();
 

@@ -1,373 +1,546 @@
 {% extends "base.html" %}
-{% block title %}Về GUA Maison | Wear Your Identity{% endblock %}
+
+{% block title %}Về MMESTLINE | Wear Your Identity{% endblock %}
 
 {% block extra_head %}
 <style>
-  :root {
-    --display: 'Cormorant Garamond', 'Cormorant', serif;
-    --body: 'DM Sans', sans-serif;
-    --ink: #0e0e0e;
-    --dust: #f5f2ee;
-    --warm: #8a3a2b; 
-    --muted: #8a8580;
-    --line: rgba(14,14,14,0.12);
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-  body { background: #faf8f5; color: var(--ink); font-family: var(--body); overflow-x: hidden; }
-
-  .section { max-width: 1400px; margin: 0 auto; padding: 0 5vw; }
-  
-  /* ── ANIMATIONS ── */
-  @keyframes fadeUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: none; } }
-  .reveal { animation: fadeUp 1s cubic-bezier(0.16, 1, 0.3, 1) both; }
-  .d-1 { animation-delay: 0.1s; } .d-2 { animation-delay: 0.25s; } .d-3 { animation-delay: 0.4s; }
-
-  /* ── HERO MAGAZINE COVER ── */
-  .hero { 
-    min-height: 90vh; display: flex; flex-direction: column; justify-content: center; 
-    padding-top: 120px; padding-bottom: 60px; position: relative;
-  }
-  .hero-eyebrow {
-    font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase;
-    color: var(--muted); margin-bottom: 40px; display: flex; align-items: center; gap: 16px;
-  }
-  .hero-eyebrow::before { content: ''; width: 60px; height: 1px; background: var(--warm); }
-  .hero-title {
-    font-family: var(--display); font-weight: 400; font-size: clamp(50px, 11vw, 140px);
-    line-height: 0.85; letter-spacing: -0.02em; text-transform: uppercase;
-    margin-bottom: 24px; position: relative; z-index: 10;
-  }
-  .hero-subtitle {
-    font-family: var(--display); font-style: italic; font-size: clamp(24px, 4vw, 48px);
-    color: var(--warm); margin-left: 10vw; margin-bottom: 60px;
-  }
-  .hero-img-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 2vw; align-items: end; }
-  .hero-img-main img { width: 100%; height: 65vh; object-fit: cover; filter: grayscale(10%); }
-  .hero-img-sub { padding-bottom: 10vh; }
-  .hero-img-sub img { width: 100%; aspect-ratio: 3/4; object-fit: cover; }
-  .caption { font-size: 10px; text-transform: uppercase; letter-spacing: 0.15em; color: var(--muted); margin-top: 12px; }
-
-  @media(max-width: 900px) {
-    .hero-img-grid { grid-template-columns: 1fr; gap: 4vw; }
-    .hero-img-sub { display: none; }
-    .hero-img-main img { height: 50vh; }
+  .mm-about {
+    --ink: #111111;
+    --muted: #6f6a65;
+    --soft: #faf8f5;
+    --cream: #f3eee7;
+    --brown: #3b2414;
+    --line: rgba(17, 17, 17, 0.12);
+    background: var(--soft);
+    color: var(--ink);
+    overflow-x: hidden;
   }
 
- 
- /* ── CHAPTER 1: THE PROLOGUE ── */
-  .prologue { padding: 120px 0; border-bottom: 1px solid var(--line); }
-  .prologue-text {
-    font-family: var(--display); font-size: clamp(24px, 3.5vw, 42px); line-height: 1.4;
-    max-width: 1000px; margin: 0 auto 60px; text-align: center;
-  }
-  .prologue-text em { color: var(--warm); font-style: italic; }
-  
-  /* Hiệu ứng tràn viền (Full-bleed) cho Video */
-  .prologue-media { 
-    width: 100vw; 
-    position: relative; 
-    left: 50%; 
-    right: 50%; 
-    margin-left: -50vw; 
-    margin-right: -50vw; 
-    height: 75vh; /* Chiều cao chiếm 75% màn hình tạo cảm giác điện ảnh */
-    overflow: hidden; 
-  }
-  .prologue-media video { 
-    width: 100%; 
-    height: 100%; 
-    object-fit: cover; 
-    filter: brightness(0.9); /* Giảm độ sáng nhẹ để video có chiều sâu */
+  .mm-about img,
+  .mm-about video {
+    background: #e9e3dc;
   }
 
-  /* ── CHAPTER 2: THE LEXICON ── */
-  .lexicon { padding: 120px 0; border-bottom: 1px solid var(--line); }
-  .chapter-label {
-    font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase;
-    color: var(--warm); margin-bottom: 60px; text-align: center;
+  .mm-about-container {
+    width: min(100% - 32px, 1440px);
+    margin: 0 auto;
   }
-  .lexicon-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8vw; }
-  .lexicon-block h2 {
-    font-family: var(--display); font-size: 48px; font-weight: 400; font-style: italic;
-    margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid var(--line);
-  }
-  .lexicon-text { font-size: 14px; line-height: 1.8; color: #444; font-weight: 400; margin-bottom: 20px; }
-  
-  .acronym-list { margin-top: 40px; display: flex; flex-direction: column; gap: 24px; }
-  .acronym-item { display: flex; align-items: baseline; gap: 24px; }
-  .acronym-letter {
-    font-family: var(--display); font-size: 64px; line-height: 0.8; 
-    color: var(--warm); font-style: italic; width: 60px;
-  }
-  .acronym-desc { flex: 1; }
-  .acronym-word { font-size: 12px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 4px; }
-  .acronym-mean { font-size: 14px; color: var(--muted); }
 
-  @media(max-width: 900px) { .lexicon-grid { grid-template-columns: 1fr; gap: 80px; } }
+  .mm-about-kicker {
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
 
-  /* ── FULL WIDTH INTERMISSION MEDIA (4 CỘT TRÀN VIỀN) ── */
-  .intermission-wrapper {
-    width: 100vw;
-    position: relative;
-    left: 50%;
-    right: 50%;
-    margin-left: -50vw;
-    margin-right: -50vw;
+  .mm-about-title {
+    font-family: "DM Sans", system-ui, sans-serif;
+    font-size: clamp(48px, 10vw, 132px);
+    font-weight: 950;
+    line-height: 0.88;
+    letter-spacing: -0.075em;
+    text-transform: uppercase;
+  }
+
+  .mm-about-title em {
+    font-style: normal;
+    color: var(--brown);
+  }
+
+  .mm-about-copy {
+    color: #4b4642;
+    font-size: 14px;
+    line-height: 1.85;
+    font-weight: 650;
+  }
+
+  .mm-about-reveal {
+    opacity: 0.001;
+    transform: translateY(44px);
+    transition:
+      opacity 850ms cubic-bezier(0.16, 1, 0.3, 1),
+      transform 850ms cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform;
+  }
+
+  .mm-about-reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .mm-about-slide-left {
+    transform: translateX(-52px);
+  }
+
+  .mm-about-slide-right {
+    transform: translateX(52px);
+  }
+
+  .mm-about-slide-left.is-visible,
+  .mm-about-slide-right.is-visible {
+    transform: translateX(0);
+  }
+
+  .mm-about-image {
     overflow: hidden;
+    background: #e9e3dc;
   }
-  .intermission { 
-    display: grid; 
-    grid-template-columns: repeat(4, 1fr); 
-    width: 100%; 
-    height: 75vh; 
-  }
-  .intermission-item {
-    position: relative;
+
+  .mm-about-image img {
     width: 100%;
     height: 100%;
+    object-fit: cover;
+    display: block;
+    transform: translate3d(0, 0, 0) scale(1.012);
+    transition: transform 900ms cubic-bezier(0.16, 1, 0.3, 1), filter 400ms ease;
+    backface-visibility: hidden;
+  }
+
+  .mm-about-image:hover img {
+    transform: translate3d(0, 0, 0) scale(1.045);
+    filter: saturate(1.05) contrast(1.04);
+  }
+
+  .mm-about-grid-line {
+    background-image:
+      linear-gradient(to right, rgba(17,17,17,.08) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(17,17,17,.08) 1px, transparent 1px);
+    background-size: 72px 72px;
+  }
+
+  .mm-about-marquee {
+    display: flex;
     overflow: hidden;
-  }
-  .intermission-item img { 
-    width: 100%; 
-    height: 100%; 
-    object-fit: cover; 
-    filter: grayscale(30%) brightness(0.8); 
-    transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), filter 0.8s ease;
-  }
-  .intermission-item:hover img {
-    transform: scale(1.05);
-    filter: grayscale(0%) brightness(1.05);
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    background: #fff;
   }
 
-  @media(max-width: 900px) {
-    .intermission { grid-template-columns: repeat(2, 1fr); height: 60vh; }
+  .mm-about-marquee-track {
+    display: flex;
+    min-width: max-content;
+    animation: mmAboutMarquee 22s linear infinite;
   }
 
-  /* ── CHAPTER 3: THE JOURNEY ── */
-  .journey { padding: 120px 0; }
-  .journey-grid { display: grid; grid-template-columns: 5fr 6fr; gap: 6vw; align-items: center; }
-  .journey-img img { width: 100%; aspect-ratio: 4/5; object-fit: cover; }
-  .journey-content h2 {
-    font-family: var(--display); font-size: clamp(36px, 5vw, 64px); font-weight: 400;
-    line-height: 1.1; margin-bottom: 40px;
-  }
-  .journey-content p { font-size: 15px; line-height: 1.8; color: #444; margin-bottom: 24px; }
-
-  @media(max-width: 900px) {
-    .journey-grid { grid-template-columns: 1fr; }
-    .journey-img { order: 2; }
+  .mm-about-marquee span {
+    padding: 18px 28px;
+    white-space: nowrap;
+    font-size: 11px;
+    font-weight: 950;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
   }
 
-  /* ── CHAPTER 4: ETHOS ── */
-  .ethos { padding: 0; }
-  .ethos-inner { 
-    position: relative; padding: 150px 5vw; color: var(--dust); 
-    background-image: url('https://i.pinimg.com/736x/30/6c/68/306c680757188a4c2f786879706c6db8.jpg');
-    background-size: cover; background-position: center; background-attachment: fixed;
-  }
-  .ethos-overlay { position: absolute; inset: 0; background: rgba(14,14,14,0.75); z-index: 1; }
-  .ethos-content { position: relative; z-index: 2; }
-  .ethos-title {
-    font-family: var(--display); font-size: 48px; font-weight: 400; font-style: italic;
-    text-align: center; margin-bottom: 80px; color: #fff;
-  }
-  .ethos-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 40px; }
-  .ethos-item { border-top: 1px solid rgba(255,255,255,0.2); padding-top: 32px; }
-  .ethos-num { font-family: var(--display); font-size: 24px; color: #dcb8af; font-style: italic; margin-bottom: 16px; }
-  .ethos-text { font-size: 13px; line-height: 1.7; color: rgba(255,255,255,0.8); }
-  
-  @media(max-width: 900px) { .ethos-grid { grid-template-columns: repeat(2, 1fr); } }
-  @media(max-width: 500px) { .ethos-grid { grid-template-columns: 1fr; } }
+  @keyframes mmAboutMarquee {
+    from {
+      transform: translateX(0);
+    }
 
-  /* ── EPILOGUE ── */
-  .epilogue { 
-    position: relative; padding: 200px 0; text-align: center; 
-    background-image: url('https://i.pinimg.com/1200x/02/76/ef/0276efb152ad7d095805a36cb76758e6.jpg');
-    background-size: cover; background-position: center;
+    to {
+      transform: translateX(-50%);
+    }
   }
-  .epilogue-overlay { position: absolute; inset: 0; background: rgba(245,242,238,0.85); z-index: 1; }
-  .epilogue-content { position: relative; z-index: 2; }
-  .epilogue h2 {
-    font-family: var(--display); font-size: clamp(48px, 8vw, 100px); font-weight: 400;
-    text-transform: uppercase; letter-spacing: -0.02em; line-height: 1; margin-bottom: 24px;
-    color: var(--ink);
+
+  .mm-about-value {
+    border-top: 1px solid var(--line);
+    padding-top: 28px;
   }
-  .epilogue p { font-size: 12px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--warm); font-weight: bold; }
+
+  .mm-about-value-num {
+    color: var(--brown);
+    font-size: 12px;
+    font-weight: 950;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+
+  .mm-about-value-title {
+    margin-top: 18px;
+    font-size: 24px;
+    font-weight: 950;
+    letter-spacing: -0.04em;
+    text-transform: uppercase;
+  }
+
+  .mm-about-value-text {
+    margin-top: 14px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.75;
+    font-weight: 650;
+  }
+
+  .mm-about-btn {
+    min-height: 52px;
+    padding: 0 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    border: 1px solid #111;
+    background: #111;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 950;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    transition: transform 180ms ease, background 180ms ease, color 180ms ease;
+  }
+
+  .mm-about-btn:hover {
+    transform: translateY(-2px);
+    background: var(--brown);
+  }
+
+  .mm-about-btn-light {
+    background: transparent;
+    color: #111;
+  }
+
+  .mm-about-btn-light:hover {
+    background: #111;
+    color: #fff;
+  }
+
+  @media (max-width: 767px) {
+    .mm-about-container {
+      width: min(100% - 24px, 1440px);
+    }
+
+    .mm-about-marquee span {
+      padding: 14px 20px;
+      font-size: 10px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mm-about-reveal,
+    .mm-about-slide-left,
+    .mm-about-slide-right,
+    .mm-about-image img,
+    .mm-about-marquee-track {
+      opacity: 1 !important;
+      transform: none !important;
+      transition: none !important;
+      animation: none !important;
+    }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
+<main class="mm-about">
 
-<section class="section hero">
-  <div class="reveal d-1">
-    <p class="hero-eyebrow">The Manifesto</p>
-  </div>
-  <h1 class="hero-title reveal d-2">GUA Maison</h1>
-  <div class="hero-subtitle reveal d-3">Wear Your Identity</div>
-  
-  <div class="hero-img-grid reveal d-3">
-    <div class="hero-img-main">
-      <img src="https://d2w9rnfcy7mm78.cloudfront.net/30761198/original_51d17353660f65ebd505dbdc8977b30f.gif?1726597257" alt="GUA Maison Campaign - Runway">
-      <p class="caption">The Modern Identity — Tinh thần tự do</p>
-    </div>
-    <div class="hero-img-sub">
-      <img src="https://i.pinimg.com/1200x/b0/4f/33/b04f339093b97588524f7fd2bc2cd40d.jpg" alt="Atelier Details">
-      <p class="caption">Craftsmanship Details</p>
-    </div>
-  </div>
-</section>
+  <section class="relative min-h-[calc(100vh-var(--header-h,115px)-var(--topbar-h,0px))] bg-[#faf8f5] flex items-end overflow-hidden">
+    <div class="absolute inset-0 mm-about-grid-line opacity-50"></div>
 
-<section class="section prologue reveal">
-  <p class="prologue-text">
-    Giữa nhịp sống hiện đại, thời trang không còn đơn thuần là những bộ quần áo để mặc mỗi ngày. Thời trang đã trở thành một phần của phong cách sống, là cách mỗi người <em>thể hiện cá tính, cảm xúc và bản sắc riêng</em> của mình.
-  </p>
-  <div class="prologue-media reveal d-2">
-    <video src="https://framerusercontent.com/assets/lZoFaMiSrl7NBMR8dw8rTWfy4.mp4" autoplay muted loop playsinline></video>
-  </div>
-</section>
+    <div class="mm-about-container relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 pt-20 pb-14 md:pb-20">
+      <div class="lg:col-span-7 flex flex-col justify-end">
+        <p class="mm-about-kicker mm-about-reveal">
+          About MMESTLINE
+        </p>
 
-<section class="section lexicon">
-  <p class="chapter-label reveal">Chương I — Tên gọi</p>
-  <div class="lexicon-grid">
-    
-    <div class="lexicon-block reveal">
-      <h2>Ý nghĩa của "GUA"</h2>
-      <p class="lexicon-text">
-        “GUA” không chỉ là một cái tên ngắn gọn và dễ nhớ, mà còn mang trong mình tinh thần mà thương hiệu theo đuổi. GUA đại diện cho sự khác biệt, tự do và cá tính. Đó là tinh thần của những người dám thể hiện bản thân, không ngại tạo nên phong cách riêng và luôn muốn nổi bật theo cách của chính mình. 
-      </p>
-      <p class="lexicon-text">
-        Không quá phô trương, không chạy theo những xu hướng ngắn hạn, GUA hướng đến vẻ đẹp tinh tế, bền vững và có chiều sâu.
-      </p>
-      
-      <div class="acronym-list">
-        <div class="acronym-item">
-          <div class="acronym-letter">G</div>
-          <div class="acronym-desc">
-            <div class="acronym-word">Grace</div>
-            <div class="acronym-mean">Sự thanh lịch và tinh tế trong từng đường nét thiết kế.</div>
-          </div>
+        <h1 class="mm-about-title mt-6 mm-about-reveal">
+          Wear<br>
+          Your<br>
+          <em>Identity</em>
+        </h1>
+
+        <p class="mt-8 max-w-xl mm-about-copy mm-about-reveal">
+          MMESTLINE được tạo ra cho những người xem thời trang là một phần của bản sắc.
+          Không ồn ào, không chạy theo số đông — mỗi thiết kế hướng đến sự tự tin,
+          tính ứng dụng và dấu ấn riêng trong đời sống hằng ngày.
+        </p>
+
+        <div class="mt-9 flex flex-col sm:flex-row gap-3 mm-about-reveal">
+          <a href="/shop" class="mm-about-btn">
+            Khám phá sản phẩm
+            <i class="fa-solid fa-arrow-right"></i>
+          </a>
+
+          <a href="/collections" class="mm-about-btn mm-about-btn-light">
+            Xem bộ sưu tập
+          </a>
         </div>
-        <div class="acronym-item">
-          <div class="acronym-letter">U</div>
-          <div class="acronym-desc">
-            <div class="acronym-word">Unique</div>
-            <div class="acronym-mean">Bản sắc cá tính độc bản của mỗi khách hàng khi khoác lên trang phục.</div>
-          </div>
+      </div>
+
+      <div class="lg:col-span-5 grid grid-cols-5 gap-3 items-end mm-about-reveal mm-about-slide-right">
+        <div class="col-span-3 mm-about-image aspect-[3/4]">
+          <img
+            src="https://i.pinimg.com/1200x/b0/4f/33/b04f339093b97588524f7fd2bc2cd40d.jpg"
+            alt="MMESTLINE campaign"
+            width="900"
+            height="1200"
+            loading="eager"
+            fetchpriority="high"
+            decoding="async"
+          >
         </div>
-        <div class="acronym-item">
-          <div class="acronym-letter">A</div>
-          <div class="acronym-desc">
-            <div class="acronym-word">Attitude</div>
-            <div class="acronym-mean">Thái độ sống tự tin, mạnh mẽ và làm chủ thời đại mới.</div>
+
+        <div class="col-span-2 space-y-3">
+          <div class="mm-about-image aspect-[4/5]">
+            <img
+              src="https://i.pinimg.com/736x/0f/0f/b0/0f0fb0303be75a3c300b0e1dda62d467.jpg"
+              alt="MMESTLINE details"
+              width="640"
+              height="800"
+              loading="eager"
+              decoding="async"
+            >
+          </div>
+
+          <p class="text-[10px] font-black uppercase tracking-[0.24em] text-neutral-500 leading-5">
+            Modern essentials<br>
+            with attitude.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="mm-about-marquee">
+    <div class="mm-about-marquee-track">
+      <span>MMESTLINE</span>
+      <span>Wear Your Identity</span>
+      <span>Modern Essentials</span>
+      <span>Confidence In Motion</span>
+      <span>Made For Daily Expression</span>
+      <span>MMESTLINE</span>
+      <span>Wear Your Identity</span>
+      <span>Modern Essentials</span>
+      <span>Confidence In Motion</span>
+      <span>Made For Daily Expression</span>
+    </div>
+  </div>
+
+  <section class="py-16 md:py-28 bg-white">
+    <div class="mm-about-container grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-start">
+      <div class="lg:col-span-5 mm-about-reveal mm-about-slide-left">
+        <p class="mm-about-kicker">Our Story</p>
+
+        <h2 class="mt-5 text-4xl md:text-6xl font-black uppercase tracking-[-0.06em] leading-[0.92]">
+          Không chỉ là<br>
+          quần áo.
+        </h2>
+      </div>
+
+      <div class="lg:col-span-7 mm-about-reveal">
+        <p class="mm-about-copy text-base md:text-lg max-w-3xl">
+          Giữa nhịp sống hiện đại, trang phục không còn đơn thuần là thứ để mặc.
+          Đó là cách bạn bước ra ngoài, giao tiếp với thế giới và khẳng định cá tính.
+          MMESTLINE chọn hướng đi tối giản nhưng có chiều sâu: form dáng dễ mặc,
+          chất liệu có chọn lọc và tinh thần thiết kế rõ ràng.
+        </p>
+
+        <div class="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="border border-black/10 bg-[#faf8f5] p-5">
+            <span class="text-3xl font-black tracking-[-0.06em]">01</span>
+            <p class="mt-4 text-[11px] font-black uppercase tracking-[0.2em] text-neutral-500">
+              Daily Wear
+            </p>
+          </div>
+
+          <div class="border border-black/10 bg-[#faf8f5] p-5">
+            <span class="text-3xl font-black tracking-[-0.06em]">02</span>
+            <p class="mt-4 text-[11px] font-black uppercase tracking-[0.2em] text-neutral-500">
+              Clean Form
+            </p>
+          </div>
+
+          <div class="border border-black/10 bg-[#faf8f5] p-5">
+            <span class="text-3xl font-black tracking-[-0.06em]">03</span>
+            <p class="mt-4 text-[11px] font-black uppercase tracking-[0.2em] text-neutral-500">
+              Identity
+            </p>
           </div>
         </div>
       </div>
     </div>
+  </section>
 
-    <div class="lexicon-block reveal d-2">
-      <h2>Ý nghĩa của "Maison"</h2>
-      <p class="lexicon-text">
-        “Maison” trong tiếng Pháp mang ý nghĩa là “ngôi nhà”. Trong thế giới thời trang, từ này thường được dùng cho những thương hiệu mang tính sáng tạo, nghệ thuật và có bản sắc riêng biệt.
-      </p>
-      <p class="lexicon-text">
-        Với GUA Maison, “Maison” đại diện cho một không gian nơi mọi người có thể tìm thấy phiên bản phong cách của chính mình. Đó là nơi hội tụ giữa sự sáng tạo, cảm hứng và cá tính. Một “ngôi nhà thời trang” dành cho những ai yêu cái đẹp hiện đại nhưng vẫn muốn giữ được nét riêng không hòa lẫn.
-      </p>
-    </div>
+  <section class="bg-[#111] text-white py-3">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 px-3">
+      <div class="mm-about-image aspect-[3/4] mm-about-reveal">
+        <img
+          src="https://i.pinimg.com/736x/1a/5f/cf/1a5fcf33b42c199589484a8bf3693aed.jpg"
+          alt="MMESTLINE look 1"
+          width="700"
+          height="933"
+          loading="lazy"
+          decoding="async"
+        >
+      </div>
 
-  </div>
-</section>
+      <div class="mm-about-image aspect-[3/4] mm-about-reveal">
+        <img
+          src="https://i.pinimg.com/1200x/05/41/10/05411050c5bd98ac71043fbe7f578f63.jpg"
+          alt="MMESTLINE look 2"
+          width="700"
+          height="933"
+          loading="lazy"
+          decoding="async"
+        >
+      </div>
 
-<div class="intermission-wrapper reveal">
-  <div class="intermission">
-    <div class="intermission-item">
-      <img src="https://i.pinimg.com/736x/1a/5f/cf/1a5fcf33b42c199589484a8bf3693aed.jpg" alt="GUA Maison Look 1">
-    </div>
-    <div class="intermission-item">
-      <img src="https://i.pinimg.com/1200x/05/41/10/05411050c5bd98ac71043fbe7f578f63.jpg" alt="GUA Maison Runway">
-    </div>
-    <div class="intermission-item">
-      <img src="https://i.pinimg.com/736x/42/41/34/424134d8ccf4a803dacc359779e5b64d.jpg" alt="GUA Maison Look 2">
-    </div>
-    <div class="intermission-item">
-      <img src="https://i.pinimg.com/736x/57/ca/23/57ca23f0be0df89b458514a4162a315e.jpg" alt="GUA Maison Atelier">
-    </div>
-  </div>
-</div>
+      <div class="mm-about-image aspect-[3/4] mm-about-reveal">
+        <img
+          src="https://i.pinimg.com/736x/2c/64/ca/2c64cacf2aa9a07c931870daa00728e5.jpg"
+          alt="MMESTLINE look 3"
+          width="700"
+          height="933"
+          loading="lazy"
+          decoding="async"
+        >
+      </div>
 
-<section class="section journey">
-  <p class="chapter-label reveal">Chương II — Hành trình</p>
-  <div class="journey-grid">
-    <div class="journey-img reveal">
-      <img src="https://i.pinimg.com/736x/2b/7a/ac/2b7aac8eca8b4d95001063130f03926a.jpg" alt="GUA Maison Journey">
+      <div class="mm-about-image aspect-[3/4] mm-about-reveal">
+        <img
+          src="https://i.pinimg.com/1200x/65/55/d7/6555d7de5c7d81c9ec420d5e022ae10d.jpg"
+          alt="MMESTLINE look 4"
+          width="700"
+          height="933"
+          loading="lazy"
+          decoding="async"
+        >
+      </div>
     </div>
-    <div class="journey-content reveal d-2">
-      <h2>Thời trang là ngôn ngữ.<br>Chúng tôi là giọng nói.</h2>
-      <p>
-        GUA Maison được xây dựng với mong muốn mang đến những thiết kế có tính ứng dụng cao nhưng vẫn giữ được nét thời thượng và khác biệt. Chúng tôi tin rằng một bộ trang phục đẹp không chỉ nằm ở kiểu dáng, mà còn ở cảm giác tự tin mà nó mang lại cho người mặc.
-      </p>
-      <p>
-        Chính vì vậy, từng sản phẩm tại GUA Maison đều được lựa chọn và hoàn thiện cẩn thận – từ chất liệu, form dáng đến từng đường may nhỏ nhất. Chúng tôi ưu tiên sự thoải mái, tính linh hoạt và khả năng phối hợp trong nhiều phong cách khác nhau.
-      </p>
-      <p>
-        Phong cách mà GUA Maison hướng tới là sự cân bằng giữa hiện đại và tinh tế. Đó có thể là một outfit tối giản nhưng vẫn nổi bật, một thiết kế basic nhưng mang điểm nhấn riêng, hay một set đồ giúp bạn tự tin hơn trong những ngày bình thường nhất.
-      </p>
-    </div>
-  </div>
-</section>
+  </section>
 
-<section class="ethos reveal">
-  <div class="ethos-inner">
-    <div class="ethos-overlay"></div>
-    <div class="ethos-content">
-      <h2 class="ethos-title">Giá trị mà chúng tôi theo đuổi</h2>
-      <div class="ethos-grid">
-        <div class="ethos-item">
-          <div class="ethos-num">01</div>
-          <p class="ethos-text">Mang đến sự tự tin tuyệt đối cho khách hàng trong mọi khoảnh khắc phong cách hằng ngày.</p>
+  <section class="py-16 md:py-28 bg-[#faf8f5]">
+    <div class="mm-about-container">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center">
+        <div class="lg:col-span-6 mm-about-image aspect-[4/5] mm-about-reveal mm-about-slide-left">
+          <img
+            src="https://i.pinimg.com/1200x/85/52/e2/8552e2196c4fd3140193e4f589c9f018.jpg"
+            alt="MMESTLINE atelier"
+            width="900"
+            height="1125"
+            loading="lazy"
+            decoding="async"
+          >
         </div>
-        <div class="ethos-item">
-          <div class="ethos-num">02</div>
-          <p class="ethos-text">Tôn vinh cá tính độc bản thay vì chạy theo số đông hay những xu hướng chóng vánh.</p>
-        </div>
-        <div class="ethos-item">
-          <div class="ethos-num">03</div>
-          <p class="ethos-text">Xây dựng nền tảng thời trang theo hướng tinh tế, chất lượng cao và bền vững cùng thời gian.</p>
-        </div>
-        <div class="ethos-item">
-          <div class="ethos-num">04</div>
-          <p class="ethos-text">Tạo nên trải nghiệm mua sắm hiện đại, gần gũi, chuyên nghiệp và truyền đầy cảm hứng.</p>
+
+        <div class="lg:col-span-6 mm-about-reveal mm-about-slide-right">
+          <p class="mm-about-kicker">What We Believe</p>
+
+          <h2 class="mt-5 text-4xl md:text-6xl font-black uppercase tracking-[-0.06em] leading-[0.92]">
+            Phong cách là<br>
+            thái độ sống.
+          </h2>
+
+          <p class="mt-8 mm-about-copy max-w-xl">
+            MMESTLINE không theo đuổi sự phô trương. Chúng tôi tin vào những thiết kế
+            đủ tinh tế để mặc mỗi ngày, đủ khác biệt để tạo dấu ấn, và đủ linh hoạt
+            để đi cùng nhiều phiên bản của chính bạn.
+          </p>
+
+          <div class="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-7">
+            <div class="mm-about-value">
+              <span class="mm-about-value-num">01</span>
+              <h3 class="mm-about-value-title">Tự tin</h3>
+              <p class="mm-about-value-text">
+                Trang phục phải khiến người mặc cảm thấy chắc chắn, thoải mái và làm chủ hình ảnh của mình.
+              </p>
+            </div>
+
+            <div class="mm-about-value">
+              <span class="mm-about-value-num">02</span>
+              <h3 class="mm-about-value-title">Bản sắc</h3>
+              <p class="mm-about-value-text">
+                Mỗi sản phẩm là nền tảng để bạn phối theo cá tính riêng, không bị đóng khung bởi xu hướng.
+              </p>
+            </div>
+
+            <div class="mm-about-value">
+              <span class="mm-about-value-num">03</span>
+              <h3 class="mm-about-value-title">Ứng dụng</h3>
+              <p class="mm-about-value-text">
+                Form dáng dễ mặc, dễ phối, phù hợp với nhiều nhịp sống và hoàn cảnh khác nhau.
+              </p>
+            </div>
+
+            <div class="mm-about-value">
+              <span class="mm-about-value-num">04</span>
+              <h3 class="mm-about-value-title">Chất lượng</h3>
+              <p class="mm-about-value-text">
+                Chú trọng chất liệu, đường may, độ bền và cảm giác khi mặc thay vì chỉ chạy theo hình ảnh.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<section class="epilogue reveal">
-  <div class="epilogue-overlay"></div>
-  <div class="epilogue-content">
-    <h2>Wear Your Identity</h2>
-    <p>GUA Maison — Không chỉ là thời trang</p>
-  </div>
-</section>
+  <section class="relative min-h-[620px] flex items-center justify-center text-center overflow-hidden bg-[#111]">
+    <div class="absolute inset-0">
+      <img
+        src="https://i.pinimg.com/1200x/02/76/ef/0276efb152ad7d095805a36cb76758e6.jpg"
+        alt="MMESTLINE closing campaign"
+        width="1600"
+        height="1000"
+        loading="lazy"
+        decoding="async"
+        class="w-full h-full object-cover opacity-45"
+      >
+    </div>
+
+    <div class="absolute inset-0 bg-black/45"></div>
+
+    <div class="relative z-10 px-5 mm-about-reveal">
+      <p class="mm-about-kicker text-white/60">
+        MMESTLINE Manifesto
+      </p>
+
+      <h2 class="mt-6 text-white text-5xl md:text-8xl font-black uppercase tracking-[-0.07em] leading-[0.88]">
+        Wear Your<br>
+        Identity
+      </h2>
+
+      <p class="mt-7 max-w-xl mx-auto text-white/75 text-sm md:text-base leading-7 font-semibold">
+        Không chỉ là thời trang. Đó là cách bạn chọn xuất hiện, cảm nhận và kể câu chuyện của mình.
+      </p>
+
+      <a href="/shop" class="mt-10 mm-about-btn bg-white text-black border-white hover:bg-[#3b2414] hover:text-white">
+        Bắt đầu mua sắm
+      </a>
+    </div>
+  </section>
+
+</main>
 
 <script>
-  // Script kích hoạt hiệu ứng Reveal khi cuộn trang
-  document.addEventListener("DOMContentLoaded", () => {
+(function () {
+  "use strict";
+
+  function initAboutReveal() {
+    const items = document.querySelectorAll(".mm-about-reveal");
+
+    if (!("IntersectionObserver" in window)) {
+      items.forEach((item) => item.classList.add("is-visible"));
+      return;
+    }
+
     const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.style.animationPlayState = 'running';
-          observer.unobserve(entry.target);
-        }
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add("is-visible");
+        observer.unobserve(entry.target);
       });
-    }, { threshold: 0.1 });
-
-    document.querySelectorAll('.reveal').forEach(el => {
-      el.style.animationPlayState = 'paused';
-      observer.observe(el);
+    }, {
+      root: null,
+      rootMargin: "0px 0px -10% 0px",
+      threshold: 0.12
     });
-  });
-</script>
 
-{% endblock %}
+    items.forEach((item, index) => {
+      item.style.transitionDelay = Math.min(index % 4, 3) * 70 + "ms";
+      observer.observe(item);
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", initAboutReveal);
+})();
+</script>
+{% endblock %}  

@@ -1,139 +1,294 @@
-{# address/_styles.html — Scoped styles, Tailwind v4 compatible (no @apply) #}
+{# app/templates/profile/address/_styles.html #}
 <style>
-/* Hide scrollbar — mobile tab nav */
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-.no-scrollbar::-webkit-scrollbar { display: none; }
+  :root {
+    --mm-ink: #241207;
+    --mm-brown: #3b2414;
+    --mm-brown-2: #5f3b1e;
+    --mm-caramel: #b98b62;
+    --mm-muted: #8a6a52;
+    --mm-line: #eadfd4;
+    --mm-soft: #fffaf5;
+    --mm-cream: #fbf7f1;
+    --mm-card: #fffdf9;
+  }
 
-/* ── Form inputs (Chuẩn Minimalism: Viền mỏng, vuông vức) ── */
-.gua-input {
-  display: block;
-  width: 100%;
-  height: 3rem; /* 48px - Chuẩn kích thước chạm (touch target) trên Mobile */
-  padding: 0 1rem;
-  border-radius: 0.125rem; /* Bo góc cực nhẹ (2px) */
-  border: 1px solid #e5e5e5;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #000000;
-  background-color: #ffffff;
-  outline: none;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.gua-input::placeholder { color: #a3a3a3; font-weight: 400; }
-.gua-input:hover:not(:disabled) { border-color: #a3a3a3; }
-.gua-input:focus { 
-  border-color: #000000; 
-  background-color: #ffffff; 
-  box-shadow: inset 0 0 0 1px #000000; /* Viền trong sắc nét thay vì shadow nhòe */
-}
-.gua-input:disabled { background-color: #f5f5f5; color: #a3a3a3; cursor: not-allowed; }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 
-/* FIX: Hiển thị lỗi sau khi người dùng nhập sai */
-.gua-input:not(:placeholder-shown):invalid {
-  border-color: #ef4444;
-  box-shadow: inset 0 0 0 1px #ef4444;
-}
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 
-/* ── Selects ── */
-.gua-select {
-  display: block;
-  width: 100%;
-  height: 3rem;
-  padding: 0 2.5rem 0 1rem;
-  border-radius: 0.125rem;
-  border: 1px solid #e5e5e5;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #000000;
-  background-color: #ffffff;
-  outline: none;
-  appearance: none;
-  -webkit-appearance: none;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.gua-select:hover:not(:disabled) { border-color: #a3a3a3; }
-.gua-select:focus { 
-  border-color: #000000; 
-  box-shadow: inset 0 0 0 1px #000000; 
-}
-.gua-select:disabled { opacity: 0.6; cursor: not-allowed; background-color: #f5f5f5; }
-
-/* ── Chevron overlay on selects (Mũi tên xoay khi focus) ── */
-.gua-chevron {
-  position: absolute;
-  right: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 1rem;
-  height: 1rem;
-  color: #737373;
-  pointer-events: none;
-  transition: transform 0.3s ease, color 0.3s ease;
-}
-.gua-select:focus + .gua-chevron { 
-  transform: translateY(-50%) rotate(180deg); 
-  color: #000000; 
-}
-
-/* ── Modal Base Transitions ── */
-#addr-modal, #delete-dialog { display: none; }
-#addr-modal.is-open, #delete-dialog.is-open { display: flex !important; }
-
-/* Modal Backdrops */
-#modal-backdrop, #del-backdrop {
-  opacity: 0;
-  background-color: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(2px);
-  transition: opacity 0.3s ease-out;
-}
-#addr-modal.is-open #modal-backdrop, 
-#delete-dialog.is-open #del-backdrop { opacity: 1; }
-
-/* Modal Panels */
-#modal-panel, #del-panel {
-  opacity: 0;
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1); /* Gia tốc mượt mà của Apple */
-}
-
-/* 📱 RESPONSIVE MOBILE: Trượt từ dưới lên (Bottom Sheet) */
-@media (max-width: 767px) {
-  #modal-panel, #del-panel {
-    transform: translateY(100%);
-    margin-top: auto; /* Đẩy panel xuống sát đáy màn hình */
-    border-bottom-left-radius: 0 !important;
-    border-bottom-right-radius: 0 !important;
+  /* Input dùng lại class cũ .gua-input để không cần sửa HTML */
+  .gua-input {
+    display: block;
     width: 100%;
+    height: 3.25rem;
+    padding: 0 1rem;
+    border: 1px solid var(--mm-line);
+    border-radius: 18px;
+    background: #ffffff;
+    color: var(--mm-ink);
+    font-size: 0.875rem;
+    font-weight: 750;
+    outline: none;
+    transition:
+      border-color 0.16s ease,
+      box-shadow 0.16s ease,
+      background 0.16s ease;
   }
-  #addr-modal.is-open #modal-panel,
-  #delete-dialog.is-open #del-panel {
-    transform: translateY(0);
+
+  .gua-input::placeholder {
+    color: #b7a191;
+    font-weight: 600;
+  }
+
+  .gua-input:hover:not(:disabled) {
+    border-color: rgba(95, 59, 30, 0.38);
+  }
+
+  .gua-input:focus {
+    border-color: rgba(95, 59, 30, 0.52);
+    background: #fffdf9;
+    box-shadow: 0 0 0 4px rgba(185, 139, 98, 0.14);
+  }
+
+  .gua-input:disabled {
+    background: #f6eee7;
+    color: #b7a191;
+    cursor: not-allowed;
+  }
+
+  .gua-input:not(:placeholder-shown):invalid {
+    border-color: rgba(220, 38, 38, 0.65);
+    background: #fff1f2;
+    box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.08);
+  }
+
+  .gua-select {
+    display: block;
+    width: 100%;
+    height: 3.25rem;
+    padding: 0 2.75rem 0 1rem;
+    border: 1px solid var(--mm-line);
+    border-radius: 18px;
+    background: #ffffff;
+    color: var(--mm-ink);
+    font-size: 0.875rem;
+    font-weight: 750;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    transition:
+      border-color 0.16s ease,
+      box-shadow 0.16s ease,
+      background 0.16s ease,
+      opacity 0.16s ease;
+  }
+
+  .gua-select:hover:not(:disabled) {
+    border-color: rgba(95, 59, 30, 0.38);
+  }
+
+  .gua-select:focus {
+    border-color: rgba(95, 59, 30, 0.52);
+    background: #fffdf9;
+    box-shadow: 0 0 0 4px rgba(185, 139, 98, 0.14);
+  }
+
+  .gua-select:disabled {
+    background: #f6eee7;
+    color: #b7a191;
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+
+  .gua-chevron {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    width: 1rem;
+    height: 1rem;
+    transform: translateY(-50%);
+    color: var(--mm-caramel);
+    pointer-events: none;
+    transition:
+      transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+      color 0.16s ease;
+  }
+
+  .gua-select:focus + .gua-chevron {
+    transform: translateY(-50%) rotate(180deg);
+    color: var(--mm-brown);
+  }
+
+  /* Modal visibility */
+  #addr-modal,
+  #delete-dialog {
+    display: none;
+  }
+
+  #addr-modal.is-open,
+  #delete-dialog.is-open {
+    display: flex !important;
+  }
+
+  #modal-backdrop,
+  #del-backdrop {
+    opacity: 0;
+    background: rgba(36, 18, 7, 0.52);
+    backdrop-filter: blur(8px);
+    transition: opacity 0.26s ease;
+  }
+
+  #addr-modal.is-open #modal-backdrop,
+  #delete-dialog.is-open #del-backdrop {
     opacity: 1;
   }
-}
 
-/* 💻 RESPONSIVE DESKTOP: Hiện ở giữa màn hình (Center Pop-up) */
-@media (min-width: 768px) {
-  #modal-panel, #del-panel {
-    transform: scale(0.95) translateY(10px);
-    margin: auto;
+  #modal-panel,
+  #del-panel {
+    opacity: 0;
+    border: 1px solid var(--mm-line);
+    background: var(--mm-card);
+    box-shadow: 0 34px 100px -58px rgba(36, 18, 7, 0.76);
+    transition:
+      opacity 0.28s ease,
+      transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  #addr-modal.is-open #modal-panel,
-  #delete-dialog.is-open #del-panel {
-    transform: scale(1) translateY(0);
-    opacity: 1;
-  }
-}
 
-/* ── Address card hover lift ── */
-.addr-card { 
-  will-change: transform, box-shadow; 
-  transition: all 0.3s ease;
-  border: 1px solid #e5e5e5;
-}
-.addr-card:hover {
-  border-color: #000000;
-  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.05);
-  transform: translateY(-2px);
-}
+  /* Mobile: bottom sheet */
+  @media (max-width: 767px) {
+    #modal-panel,
+    #del-panel {
+      width: 100%;
+      max-height: 92dvh;
+      margin-top: auto;
+      border-bottom-left-radius: 0 !important;
+      border-bottom-right-radius: 0 !important;
+      transform: translateY(100%);
+    }
+
+    #addr-modal.is-open #modal-panel,
+    #delete-dialog.is-open #del-panel {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Desktop: centered modal */
+  @media (min-width: 768px) {
+    #modal-panel,
+    #del-panel {
+      margin: auto;
+      border-radius: 28px !important;
+      transform: scale(0.96) translateY(10px);
+    }
+
+    #addr-modal.is-open #modal-panel,
+    #delete-dialog.is-open #del-panel {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  /* Address card enhancement */
+  .addr-card {
+    will-change: transform, box-shadow;
+    transition:
+      transform 0.18s ease,
+      border-color 0.18s ease,
+      box-shadow 0.18s ease;
+  }
+
+  .addr-card:hover {
+    border-color: rgba(95, 59, 30, 0.42);
+    box-shadow: 0 26px 70px -50px rgba(36, 18, 7, 0.72);
+    transform: translateY(-2px);
+  }
+
+  .addr-card--default {
+    border-color: var(--mm-brown) !important;
+  }
+
+  .addr-note {
+    border-left: 3px solid var(--mm-caramel);
+    background: var(--mm-cream);
+    color: var(--mm-muted);
+  }
+
+  /* Button loading support */
+  #btn-submit:disabled {
+    cursor: wait;
+    opacity: 0.72;
+  }
+
+  /* Small scrollbar inside modal */
+  #modal-panel ::-webkit-scrollbar,
+  #del-panel ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  #modal-panel ::-webkit-scrollbar-track,
+  #del-panel ::-webkit-scrollbar-track {
+    background: #fbf7f1;
+  }
+
+  #modal-panel ::-webkit-scrollbar-thumb,
+  #del-panel ::-webkit-scrollbar-thumb {
+    background: #d8c6b6;
+    border-radius: 999px;
+  }
+
+  #modal-panel ::-webkit-scrollbar-thumb:hover,
+  #del-panel ::-webkit-scrollbar-thumb:hover {
+    background: #b98b62;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #modal-backdrop,
+    #del-backdrop,
+    #modal-panel,
+    #del-panel,
+    .gua-input,
+    .gua-select,
+    .gua-chevron,
+    .addr-card {
+      transition: none !important;
+    }
+  }
+</style>
+<style>
+  body.mm-modal-open {
+    overflow: hidden !important;
+    touch-action: none;
+  }
+
+  #addr-modal {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 2147483000 !important;
+  }
+
+  #addr-modal.is-open {
+    display: flex !important;
+  }
+
+  #modal-backdrop {
+    z-index: 2147483001 !important;
+  }
+
+  #modal-panel {
+    z-index: 2147483002 !important;
+  }
+
+  @media (max-width: 767px) {
+    #modal-panel {
+      max-height: 94dvh !important;
+      width: 100% !important;
+    }
+  }
 </style>

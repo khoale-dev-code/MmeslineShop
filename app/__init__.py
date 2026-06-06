@@ -1,6 +1,8 @@
 """
-app/__init__.py  –  Application Factory (GUA MAISON 2026 Edition)
+app/__init__.py
+Application Factory - MMESTLINE 2026 Edition
 """
+
 import os
 import logging
 from flask import Flask, session, render_template_string
@@ -12,25 +14,56 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 csrf = CSRFProtect()
+
+
 def _env_enabled(name: str, default: str = "false") -> bool:
     return os.environ.get(name, default).strip().lower() in {"1", "true", "yes", "on"}
-from app.models.cart_model     import CartModel
-from app.models.category_model import CategoryModel
-from app.models.setting_model  import SettingModel
 
-# ── KHAI BÁO ERROR_TEMPLATE Ở ĐÂY ĐỂ LINTER KHÔNG BÁO LỖI ──────────────────
+
+from app.models.cart_model import CartModel
+from app.models.category_model import CategoryModel
+from app.models.setting_model import SettingModel
+
+
 ERROR_TEMPLATE = """<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ code }} – GUA Maison</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700;0,900;1,400&display=swap" rel="stylesheet">
+  <title>{{ code }} – MMESTLINE</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet"
+  >
+
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --mm-brown-950: #241207;
+      --mm-brown-900: #3b2414;
+      --mm-brown-800: #4c2d18;
+      --mm-caramel: #b98b62;
+      --mm-muted: #8a6a52;
+      --mm-line: #eadfd4;
+      --mm-cream: #fbf7f1;
+      --mm-soft: #fffaf5;
+    }
+
     body {
-      font-family: 'DM Sans', system-ui, sans-serif;
-      background: #fafaf9;
+      font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(185, 139, 98, 0.22), transparent 34%),
+        radial-gradient(circle at bottom left, rgba(59, 36, 20, 0.12), transparent 36%),
+        linear-gradient(180deg, #fffaf5 0%, #fbf7f1 48%, #f6eee7 100%);
+      color: var(--mm-brown-950);
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -38,96 +71,151 @@ ERROR_TEMPLATE = """<!DOCTYPE html>
       padding: 3rem 1rem;
       overflow: hidden;
     }
+
     .blob {
-      position: fixed; top: 50%; left: 50%;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 560px;
+      height: 560px;
       transform: translate(-50%, -50%);
-      width: 500px; height: 500px;
-      background: #e7e5e4;
-      border-radius: 50%;
+      background: rgba(185, 139, 98, 0.22);
+      border-radius: 999px;
       filter: blur(100px);
-      pointer-events: none; z-index: 0;
+      pointer-events: none;
+      z-index: 0;
     }
+
     .card {
-      position: relative; z-index: 10;
-      width: 100%; max-width: 620px;
-      background: rgba(255,255,255,0.85);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(231,229,228,0.7);
-      border-radius: 1.5rem;
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 660px;
+      background: rgba(255, 250, 245, 0.88);
+      backdrop-filter: blur(22px);
+      border: 1px solid rgba(234, 223, 212, 0.9);
+      border-radius: 32px;
       padding: clamp(2.5rem, 6vw, 5rem);
       text-align: center;
-      box-shadow: 0 20px 60px -15px rgba(0,0,0,0.1);
-      animation: revealUp .7s cubic-bezier(.22,1,.36,1) forwards;
+      box-shadow: 0 28px 80px -46px rgba(36, 18, 7, 0.62);
+      animation: revealUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
       opacity: 0;
     }
+
     @keyframes revealUp {
-      from { opacity: 0; transform: translateY(28px); }
-      to   { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(28px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
-    .icon-wrap {
-      width: 4rem; height: 4rem;
-      border-radius: 50%;
-      background: #f5f5f4;
-      display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 1.5rem;
-      color: #a8a29e;
-    }
-    .icon-wrap svg { width: 2rem; height: 2rem; }
-    .code {
-      font-size: clamp(5rem, 18vw, 8rem);
+
+    .brand {
+      margin-bottom: 1.5rem;
+      color: var(--mm-caramel);
+      font-size: 0.72rem;
       font-weight: 900;
-      line-height: 1;
-      letter-spacing: -.04em;
-      color: #1c1917;
-      margin-bottom: 1rem;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
     }
-    .title {
-      font-size: clamp(1.1rem, 3vw, 1.6rem);
+
+    .icon-wrap {
+      width: 4.25rem;
+      height: 4.25rem;
+      border-radius: 1.35rem;
+      background: #f6eee7;
+      color: var(--mm-brown-800);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.5rem;
+    }
+
+    .icon-wrap svg {
+      width: 2rem;
+      height: 2rem;
+    }
+
+    .code {
+      font-family: "Cormorant", serif;
+      font-size: clamp(5.4rem, 18vw, 9rem);
       font-weight: 700;
-      color: #1c1917;
-      letter-spacing: -.02em;
-      margin-bottom: .75rem;
+      line-height: 0.82;
+      letter-spacing: -0.04em;
+      color: var(--mm-brown-950);
+      margin-bottom: 1.2rem;
     }
+
+    .title {
+      font-size: clamp(1.15rem, 3vw, 1.7rem);
+      font-weight: 900;
+      color: var(--mm-brown-950);
+      letter-spacing: -0.03em;
+      margin-bottom: 0.8rem;
+    }
+
     .desc {
-      color: #78716c;
-      font-size: .9rem;
-      font-weight: 500;
-      line-height: 1.7;
-      max-width: 380px;
+      color: var(--mm-muted);
+      font-size: 0.94rem;
+      font-weight: 600;
+      line-height: 1.75;
+      max-width: 430px;
       margin: 0 auto 2.5rem;
     }
+
     .btn-home {
-      display: inline-block;
-      background: #1c1917;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      background: var(--mm-brown-900);
       color: #fff;
-      font-size: .875rem;
-      font-weight: 700;
-      padding: .9rem 2.5rem;
-      border-radius: .75rem;
+      font-size: 0.84rem;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0 2.1rem;
+      border-radius: 1rem;
       text-decoration: none;
-      box-shadow: 0 4px 20px rgba(0,0,0,.15);
-      transition: background .2s, transform .2s;
+      box-shadow: 0 18px 36px -24px rgba(36, 18, 7, 0.8);
+      transition: background 0.2s ease, transform 0.2s ease;
     }
-    .btn-home:hover  { background: #44403c; transform: translateY(-2px); }
-    .btn-home:active { transform: scale(.97); }
+
+    .btn-home:hover {
+      background: var(--mm-brown-950);
+      transform: translateY(-2px);
+    }
+
+    .btn-home:active {
+      transform: scale(0.98);
+    }
+
     .btn-debug {
       display: block;
       margin-top: 1.25rem;
-      font-size: .75rem;
-      font-weight: 700;
-      color: #a8a29e;
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--mm-caramel);
       text-decoration: underline;
       text-underline-offset: 3px;
-      cursor: pointer;
-      background: none; border: none;
-      transition: color .2s;
     }
-    .btn-debug:hover { color: #1c1917; }
+
+    .btn-debug:hover {
+      color: var(--mm-brown-900);
+    }
   </style>
 </head>
+
 <body>
   <div class="blob" aria-hidden="true"></div>
-  <div class="card">
+
+  <main class="card">
+    <p class="brand">MMESTLINE SYSTEM</p>
+
     <div class="icon-wrap" aria-hidden="true">
       {% if code == 404 %}
       <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
@@ -144,37 +232,40 @@ ERROR_TEMPLATE = """<!DOCTYPE html>
     <h1 class="title">{{ title }}</h1>
     <p class="desc">{{ desc }}</p>
 
-    <a href="/" class="btn-home">Trở về Trang chủ</a>
+    <a href="/" class="btn-home">Trở về trang chủ</a>
 
     {% if show_debug and code == 500 %}
     <a href="/debug/test-db" class="btn-debug">Chạy trình kiểm tra CSDL</a>
     {% endif %}
-  </div>
+  </main>
 </body>
 </html>"""
 
 
 def create_app() -> Flask:
-    # ĐỔI TÊN BIẾN THÀNH flask_app ĐỂ IDE KHÔNG BỊ NHẦM
-    flask_app = Flask(__name__, template_folder="templates", static_folder="static")
+    flask_app = Flask(
+        __name__,
+        template_folder="templates",
+        static_folder="static",
+    )
 
     # 1. Validate & Load Config
     validate_config()
     flask_app.config.from_object(get_config())
     flask_app.config["BASE_URL"] = os.environ.get("BASE_URL", "")
+
     # 2. Extensions
     csrf.init_app(flask_app)
 
- # 3. Blueprints
-    # Storefront/public routes: luôn cần cho website bán hàng
-    from app.controllers.auth_controller          import auth_bp
-    from app.controllers.product_controller       import products_bp
-    from app.controllers.cart_controller          import cart_bp
-    from app.controllers.profile_controller       import profile_bp
-    from app.controllers.favorite_controller      import favorite_bp
-    from app.controllers.payment_controller       import payment_bp
-    from app.controllers.promotions_controller    import promotions_bp
-    from app.controllers.notification_controller  import notification_bp
+    # 3. Blueprints
+    from app.controllers.auth_controller import auth_bp
+    from app.controllers.product_controller import products_bp
+    from app.controllers.cart_controller import cart_bp
+    from app.controllers.profile_controller import profile_bp
+    from app.controllers.favorite_controller import favorite_bp
+    from app.controllers.payment_controller import payment_bp
+    from app.controllers.promotions_controller import promotions_bp
+    from app.controllers.notification_controller import notification_bp
 
     public_blueprints = [
         auth_bp,
@@ -190,22 +281,20 @@ def create_app() -> Flask:
     for bp in public_blueprints:
         flask_app.register_blueprint(bp)
 
-    # Analytics: tách riêng để có thể tắt nếu đang ưu tiên tốc độ storefront
     if _env_enabled("ENABLE_ANALYTICS", "true"):
         from app.controllers.analytics_controller import analytics_bp
+
         flask_app.register_blueprint(analytics_bp)
         logger.info("✅ Analytics blueprint enabled.")
 
-    # AI / Chat: chỉ bật khi cần, vì import AI service có thể làm cold start nặng
     if _env_enabled("ENABLE_AI", "false"):
         from app.controllers.chat_controller import chat_bp
-        from app.controllers.ai_controller   import ai_bp
+        from app.controllers.ai_controller import ai_bp
 
         flask_app.register_blueprint(chat_bp)
         flask_app.register_blueprint(ai_bp)
         logger.info("✅ AI / Chat blueprints enabled.")
 
-    # Admin: chỉ bật khi cần. Không nên load admin vào storefront production nếu đang tối ưu tốc độ.
     if _env_enabled("ENABLE_ADMIN", "true"):
         from app.controllers.admin import admin_bp
         from app.controllers.admin.admin_shipping_controller import admin_shipping_bp
@@ -214,14 +303,15 @@ def create_app() -> Flask:
         flask_app.register_blueprint(admin_bp)
         flask_app.register_blueprint(admin_shipping_bp)
         flask_app.register_blueprint(admin_providers_bp)
-        logger.info("✅ Admin blueprints enabled.")
+        logger.info("✅ MMESTLINE admin blueprints enabled.")
     else:
         logger.info("🚫 Admin blueprints disabled for faster storefront cold start.")
 
     if flask_app.config.get("DEBUG"):
         from app.controllers.debug_controller import debug_bp
+
         flask_app.register_blueprint(debug_bp)
-        logger.info("🛠️  Debug blueprint đã được kích hoạt (Development only).")
+        logger.info("🛠️ Debug blueprint enabled. Development only.")
 
     # 4. Context Processor
     @flask_app.context_processor
@@ -230,37 +320,46 @@ def create_app() -> Flask:
         categories = []
         pending_returns = 0
         system_settings = {}
-        
+        unread_notification_count = 0
+
         user_id = session.get("user_id")
-        role = session.get("role")
+        role = session.get("role") or session.get("user_role")
 
         try:
-            system_settings = SettingModel.get_settings()
+            system_settings = SettingModel.get_settings() or {}
         except Exception:
-            logger.warning("context_processor: Lỗi khi lấy system_settings.")
+            logger.warning("context_processor: Không lấy được system_settings.", exc_info=True)
+            system_settings = getattr(SettingModel, "DEFAULT_SETTINGS", {}) or {}
 
-        unread_notification_count = 0
         if user_id:
             try:
                 cart_count = CartModel.get_count(user_id)
             except Exception:
-                pass
+                cart_count = 0
+
             try:
                 from app.models.notification_model import NotificationModel
+
                 unread_notification_count = NotificationModel.get_unread_count(user_id)
             except Exception:
-                pass
+                unread_notification_count = 0
 
         try:
-            categories = CategoryModel.get_all()
+            categories = CategoryModel.get_all(active_only=True, admin_mode=False)
+        except TypeError:
+            try:
+                categories = CategoryModel.get_all(active_only=True)
+            except Exception:
+                categories = []
         except Exception:
-            pass
+            categories = []
 
         if role == "admin":
             try:
-                from app.utils.supabase_client import get_supabase
+                from app.utils.supabase_client import get_supabase_admin
+
                 r = (
-                    get_supabase()
+                    get_supabase_admin()
                     .table("return_requests")
                     .select("id", count="exact")
                     .eq("status", "pending")
@@ -268,7 +367,7 @@ def create_app() -> Flask:
                 )
                 pending_returns = r.count or 0
             except Exception:
-                pass
+                pending_returns = 0
 
         return {
             "current_user": {
@@ -282,43 +381,77 @@ def create_app() -> Flask:
             "pending_returns": pending_returns,
             "system_settings": system_settings,
             "unread_notification_count": unread_notification_count,
+            "admin_notification_count": unread_notification_count,
         }
 
     # 5. Error Handlers
     def _error_response(code: int, title: str, desc: str):
         show_debug = flask_app.config.get("DEBUG", False)
+
         return render_template_string(
-            ERROR_TEMPLATE, code=code, title=title, desc=desc,
-            show_debug=show_debug
+            ERROR_TEMPLATE,
+            code=code,
+            title=title,
+            desc=desc,
+            show_debug=show_debug,
         ), code
 
     @flask_app.errorhandler(400)
     def bad_request(_e):
-        return _error_response(400, "Yêu cầu không hợp lệ", "Dữ liệu gửi lên bị lỗi hoặc không đúng định dạng.")
+        return _error_response(
+            400,
+            "Yêu cầu không hợp lệ",
+            "Dữ liệu gửi lên chưa đúng định dạng. Vui lòng kiểm tra lại và thử lần nữa.",
+        )
 
     @flask_app.errorhandler(403)
     def forbidden(_e):
-        return _error_response(403, "Từ chối truy cập", "Bạn không có quyền truy cập vào trang này.")
+        return _error_response(
+            403,
+            "Từ chối truy cập",
+            "Bạn không có quyền truy cập vào khu vực này của MMESTLINE.",
+        )
 
     @flask_app.errorhandler(CSRFError)
     def handle_csrf_error(_e):
-        return _error_response(403, "Phiên bảo mật hết hạn", "Token bảo mật đã hết hạn. Vui lòng tải lại trang và thử lại.")
+        return _error_response(
+            403,
+            "Phiên bảo mật hết hạn",
+            "Token bảo mật đã hết hạn. Vui lòng tải lại trang và thực hiện lại thao tác.",
+        )
 
     @flask_app.errorhandler(404)
     def not_found(_e):
-        return _error_response(404, "Không tìm thấy trang", "Đường dẫn này không tồn tại hoặc đã bị gỡ khỏi hệ thống GUA Maison.")
+        return _error_response(
+            404,
+            "Không tìm thấy trang",
+            "Đường dẫn này không tồn tại hoặc đã bị gỡ khỏi hệ thống MMESTLINE.",
+        )
 
     @flask_app.errorhandler(405)
     def method_not_allowed(_e):
-        return _error_response(405, "Phương thức không được phép", "Hành động này không được hỗ trợ trên endpoint hiện tại.")
+        return _error_response(
+            405,
+            "Phương thức không được phép",
+            "Hành động này không được hỗ trợ trên endpoint hiện tại.",
+        )
 
     @flask_app.errorhandler(413)
     def request_too_large(_e):
-        return _error_response(413, "File quá lớn", "Kích thước file vượt quá giới hạn 10 MB. Vui lòng chọn ảnh nhỏ hơn.")
+        return _error_response(
+            413,
+            "File quá lớn",
+            "Kích thước file vượt quá giới hạn cho phép. Vui lòng chọn file nhỏ hơn.",
+        )
 
     @flask_app.errorhandler(500)
     def server_error(_e):
-        logger.exception("Internal Server Error")
-        return _error_response(500, "Lỗi máy chủ", "Hệ thống đang gặp sự cố kỹ thuật. Đội ngũ kỹ sư đang xử lý.")
+        logger.exception("MMESTLINE Internal Server Error")
+
+        return _error_response(
+            500,
+            "Lỗi máy chủ",
+            "Hệ thống MMESTLINE đang gặp sự cố kỹ thuật. Vui lòng thử lại sau.",
+        )
 
     return flask_app

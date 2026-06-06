@@ -782,3 +782,473 @@ body.admin-sidebar-open .mm-sidebar {
     right: 12px;
   }
 }
+/* =========================================
+   MMESTLINE Admin Sidebar Compact Fix
+   Fix nút thu gọn đè logo khi collapsed
+========================================= */
+
+.mm-admin-sidebar {
+  width: var(--admin-sidebar-width, 300px) !important;
+  overflow: visible !important;
+}
+
+.mm-admin-sidebar .custom-scrollbar {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Width khi thu gọn */
+body.mm-sidebar-collapsed .mm-admin-sidebar,
+body.admin-sidebar-collapsed .mm-admin-sidebar,
+body.mm-admin-sidebar-collapsed .mm-admin-sidebar,
+html.mm-sidebar-collapsed body .mm-admin-sidebar,
+html.admin-sidebar-collapsed body .mm-admin-sidebar,
+html.mm-admin-sidebar-collapsed body .mm-admin-sidebar {
+  width: var(--admin-sidebar-mini-width, 86px) !important;
+}
+
+/* Ẩn chữ khi thu gọn */
+body.mm-sidebar-collapsed .mm-sidebar-brand-text,
+body.mm-sidebar-collapsed .mm-sidebar-label,
+body.mm-sidebar-collapsed .mm-sidebar-section-title,
+body.mm-sidebar-collapsed .mm-sidebar-badge,
+body.admin-sidebar-collapsed .mm-sidebar-brand-text,
+body.admin-sidebar-collapsed .mm-sidebar-label,
+body.admin-sidebar-collapsed .mm-sidebar-section-title,
+body.admin-sidebar-collapsed .mm-sidebar-badge,
+body.mm-admin-sidebar-collapsed .mm-sidebar-brand-text,
+body.mm-admin-sidebar-collapsed .mm-sidebar-label,
+body.mm-admin-sidebar-collapsed .mm-sidebar-section-title,
+body.mm-admin-sidebar-collapsed .mm-sidebar-badge {
+  width: 0 !important;
+  max-width: 0 !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+}
+
+/* Brand collapsed: logo nằm giữa */
+body.mm-sidebar-collapsed .mm-sidebar-brand,
+body.admin-sidebar-collapsed .mm-sidebar-brand,
+body.mm-admin-sidebar-collapsed .mm-sidebar-brand {
+  justify-content: center !important;
+  padding-left: 10px !important;
+  padding-right: 10px !important;
+}
+
+body.mm-sidebar-collapsed .mm-sidebar-brand-link,
+body.admin-sidebar-collapsed .mm-sidebar-brand-link,
+body.mm-admin-sidebar-collapsed .mm-sidebar-brand-link {
+  flex: 0 0 auto !important;
+  justify-content: center !important;
+}
+
+body.mm-sidebar-collapsed .mm-sidebar-logo,
+body.admin-sidebar-collapsed .mm-sidebar-logo,
+body.mm-admin-sidebar-collapsed .mm-sidebar-logo {
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* Nút toggle nổi ra mép phải, không đè logo */
+body.mm-sidebar-collapsed .mm-sidebar-toggle,
+body.admin-sidebar-collapsed .mm-sidebar-toggle,
+body.mm-admin-sidebar-collapsed .mm-sidebar-toggle {
+  position: absolute !important;
+  top: 20px !important;
+  right: -15px !important;
+  z-index: 50 !important;
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 999px !important;
+  background: #fffdf9 !important;
+  box-shadow: 0 18px 34px -22px rgba(36, 18, 7, 0.72) !important;
+}
+
+/* Icon quay hướng mở rộng */
+body.mm-sidebar-collapsed .mm-sidebar-toggle i,
+body.admin-sidebar-collapsed .mm-sidebar-toggle i,
+body.mm-admin-sidebar-collapsed .mm-sidebar-toggle i {
+  transform: rotate(180deg);
+}
+
+/* Item menu căn giữa khi thu gọn */
+body.mm-sidebar-collapsed .mm-sidebar-link,
+body.admin-sidebar-collapsed .mm-sidebar-link,
+body.mm-admin-sidebar-collapsed .mm-sidebar-link {
+  justify-content: center !important;
+  gap: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+body.mm-sidebar-collapsed .mm-sidebar-icon,
+body.admin-sidebar-collapsed .mm-sidebar-icon,
+body.mm-admin-sidebar-collapsed .mm-sidebar-icon {
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* Padding menu khi thu gọn */
+body.mm-sidebar-collapsed .mm-admin-sidebar .custom-scrollbar,
+body.admin-sidebar-collapsed .mm-admin-sidebar .custom-scrollbar,
+body.mm-admin-sidebar-collapsed .mm-admin-sidebar .custom-scrollbar {
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+}
+
+body.mm-sidebar-collapsed .mm-sidebar-section,
+body.admin-sidebar-collapsed .mm-sidebar-section,
+body.mm-admin-sidebar-collapsed .mm-sidebar-section {
+  margin-bottom: 18px !important;
+}
+
+/* Mobile giữ rộng theo màn hình */
+@media (max-width: 1023.98px) {
+  .mm-admin-sidebar {
+    width: min(300px, 88vw) !important;
+  }
+}
+/* =========================================
+   MMESTLINE Admin Topbar Compact
+========================================= */
+
+.mm-topbar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: var(--admin-content-ml, 300px);
+  z-index: 80;
+  min-height: var(--admin-topbar-height, 72px);
+  border-bottom: 1px solid #eadfd4;
+  background: rgba(255, 250, 245, 0.88);
+  backdrop-filter: blur(18px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 22px;
+  transition: left 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mm-topbar-left,
+.mm-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.mm-topbar-left {
+  flex: 1;
+}
+
+.mm-topbar-actions {
+  flex-shrink: 0;
+}
+
+.mm-topbar-kicker {
+  margin: 0 0 3px;
+  color: #b98b62;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.mm-topbar-title {
+  margin: 0;
+  color: #241207;
+  font-size: 18px;
+  font-weight: 950;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mm-icon-btn {
+  width: 42px;
+  height: 42px;
+  border: 1px solid #eadfd4;
+  border-radius: 16px;
+  background: #fffdf9;
+  color: #5f3b1e;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.16s ease, color 0.16s ease, transform 0.16s ease;
+}
+
+.mm-icon-btn:hover,
+.mm-icon-btn.is-active {
+  background: #3b2414;
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.mm-dot-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  border: 2px solid #fffaf5;
+  border-radius: 999px;
+  background: #e54864;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 950;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mm-pos-btn {
+  min-height: 42px;
+  border: 0;
+  border-radius: 16px;
+  background: #3b2414;
+  color: #fff;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  transition: background 0.16s ease, transform 0.16s ease;
+}
+
+.mm-pos-btn:hover {
+  background: #241207;
+  transform: translateY(-1px);
+}
+
+.mm-user-btn {
+  min-height: 46px;
+  border: 1px solid #eadfd4;
+  border-radius: 18px;
+  background: #fffdf9;
+  color: #241207;
+  padding: 4px 8px 4px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.16s ease, border-color 0.16s ease;
+}
+
+.mm-user-btn:hover,
+.mm-user-btn.is-open {
+  background: #fffaf5;
+  border-color: #d7c4b4;
+}
+
+.mm-user-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 0;
+}
+
+.mm-user-text strong {
+  max-width: 128px;
+  color: #241207;
+  font-size: 12px;
+  font-weight: 950;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mm-user-text small {
+  margin-top: 2px;
+  color: #059669;
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.mm-user-text small span {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #10b981;
+}
+
+.mm-user-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 15px;
+  background: #3b2414;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 950;
+  flex-shrink: 0;
+}
+
+.mm-chevron {
+  color: #b98b62;
+  font-size: 11px;
+  transition: transform 0.16s ease;
+}
+
+/* Sidebar collapsed: topbar tự bám theo mini width */
+body.mm-sidebar-collapsed .mm-topbar,
+body.admin-sidebar-collapsed .mm-topbar,
+body.mm-admin-sidebar-collapsed .mm-topbar,
+html.mm-sidebar-collapsed body .mm-topbar,
+html.admin-sidebar-collapsed body .mm-topbar,
+html.mm-admin-sidebar-collapsed body .mm-topbar {
+  left: var(--admin-sidebar-mini-width, 86px);
+}
+
+@media (max-width: 1023.98px) {
+  .mm-topbar {
+    left: 0;
+    min-height: var(--admin-mobilebar-height, 64px);
+    padding: 0 14px;
+  }
+
+  .mm-topbar-kicker {
+    display: none;
+  }
+
+  .mm-topbar-title {
+    font-size: 16px;
+  }
+
+  .mm-pos-btn span,
+  .mm-user-text,
+  .mm-chevron {
+    display: none;
+  }
+
+  .mm-pos-btn {
+    width: 42px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .mm-user-btn {
+    padding: 4px;
+    border-radius: 16px;
+  }
+
+  .mm-user-avatar {
+    width: 36px;
+    height: 36px;
+  }
+}
+/* =========================================================
+   MMESTLINE Admin click-layer fix
+   Chống progress/backdrop/topbar/sidebar chặn click sai lớp.
+========================================================= */
+
+.mm-admin-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  height: 3px;
+  width: 0;
+  opacity: 0;
+  background: #5a2f1f;
+  pointer-events: none !important;
+}
+
+/* Sidebar desktop */
+#mmAdminSidebar,
+#adminSidebar,
+.mm-admin-sidebar {
+  pointer-events: auto !important;
+}
+
+/* Link / button trong sidebar phải click được */
+.mm-admin-sidebar a,
+.mm-admin-sidebar button,
+.mm-admin-sidebar input,
+.mm-admin-sidebar form,
+.mm-sidebar-link,
+[data-nav] {
+  pointer-events: auto !important;
+}
+
+/* Topbar click được nhưng không phủ lên sidebar desktop */
+#adminTopbar,
+.mm-topbar {
+  pointer-events: auto !important;
+}
+
+/* Backdrop chỉ bắt click khi đang mở */
+#adminSidebarBackdrop,
+.mm-admin-sidebar-backdrop,
+#adminUserDropdownBackdrop {
+  pointer-events: none;
+}
+
+#adminSidebarBackdrop.is-open,
+.mm-admin-sidebar-backdrop.is-open,
+#adminUserDropdownBackdrop:not(.hidden) {
+  pointer-events: auto;
+}
+
+/* Dropdown không được chặn khi hidden */
+#adminUserDropdown.hidden,
+#adminUserDropdownBackdrop.hidden {
+  pointer-events: none !important;
+}
+
+/* Khi sidebar thu gọn vẫn cho icon click */
+body.admin-sidebar-collapsed .mm-admin-sidebar {
+  pointer-events: auto !important;
+}
+
+body.admin-sidebar-collapsed .mm-sidebar-link {
+  justify-content: center;
+  pointer-events: auto !important;
+}
+
+/* Tránh main content phủ ngược lên sidebar */
+.admin-main,
+.mm-admin-main,
+#adminMain,
+main {
+  position: relative;
+  z-index: 1;
+}
+
+/* Sidebar / topbar layer chuẩn */
+.mm-admin-sidebar {
+  z-index: 90;
+}
+
+.mm-topbar {
+  z-index: 80;
+}
+
+/* Mobile sidebar khi mở phải nằm trên topbar */
+@media (max-width: 1023px) {
+  .mm-admin-sidebar.is-open,
+  #mmAdminSidebar.is-open,
+  #adminSidebar.is-open {
+    z-index: 120 !important;
+  }
+
+  #adminSidebarBackdrop.is-open,
+  .mm-admin-sidebar-backdrop.is-open {
+    z-index: 110 !important;
+  }
+}

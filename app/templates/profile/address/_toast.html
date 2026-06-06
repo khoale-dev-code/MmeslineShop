@@ -1,56 +1,130 @@
-{# address/_toast.html #}
-<div id="gua-toast" role="status" aria-live="polite" aria-atomic="true"
-  class="fixed bottom-6 md:bottom-10 left-4 right-4 md:left-1/2 md:right-auto md:-translate-x-1/2 z-[300]
-         flex items-center gap-3.5 px-5 py-4 md:px-6 md:py-4
-         bg-white text-black border border-neutral-200 shadow-[0_10px_40px_rgba(0,0,0,0.08)] rounded-sm
-         pointer-events-none opacity-0 translate-y-6 transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]
-         max-w-full md:max-w-md">
-  
-  {# Icon Wrapper #}
-  <div class="shrink-0 flex items-center justify-center">
-    <svg id="toast-icon" class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"></svg>
+{# app/templates/profile/address/_toast.html #}
+
+<div
+  id="gua-toast"
+  role="status"
+  aria-live="polite"
+  aria-atomic="true"
+  class="fixed bottom-5 left-4 right-4 z-[300] flex translate-y-6 items-start gap-3 rounded-[22px] border border-[#eadfd4] bg-[#fffaf5]/95 px-4 py-4 text-[#241207] opacity-0 shadow-[0_26px_70px_-42px_rgba(36,18,7,.72)] backdrop-blur-xl transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] pointer-events-none md:left-1/2 md:right-auto md:bottom-8 md:w-[min(92vw,460px)] md:-translate-x-1/2"
+>
+  <div
+    id="toast-icon-wrap"
+    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#fbf7f1] text-[#5f3b1e]"
+  >
+    <svg
+      id="toast-icon"
+      class="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2.2"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    ></svg>
   </div>
-  
-  {# Text Message #}
-  <span id="toast-msg" class="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] leading-relaxed text-left flex-1 break-words"></span>
+
+  <div class="min-w-0 flex-1 pt-0.5">
+    <p
+      id="toast-title"
+      class="mb-1 text-[10px] font-black uppercase tracking-[.2em] text-[#b98b62]"
+    >
+      Thông báo
+    </p>
+
+    <span
+      id="toast-msg"
+      class="block break-words text-sm font-bold leading-6 text-[#241207]"
+    ></span>
+  </div>
 </div>
 
-{# ── GỢI Ý JAVASCRIPT GỌI TOAST ĐỂ CÓ MÀU SẮC ĐẸP ── #}
 <script>
-  /* * Hàm hỗ trợ gọi Toast ở frontend (Bạn có thể bỏ vào base.js hoặc để ở script chung)
-   * type: 'success' | 'error' | 'info'
-   */
-  window.showToast = function(message, type = 'info') {
-      const toast = document.getElementById('gua-toast');
-      const icon = document.getElementById('toast-icon');
-      const msg = document.getElementById('toast-msg');
-      if (!toast) return;
+(function () {
+  "use strict";
 
-      // Reset các class màu cũ
-      toast.classList.remove('border-emerald-500', 'text-emerald-600', 'border-red-500', 'text-red-600', 'border-neutral-200', 'text-black');
-      
-      // Set màu sắc và icon theo loại (Chuẩn UI Minimal)
-      if (type === 'success') {
-          toast.classList.add('border-emerald-500', 'text-emerald-600');
-          icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>';
-      } else if (type === 'error') {
-          toast.classList.add('border-red-500', 'text-red-600');
-          icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>';
-      } else {
-          toast.classList.add('border-neutral-200', 'text-black');
-          icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/>';
+  window.showToast = function (message, type = "info") {
+    const toast = document.getElementById("gua-toast");
+    const iconWrap = document.getElementById("toast-icon-wrap");
+    const icon = document.getElementById("toast-icon");
+    const title = document.getElementById("toast-title");
+    const msg = document.getElementById("toast-msg");
+
+    if (!toast || !iconWrap || !icon || !msg) return;
+
+    const normalized = type === "danger" ? "error" : type;
+
+    toast.classList.remove(
+      "border-[#eadfd4]",
+      "border-emerald-200",
+      "border-red-200",
+      "border-amber-200"
+    );
+
+    iconWrap.classList.remove(
+      "bg-[#fbf7f1]",
+      "text-[#5f3b1e]",
+      "bg-emerald-50",
+      "text-emerald-600",
+      "bg-red-50",
+      "text-red-600",
+      "bg-amber-50",
+      "text-amber-600"
+    );
+
+    if (normalized === "success") {
+      toast.classList.add("border-emerald-200");
+      iconWrap.classList.add("bg-emerald-50", "text-emerald-600");
+
+      if (title) {
+        title.textContent = "Thành công";
+        title.className = "mb-1 text-[10px] font-black uppercase tracking-[.2em] text-emerald-600";
       }
 
-      // Set text
-      msg.innerText = message;
+      icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>';
+    } else if (normalized === "error") {
+      toast.classList.add("border-red-200");
+      iconWrap.classList.add("bg-red-50", "text-red-600");
 
-      // Kích hoạt Animation hiện lên
-      toast.classList.remove('opacity-0', 'translate-y-6');
-      
-      // Tự động ẩn sau 3 giây
-      if(window.toastTimer) clearTimeout(window.toastTimer);
-      window.toastTimer = setTimeout(() => {
-          toast.classList.add('opacity-0', 'translate-y-6');
-      }, 3000);
+      if (title) {
+        title.textContent = "Có lỗi";
+        title.className = "mb-1 text-[10px] font-black uppercase tracking-[.2em] text-red-600";
+      }
+
+      icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>';
+    } else if (normalized === "warning") {
+      toast.classList.add("border-amber-200");
+      iconWrap.classList.add("bg-amber-50", "text-amber-600");
+
+      if (title) {
+        title.textContent = "Lưu ý";
+        title.className = "mb-1 text-[10px] font-black uppercase tracking-[.2em] text-amber-600";
+      }
+
+      icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008v.008H12V16.5zm9-4.5a9 9 0 11-18 0 9 9 0 0118 0z"/>';
+    } else {
+      toast.classList.add("border-[#eadfd4]");
+      iconWrap.classList.add("bg-[#fbf7f1]", "text-[#5f3b1e]");
+
+      if (title) {
+        title.textContent = "Thông báo";
+        title.className = "mb-1 text-[10px] font-black uppercase tracking-[.2em] text-[#b98b62]";
+      }
+
+      icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/>';
+    }
+
+    msg.textContent = message || "";
+
+    toast.classList.remove("opacity-0", "translate-y-6");
+    toast.classList.add("opacity-100", "translate-y-0");
+
+    if (window.toastTimer) {
+      clearTimeout(window.toastTimer);
+    }
+
+    window.toastTimer = setTimeout(function () {
+      toast.classList.remove("opacity-100", "translate-y-0");
+      toast.classList.add("opacity-0", "translate-y-6");
+    }, 3000);
   };
+})();
 </script>

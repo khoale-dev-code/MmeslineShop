@@ -3,11 +3,13 @@ app/controllers/auth_controller.py
 ==================================
 Controller xác thực cho MMESTLINE / Fashion Store.
 
-Fix chính:
+Đã xử lý:
 - Sửa lỗi POST /auth/login bị 403 do CSRF tokens do not match.
-- Không xóa csrf_token khi logout.
 - Không session.clear() trần khi login/logout.
+- Không xóa csrf_token khi logout.
 - Chống cache trang /auth/* để tránh browser dùng form login cũ.
+- Đồng bộ session user_name/full_name để profile/navbar không hiện None.
+- Chuẩn hóa tên người dùng khi register/login.
 - Có đủ route:
   /auth/login
   /auth/logout
@@ -18,7 +20,7 @@ Fix chính:
 
 import logging
 import re
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urljoin, urlparse
 
 from flask import (
     Blueprint,
@@ -59,17 +61,20 @@ def handle_auth_csrf_error(e):
     """
     logger.warning("[AUTH CSRF] CSRF token mismatch ở %s: %s", request.path, e.description)
 
-    # Xóa flash/session auth cũ, nhưng giữ csrf nếu còn.
     preserved_csrf = session.get("csrf_token")
 
     for key in [
         "user_id",
         "email",
         "user_name",
+        "full_name",
         "role",
         "user_role",
         "admin_role_slug",
         "is_authenticated",
+        "cart_items",
+        "cart_count",
+        "cart_total",
     ]:
         session.pop(key, None)
 
@@ -106,6 +111,18 @@ def add_auth_no_cache_headers(response):
 # SESSION HELPERS
 # ═══════════════════════════════════════════════════════════════
 
+def _clean_name(value: str | None) -> str:
+    """
+    Chuẩn hóa tên để tránh UI hiện None/null/undefined.
+    """
+    value = (value or "").strip()
+
+    if value.lower() in ("none", "null", "undefined", "nan"):
+        return ""
+
+    return value
+
+
 def _clear_auth_session_preserve_csrf() -> None:
     """
     Xóa trạng thái đăng nhập nhưng giữ csrf_token.
@@ -119,6 +136,7 @@ def _clear_auth_session_preserve_csrf() -> None:
         "user_id",
         "email",
         "user_name",
+        "full_name",
         "role",
         "user_role",
         "admin_role_slug",
@@ -141,29 +159,31 @@ def _set_login_session(user: dict, remember: bool = False) -> None:
     """
     Set session đăng nhập nhưng vẫn giữ csrf_token hiện tại.
     Không dùng session.clear() trần.
+    Đồng bộ user_name/full_name để profile/navbar không hiện None.
     """
     preserved_csrf = session.get("csrf_token")
 
-    # Xóa auth cũ trước.
     _clear_auth_session_preserve_csrf()
 
     if preserved_csrf:
         session["csrf_token"] = preserved_csrf
 
     role = _fetch_role(user)
+    email = _normalize_email(user.get("email"))
 
     full_name = (
-        user.get("full_name")
-        or user.get("name")
-        or user.get("email")
-        or "Người dùng"
+        _clean_name(user.get("full_name"))
+        or _clean_name(user.get("name"))
+        or (email.split("@")[0] if email else "")
+        or "Khách hàng"
     )
 
     session.permanent = bool(remember)
 
     session["user_id"] = user.get("id")
-    session["email"] = user.get("email")
+    session["email"] = email
     session["user_name"] = full_name
+    session["full_name"] = full_name
 
     # Giữ cả 2 key để tương thích code cũ.
     session["role"] = role
@@ -249,9 +269,7 @@ def _verify_user_password(user: dict, password: str) -> bool:
         )
         return False
 
-    logger.error(
-        "[AUTH] UserModel thiếu method verify_password/check_password/authenticate."
-    )
+    logger.error("[AUTH] UserModel thiếu method verify_password/check_password/authenticate.")
     return False
 
 
@@ -295,9 +313,7 @@ def _change_password(email: str, new_password: str) -> bool:
         logger.error("[AUTH] Lỗi đổi mật khẩu email=%s: %s", email, e, exc_info=True)
         return False
 
-    logger.error(
-        "[AUTH] UserModel thiếu method change_password/update_password/set_password."
-    )
+    logger.error("[AUTH] UserModel thiếu method change_password/update_password/set_password.")
     return False
 
 
@@ -361,7 +377,7 @@ def login():
         password = request.form.get("password") or ""
         remember = bool(request.form.get("remember"))
 
-        logger.info("[LOGIN ATTEMPT] Đang tiến hành xác thực tài khoản: email='%s'", email)
+        logger.info("[LOGIN ATTEMPT] Đang xác thực tài khoản: email='%s'", email)
 
         if not email or not EMAIL_RE.match(email):
             error = "Vui lòng nhập địa chỉ email hợp lệ."
@@ -396,10 +412,11 @@ def login():
         _set_login_session(user_record, remember=remember)
 
         logger.info(
-            "[SESSION SET SUCCESS] Đăng nhập thành công: email=%s | user_role=%s | admin_role_slug=%s",
+            "[SESSION SET SUCCESS] Đăng nhập thành công: email=%s | user_role=%s | admin_role_slug=%s | user_name=%s",
             email,
             session.get("user_role"),
             session.get("admin_role_slug"),
+            session.get("user_name"),
         )
 
         flash("Đăng nhập thành công.", "success")
@@ -435,7 +452,7 @@ def register():
     errors = {}
 
     if request.method == "POST":
-        full_name = (request.form.get("full_name") or request.form.get("name") or "").strip()
+        full_name = _clean_name(request.form.get("full_name") or request.form.get("name"))
         email = _normalize_email(request.form.get("email"))
         phone = (request.form.get("phone") or "").strip() or None
         password = request.form.get("password") or ""
@@ -472,15 +489,27 @@ def register():
             )
 
             if user:
+                # Quan trọng:
+                # Một số UserModel.create() chỉ trả về id/email hoặc object thiếu full_name.
+                # Ép lại dữ liệu form vào user trước khi set session để không hiện None.
+                user["full_name"] = full_name
+                user["name"] = full_name
+                user["email"] = email
+
+                if phone:
+                    user["phone"] = phone
+
                 logger.info(
-                    "[REGISTER SUCCESS] Tạo tài khoản mới thành công: id=%s | email=%s",
+                    "[REGISTER SUCCESS] Tạo tài khoản mới thành công: id=%s | email=%s | full_name=%s",
                     user.get("id"),
                     email,
+                    full_name,
                 )
 
                 _set_login_session(user, remember=False)
+
                 flash(
-                    f"Đăng ký tài khoản thành công! Chào mừng {session['user_name']} đến với MMESTLINE.",
+                    f"Đăng ký tài khoản thành công! Chào mừng {session.get('user_name', 'Khách hàng')} đến với MMESTLINE.",
                     "success",
                 )
                 return _redirect_for_user(user)

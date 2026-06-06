@@ -1,176 +1,370 @@
 {% extends "base.html" %}
 {% from 'profile/_layout.html' import profile_shell %}
-{% block title %}Sổ địa chỉ | GUA Maison{% endblock %}
+
+{% block title %}Sổ địa chỉ | MMESTLINE{% endblock %}
 
 {% block extra_head %}
 <style>
-  /* ── Address card variants — dùng class tĩnh, tránh Jinja trong style="" ── */
+  .mm-address-page {
+    --mm-ink: #241207;
+    --mm-brown: #3b2414;
+    --mm-brown-2: #5f3b1e;
+    --mm-caramel: #b98b62;
+    --mm-muted: #8a6a52;
+    --mm-line: #eadfd4;
+    --mm-soft: #fffaf5;
+    --mm-cream: #fbf7f1;
+  }
+
   .addr-card {
-    background: #fff;
-    border: 1px solid var(--gua-muted, #e8e5e0);
-    border-radius: 2px;
-    box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.05);
-    transition: border-color .18s, box-shadow .18s;
-    padding: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
     position: relative;
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--mm-line);
+    border-radius: 24px;
+    background: var(--mm-soft);
+    padding: 20px;
+    box-shadow: 0 18px 48px -42px rgba(36, 18, 7, 0.58);
+    transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
   }
-  .addr-card:hover { border-color: #b5b0a8; box-shadow: 0 2px 8px rgba(0,0,0,.08), 0 16px 40px rgba(0,0,0,.08); }
+
+  .addr-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(95, 59, 30, .38);
+    box-shadow: 0 26px 70px -50px rgba(36, 18, 7, .7);
+  }
+
   .addr-card--default {
-    border-color: #0a0a0a !important;
-    box-shadow: 0 0 0 1px #0a0a0a, 0 2px 8px rgba(0,0,0,.12), 0 16px 40px rgba(0,0,0,.1) !important;
+    border-color: var(--mm-brown) !important;
+    box-shadow:
+      0 0 0 1px rgba(59, 36, 20, .75),
+      0 24px 68px -50px rgba(36, 18, 7, .72) !important;
   }
-  .addr-divider      { border-bottom: 1px solid var(--gua-muted, #e8e5e0); }
-  .addr-divider-dash { border-top: 1px dashed var(--gua-muted, #e8e5e0); }
-  .addr-note { background: var(--gua-ghost, #f2f0ed); border-left: 2px solid var(--gua-accent, #c8a96e); color: #737065; }
+
+  .addr-card--default::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 4px;
+    background: var(--mm-brown);
+  }
+
+  .addr-divider {
+    border-bottom: 1px solid var(--mm-line);
+  }
+
+  .addr-divider-dash {
+    border-top: 1px dashed var(--mm-line);
+  }
+
+  .addr-note {
+    border-left: 3px solid var(--mm-caramel);
+    border-radius: 16px;
+    background: #fbf7f1;
+    color: var(--mm-muted);
+  }
+
+  .mm-address-btn {
+    min-height: 46px;
+    border-radius: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    padding: 0 18px;
+    font-size: 10px;
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: .16em;
+    transition: background .16s ease, color .16s ease, transform .16s ease, border-color .16s ease;
+  }
+
+  .mm-address-btn-primary {
+    border: 1px solid var(--mm-brown);
+    background: var(--mm-brown);
+    color: #fff;
+  }
+
+  .mm-address-btn-primary:hover {
+    background: var(--mm-ink);
+    border-color: var(--mm-ink);
+    transform: translateY(-1px);
+  }
+
+  .mm-address-btn-soft {
+    border: 1px solid var(--mm-line);
+    background: #fffdf9;
+    color: var(--mm-brown-2);
+  }
+
+  .mm-address-btn-soft:hover {
+    background: var(--mm-brown);
+    border-color: var(--mm-brown);
+    color: #fff;
+    transform: translateY(-1px);
+  }
+
+  .mm-address-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #9b7b63;
+    font-size: 10px;
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: .14em;
+    transition: color .16s ease;
+  }
+
+  .mm-address-action:hover {
+    color: var(--mm-ink);
+  }
+
+  .mm-address-danger:hover {
+    color: #dc2626;
+  }
+
+  @media (max-width: 640px) {
+    .addr-card {
+      border-radius: 22px;
+      padding: 18px;
+    }
+
+    .mm-address-btn {
+      width: 100%;
+    }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="min-h-screen pb-24 font-sans selection:bg-black selection:text-white" style="background:var(--gua-paper,#fafaf9); padding-top: calc(var(--header-h, 72px) + 2rem);">
-  <div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+{% set raw_name = current_user.full_name|default('', true) if current_user is defined else '' %}
+{% if raw_name|string|lower in ['none', 'null', 'undefined'] %}
+  {% set raw_name = '' %}
+{% endif %}
 
-    {# ── HEADER ── #}
-    <div class="gua-card gua-reveal p-6 md:p-8 mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
-      <div class="flex items-center gap-5">
-        <div class="w-14 h-14 bg-[#0a0a0a] flex items-center justify-center text-white text-lg font-black rounded-sm shadow-lg shrink-0">
-          {{ (current_user.full_name or 'U')[0]|upper }}
-        </div>
-        <div>
-          <p class="text-[9px] font-bold uppercase tracking-[.25em] text-[#9e9890] mb-1">Tài khoản</p>
-          <h1 class="text-xl font-black text-[#0a0a0a] uppercase tracking-tight leading-none">{{ current_user.full_name }}</h1>
+{% set user_email = current_user.email|default(session.get('email', ''), true) if current_user is defined else session.get('email', '') %}
+{% set display_name = raw_name or session.get('user_name') or session.get('full_name') or (user_email.split('@')[0] if user_email else 'Khách hàng') %}
+{% set avatar_char = display_name[0].upper() if display_name else 'U' %}
+{% set address_count = (addresses|length) if addresses else 0 %}
+
+<section class="mm-address-page min-h-[calc(100dvh-var(--header-h,0px))] bg-[#fbf7f1] px-4 py-8 md:py-12">
+  <div class="mx-auto w-full max-w-[1200px]">
+
+    <div class="mb-8 overflow-hidden rounded-[28px] border border-[#eadfd4] bg-[#fffaf5] shadow-[0_24px_70px_-55px_rgba(36,18,7,.62)]">
+      <div class="relative p-5 sm:p-7 lg:p-8">
+        <div class="absolute right-0 top-0 h-36 w-36 rounded-full bg-[#b98b62]/10 blur-3xl"></div>
+
+        <div class="relative z-10 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div class="flex min-w-0 items-center gap-4 sm:gap-5">
+            <div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[#3b2414] text-xl font-black text-white shadow-[0_18px_36px_-28px_rgba(36,18,7,.8)] sm:h-20 sm:w-20 sm:text-2xl">
+              {{ avatar_char }}
+            </div>
+
+            <div class="min-w-0">
+              <p class="mb-2 text-[10px] font-black uppercase tracking-[.24em] text-[#b98b62]">
+                MMESTLINE Account
+              </p>
+
+              <h1 class="truncate text-2xl font-black uppercase leading-none tracking-[-.04em] text-[#241207] sm:text-3xl">
+                {{ display_name }}
+              </h1>
+
+              <p class="mt-2 truncate text-xs font-semibold text-[#8a6a52]">
+                {{ user_email or 'Quản lý thông tin giao hàng của bạn' }}
+              </p>
+            </div>
+          </div>
+
+          <a href="/shop" class="mm-address-btn mm-address-btn-soft">
+            <i class="fa-solid fa-store"></i>
+            Tiếp tục mua sắm
+          </a>
         </div>
       </div>
-      <a href="/shop" class="gua-btn gua-btn-ghost text-[10px]">Tiếp tục mua sắm</a>
     </div>
 
-    {# ── BANNER CHECKOUT ── #}
     {% if request.args.get('next') %}
-    <div class="gua-reveal mb-6 flex items-start gap-4 p-5 rounded-sm text-white" style="background:var(--gua-ink);box-shadow:var(--gua-shadow-lg);">
-      <svg class="w-5 h-5 shrink-0 mt-0.5 animate-pulse" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
-      <div>
-        <p class="text-xs font-black uppercase tracking-[.2em] mb-1">Thiết lập địa chỉ giao hàng</p>
-        <p class="text-[11px] font-medium leading-relaxed" style="color:#b5b0a8;">Bạn cần thêm hoặc chọn địa chỉ mặc định để tiếp tục thanh toán.</p>
+      <div class="mb-6 rounded-[24px] border border-[#eadfd4] bg-[#3b2414] p-5 text-white shadow-[0_24px_70px_-55px_rgba(36,18,7,.72)]">
+        <div class="flex items-start gap-4">
+          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-[#ead8c8]">
+            <i class="fa-solid fa-circle-info"></i>
+          </div>
+
+          <div>
+            <p class="text-xs font-black uppercase tracking-[.2em]">
+              Thiết lập địa chỉ giao hàng
+            </p>
+            <p class="mt-1 text-sm font-semibold leading-6 text-[#ead8c8]/80">
+              Bạn cần thêm hoặc chọn địa chỉ mặc định để tiếp tục thanh toán.
+            </p>
+          </div>
+        </div>
       </div>
-    </div>
     {% endif %}
 
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-
-      <div class="lg:col-span-3 gua-reveal gua-d1">
-        <p class="hidden lg:block text-[9px] font-black text-[#b5b0a8] uppercase tracking-[.25em] mb-4">Quản lý tài khoản</p>
+    <div class="grid grid-cols-1 gap-7 lg:grid-cols-12">
+      <aside class="lg:col-span-3">
+        <p class="mb-3 hidden text-[10px] font-black uppercase tracking-[.24em] text-[#b98b62] lg:block">
+          Quản lý tài khoản
+        </p>
         {{ profile_shell('map') }}
-      </div>
+      </aside>
 
-      <div class="lg:col-span-9 gua-reveal gua-d2">
-
-        {# Section header #}
-        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-5 mb-6 pb-5" style="border-bottom:1px solid var(--gua-muted);">
+      <main class="lg:col-span-9">
+        <div class="mb-6 flex flex-col gap-4 border-b border-[#eadfd4] pb-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 class="text-2xl font-black text-[#0a0a0a] uppercase tracking-tight">Sổ địa chỉ</h2>
-            <p class="text-[10px] font-bold text-[#9e9890] mt-1 uppercase tracking-widest">{{ (addresses|length) if addresses else 0 }} địa chỉ đã lưu</p>
+            <p class="text-[10px] font-black uppercase tracking-[.24em] text-[#b98b62]">
+              Delivery Book
+            </p>
+
+            <h2 class="mt-1 text-2xl font-black tracking-[-.04em] text-[#241207] sm:text-3xl">
+              Sổ địa chỉ
+            </h2>
+
+            <p class="mt-2 text-xs font-bold uppercase tracking-[.18em] text-[#8a6a52]">
+              {{ address_count }} địa chỉ đã lưu
+            </p>
           </div>
-          <button type="button" onclick="GUA.modal.open('add')" class="gua-btn gua-btn-ghost w-full sm:w-auto">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+
+          <button
+            type="button"
+            onclick="GUA.modal.open('add')"
+            class="mm-address-btn mm-address-btn-primary"
+          >
+            <i class="fa-solid fa-plus"></i>
             Thêm địa chỉ
           </button>
         </div>
 
         {% if addresses and addresses|length > 0 %}
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="address-list">
-          {% for addr in addresses %}
-          {% set is_def = addr.is_default == true or addr.is_default == True or addr.is_default == 1 %}
-          {% set card_cls = 'addr-card addr-card--default' if is_def else 'addr-card' %}
-          <div class="{{ card_cls }}">
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2" id="address-list">
+            {% for addr in addresses %}
+              {% set is_def = addr.is_default == true or addr.is_default == True or addr.is_default == 1 %}
+              {% set card_cls = 'addr-card addr-card--default' if is_def else 'addr-card' %}
 
-            {# Người nhận #}
-            <div class="addr-divider flex items-start justify-between gap-3 mb-4 pb-4">
-              <div class="min-w-0">
-                <p class="text-sm font-black text-[#0a0a0a] uppercase truncate">{{ addr.full_name }}</p>
-                <p class="text-[11px] font-bold text-[#9e9890] mt-1 tracking-widest">{{ addr.phone }}</p>
-              </div>
-              {% if is_def %}
-              <span class="shrink-0 text-[9px] font-black uppercase tracking-widest bg-[#0a0a0a] text-white px-2.5 py-1 rounded-sm">Mặc định</span>
-              {% endif %}
-            </div>
+              <article class="{{ card_cls }}">
+                <div class="addr-divider mb-4 flex items-start justify-between gap-3 pb-4">
+                  <div class="min-w-0">
+                    <p class="truncate text-sm font-black uppercase text-[#241207]">
+                      {{ addr.full_name or display_name }}
+                    </p>
 
-            {# Địa chỉ #}
-            <div class="flex-1 mb-5">
-              <p class="text-xs font-medium leading-relaxed uppercase tracking-tight text-[#737065]">
-                {{ addr.address_line }},<br>
-                {{ addr.ward or addr.ward_name or '' }}, {{ addr.district or addr.district_name or '' }},<br>
-                {{ addr.province or addr.province_name or '' }}
-              </p>
-              {% if addr.note %}
-              <div class="addr-note mt-3 text-[11px] italic p-3 rounded-sm">{{ addr.note }}</div>
-              {% endif %}
-            </div>
+                    <p class="mt-1 text-[11px] font-bold tracking-widest text-[#8a6a52]">
+                      {{ addr.phone or 'Chưa có số điện thoại' }}
+                    </p>
+                  </div>
 
-            {# Actions #}
-            <div class="addr-divider-dash flex items-center justify-between pt-4">
-              <div class="flex items-center gap-4">
-                <button type="button"
-                  data-addr-id="{{ addr.id }}"
-                  data-addr='{{ addr|tojson }}'
-                  onclick="GUA.modal.open('edit', this.dataset.addrId, JSON.parse(this.dataset.addr))"
-                  class="text-[10px] font-black uppercase tracking-widest text-[#9e9890] hover:text-[#0a0a0a] transition-colors flex items-center gap-1.5">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Z"/></svg>
-                  Sửa
-                </button>
-                <span style="width:3px;height:3px;background:var(--gua-muted);border-radius:50%;display:inline-block;"></span>
-                <button type="button"
-                  onclick="GUA.confirmDelete('{{ addr.id }}', '{{ addr.full_name | e }}')"
-                  class="text-[10px] font-black uppercase tracking-widest text-[#9e9890] hover:text-red-500 transition-colors flex items-center gap-1.5">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/></svg>
-                  Xóa
-                </button>
-              </div>
+                  {% if is_def %}
+                    <span class="shrink-0 rounded-full bg-[#3b2414] px-3 py-1.5 text-[9px] font-black uppercase tracking-[.16em] text-white">
+                      Mặc định
+                    </span>
+                  {% endif %}
+                </div>
 
-              {% if not is_def %}
-              <form action="/profile/addresses/set-default/{{ addr.id }}" method="POST" class="m-0">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="hidden" name="next_url" value="{{ request.args.get('next', '') }}">
-                <button type="submit" class="text-[9px] font-black uppercase tracking-widest transition-all px-3 py-2" style="background:var(--gua-ghost);border:1px solid var(--gua-muted);border-radius:2px;color:#737065;">
-                  Đặt mặc định
-                </button>
-              </form>
-              {% elif is_def and request.args.get('next') %}
-              <a href="{{ request.args.get('next') }}" class="gua-btn" style="padding:.5rem 1.25rem;font-size:9px;">
-                Tiếp tục
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
-              </a>
-              {% endif %}
-            </div>
+                <div class="mb-5 flex-1">
+                  <p class="text-sm font-semibold leading-7 text-[#75543f]">
+                    {{ addr.address_line }}{% if addr.address_line %},{% endif %}<br>
+                    {{ addr.ward or addr.ward_name or '' }}{% if addr.ward or addr.ward_name %}, {% endif %}
+                    {{ addr.district or addr.district_name or '' }}{% if addr.district or addr.district_name %}, {% endif %}<br>
+                    {{ addr.province or addr.province_name or '' }}
+                  </p>
+
+                  {% if addr.note %}
+                    <div class="addr-note mt-4 p-3 text-xs font-semibold italic leading-5">
+                      {{ addr.note }}
+                    </div>
+                  {% endif %}
+                </div>
+
+                <div class="addr-divider-dash flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div class="flex flex-wrap items-center gap-4">
+                    <button
+                      type="button"
+                      data-addr-id="{{ addr.id }}"
+                      data-addr='{{ addr|tojson }}'
+                      onclick="GUA.modal.open('edit', this.dataset.addrId, JSON.parse(this.dataset.addr))"
+                      class="mm-address-action"
+                    >
+                      <i class="fa-solid fa-pen"></i>
+                      Sửa
+                    </button>
+
+                    <button
+                      type="button"
+                      onclick="GUA.confirmDelete('{{ addr.id }}', '{{ addr.full_name | e }}')"
+                      class="mm-address-action mm-address-danger"
+                    >
+                      <i class="fa-solid fa-trash-can"></i>
+                      Xóa
+                    </button>
+                  </div>
+
+                  {% if not is_def %}
+                    <form action="/profile/addresses/set-default/{{ addr.id }}" method="POST" class="m-0">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <input type="hidden" name="next_url" value="{{ request.args.get('next', '') }}">
+
+                      <button
+                        type="submit"
+                        class="rounded-2xl border border-[#eadfd4] bg-[#fffdf9] px-4 py-2.5 text-[9px] font-black uppercase tracking-[.16em] text-[#5f3b1e] transition hover:bg-[#3b2414] hover:text-white"
+                      >
+                        Đặt mặc định
+                      </button>
+                    </form>
+                  {% elif is_def and request.args.get('next') %}
+                    <a href="{{ request.args.get('next') }}" class="rounded-2xl bg-[#3b2414] px-4 py-2.5 text-[9px] font-black uppercase tracking-[.16em] text-white transition hover:bg-[#241207]">
+                      Tiếp tục
+                    </a>
+                  {% endif %}
+                </div>
+              </article>
+            {% endfor %}
           </div>
-          {% endfor %}
-        </div>
-
         {% else %}
-        <div class="gua-card p-12 md:p-20 text-center flex flex-col items-center" style="border-style:dashed;">
-          <svg class="w-8 h-8 text-[#d4cfc8] mb-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 0 1 15 0Z"/></svg>
-          <p class="text-sm font-black text-[#0a0a0a] uppercase tracking-widest mb-2">Sổ địa chỉ trống</p>
-          <p class="text-[11px] text-[#9e9890] mb-6 max-w-xs mx-auto leading-relaxed">Bạn chưa lưu thông tin giao hàng nào. Thêm ngay để mua sắm mượt mà hơn.</p>
-          <button type="button" onclick="GUA.modal.open('add')" class="gua-btn">Thêm địa chỉ đầu tiên</button>
-        </div>
-        {% endif %}
+          <div class="rounded-[28px] border border-dashed border-[#eadfd4] bg-[#fffaf5] px-6 py-14 text-center shadow-[0_18px_48px_-42px_rgba(36,18,7,.55)] md:py-20">
+            <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#fbf7f1] text-[#b98b62]">
+              <i class="fa-solid fa-location-dot text-2xl"></i>
+            </div>
 
-      </div>
+            <h3 class="mt-5 text-lg font-black text-[#241207]">
+              Sổ địa chỉ trống
+            </h3>
+
+            <p class="mx-auto mt-2 max-w-sm text-sm font-semibold leading-6 text-[#8a6a52]">
+              Bạn chưa lưu thông tin giao hàng nào. Thêm địa chỉ để thanh toán nhanh hơn.
+            </p>
+
+            <button
+              type="button"
+              onclick="GUA.modal.open('add')"
+              class="mm-address-btn mm-address-btn-primary mt-6"
+            >
+              Thêm địa chỉ đầu tiên
+            </button>
+          </div>
+        {% endif %}
+      </main>
     </div>
   </div>
-</div>
+</section>
 
 {% include 'profile/address/_modal.html' %}
 {% include 'profile/address/_delete_dialog.html' %}
 {% include 'profile/address/_toast.html' %}
 {% include 'profile/address/_styles.html' %}
 
-<div id="gua-flash-data" aria-hidden="true" style="display:none"
+<div
+  id="gua-flash-data"
+  aria-hidden="true"
+  style="display:none"
   data-flash='{{ get_flashed_messages(with_categories=true)|tojson }}'
   data-has-next="{{ 'true' if request.args.get('next') else 'false' }}"
-  data-has-addresses="{{ 'true' if addresses and addresses|length > 0 else 'false' }}">
-</div>
+  data-has-addresses="{{ 'true' if addresses and addresses|length > 0 else 'false' }}"
+></div>
+
 <script src="{{ url_for('static', filename='js/address/toast.js') }}"></script>
 <script src="{{ url_for('static', filename='js/address/geo.js') }}"></script>
 <script src="{{ url_for('static', filename='js/address/modal.js') }}"></script>

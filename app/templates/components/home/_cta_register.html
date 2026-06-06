@@ -1,89 +1,157 @@
 <style>
-  /* Kế thừa hệ màu và font chữ */
-  .editorial-title {
-    font-family: 'Cormorant Garamond', 'Cormorant', serif;
+  .mm-editorial-title {
+    font-family: "DM Sans", system-ui, sans-serif;
+    text-wrap: balance;
   }
-  
-  /* Hiệu ứng gạch chéo cho nút bấm kiểu Brutalism */
-  .btn-editorial {
+
+  .mm-newsletter-card {
+    isolation: isolate;
+  }
+
+  .mm-newsletter-image img {
+    transform: translate3d(0, 0, 0) scale(1.01);
+    backface-visibility: hidden;
+    transition: transform 900ms cubic-bezier(0.16, 1, 0.3, 1), filter 300ms ease;
+  }
+
+  .mm-newsletter-card:hover .mm-newsletter-image img {
+    transform: translate3d(0, 0, 0) scale(1.045);
+    filter: grayscale(0) contrast(1.08);
+  }
+
+  .mm-btn-editorial {
     position: relative;
     overflow: hidden;
+    isolation: isolate;
   }
-  .btn-editorial::before {
+
+  .mm-btn-editorial::before {
     content: "";
     position: absolute;
-    top: 0; left: -100%; width: 100%; height: 100%;
-    background: #8a3a2b; /* Đỏ gạch GUA */
-    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    z-index: 0;
+    inset: 0;
+    background: #5f3b1e;
+    transform: translateX(-102%);
+    transition: transform 380ms cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: -1;
   }
-  .btn-editorial:hover::before {
-    transform: translateX(100%);
+
+  .mm-btn-editorial:hover::before {
+    transform: translateX(0);
   }
-  .btn-editorial span {
-    position: relative;
-    z-index: 1;
+
+  @media (prefers-reduced-motion: reduce) {
+    .mm-newsletter-image img,
+    .mm-btn-editorial::before {
+      transition: none !important;
+      transform: none !important;
+    }
   }
 </style>
 
-<section class="relative w-full py-16 md:py-24 bg-[#faf8f5] overflow-hidden">
-  <div class="max-w-[1400px] mx-auto px-5 lg:px-[5vw]">
-    
-    <div class="border border-[#0e0e0e] grid grid-cols-1 lg:grid-cols-12 reveal relative">
-      
-      <div class="absolute -top-1.5 -left-1.5 text-[#0e0e0e] text-[10px] leading-none">+</div>
-      <div class="absolute -top-1.5 -right-1.5 text-[#0e0e0e] text-[10px] leading-none">+</div>
-      <div class="absolute -bottom-1.5 -left-1.5 text-[#0e0e0e] text-[10px] leading-none">+</div>
-      <div class="absolute -bottom-1.5 -right-1.5 text-[#0e0e0e] text-[10px] leading-none">+</div>
+<section class="relative w-full bg-[#fbf7f1] px-4 py-14 sm:px-5 md:py-24 lg:px-[5vw] overflow-hidden">
+  <div class="mx-auto max-w-[1400px]">
+    <div class="mm-newsletter-card relative grid grid-cols-1 overflow-hidden border border-[#241207] bg-white shadow-[0_28px_80px_-56px_rgba(36,18,7,0.65)] lg:grid-cols-12">
 
-      <div class="lg:col-span-5 border-b lg:border-b-0 lg:border-r border-[#0e0e0e] relative h-[40vh] lg:h-auto overflow-hidden group">
-        <img src="https://i.pinimg.com/736x/1c/e7/b8/1ce7b86a624def6642941e8263793c09.jpg" 
-             alt="GUA Maison Newsletter" 
-             class="absolute inset-0 w-full h-full object-cover object-center filter grayscale contrast-125 transition-transform duration-[2s] group-hover:scale-110">
-        
-        <div class="absolute top-4 left-4 border border-white/40 bg-black/20 backdrop-blur-md px-3 py-1.5">
-          <span class="text-white text-[9px] font-bold uppercase tracking-[0.2em]">Vol. 2026</span>
+      <span class="pointer-events-none absolute -left-1.5 -top-1.5 z-20 text-[10px] leading-none text-[#241207]">+</span>
+      <span class="pointer-events-none absolute -right-1.5 -top-1.5 z-20 text-[10px] leading-none text-[#241207]">+</span>
+      <span class="pointer-events-none absolute -bottom-1.5 -left-1.5 z-20 text-[10px] leading-none text-[#241207]">+</span>
+      <span class="pointer-events-none absolute -bottom-1.5 -right-1.5 z-20 text-[10px] leading-none text-[#241207]">+</span>
+
+      <div class="mm-newsletter-image relative min-h-[360px] overflow-hidden border-b border-[#241207] bg-neutral-200 lg:col-span-5 lg:min-h-[680px] lg:border-b-0 lg:border-r">
+        <img
+          src="https://i.pinimg.com/736x/1c/e7/b8/1ce7b86a624def6642941e8263793c09.jpg"
+          alt="MMESTLINE Newsletter"
+          width="736"
+          height="1104"
+          loading="lazy"
+          decoding="async"
+          class="absolute inset-0 h-full w-full object-cover object-center grayscale contrast-125"
+        >
+
+        <div class="absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent"></div>
+
+        <div class="absolute left-4 top-4 border border-white/45 bg-black/25 px-3 py-1.5 backdrop-blur-md">
+          <span class="text-[9px] font-black uppercase tracking-[0.24em] text-white">
+            Vol. 2026
+          </span>
+        </div>
+
+        <div class="absolute bottom-5 left-5 right-5 text-white">
+          <p class="text-[10px] font-black uppercase tracking-[0.28em] text-white/75">
+            MMESTLINE Society
+          </p>
+          <p class="mt-2 max-w-xs text-xs font-medium leading-6 text-white/85">
+            Early access, private events and limited editorial releases.
+          </p>
         </div>
       </div>
 
-      <div class="lg:col-span-7 bg-[#DCDCDC] p-8 md:p-14 lg:p-20 flex flex-col justify-center relative">
-        
-        <div class="flex items-center gap-4 mb-8">
-          <div class="h-[1px] bg-[#0e0e0e] w-12"></div>
-          <p class="text-[10px] font-bold uppercase tracking-[0.3em] text-[#0e0e0e]">
-            The GUA Society
+      <div class="relative flex flex-col justify-center bg-[#e7e1d8] p-7 sm:p-9 md:p-14 lg:col-span-7 lg:p-20">
+        <div class="mb-7 flex items-center gap-4">
+          <div class="h-px w-12 bg-[#241207]"></div>
+          <p class="text-[10px] font-black uppercase tracking-[0.32em] text-[#241207]">
+            The MMESTLINE Society
           </p>
         </div>
 
-        <h2 class="editorial-title text-5xl md:text-7xl lg:text-[5.5rem] text-[#0e0e0e] mb-6 leading-[0.9] tracking-tighter uppercase">
-          Join The <br><em class="text-[#8a3a2b] font-light lowercase tracking-normal">Culture</em>
+        <h2 class="mm-editorial-title mb-6 text-5xl font-black uppercase leading-[0.9] tracking-[-0.06em] text-[#241207] sm:text-6xl md:text-7xl lg:text-[5.5rem]">
+          Join The
+          <br>
+          <em class="font-black not-italic tracking-[-0.06em] text-[#5f3b1e]">
+            Culture
+          </em>
         </h2>
 
-        <p class="text-[13px] md:text-[15px] text-[#444] mb-12 leading-relaxed max-w-md font-medium">
-          Trở thành một phần của GUA Maison. Nhận đặc quyền truy cập sớm vào các bộ sưu tập giới hạn, sự kiện private và nghệ thuật chế tác Haute Couture.
+        <p class="mb-10 max-w-xl text-[13px] font-semibold leading-7 text-[#5f5047] md:mb-12 md:text-[15px]">
+          Trở thành một phần của MMESTLINE. Nhận quyền truy cập sớm vào bộ sưu tập giới hạn,
+          ưu đãi riêng, sự kiện private và các câu chuyện thời trang được tuyển chọn.
         </p>
 
-        <form class="w-full max-w-lg relative z-10 flex flex-col sm:flex-row border border-[#0e0e0e] bg-[#faf8f5] p-1">
-          <input type="email" placeholder="Nhập địa chỉ Email..." required
-            class="flex-1 bg-transparent border-none px-5 py-4 text-[13px] font-bold text-[#0e0e0e] focus:outline-none focus:ring-0 placeholder:text-[#8a8580] placeholder:font-normal">
-          
-          <button type="submit"
-            class="btn-editorial shrink-0 bg-[#0e0e0e] text-white px-8 py-4 sm:py-0 text-[11px] font-bold uppercase tracking-[0.2em] transition-colors flex items-center justify-center border-t sm:border-t-0 sm:border-l border-[#0e0e0e]">
-            <span>Đăng Ký</span>
+        <form
+          method="POST"
+          action="#"
+          class="relative z-10 flex w-full max-w-xl flex-col border border-[#241207] bg-[#fffaf5] p-1 sm:flex-row"
+        >
+          {% if csrf_token is defined %}
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          {% endif %}
+
+          <label for="newsletterEmail" class="sr-only">Email đăng ký nhận tin</label>
+
+          <input
+            id="newsletterEmail"
+            type="email"
+            name="email"
+            placeholder="Nhập địa chỉ email..."
+            required
+            autocomplete="email"
+            class="min-h-[54px] flex-1 border-0 bg-transparent px-5 py-4 text-[13px] font-bold text-[#241207] outline-none placeholder:font-medium placeholder:text-[#8a8580] focus:ring-0"
+          >
+
+          <button
+            type="submit"
+            class="mm-btn-editorial min-h-[54px] shrink-0 border-t border-[#241207] bg-[#241207] px-8 py-4 text-[11px] font-black uppercase tracking-[0.22em] text-white transition-colors sm:border-l sm:border-t-0"
+          >
+            <span class="relative z-10">Đăng ký</span>
           </button>
         </form>
 
-        <div class="mt-8 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-[9px] text-[#8a8580] uppercase tracking-[0.2em]">
-          <p>* Dành cho khách hàng VIP</p>
-          <div class="hidden sm:block w-1 h-1 rounded-full bg-[#8a8580]"></div>
+        <div class="mt-7 flex flex-col gap-2 text-[9px] uppercase tracking-[0.22em] text-[#8a8580] sm:flex-row sm:items-center sm:gap-6">
+          <p>* Dành cho khách hàng thân thiết</p>
+
+          <div class="hidden h-1 w-1 rounded-full bg-[#8a8580] sm:block"></div>
+
           <p>
-            <a href="#" class="text-[#0e0e0e] hover:text-[#8a3a2b] underline decoration-[#8a8580] underline-offset-4 transition-colors">Điều khoản</a> &amp; 
-            <a href="#" class="text-[#0e0e0e] hover:text-[#8a3a2b] underline decoration-[#8a8580] underline-offset-4 transition-colors">Bảo mật</a>
+            <a href="#" class="text-[#241207] underline decoration-[#8a8580] underline-offset-4 transition-colors hover:text-[#5f3b1e]">
+              Điều khoản
+            </a>
+            &amp;
+            <a href="#" class="text-[#241207] underline decoration-[#8a8580] underline-offset-4 transition-colors hover:text-[#5f3b1e]">
+              Bảo mật
+            </a>
           </p>
         </div>
-        
       </div>
     </div>
-
   </div>
 </section>

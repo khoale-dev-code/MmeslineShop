@@ -1,288 +1,734 @@
 {% extends "base.html" %}
-{% block title %}Liên hệ | GUA Maison{% endblock %}
+
+{% block title %}Liên hệ | MMESTLINE{% endblock %}
 
 {% block extra_head %}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
+/>
+
 <style>
-  :root {
-    --display: 'Cormorant Garamond', 'Cormorant', serif;
-    --body: 'DM Sans', sans-serif;
-    --ink: #0e0e0e;
-    --dust: #f5f2ee;
-    --warm: #8a3a2b; /* Đỏ gạch sang trọng đồng bộ với About Us */
-    --muted: #8a8580;
-    --line: rgba(14,14,14,0.12);
+  .mm-contact {
+    --ink: #111111;
+    --soft: #faf8f5;
+    --cream: #f3eee7;
+    --brown: #3b2414;
+    --muted: #6f6a65;
+    --line: rgba(17, 17, 17, 0.12);
+    background: var(--soft);
+    color: var(--ink);
+    overflow-x: hidden;
   }
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #faf8f5; color: var(--ink); font-family: var(--body); overflow-x: hidden; }
 
-  /* ── ANIMATIONS ── */
-  @keyframes fadeUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: none; } }
-  .reveal { animation: fadeUp 1s cubic-bezier(0.16, 1, 0.3, 1) both; }
-  .d-1 { animation-delay: 0.1s; } .d-2 { animation-delay: 0.25s; } .d-3 { animation-delay: 0.4s; }
+  .mm-contact-container {
+    width: min(100% - 32px, 1440px);
+    margin: 0 auto;
+  }
 
-  /* ── LAYOUT CHÍNH ── */
-  .section { max-width: 1400px; margin: 0 auto; padding: 0 5vw; }
+  .mm-contact-kicker {
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
 
-  /* ── HERO HEADER ── */
-  .hero-head { padding: 140px 0 80px; }
-  .eyebrow {
-    display: flex; align-items: center; gap: 16px;
-    font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--muted);
+  .mm-contact-title {
+    font-family: "DM Sans", system-ui, sans-serif;
+    font-size: clamp(48px, 10vw, 118px);
+    line-height: 0.9;
+    letter-spacing: -0.075em;
+    font-weight: 950;
+    text-transform: uppercase;
   }
-  .eyebrow::before { content: ''; width: 40px; height: 1px; background: var(--warm); flex-shrink: 0; }
-  .page-title {
-    font-family: var(--display); font-weight: 400;
-    font-size: clamp(50px, 9vw, 120px); line-height: 0.9;
-    letter-spacing: -0.02em; margin-top: 32px; text-transform: uppercase;
-  }
-  .page-title em { font-style: italic; color: var(--warm); text-transform: none; }
 
-  /* ── MAIN GRID (FORM + MAP) ── */
-  .contact-grid {
-    display: grid; grid-template-columns: 10fr 12fr;
-    gap: 8vw; margin-bottom: 120px; align-items: stretch;
+  .mm-contact-title em {
+    font-style: normal;
+    color: var(--brown);
   }
-  @media(max-width: 960px){ .contact-grid { grid-template-columns: 1fr; gap: 60px; } }
 
-  /* ── FORM PANEL ── */
-  .form-panel { display: flex; flex-direction: column; justify-content: center; }
-  .form-title {
-    font-family: var(--display); font-size: clamp(32px, 4vw, 48px);
-    font-style: italic; font-weight: 400; margin-bottom: 16px;
+  .mm-contact-copy {
+    color: #4b4642;
+    font-size: 14px;
+    line-height: 1.85;
+    font-weight: 650;
   }
-  .form-subtitle { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 48px; font-weight: 300; }
-  
-  .field { position: relative; margin-bottom: 40px; }
-  .field label { 
-    display: block; font-size: 10px; letter-spacing: 0.2em; 
-    text-transform: uppercase; color: var(--muted); margin-bottom: 8px; font-weight: 500;
+
+  .mm-contact-reveal {
+    opacity: 0.001;
+    transform: translateY(42px);
+    transition:
+      opacity 850ms cubic-bezier(0.16, 1, 0.3, 1),
+      transform 850ms cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform;
   }
-  .field input, .field textarea, .field select {
-    background: transparent; border: none; border-bottom: 1px solid var(--line);
-    font-family: var(--body); font-size: 15px; font-weight: 400;
-    color: var(--ink); padding: 8px 0 12px; outline: none; width: 100%; resize: none;
-    transition: border-color 0.4s ease;
-    -webkit-appearance: none; appearance: none;
+
+  .mm-contact-reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .mm-contact-slide-left {
+    transform: translateX(-52px);
+  }
+
+  .mm-contact-slide-right {
+    transform: translateX(52px);
+  }
+
+  .mm-contact-slide-left.is-visible,
+  .mm-contact-slide-right.is-visible {
+    transform: translateX(0);
+  }
+
+  .mm-contact-grid-bg {
+    background-image:
+      linear-gradient(to right, rgba(17,17,17,.07) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(17,17,17,.07) 1px, transparent 1px);
+    background-size: 72px 72px;
+  }
+
+  .mm-contact-card {
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.76);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 24px 70px -56px rgba(17, 17, 17, 0.42);
+  }
+
+  .mm-contact-field {
+    position: relative;
+  }
+
+  .mm-contact-field label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+
+  .mm-contact-field input,
+  .mm-contact-field textarea,
+  .mm-contact-field select {
+    width: 100%;
+    min-height: 50px;
+    border: 0;
+    border-bottom: 1px solid var(--line);
     border-radius: 0;
+    background: transparent;
+    color: var(--ink);
+    outline: 0;
+    padding: 8px 0 13px;
+    font-size: 14px;
+    font-weight: 750;
+    transition: border-color 180ms ease;
+    appearance: none;
   }
-  .field input::placeholder, .field textarea::placeholder { color: #c4c1bc; font-weight: 300; }
-  .field input:focus, .field textarea:focus, .field select:focus { border-bottom-color: var(--warm); }
-  
-  /* Custom Select Arrow */
-  .field select { 
-    cursor: pointer; 
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%238a8580' stroke-width='1.5'%3E%3Cpath d='M1 1l5 5 5-5'/%3E%3C/svg%3E"); 
-    background-repeat: no-repeat; background-position: right 4px center; padding-right: 24px; 
-  }
-  
-  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
-  @media(max-width: 560px){ .field-row { grid-template-columns: 1fr; gap: 0; } }
 
-  .submit-btn {
-    margin-top: 24px; display: inline-flex; align-items: center; justify-content: center; gap: 16px;
-    background: var(--ink); color: #fff;
-    font-family: var(--body); font-size: 11px; font-weight: 500;
-    letter-spacing: 0.2em; text-transform: uppercase;
-    padding: 20px 40px; border: 1px solid var(--ink); cursor: pointer;
-    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  .mm-contact-field textarea {
+    min-height: 132px;
+    resize: vertical;
   }
-  .submit-btn:hover { background: transparent; color: var(--ink); gap: 24px; }
-  .submit-btn svg { width: 14px; height: 14px; transition: transform 0.4s; }
-  .submit-btn:hover svg { transform: translateX(4px); }
 
-  /* ── MAP PANEL (CINEMATIC) ── */
-  .map-wrapper { position: relative; width: 100%; min-height: 600px; height: 100%; overflow: hidden; }
-  #gua-map { width: 100%; height: 100%; position: absolute; inset: 0; filter: grayscale(20%) contrast(1.1); }
-  
-  /* Map Custom Overrides */
-  .leaflet-container { background: #e8e3dc !important; font-family: var(--body); }
-  .leaflet-control-zoom a { background: #faf8f5 !important; color: var(--ink) !important; border: 1px solid var(--line) !important; }
-  .leaflet-control-zoom a:hover { background: var(--dust) !important; }
-  .leaflet-control-attribution { display: none; }
-  
-  /* Custom Marker Pulse */
-  .gua-marker-container { position: relative; display: flex; align-items: center; justify-content: center; }
-  .gua-marker-pulse {
-    position: absolute; width: 30px; height: 30px; background: var(--warm);
-    border-radius: 50%; opacity: 0.4; animation: pulse 2s infinite ease-out;
+  .mm-contact-field input::placeholder,
+  .mm-contact-field textarea::placeholder {
+    color: #aaa29b;
+    font-weight: 550;
   }
-  .gua-marker-dot {
-    position: relative; width: 12px; height: 12px; background: var(--warm);
-    border: 2px solid #fff; border-radius: 50%; z-index: 2;
+
+  .mm-contact-field input:focus,
+  .mm-contact-field textarea:focus,
+  .mm-contact-field select:focus {
+    border-bottom-color: var(--brown);
   }
-  @keyframes pulse { 0% { transform: scale(0.5); opacity: 0.6; } 100% { transform: scale(2.5); opacity: 0; } }
-  
-  /* Leaflet Popup Editorial Style */
+
+  .mm-contact-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' fill='none' stroke='%236f6a65' stroke-width='1.8'%3E%3Cpath d='M1 1l6 6 6-6'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 8px center !important;
+    padding-right: 32px !important;
+  }
+
+  .mm-contact-btn {
+    min-height: 54px;
+    padding: 0 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 13px;
+    border: 1px solid #111;
+    background: #111;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 950;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    transition:
+      transform 180ms ease,
+      background 180ms ease,
+      color 180ms ease,
+      gap 180ms ease;
+  }
+
+  .mm-contact-btn:hover {
+    transform: translateY(-2px);
+    background: var(--brown);
+    gap: 18px;
+  }
+
+  .mm-contact-map-card {
+    position: relative;
+    min-height: 580px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    background: #e9e3dc;
+  }
+
+  #mmContactMap {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    filter: grayscale(18%) contrast(1.04);
+    z-index: 1;
+  }
+
+  .mm-map-panel {
+    position: absolute;
+    left: 20px;
+    right: 20px;
+    bottom: 20px;
+    z-index: 5;
+    background: rgba(17, 17, 17, 0.88);
+    color: #fff;
+    padding: 20px;
+    backdrop-filter: blur(14px);
+  }
+
+  .mm-map-panel h3 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 950;
+    letter-spacing: -0.04em;
+    text-transform: uppercase;
+  }
+
+  .mm-map-panel p {
+    margin: 8px 0 0;
+    color: rgba(255,255,255,.72);
+    font-size: 12px;
+    line-height: 1.7;
+    font-weight: 650;
+  }
+
+  .mm-map-panel a {
+    margin-top: 16px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    border-bottom: 1px solid rgba(255,255,255,.35);
+    padding-bottom: 5px;
+  }
+
+  .mm-marker-container {
+    position: relative;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mm-marker-pulse {
+    position: absolute;
+    width: 34px;
+    height: 34px;
+    background: var(--brown);
+    border-radius: 999px;
+    opacity: 0.4;
+    animation: mmMarkerPulse 2s infinite ease-out;
+  }
+
+  .mm-marker-dot {
+    position: relative;
+    width: 13px;
+    height: 13px;
+    border: 2px solid #fff;
+    border-radius: 999px;
+    background: var(--brown);
+    z-index: 2;
+  }
+
+  @keyframes mmMarkerPulse {
+    0% {
+      transform: scale(0.5);
+      opacity: 0.55;
+    }
+
+    100% {
+      transform: scale(2.8);
+      opacity: 0;
+    }
+  }
+
+  .leaflet-container {
+    background: #e8e3dc !important;
+    font-family: "DM Sans", system-ui, sans-serif;
+  }
+
+  .leaflet-control-zoom a {
+    background: #fffaf5 !important;
+    color: #111 !important;
+    border: 1px solid rgba(17,17,17,.12) !important;
+  }
+
+  .leaflet-control-attribution {
+    display: none;
+  }
+
   .leaflet-popup-content-wrapper {
-    background: var(--ink) !important; border-radius: 0 !important;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.2) !important; border: none !important;
+    background: #111 !important;
+    color: #fff !important;
+    border-radius: 0 !important;
+    box-shadow: 0 22px 50px rgba(0,0,0,.24) !important;
   }
-  .leaflet-popup-content { margin: 24px 32px !important; }
-  .leaflet-popup-tip { background: var(--ink) !important; }
-  .leaflet-popup-close-button { color: var(--muted) !important; font-size: 20px !important; top: 12px !important; right: 12px !important; }
 
-  /* ── INFO STRIP ── */
-  .info-strip {
-    display: grid; grid-template-columns: repeat(3, 1fr);
-    background: var(--line); gap: 1px;
+  .leaflet-popup-content {
+    margin: 22px 28px !important;
   }
-  @media(max-width: 900px){ .info-strip { grid-template-columns: 1fr; } }
-  .info-cell {
-    background: var(--ink); padding: 80px 48px;
-    display: flex; flex-direction: column; gap: 12px; text-align: center;
-    transition: background 0.4s;
-  }
-  .info-cell:hover { background: #161616; }
-  .info-cell-label { font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--warm); }
-  .info-cell-val { font-family: var(--display); font-size: 28px; font-weight: 400; color: #fff; font-style: italic; }
-  .info-cell-val a { color: #fff; text-decoration: none; transition: color 0.3s; }
-  .info-cell-val a:hover { color: var(--warm); }
-  .info-cell-sub { font-size: 13px; color: var(--muted); margin-top: 4px; font-weight: 300; }
-  .info-cell-sub a { color: var(--muted); text-decoration: none; transition: color 0.3s; }
-  .info-cell-sub a:hover { color: #fff; }
 
+  .leaflet-popup-tip {
+    background: #111 !important;
+  }
+
+  .mm-info-cell {
+    border-top: 1px solid rgba(255,255,255,.14);
+    padding-top: 28px;
+  }
+
+  .mm-info-label {
+    color: #a98a78;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+  }
+
+  .mm-info-value {
+    margin-top: 16px;
+    color: #fff;
+    font-size: clamp(22px, 3vw, 34px);
+    font-weight: 950;
+    letter-spacing: -0.04em;
+    line-height: 1.05;
+  }
+
+  .mm-info-sub {
+    margin-top: 12px;
+    color: rgba(255,255,255,.58);
+    font-size: 13px;
+    line-height: 1.7;
+    font-weight: 600;
+  }
+
+  .mm-contact-toast {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    z-index: 9999;
+    transform: translateX(-50%) translateY(14px);
+    opacity: 0;
+    pointer-events: none;
+    background: #111;
+    color: #fff;
+    padding: 14px 18px;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    transition: opacity 220ms ease, transform 220ms ease;
+    white-space: nowrap;
+  }
+
+  .mm-contact-toast.is-visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  @media (max-width: 1023px) {
+    .mm-contact-map-card {
+      min-height: 480px;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .mm-contact-container {
+      width: min(100% - 24px, 1440px);
+    }
+
+    .mm-contact-map-card {
+      min-height: 420px;
+    }
+
+    .mm-map-panel {
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      padding: 16px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mm-contact-reveal,
+    .mm-contact-slide-left,
+    .mm-contact-slide-right,
+    .mm-contact-btn,
+    .mm-marker-pulse {
+      opacity: 1 !important;
+      transform: none !important;
+      transition: none !important;
+      animation: none !important;
+    }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
+<main class="mm-contact">
 
-<section class="section hero-head">
-  <div class="reveal d-1">
-    <p class="eyebrow">Kết nối với GUA Maison</p>
-  </div>
-  <h1 class="page-title reveal d-2">Chúng tôi<br>luôn <em>lắng nghe</em></h1>
-</section>
+  <section class="relative overflow-hidden bg-[#faf8f5] mm-contact-grid-bg">
+    <div class="mm-contact-container min-h-[calc(78vh-var(--header-h,115px)-var(--topbar-h,0px))] pt-16 md:pt-24 pb-14 md:pb-20 flex items-end">
+      <div class="max-w-5xl">
+        <p class="mm-contact-kicker mm-contact-reveal">
+          Contact MMESTLINE
+        </p>
 
-<div class="section reveal d-3">
+        <h1 class="mm-contact-title mt-6 mm-contact-reveal">
+          Chúng tôi<br>
+          luôn <em>lắng nghe</em>
+        </h1>
 
-  <div class="contact-grid">
-
-    <div class="form-panel">
-      <h2 class="form-title">Để lại lời nhắn</h2>
-      <p class="form-subtitle">Chúng tôi trân trọng từng chia sẻ của bạn. Đội ngũ GUA Maison sẽ phản hồi trong thời gian sớm nhất.</p>
-      
-      <form action="#" method="POST">
-        <div class="field-row">
-          <div class="field">
-            <label for="name">Họ và tên</label>
-            <input type="text" id="name" name="name" placeholder="Ví dụ: Nguyễn Văn A" required>
-          </div>
-          <div class="field">
-            <label for="email">Email</label>
-            <input type="email" id="email" name="email" placeholder="example@email.com" required>
-          </div>
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label for="phone">Số điện thoại</label>
-            <input type="tel" id="phone" name="phone" placeholder="+84 90x xxx xxx">
-          </div>
-          <div class="field">
-            <label for="service">Dịch vụ quan tâm</label>
-            <select id="service" name="service">
-              <option value="">Lựa chọn chủ đề...</option>
-              <option>Tư vấn bộ sưu tập</option>
-              <option>May đo Bespoke</option>
-              <option>Tham quan Atelier</option>
-              <option>Hợp tác thương mại</option>
-              <option>Khác</option>
-            </select>
-          </div>
-        </div>
-        <div class="field">
-          <label for="msg">Thông điệp của bạn</label>
-          <textarea id="msg" name="message" rows="4" placeholder="Viết những gì bạn muốn chia sẻ với chúng tôi..."></textarea>
-        </div>
-        <button type="submit" class="submit-btn">
-          Gửi thông điệp
-          <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3"/></svg>
-        </button>
-      </form>
+        <p class="mt-7 max-w-2xl mm-contact-copy mm-contact-reveal">
+          Cần tư vấn sản phẩm, hỗ trợ đơn hàng, hợp tác thương mại hoặc muốn gửi góp ý cho MMESTLINE?
+          Hãy để lại lời nhắn, đội ngũ của chúng tôi sẽ phản hồi sớm nhất có thể.
+        </p>
+      </div>
     </div>
+  </section>
 
-    <div class="map-wrapper">
-      <div id="gua-map"></div>
+  <section class="py-10 md:py-20 bg-[#faf8f5]">
+    <div class="mm-contact-container grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-stretch">
+
+      <div class="lg:col-span-5 mm-contact-card p-6 sm:p-8 md:p-10 mm-contact-reveal mm-contact-slide-left">
+        <div>
+          <p class="mm-contact-kicker">Message</p>
+
+          <h2 class="mt-4 text-3xl md:text-5xl font-black uppercase tracking-[-0.06em] leading-[0.95]">
+            Để lại<br>
+            lời nhắn
+          </h2>
+
+          <p class="mt-5 mm-contact-copy">
+            Điền thông tin bên dưới. MMESTLINE sẽ liên hệ lại qua email hoặc số điện thoại bạn cung cấp.
+          </p>
+        </div>
+
+        <form
+          id="mmContactForm"
+          action="#"
+          method="POST"
+          class="mt-9 grid grid-cols-1 gap-8"
+        >
+          {% if csrf_token is defined %}
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          {% endif %}
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-7">
+            <div class="mm-contact-field">
+              <label for="contactName">Họ và tên</label>
+              <input
+                type="text"
+                id="contactName"
+                name="name"
+                placeholder="Nguyễn Văn A"
+                required
+                autocomplete="name"
+              >
+            </div>
+
+            <div class="mm-contact-field">
+              <label for="contactEmail">Email</label>
+              <input
+                type="email"
+                id="contactEmail"
+                name="email"
+                placeholder="example@email.com"
+                required
+                autocomplete="email"
+              >
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-7">
+            <div class="mm-contact-field">
+              <label for="contactPhone">Số điện thoại</label>
+              <input
+                type="tel"
+                id="contactPhone"
+                name="phone"
+                placeholder="+84 90x xxx xxx"
+                autocomplete="tel"
+              >
+            </div>
+
+            <div class="mm-contact-field">
+              <label for="contactTopic">Chủ đề</label>
+              <select
+                id="contactTopic"
+                name="topic"
+                class="mm-contact-select"
+              >
+                <option value="">Chọn chủ đề...</option>
+                <option>Hỗ trợ đơn hàng</option>
+                <option>Tư vấn sản phẩm</option>
+                <option>Đổi trả / bảo hành</option>
+                <option>Hợp tác thương mại</option>
+                <option>Góp ý thương hiệu</option>
+                <option>Khác</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="mm-contact-field">
+            <label for="contactMessage">Thông điệp</label>
+            <textarea
+              id="contactMessage"
+              name="message"
+              rows="5"
+              placeholder="Viết điều bạn muốn chia sẻ với MMESTLINE..."
+              required
+            ></textarea>
+          </div>
+
+          <button type="submit" class="mm-contact-btn w-full sm:w-max">
+            Gửi thông điệp
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </form>
+      </div>
+
+      <div class="lg:col-span-7 mm-contact-reveal mm-contact-slide-right">
+        <div class="mm-contact-map-card">
+          <div id="mmContactMap"></div>
+
+          <div class="mm-map-panel">
+            <h3>MMESTLINE Studio</h3>
+            <p>
+              15 Lê Lợi, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh
+            </p>
+            <a
+              href="https://maps.google.com/?q=10.7739,106.7025"
+              target="_blank"
+              rel="noopener"
+            >
+              Chỉ đường
+              <i class="fa-solid fa-arrow-up-right-from-square"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+
     </div>
+  </section>
 
-  </div>
-</div>
+  <section class="bg-[#111] text-white py-14 md:py-20">
+    <div class="mm-contact-container grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-12">
+      <div class="mm-info-cell mm-contact-reveal">
+        <p class="mm-info-label">Địa chỉ</p>
+        <h3 class="mm-info-value">15 Lê Lợi</h3>
+        <p class="mm-info-sub">
+          Phường Bến Nghé, Quận 1<br>
+          TP. Hồ Chí Minh, Việt Nam
+        </p>
+      </div>
 
-<div class="info-strip reveal d-3">
-  <div class="info-cell">
-    <span class="info-cell-label">Địa chỉ Atelier</span>
-    <span class="info-cell-val">15 Lê Lợi</span>
-    <span class="info-cell-sub">Phường Bến Nghé, Quận 1<br>TP. Hồ Chí Minh, Việt Nam</span>
+      <div class="mm-info-cell mm-contact-reveal">
+        <p class="mm-info-label">Liên hệ</p>
+        <h3 class="mm-info-value">
+          <a href="mailto:hello@mmestline.com">hello@mmestline.com</a>
+        </h3>
+        <p class="mm-info-sub">
+          <a href="tel:+84901234567">Hotline: +84 90 123 4567</a>
+        </p>
+      </div>
+
+      <div class="mm-info-cell mm-contact-reveal">
+        <p class="mm-info-label">Thời gian</p>
+        <h3 class="mm-info-value">09:00 – 21:00</h3>
+        <p class="mm-info-sub">
+          Thứ Hai – Chủ Nhật<br>
+          Hỗ trợ online mỗi ngày
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-[#faf8f5] py-14 md:py-20">
+    <div class="mm-contact-container grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+      <div class="lg:col-span-7 mm-contact-reveal">
+        <p class="mm-contact-kicker">Customer Care</p>
+
+        <h2 class="mt-4 text-4xl md:text-6xl font-black uppercase tracking-[-0.06em] leading-[0.92]">
+          Cần hỗ trợ<br>
+          nhanh hơn?
+        </h2>
+      </div>
+
+      <div class="lg:col-span-5 mm-contact-reveal">
+        <p class="mm-contact-copy">
+          Với câu hỏi về đơn hàng, đổi trả hoặc tư vấn size, bạn có thể liên hệ trực tiếp qua hotline
+          để được hỗ trợ nhanh. Với yêu cầu hợp tác, vui lòng gửi email kèm thông tin thương hiệu/dự án.
+        </p>
+
+        <div class="mt-8 flex flex-col sm:flex-row gap-3">
+          <a href="tel:+84901234567" class="mm-contact-btn">
+            Gọi ngay
+          </a>
+
+          <a href="mailto:hello@mmestline.com" class="mm-contact-btn bg-transparent text-black hover:text-white">
+            Gửi email
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="mmContactToast" class="mm-contact-toast">
+    Đã nhận thông tin của bạn
   </div>
-  <div class="info-cell">
-    <span class="info-cell-label">Liên hệ trực tiếp</span>
-    <span class="info-cell-val">
-      <a href="mailto:atelier@guamaison.com">atelier@guamaison</a>
-    </span>
-    <span class="info-cell-sub">
-      <a href="tel:+84901234567">Hotline: +84 90 123 4567</a>
-    </span>
-  </div>
-  <div class="info-cell">
-    <span class="info-cell-label">Giờ phục vụ</span>
-    <span class="info-cell-val">09:00 – 21:00</span>
-    <span class="info-cell-sub">Mở cửa từ Thứ Hai – Chủ Nhật<br>Bao gồm cả các ngày lễ</span>
-  </div>
-</div>
+
+</main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-  /* Khởi tạo Leaflet Map */
-  const LAT = 10.7739, LNG = 106.7025;
-  const map = L.map('gua-map', {
-    center: [LAT, LNG], zoom: 15,
-    zoomControl: true, scrollWheelZoom: false,
-    attributionControl: false
-  });
+(function () {
+  "use strict";
 
-  // Sử dụng bản đồ sáng của CartoDB để hợp với tone màu Dust
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    maxZoom: 19
-  }).addTo(map);
+  const LAT = 10.7739;
+  const LNG = 106.7025;
 
-  // Custom icon với hiệu ứng toả nhiệt (Pulse)
-  const icon = L.divIcon({
-    className: 'gua-marker-container', 
-    iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -15],
-    html: '<div class="gua-marker-pulse"></div><div class="gua-marker-dot"></div>'
-  });
+  function initReveal() {
+    const items = document.querySelectorAll(".mm-contact-reveal");
 
-  L.marker([LAT, LNG], {icon})
-    .addTo(map)
-    .bindPopup(`
-      <div style="color:#fff; min-width: 200px; text-align: center;">
-        <p style="font-family:'Cormorant Garamond',serif;font-style:italic;font-size:24px;margin-bottom:8px;color:#8a3a2b;line-height:1;">GUA Atelier</p>
-        <p style="font-size:13px;line-height:1.6;color:rgba(255,255,255,.7);font-weight:300;">15 Lê Lợi, Bến Nghé<br>Quận 1 · TP. HCM</p>
-        <a href="https://maps.google.com/?q=${LAT},${LNG}" target="_blank"
-           style="display:inline-block;margin-top:20px;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;text-decoration:none;border-bottom:1px solid rgba(255,255,255,.3);padding-bottom:4px;transition:all 0.3s;">
-          Chỉ đường trên Google Maps
-        </a>
-      </div>
-    `, {maxWidth: 280})
-    .openPopup();
+    if (!("IntersectionObserver" in window)) {
+      items.forEach((item) => item.classList.add("is-visible"));
+      return;
+    }
 
-  /* Kích hoạt Animation khi cuộn trang */
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.style.animationPlayState = 'running';
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add("is-visible");
         observer.unobserve(entry.target);
-      }
+      });
+    }, {
+      root: null,
+      rootMargin: "0px 0px -10% 0px",
+      threshold: 0.12
     });
-  }, { threshold: 0.1 });
 
-  document.querySelectorAll('.reveal').forEach(el => {
-    el.style.animationPlayState = 'paused';
-    observer.observe(el);
+    items.forEach((item, index) => {
+      item.style.transitionDelay = Math.min(index % 4, 3) * 70 + "ms";
+      observer.observe(item);
+    });
+  }
+
+  function initMap() {
+    const mapEl = document.getElementById("mmContactMap");
+
+    if (!mapEl || typeof L === "undefined") return;
+
+    const map = L.map("mmContactMap", {
+      center: [LAT, LNG],
+      zoom: 15,
+      zoomControl: true,
+      scrollWheelZoom: false,
+      attributionControl: false
+    });
+
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+      maxZoom: 19
+    }).addTo(map);
+
+    const icon = L.divIcon({
+      className: "mm-marker-container",
+      iconSize: [34, 34],
+      iconAnchor: [17, 17],
+      popupAnchor: [0, -18],
+      html: '<div class="mm-marker-pulse"></div><div class="mm-marker-dot"></div>'
+    });
+
+    L.marker([LAT, LNG], { icon })
+      .addTo(map)
+      .bindPopup(`
+        <div style="min-width:210px;text-align:center;color:#fff;">
+          <p style="margin:0 0 8px;font-size:20px;font-weight:950;letter-spacing:-.04em;text-transform:uppercase;color:#fff;">MMESTLINE Studio</p>
+          <p style="margin:0;color:rgba(255,255,255,.68);font-size:12px;line-height:1.6;font-weight:600;">
+            15 Lê Lợi, Bến Nghé<br>Quận 1 · TP. HCM
+          </p>
+          <a href="https://maps.google.com/?q=${LAT},${LNG}" target="_blank" rel="noopener"
+             style="display:inline-block;margin-top:16px;color:#fff;font-size:9px;font-weight:950;letter-spacing:.2em;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,.35);padding-bottom:5px;text-decoration:none;">
+            Chỉ đường
+          </a>
+        </div>
+      `, { maxWidth: 280 })
+      .openPopup();
+
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 250);
+  }
+
+  function initContactForm() {
+    const form = document.getElementById("mmContactForm");
+    const toast = document.getElementById("mmContactToast");
+
+    if (!form) return;
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+
+      if (toast) {
+        toast.classList.add("is-visible");
+        clearTimeout(toast._timer);
+        toast._timer = setTimeout(() => {
+          toast.classList.remove("is-visible");
+        }, 2400);
+      }
+
+      form.reset();
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    initReveal();
+    initMap();
+    initContactForm();
   });
-});
+})();
 </script>
 {% endblock %}

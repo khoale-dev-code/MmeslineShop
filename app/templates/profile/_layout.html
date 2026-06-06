@@ -1,121 +1,415 @@
-{# ═══════════════════════════════════════════════════════
-   GUA MAISON — PROFILE LAYOUT MACRO (dùng chung mọi trang)
-   Include: {% from 'profile/_layout.html' import profile_shell %}
-   ═══════════════════════════════════════════════════════ #}
+{#
+  app/templates/profile/_layout.html
+  ==================================
+  MMESTLINE — PROFILE LAYOUT MACRO
+  Dùng chung mọi trang tài khoản.
+
+  Include:
+  {% from 'profile/_layout.html' import profile_shell %}
+
+  Usage:
+  {{ profile_shell('map') }}
+#}
 
 {% macro profile_shell(active_page='') %}
 
-{# ── DESIGN TOKENS (CSS vars, không dùng {{ }} trong class Tailwind) ── #}
 <style>
-:root {
-  --gua-ink:      #0a0a0a;
-  --gua-paper:    #fafaf9;
-  --gua-muted:    #e8e5e0;
-  --gua-ghost:    #f2f0ed;
-  --gua-accent:   #c8a96e;   /* warm gold */
-  --gua-radius:   2px;
-  --gua-shadow:   0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.05);
-  --gua-shadow-lg:0 2px 8px rgba(0,0,0,.08), 0 16px 40px rgba(0,0,0,.08);
-}
+  :root {
+    --mm-profile-ink: #241207;
+    --mm-profile-brown: #3b2414;
+    --mm-profile-brown-2: #5f3b1e;
+    --mm-profile-caramel: #b98b62;
+    --mm-profile-muted: #8a6a52;
+    --mm-profile-line: #eadfd4;
+    --mm-profile-soft: #fffaf5;
+    --mm-profile-cream: #fbf7f1;
+    --mm-profile-card: #fffdf9;
+    --mm-profile-shadow: 0 18px 48px -42px rgba(36, 18, 7, 0.55);
+    --mm-profile-shadow-lg: 0 24px 68px -50px rgba(36, 18, 7, 0.72);
+  }
 
-/* ── Sidebar nav ── */
-.gua-nav-item {
-  display: flex; align-items: center; gap: .75rem;
-  padding: .75rem 1rem; border-radius: var(--gua-radius);
-  font-size: 10px; font-weight: 800;
-  letter-spacing: .15em; text-transform: uppercase;
-  transition: all .18s ease; border: 1px solid transparent;
-  white-space: nowrap; color: #737065;
-}
-.gua-nav-item:hover { background: var(--gua-ghost); color: var(--gua-ink); border-color: var(--gua-muted); }
-.gua-nav-item.active { background: var(--gua-ink); color: #fff; border-color: var(--gua-ink); box-shadow: 0 4px 12px rgba(0,0,0,.2); }
-.gua-nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 
-/* ── Page reveal ── */
-.gua-reveal { opacity:0; animation: guaUp .55s cubic-bezier(.16,1,.3,1) forwards; }
-.gua-d1 { animation-delay: .05s; }
-.gua-d2 { animation-delay: .12s; }
-.gua-d3 { animation-delay: .2s; }
-@keyframes guaUp { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:none; } }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 
-/* ── Card ── */
-.gua-card {
-  background:#fff; border:1px solid var(--gua-muted);
-  border-radius: var(--gua-radius); box-shadow: var(--gua-shadow);
-  transition: border-color .18s, box-shadow .18s;
-}
-.gua-card:hover { border-color: #b5b0a8; box-shadow: var(--gua-shadow-lg); }
+  .mm-profile-sidebar {
+    min-width: 0;
+  }
 
-/* ── Input ── */
-.gua-input {
-  width:100%; height:48px; padding: 0 1rem;
-  background: var(--gua-ghost); border: 1px solid var(--gua-muted);
-  border-radius: var(--gua-radius); font-size:13px; font-weight:600;
-  color: var(--gua-ink); outline:none; transition: border-color .15s, box-shadow .15s;
-}
-.gua-input:focus { background:#fff; border-color: var(--gua-ink); box-shadow: 0 0 0 3px rgba(10,10,10,.06); }
-.gua-input:disabled { opacity:.5; cursor:not-allowed; }
+  .mm-profile-nav {
+    border: 1px solid var(--mm-profile-line);
+    border-radius: 26px;
+    background:
+      radial-gradient(circle at top right, rgba(185, 139, 98, 0.12), transparent 34%),
+      rgba(255, 250, 245, 0.92);
+    box-shadow: var(--mm-profile-shadow);
+    backdrop-filter: blur(14px);
+  }
 
-/* ── Btn ── */
-.gua-btn {
-  display:inline-flex; align-items:center; justify-content:center; gap:.5rem;
-  padding: .875rem 2.5rem; background: var(--gua-ink); color:#fff;
-  font-size:10px; font-weight:800; letter-spacing:.18em; text-transform:uppercase;
-  border-radius: var(--gua-radius); border: none; cursor:pointer;
-  transition: background .15s, transform .1s, box-shadow .15s;
-  box-shadow: 0 2px 8px rgba(0,0,0,.2);
-}
-.gua-btn:hover { background:#1c1c1a; box-shadow: 0 4px 16px rgba(0,0,0,.25); }
-.gua-btn:active { transform:scale(.975); }
-.gua-btn-ghost {
-  background:#fff; color: var(--gua-ink); border: 1px solid var(--gua-muted);
-  box-shadow: var(--gua-shadow);
-}
-.gua-btn-ghost:hover { border-color: var(--gua-ink); background: var(--gua-ghost); box-shadow: var(--gua-shadow-lg); }
+  .mm-profile-nav-head {
+    border-bottom: 1px solid var(--mm-profile-line);
+    padding: 16px;
+  }
 
-/* ── Label ── */
-.gua-label { display:block; font-size:10px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; color:#4a4740; margin-bottom:.6rem; }
+  .mm-profile-nav-kicker {
+    margin: 0;
+    color: var(--mm-profile-caramel);
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
 
-/* ── Mobile scrollbar hide ── */
-.no-scrollbar::-webkit-scrollbar { display:none; }
-.no-scrollbar { -ms-overflow-style:none; scrollbar-width:none; }
+  .mm-profile-nav-title {
+    margin: 5px 0 0;
+    color: var(--mm-profile-ink);
+    font-size: 15px;
+    font-weight: 950;
+    letter-spacing: -0.03em;
+  }
 
-/* ── Responsive sidebar ── */
-@media(max-width:1023px){
-  .gua-sidebar { display:flex; flex-direction:row; overflow-x:auto; gap:.375rem; padding-bottom: .5rem; }
-}
-@media(min-width:1024px){
-  .gua-sidebar { display:flex; flex-direction:column; gap:.25rem; position:sticky; top:calc(var(--header-h,80px) + 1.5rem); }
-}
+  .mm-profile-nav-list {
+    padding: 10px;
+  }
+
+  .mm-profile-nav-item {
+    position: relative;
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid transparent;
+    border-radius: 18px;
+    padding: 0 12px;
+    color: #75543f;
+    font-size: 12px;
+    font-weight: 950;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    transition:
+      background 0.16s ease,
+      color 0.16s ease,
+      border-color 0.16s ease,
+      transform 0.16s ease,
+      box-shadow 0.16s ease;
+  }
+
+  .mm-profile-nav-item:hover {
+    background: #f4ece5;
+    color: var(--mm-profile-ink);
+    border-color: var(--mm-profile-line);
+    transform: translateY(-1px);
+  }
+
+  .mm-profile-nav-item.is-active {
+    background: var(--mm-profile-brown);
+    color: #ffffff;
+    border-color: var(--mm-profile-brown);
+    box-shadow: 0 18px 38px -30px rgba(36, 18, 7, 0.72);
+  }
+
+  .mm-profile-nav-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 15px;
+    background: #f7eee7;
+    color: var(--mm-profile-caramel);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition:
+      background 0.16s ease,
+      color 0.16s ease;
+  }
+
+  .mm-profile-nav-item:hover .mm-profile-nav-icon {
+    background: #ffffff;
+    color: var(--mm-profile-brown);
+  }
+
+  .mm-profile-nav-item.is-active .mm-profile-nav-icon {
+    background: rgba(255, 255, 255, 0.14);
+    color: #ffffff;
+  }
+
+  .mm-profile-nav-icon svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .mm-profile-nav-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mm-profile-nav-arrow {
+    margin-left: auto;
+    color: currentColor;
+    opacity: 0.45;
+    font-size: 10px;
+  }
+
+  .mm-profile-nav-item.is-active .mm-profile-nav-arrow {
+    opacity: 0.8;
+  }
+
+  .mm-profile-nav-foot {
+    border-top: 1px solid var(--mm-profile-line);
+    padding: 12px;
+  }
+
+  .mm-profile-store-link {
+    min-height: 46px;
+    border: 1px solid var(--mm-profile-line);
+    border-radius: 17px;
+    background: #fffdf9;
+    color: var(--mm-profile-brown-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    padding: 0 12px;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    transition:
+      background 0.16s ease,
+      color 0.16s ease,
+      border-color 0.16s ease;
+  }
+
+  .mm-profile-store-link:hover {
+    background: var(--mm-profile-brown);
+    color: #ffffff;
+    border-color: var(--mm-profile-brown);
+  }
+
+  /* Legacy aliases để các trang cũ vẫn không vỡ */
+  .gua-card {
+    border: 1px solid var(--mm-profile-line);
+    border-radius: 24px;
+    background: var(--mm-profile-card);
+    box-shadow: var(--mm-profile-shadow);
+  }
+
+  .gua-input {
+    width: 100%;
+    height: 52px;
+    border: 1px solid var(--mm-profile-line);
+    border-radius: 18px;
+    background: #ffffff;
+    color: var(--mm-profile-ink);
+    padding: 0 15px;
+    font-size: 14px;
+    font-weight: 750;
+    outline: none;
+    transition:
+      border-color 0.16s ease,
+      box-shadow 0.16s ease,
+      background 0.16s ease;
+  }
+
+  .gua-input:focus {
+    border-color: rgba(95, 59, 30, 0.52);
+    background: #fffdf9;
+    box-shadow: 0 0 0 4px rgba(185, 139, 98, 0.14);
+  }
+
+  .gua-btn {
+    min-height: 48px;
+    border: 0;
+    border-radius: 18px;
+    background: var(--mm-profile-brown);
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    padding: 0 18px;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition:
+      background 0.16s ease,
+      transform 0.16s ease,
+      opacity 0.16s ease;
+  }
+
+  .gua-btn:hover {
+    background: var(--mm-profile-ink);
+    transform: translateY(-1px);
+  }
+
+  .gua-btn-ghost {
+    border: 1px solid var(--mm-profile-line);
+    background: #fffdf9;
+    color: var(--mm-profile-brown-2);
+  }
+
+  .gua-btn-ghost:hover {
+    background: var(--mm-profile-brown);
+    color: #ffffff;
+  }
+
+  .gua-label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--mm-profile-brown-2);
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  .gua-reveal,
+  .gua-d1,
+  .gua-d2,
+  .gua-d3 {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+
+  @media (max-width: 1023px) {
+    .mm-profile-nav {
+      border-radius: 22px;
+      overflow: hidden;
+    }
+
+    .mm-profile-nav-head,
+    .mm-profile-nav-foot {
+      display: none;
+    }
+
+    .mm-profile-nav-list {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 10px;
+      scroll-snap-type: x proximity;
+    }
+
+    .mm-profile-nav-item {
+      flex: 0 0 auto;
+      min-height: 46px;
+      padding: 0 12px 0 9px;
+      border-radius: 16px;
+      scroll-snap-align: start;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+    }
+
+    .mm-profile-nav-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 13px;
+    }
+
+    .mm-profile-nav-icon svg {
+      width: 15px;
+      height: 15px;
+    }
+
+    .mm-profile-nav-arrow {
+      display: none;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .mm-profile-sidebar {
+      position: sticky;
+      top: calc(var(--header-h, 72px) + 24px);
+      z-index: 10;
+    }
+
+    .mm-profile-nav-list {
+      display: grid;
+      gap: 6px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mm-profile-nav-item,
+    .mm-profile-nav-icon,
+    .mm-profile-store-link,
+    .gua-input,
+    .gua-btn {
+      transition: none !important;
+    }
+  }
 </style>
 
-{# ── NAV DATA ── #}
 {% set nav_items = [
-  ('person',     'Thông tin',   '/profile/edit'),
-  ('lock',       'Bảo mật',     '/profile/change-password'),
-  ('bag',        'Đơn hàng',    '/profile/orders'),
-  ('heart',      'Bộ sưu tập',  '/profile/favorites'),
-  ('map',        'Địa chỉ',     '/profile/addresses')
+  ('person', 'Thông tin', '/profile/edit'),
+  ('lock', 'Bảo mật', '/profile/change-password'),
+  ('bag', 'Đơn hàng', '/profile/orders'),
+  ('heart', 'Yêu thích', '/profile/favorites'),
+  ('map', 'Địa chỉ', '/profile/addresses')
 ] %}
 
 {% set nav_icons = {
   'person': 'M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z',
-  'lock':   'M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z',
-  'bag':    'M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z',
-  'heart':  'M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z',
-  'map':    'M15 10.5a3 3 0 11-6 0 3 3 0 016 0zM19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z'
+  'lock': 'M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z',
+  'bag': 'M15.75 10.5V6a3.75 3.75 0 0 0-7.5 0v4.5m11.356-1.993 1.263 12A1.5 1.5 0 0 1 19.376 22H4.624a1.5 1.5 0 0 1-1.493-1.493l1.263-12A1.5 1.5 0 0 1 5.887 7.125h12.226a1.5 1.5 0 0 1 1.493 1.382ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z',
+  'heart': 'M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z',
+  'map': 'M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z'
 } %}
 
-<nav class="gua-sidebar no-scrollbar" aria-label="Tài khoản">
-  {% for key, label, href in nav_items %}
-    {% set is_active = (active_page == key) %}
-    <a href="{{ href }}" class="gua-nav-item{% if is_active %} active{% endif %}">
-      <svg fill="none" stroke="currentColor" stroke-width="{% if is_active %}2{% else %}1.75{% endif %}" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" d="{{ nav_icons[key] }}"/>
-      </svg>
-      {{ label }}
-    </a>
-  {% endfor %}
-</nav>
+<aside class="mm-profile-sidebar">
+  <nav class="mm-profile-nav" aria-label="Tài khoản MMESTLINE">
+    <div class="mm-profile-nav-head">
+      <p class="mm-profile-nav-kicker">MMESTLINE</p>
+      <p class="mm-profile-nav-title">Tài khoản của tôi</p>
+    </div>
+
+    <div class="mm-profile-nav-list no-scrollbar">
+      {% for key, label, href in nav_items %}
+        {% set is_active = active_page == key %}
+
+        <a
+          href="{{ href }}"
+          class="mm-profile-nav-item {{ 'is-active' if is_active else '' }}"
+          aria-current="{{ 'page' if is_active else 'false' }}"
+        >
+          <span class="mm-profile-nav-icon">
+            <svg
+              fill="none"
+              stroke="currentColor"
+              stroke-width="{{ 2 if is_active else 1.8 }}"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="{{ nav_icons[key] }}"></path>
+            </svg>
+          </span>
+
+          <span class="mm-profile-nav-label">
+            {{ label }}
+          </span>
+
+          <i class="fa-solid fa-chevron-right mm-profile-nav-arrow"></i>
+        </a>
+      {% endfor %}
+    </div>
+
+    <div class="mm-profile-nav-foot">
+      <a href="/shop" class="mm-profile-store-link">
+        <i class="fa-solid fa-store"></i>
+        Về cửa hàng
+      </a>
+    </div>
+  </nav>
+</aside>
 
 {% endmacro %}

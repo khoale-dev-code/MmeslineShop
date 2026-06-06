@@ -1,324 +1,444 @@
-{# ═════════════════════════════════════════════════════════
-   partials/navbar.html — GUA Maison (BARAVAS Style - Supercharged ⚡)
-   Tối ưu hóa:
-   - GPU Hardware Acceleration: will-change-transform, transform-gpu.
-   - Specific Transitions: Tránh dùng transition-all gây tốn CPU.
-   - Zero Render-Blocking: Đẩy JS vào requestIdleCallback.
-═══════════════════════════════════════════════════════════ #}
+{#
+  app/templates/partials/navbar.html
+  =================================
+  MMÉSTLINE Storefront Navbar
+  - Fix lỗi global_collections undefined.
+  - Fix lỗi global_categories undefined.
+  - Menu Collection hiển thị nếu có dữ liệu.
+  - Không dùng z-index quá cao để tránh đè modal.
+#}
 
-<nav id="mainNav" aria-label="Điều hướng chính" class="fixed top-0 left-0 w-full z-[150] bg-white text-black border-b border-black/20">
+{% set path = request.path %}
+{% set shop_name = 'MMÉSTLINE' %}
 
-  {# ── DESKTOP LAYOUT (2 TIERS) ── #}
-  <div class="hidden lg:flex flex-col w-full max-w-[1920px] mx-auto">
-    
-    {# Tầng 1: Logo & Icons (Chiều cao ~65px) #}
-    <div class="relative flex items-center justify-center h-[65px] px-8">
-      
-      {# Logo Center #}
-      <a href="/" data-nav aria-label="MMÉSTLINE" class="text-[26px] font-black tracking-[0.15em] uppercase font-serif" style="font-family: 'Times New Roman', Times, serif;">
-        MMÉSTLINE 
+{# Fix an toàn biến global chưa được truyền #}
+{% set categories_nav = global_categories|default([], true) %}
+{% set collections_nav = global_collections|default([], true) %}
+
+{% set is_logged_in = current_user is defined and current_user and current_user.id %}
+{% set user_role = current_user.role if is_logged_in and current_user.role is defined else session.get('role') %}
+{% set user_name_raw = current_user.full_name if is_logged_in and current_user.full_name is defined else session.get('user_name') %}
+{% set user_name = user_name_raw if user_name_raw and user_name_raw|string|lower not in ['none', 'null', 'undefined'] else 'Khách hàng' %}
+{% set cart_qty = cart_count|default(0, true) %}
+
+<nav
+  id="mainNav"
+  aria-label="Điều hướng chính"
+  class="fixed left-0 top-0 z-[120] w-full border-b border-[#eadfd4] bg-white/95 text-[#241207] backdrop-blur-xl"
+>
+  {# DESKTOP #}
+  <div class="mx-auto hidden w-full max-w-[1920px] lg:block">
+
+    <div class="relative flex h-[68px] items-center justify-center px-8">
+      <a
+        href="/"
+        data-nav
+        aria-label="{{ shop_name }}"
+        class="font-serif text-[27px] font-black uppercase tracking-[0.18em] text-[#241207] transition-opacity duration-150 hover:opacity-70"
+        style="font-family:'Times New Roman',Times,serif;"
+      >
+        {{ shop_name }}
       </a>
 
-      {# Icons Right #}
       <div class="absolute right-8 flex items-center gap-5">
-        {# Search #}
-        <button aria-label="Tìm kiếm" class="hover:opacity-60 transition-opacity duration-200">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <button
+          type="button"
+          aria-label="Tìm kiếm"
+          class="text-[#241207] transition-opacity duration-150 hover:opacity-60"
+        >
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M19 10.5a8.5 8.5 0 11-17 0 8.5 8.5 0 0117 0z"/>
           </svg>
         </button>
 
-        {# User / Account #}
-        <div class="relative group">
-          <a href="{% if current_user.id %}/profile/{% else %}/auth/login{% endif %}" data-nav class="block hover:opacity-60 transition-opacity duration-200">
-            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+        <div class="group relative">
+          <a
+            href="{{ '/profile/' if is_logged_in else '/auth/login' }}"
+            data-nav
+            aria-label="Tài khoản"
+            class="block text-[#241207] transition-opacity duration-150 hover:opacity-60"
+          >
+            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
               <path fill-rule="evenodd" d="M12 2.25a5.25 5.25 0 00-5.25 5.25v.11a5.25 5.25 0 005.25 5.25h.01a5.25 5.25 0 005.25-5.25V7.5A5.25 5.25 0 0012 2.25zM6 19.5c0-2.88 3.55-4.5 6-4.5s6 1.62 6 4.5v1.5a.75.75 0 01-.75.75H6.75a.75.75 0 01-.75-.75V19.5z" clip-rule="evenodd"/>
             </svg>
           </a>
-          
-          {# Menu thả xuống cá nhân (Tối ưu GPU) #}
-          {% if current_user.id %}
-          <div class="absolute right-0 top-[24px] w-48 bg-white border border-neutral-200 shadow-sm
-                      opacity-0 invisible group-hover:opacity-100 group-hover:visible 
-                      transform-gpu translate-y-1 group-hover:translate-y-0
-                      transition-[opacity,transform,visibility] duration-200 z-50 pt-2 will-change-[opacity,transform]">
-            {% if current_user.role in ('admin', 'staff') %}
-            <a href="/admin/" class="block px-4 py-2 text-[11px] font-medium uppercase text-black hover:bg-neutral-50 transition-colors">Admin Panel</a>
-            <div class="border-b border-neutral-100 my-1"></div>
-            {% endif %}
-            <a href="/profile/" class="block px-4 py-2 text-[11px] font-medium uppercase text-black hover:bg-neutral-50 transition-colors">Profile</a>
-            <a href="/profile/orders" class="block px-4 py-2 text-[11px] font-medium uppercase text-black hover:bg-neutral-50 transition-colors">Orders</a>
-            <form action="/auth/logout" method="POST" class="m-0 border-t border-neutral-100 mt-1">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <button type="submit" class="w-full text-left px-4 py-2 text-[11px] font-medium uppercase text-red-600 hover:bg-red-50 transition-colors cursor-pointer">Logout</button>
-            </form>
-          </div>
+
+          {% if is_logged_in %}
+            <div
+              class="invisible absolute right-0 top-[28px] z-[130] w-56 translate-y-2 rounded-[22px] border border-[#eadfd4] bg-[#fffaf5] p-2 opacity-0 shadow-[0_24px_70px_-45px_rgba(36,18,7,.55)] transition-[opacity,transform,visibility] duration-150 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100"
+            >
+              <p class="px-3 py-2 text-[10px] font-black uppercase tracking-[.2em] text-[#b98b62]">
+                {{ user_name }}
+              </p>
+
+              {% if user_role in ('admin', 'staff', 'super_admin') %}
+                <a href="/admin/" data-nav class="block rounded-2xl px-3 py-2 text-[11px] font-black uppercase tracking-[.12em] text-[#241207] transition-colors hover:bg-[#f4ece5]">
+                  Admin Panel
+                </a>
+              {% endif %}
+
+              <a href="/profile/" data-nav class="block rounded-2xl px-3 py-2 text-[11px] font-black uppercase tracking-[.12em] text-[#241207] transition-colors hover:bg-[#f4ece5]">
+                Tài khoản
+              </a>
+
+              <a href="/profile/orders" data-nav class="block rounded-2xl px-3 py-2 text-[11px] font-black uppercase tracking-[.12em] text-[#241207] transition-colors hover:bg-[#f4ece5]">
+                Đơn hàng
+              </a>
+
+              <a href="/profile/favorites" data-nav class="block rounded-2xl px-3 py-2 text-[11px] font-black uppercase tracking-[.12em] text-[#241207] transition-colors hover:bg-[#f4ece5]">
+                Yêu thích
+              </a>
+
+              <form action="/auth/logout" method="POST" class="mt-2 border-t border-[#eadfd4] pt-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button
+                  type="submit"
+                  class="block w-full rounded-2xl px-3 py-2 text-left text-[11px] font-black uppercase tracking-[.12em] text-red-600 transition-colors hover:bg-red-50"
+                >
+                  Đăng xuất
+                </button>
+              </form>
+            </div>
           {% endif %}
         </div>
 
-        {# Shopping Bag #}
-        <a href="/cart/" data-nav aria-label="Giỏ hàng" class="relative flex items-center justify-center hover:opacity-60 transition-opacity duration-200">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+        <a
+          href="/cart/"
+          data-nav
+          aria-label="Giỏ hàng"
+          class="relative flex items-center justify-center text-[#241207] transition-opacity duration-150 hover:opacity-60"
+        >
+          <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z"/>
           </svg>
-          <span class="absolute inset-0 flex items-center justify-center text-[10px] font-bold mt-[5px]">
-            {{ cart_count|default(0) }}
+
+          <span class="absolute inset-0 mt-[5px] flex items-center justify-center text-[10px] font-black">
+            {{ cart_qty }}
           </span>
         </a>
       </div>
     </div>
 
-    {# Tầng 2: Navigation Links (Chiều cao ~50px) #}
-    {% set path = request.path %}
-    <div class="flex items-center justify-center gap-10 h-[50px] text-[13px] font-medium text-[#4a4a4a] uppercase tracking-wide">
-      
-      {# ── 1. SHOP ── #}
-      <div class="group static h-full flex items-center">
-        <a href="/shop" data-nav class="{% if path.startswith('/shop') %}text-[#ff4e00]{% else %}text-[#4a4a4a] hover:text-[#ff4e00]{% endif %} transition-colors py-2 relative">
+    <div class="relative flex h-[48px] items-center justify-center gap-10 border-t border-[#eadfd4] text-[12px] font-black uppercase tracking-[.14em] text-[#75543f]">
+
+      {# SHOP #}
+      <div class="group flex h-full items-center">
+        <a
+          href="/shop"
+          data-nav
+          class="transition-colors duration-150 {{ 'text-[#241207]' if path.startswith('/shop') else 'hover:text-[#241207]' }}"
+        >
           Shop
         </a>
-        
-        {# Mega Menu (Tối ưu GPU Render) #}
-        <div class="absolute top-[115px] left-0 w-full bg-white text-[#333] border-b border-black
-                    opacity-0 invisible group-hover:opacity-100 group-hover:visible
-                    transform-gpu origin-top
-                    transition-[opacity,visibility] duration-200 z-50 will-change-[opacity]">
-          <div class="grid grid-cols-5 w-full border-t border-black/30">
-            <div class="px-8 py-8 border-r border-black/20 flex flex-col gap-5">
-              <a href="/shop?sort=new" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">NEW</a>
-              {% if global_categories and global_categories[0] %}
-                <a href="/shop?category={{ global_categories[0].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_categories[0].name }}</a>
-              {% endif %}
-              {% if global_categories and global_categories[1] %}
-                <a href="/shop?category={{ global_categories[1].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_categories[1].name }}</a>
-              {% endif %}
+
+        <div class="invisible absolute left-0 top-[48px] z-[125] w-full translate-y-2 border-b border-[#eadfd4] border-t border-[#eadfd4] bg-[#fffaf5] opacity-0 shadow-[0_24px_70px_-55px_rgba(36,18,7,.55)] transition-[opacity,transform,visibility] duration-150 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
+          <div class="mx-auto grid max-w-[1400px] grid-cols-4 gap-0">
+            <div class="border-r border-[#eadfd4] px-8 py-7">
+              <p class="mb-5 text-[10px] font-black uppercase tracking-[.24em] text-[#b98b62]">
+                Danh mục
+              </p>
+
+              <a href="/shop?sort=new" data-nav class="mb-4 block text-[12px] font-black uppercase tracking-[.16em] text-[#241207] transition-colors hover:text-[#b98b62]">
+                New Arrival
+              </a>
             </div>
-            <div class="px-8 py-8 border-r border-black/20 flex flex-col gap-5">
-              {% if global_categories and global_categories[2] %}
-                <a href="/shop?category={{ global_categories[2].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_categories[2].name }}</a>
-              {% endif %}
-              {% if global_categories and global_categories[3] %}
-                <a href="/shop?category={{ global_categories[3].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_categories[3].name }}</a>
-              {% endif %}
-              {% if global_categories and global_categories[4] %}
-                <a href="/shop?category={{ global_categories[4].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_categories[4].name }}</a>
-              {% endif %}
-            </div>
-            <div class="px-8 py-8 border-r border-black/20 flex flex-col gap-5">
-              {% if global_categories and global_categories[5] %}
-                <a href="/shop?category={{ global_categories[5].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_categories[5].name }}</a>
-              {% endif %}
-              {% if global_categories and global_categories[6] %}
-                <a href="/shop?category={{ global_categories[6].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_categories[6].name }}</a>
-              {% endif %}
-              {% if global_categories and global_categories[7] %}
-                <a href="/shop?category={{ global_categories[7].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_categories[7].name }}</a>
-              {% endif %}
-            </div>
-            <div class="px-8 py-8 border-r border-black/20 flex flex-col gap-5">
-              {% if global_categories and global_categories[8] %}
-                <a href="/shop?category={{ global_categories[8].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_categories[8].name }}</a>
-              {% endif %}
-              {% if global_categories and global_categories[9] %}
-                <a href="/shop?category={{ global_categories[9].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_categories[9].name }}</a>
-              {% endif %}
-            </div>
-            <div class="px-8 py-8 flex flex-col gap-5 bg-[#fafafa]/30"></div>
+
+            {% if categories_nav %}
+              {% for group in [categories_nav[:4], categories_nav[4:8], categories_nav[8:12]] %}
+                <div class="border-r border-[#eadfd4] px-8 py-7 last:border-r-0">
+                  <div class="flex flex-col gap-4">
+                    {% for cat in group %}
+                      <a href="/shop?category={{ cat.slug }}" data-nav class="text-[12px] font-black uppercase tracking-[.16em] text-[#75543f] transition-colors hover:text-[#241207]">
+                        {{ cat.name }}
+                      </a>
+                    {% endfor %}
+                  </div>
+                </div>
+              {% endfor %}
+            {% else %}
+              <div class="col-span-3 px-8 py-7">
+                <p class="text-xs font-semibold text-[#8a6a52]">
+                  Chưa có danh mục hiển thị.
+                </p>
+              </div>
+            {% endif %}
           </div>
         </div>
       </div>
 
-      {# ── 2. COLLECTION ── #}
-      <div class="group static h-full flex items-center">
-        <a href="/collections" data-nav class="{% if path.startswith('/collections') %}text-[#ff4e00]{% else %}text-[#4a4a4a] hover:text-[#ff4e00]{% endif %} transition-colors py-2 relative">
+      {# COLLECTION #}
+      <div class="group flex h-full items-center">
+        <a
+          href="/collections"
+          data-nav
+          class="transition-colors duration-150 {{ 'text-[#241207]' if path.startswith('/collections') else 'hover:text-[#241207]' }}"
+        >
           Collection
         </a>
-        
-        <div class="absolute top-[115px] left-0 w-full bg-white text-[#333] border-b border-black
-                    opacity-0 invisible group-hover:opacity-100 group-hover:visible
-                    transform-gpu origin-top
-                    transition-[opacity,visibility] duration-200 z-50 will-change-[opacity]">
-          <div class="grid grid-cols-5 w-full border-t border-black/30">
-            <div class="px-8 py-8 border-r border-black/20 flex flex-col gap-3">
-              <a href="/collections" data-nav class="text-[12px] font-bold uppercase tracking-widest hover:text-[#ff4e00] transition-colors mb-1">
-                VIEW ALL
+
+        <div class="invisible absolute left-0 top-[48px] z-[125] w-full translate-y-2 border-b border-[#eadfd4] border-t border-[#eadfd4] bg-[#fffaf5] opacity-0 shadow-[0_24px_70px_-55px_rgba(36,18,7,.55)] transition-[opacity,transform,visibility] duration-150 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
+          <div class="mx-auto grid max-w-[1400px] grid-cols-4">
+            <div class="border-r border-[#eadfd4] px-8 py-7">
+              <a href="/collections" data-nav class="mb-3 block text-[12px] font-black uppercase tracking-[.18em] text-[#241207] transition-colors hover:text-[#b98b62]">
+                View All
               </a>
-              <p class="text-[11px] text-neutral-500 leading-relaxed normal-case pr-4">
-                Khám phá toàn bộ Lookbook và chiến dịch mới nhất.
+
+              <p class="text-xs font-semibold leading-6 normal-case tracking-normal text-[#8a6a52]">
+                Khám phá lookbook và chiến dịch mới nhất từ MMÉSTLINE.
               </p>
             </div>
-            
-            <div class="px-8 py-8 border-r border-black/20 flex flex-col gap-5">
-              {% if global_collections and global_collections[0] %}
-                <a href="/shop?collection={{ global_collections[0].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_collections[0].name }}</a>
-              {% endif %}
-              {% if global_collections and global_collections[4] %}
-                <a href="/shop?collection={{ global_collections[4].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_collections[4].name }}</a>
-              {% endif %}
-            </div>
-            <div class="px-8 py-8 border-r border-black/20 flex flex-col gap-5">
-              {% if global_collections and global_collections[1] %}
-                <a href="/shop?collection={{ global_collections[1].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_collections[1].name }}</a>
-              {% endif %}
-              {% if global_collections and global_collections[5] %}
-                <a href="/shop?collection={{ global_collections[5].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_collections[5].name }}</a>
-              {% endif %}
-            </div>
-            <div class="px-8 py-8 border-r border-black/20 flex flex-col gap-5">
-              {% if global_collections and global_collections[2] %}
-                <a href="/shop?collection={{ global_collections[2].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_collections[2].name }}</a>
-              {% endif %}
-              {% if global_collections and global_collections[6] %}
-                <a href="/shop?collection={{ global_collections[6].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_collections[6].name }}</a>
-              {% endif %}
-            </div>
-            <div class="px-8 py-8 flex flex-col gap-5 bg-[#fafafa]/30">
-              {% if global_collections and global_collections[3] %}
-                <a href="/shop?collection={{ global_collections[3].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_collections[3].name }}</a>
-              {% endif %}
-              {% if global_collections and global_collections[7] %}
-                <a href="/shop?collection={{ global_collections[7].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_collections[7].name }}</a>
-              {% endif %}
-            </div>
+
+            {% if collections_nav %}
+              {% for group in [collections_nav[:3], collections_nav[3:6], collections_nav[6:9]] %}
+                <div class="border-r border-[#eadfd4] px-8 py-7 last:border-r-0">
+                  <div class="flex flex-col gap-4">
+                    {% for coll in group %}
+                      <a href="/shop?collection={{ coll.slug }}" data-nav class="text-[12px] font-black uppercase tracking-[.16em] text-[#75543f] transition-colors hover:text-[#241207]">
+                        {{ coll.name }}
+                      </a>
+                    {% endfor %}
+                  </div>
+                </div>
+              {% endfor %}
+            {% else %}
+              <div class="col-span-3 px-8 py-7">
+                <p class="text-xs font-semibold text-[#8a6a52]">
+                  Chưa có bộ sưu tập hiển thị.
+                </p>
+              </div>
+            {% endif %}
           </div>
         </div>
       </div>
 
-      {# ── 3. CUSTOM & CONTACT & ABOUT ── #}
-      <a href="/contact" data-nav class="{% if path.startswith('/contact') %}text-[#ff4e00]{% else %}text-[#4a4a4a] hover:text-[#ff4e00]{% endif %} transition-colors">Contact</a>
-      <a href="/about" data-nav class="{% if path.startswith('/about') %}text-[#ff4e00]{% else %}text-[#4a4a4a] hover:text-[#ff4e00]{% endif %} transition-colors">About Us</a>
+      <a href="/contact" data-nav class="transition-colors duration-150 {{ 'text-[#241207]' if path.startswith('/contact') else 'hover:text-[#241207]' }}">
+        Contact
+      </a>
 
+      <a href="/about" data-nav class="transition-colors duration-150 {{ 'text-[#241207]' if path.startswith('/about') else 'hover:text-[#241207]' }}">
+        About Us
+      </a>
     </div>
   </div>
 
-  {# ── MOBILE LAYOUT (Thu gọn lại 1 dòng) ── #}
-  <div class="flex lg:hidden items-center justify-between h-[64px] px-5">
-    
-    {# Hamburger #}
-    <div class="flex items-center flex-1">
-      <button id="openMenu" aria-label="Mở menu" class="flex flex-col gap-[5px] py-2 hover:opacity-60 transition-opacity duration-200">
-        <span class="w-5 h-[1.5px] bg-black block"></span>
-        <span class="w-3.5 h-[1.5px] bg-black block"></span>
+  {# MOBILE BAR #}
+  <div class="flex h-[64px] items-center justify-between px-5 lg:hidden">
+    <div class="flex flex-1 items-center">
+      <button
+        id="openMenu"
+        type="button"
+        aria-label="Mở menu"
+        class="flex flex-col gap-[5px] py-2 transition-opacity duration-150 hover:opacity-60"
+      >
+        <span class="block h-[1.5px] w-5 bg-[#241207]"></span>
+        <span class="block h-[1.5px] w-3.5 bg-[#241207]"></span>
       </button>
     </div>
 
-    {# Logo Mobile #}
-    <div class="flex justify-center flex-1">
-      <a href="/" data-nav aria-label="GUA Maison" class="text-xl font-black tracking-widest uppercase font-serif" style="font-family: 'Times New Roman', Times, serif;">GUA</a>
+    <div class="flex flex-1 justify-center">
+      <a
+        href="/"
+        data-nav
+        aria-label="{{ shop_name }}"
+        class="font-serif text-[18px] font-black uppercase tracking-[0.16em] text-[#241207]"
+        style="font-family:'Times New Roman',Times,serif;"
+      >
+        MMÉSTLINE
+      </a>
     </div>
 
-    {# Icons Mobile #}
-    <div class="flex items-center justify-end flex-1 gap-4">
-      <a href="{% if current_user.id %}/profile/{% else %}/auth/login{% endif %}" data-nav class="hover:opacity-60 transition-opacity duration-200">
-        <svg class="w-[22px] h-[22px]" viewBox="0 0 24 24" fill="currentColor">
+    <div class="flex flex-1 items-center justify-end gap-4">
+      <a
+        href="{{ '/profile/' if is_logged_in else '/auth/login' }}"
+        data-nav
+        aria-label="Tài khoản"
+        class="transition-opacity duration-150 hover:opacity-60"
+      >
+        <svg class="h-[22px] w-[22px]" viewBox="0 0 24 24" fill="currentColor">
           <path fill-rule="evenodd" d="M12 2.25a5.25 5.25 0 00-5.25 5.25v.11a5.25 5.25 0 005.25 5.25h.01a5.25 5.25 0 005.25-5.25V7.5A5.25 5.25 0 0012 2.25zM6 19.5c0-2.88 3.55-4.5 6-4.5s6 1.62 6 4.5v1.5a.75.75 0 01-.75.75H6.75a.75.75 0 01-.75-.75V19.5z" clip-rule="evenodd"/>
         </svg>
       </a>
-      <a href="/cart/" data-nav class="relative flex items-center justify-center hover:opacity-60 transition-opacity duration-200">
-        <svg class="w-[22px] h-[22px]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+
+      <a
+        href="/cart/"
+        data-nav
+        aria-label="Giỏ hàng"
+        class="relative flex items-center justify-center transition-opacity duration-150 hover:opacity-60"
+      >
+        <svg class="h-[22px] w-[22px]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z"/>
         </svg>
-        <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold mt-[4px]">
-          {{ cart_count|default(0) }}
+
+        <span class="absolute inset-0 mt-[4px] flex items-center justify-center text-[9px] font-black">
+          {{ cart_qty }}
         </span>
       </a>
     </div>
-
   </div>
 </nav>
 
-{# ── MOBILE MENU OVERLAY (Tối ưu GPU Rendering) ── #}
-<div id="mobileMenu" class="fixed inset-y-0 left-0 w-full max-w-sm bg-white z-[200] flex flex-col border-r border-black/20 
-                            pointer-events-none transform-gpu -translate-x-full transition-transform duration-300 ease-out will-change-transform">
-  
-  <div class="flex items-center justify-between px-6 h-[64px] border-b border-black/20 text-black shrink-0">
-    <span class="text-xl font-black tracking-widest uppercase font-serif">GUA</span>
-    <button id="closeMenu" aria-label="Đóng menu" class="p-2 -mr-2 text-black hover:opacity-60 transition-opacity duration-200">
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+{# MOBILE MENU #}
+<div
+  id="mobileMenuBackdrop"
+  class="fixed inset-0 z-[180] bg-[#241207]/55 opacity-0 pointer-events-none transition-opacity duration-200 lg:hidden"
+></div>
+
+<aside
+  id="mobileMenu"
+  aria-label="Menu di động"
+  aria-hidden="true"
+  class="fixed inset-y-0 left-0 z-[190] flex w-[min(88vw,390px)] -translate-x-full flex-col border-r border-[#eadfd4] bg-[#fffaf5] text-[#241207] shadow-[0_28px_80px_-55px_rgba(36,18,7,.75)] transition-transform duration-200 ease-out will-change-transform lg:hidden"
+>
+  <div class="flex h-[64px] shrink-0 items-center justify-between border-b border-[#eadfd4] px-5">
+    <span class="font-serif text-[18px] font-black uppercase tracking-[0.16em]" style="font-family:'Times New Roman',Times,serif;">
+      MMÉSTLINE
+    </span>
+
+    <button
+      id="closeMenu"
+      type="button"
+      aria-label="Đóng menu"
+      class="flex h-10 w-10 items-center justify-center rounded-2xl border border-[#eadfd4] bg-[#fffdf9] text-[#75543f] transition-colors duration-150 hover:bg-[#3b2414] hover:text-white"
+    >
+      <i class="fa-solid fa-xmark text-sm"></i>
     </button>
   </div>
 
-  <div class="flex-1 overflow-y-auto px-6 py-8 flex flex-col justify-between">
-    <div class="space-y-5">
-      <a href="/shop" data-nav class="block text-[15px] font-medium uppercase tracking-wide {% if path.startswith('/shop') %}text-[#ff4e00]{% else %}text-black{% endif %} transition-colors">Shop</a>
-      <div class="pl-4 space-y-4 py-1 my-2 border-l border-neutral-200">
-        {% if global_categories %}
-          {% for cat in global_categories[:8] %}
-          <a href="/shop?category={{ cat.slug }}" data-nav class="block text-[12px] font-medium uppercase tracking-widest text-neutral-600 hover:text-black transition-colors">{{ cat.name }}</a>
-          {% endfor %}
-        {% endif %}
-      </div>
-      
-      <a href="/collections" data-nav class="block text-[15px] font-medium uppercase tracking-wide {% if path.startswith('/collections') %}text-[#ff4e00]{% else %}text-black{% endif %} transition-colors">Collection</a>
-      <div class="pl-4 space-y-4 py-1 my-2 border-l border-neutral-200">
-        <a href="/collections" data-nav class="block text-[12px] font-bold uppercase tracking-widest text-black hover:text-[#ff4e00] transition-colors">VIEW ALL</a>
-        {% if global_collections %}
-          {% for coll in global_collections[:4] %}
-          <a href="/shop?collection={{ coll.slug }}" data-nav class="block text-[12px] font-medium uppercase tracking-widest text-neutral-600 hover:text-black transition-colors">{{ coll.name }}</a>
-          {% endfor %}
+  <div class="min-h-0 flex-1 overflow-y-auto px-5 py-6">
+    <nav class="space-y-5">
+      <div>
+        <a href="/shop" data-nav class="block text-sm font-black uppercase tracking-[.18em] {{ 'text-[#241207]' if path.startswith('/shop') else 'text-[#75543f]' }}">
+          Shop
+        </a>
+
+        {% if categories_nav %}
+          <div class="mt-4 space-y-3 border-l border-[#eadfd4] pl-4">
+            {% for cat in categories_nav[:8] %}
+              <a href="/shop?category={{ cat.slug }}" data-nav class="block text-[11px] font-black uppercase tracking-[.16em] text-[#8a6a52] transition-colors hover:text-[#241207]">
+                {{ cat.name }}
+              </a>
+            {% endfor %}
+          </div>
         {% endif %}
       </div>
 
-      <a href="/custom" data-nav class="block text-[15px] font-medium uppercase tracking-wide {% if path.startswith('/custom') %}text-[#ff4e00]{% else %}text-black{% endif %} transition-colors">Custom</a>
-      <a href="/contact" data-nav class="block text-[15px] font-medium uppercase tracking-wide {% if path.startswith('/contact') %}text-[#ff4e00]{% else %}text-black{% endif %} transition-colors">Contact</a>
-      <a href="/about" data-nav class="block text-[15px] font-medium uppercase tracking-wide {% if path.startswith('/about') %}text-[#ff4e00]{% else %}text-black{% endif %} transition-colors">About Us</a>
-    </div>
+      <div>
+        <a href="/collections" data-nav class="block text-sm font-black uppercase tracking-[.18em] {{ 'text-[#241207]' if path.startswith('/collections') else 'text-[#75543f]' }}">
+          Collection
+        </a>
 
-    <div class="pt-8 border-t border-black/20 shrink-0">
-      {% if current_user.id %}
-        <p class="text-[10px] font-medium uppercase tracking-widest text-neutral-400 mb-4">Hi, {{ current_user.full_name }}</p>
-        <a href="/profile/" data-nav class="block text-[12px] font-medium uppercase tracking-widest mb-3 text-black hover:text-[#ff4e00] transition-colors">Profile</a>
-        <a href="/profile/orders" data-nav class="block text-[12px] font-medium uppercase tracking-widest text-black hover:text-[#ff4e00] transition-colors">Orders</a>
-        <form action="/auth/logout" method="POST" class="mt-4 m-0">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="text-[11px] font-medium uppercase tracking-widest text-red-600 cursor-pointer hover:text-red-800 transition-colors">Logout</button>
-        </form>
-      {% else %}
-        <a href="/auth/login" data-nav class="block w-full border border-black text-black text-center py-3 text-[12px] font-medium uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Login / Register</a>
-      {% endif %}
-    </div>
+        <div class="mt-4 space-y-3 border-l border-[#eadfd4] pl-4">
+          <a href="/collections" data-nav class="block text-[11px] font-black uppercase tracking-[.16em] text-[#241207]">
+            View All
+          </a>
+
+          {% if collections_nav %}
+            {% for coll in collections_nav[:6] %}
+              <a href="/shop?collection={{ coll.slug }}" data-nav class="block text-[11px] font-black uppercase tracking-[.16em] text-[#8a6a52] transition-colors hover:text-[#241207]">
+                {{ coll.name }}
+              </a>
+            {% endfor %}
+          {% endif %}
+        </div>
+      </div>
+
+      <a href="/contact" data-nav class="block text-sm font-black uppercase tracking-[.18em] {{ 'text-[#241207]' if path.startswith('/contact') else 'text-[#75543f]' }}">
+        Contact
+      </a>
+
+      <a href="/about" data-nav class="block text-sm font-black uppercase tracking-[.18em] {{ 'text-[#241207]' if path.startswith('/about') else 'text-[#75543f]' }}">
+        About Us
+      </a>
+    </nav>
   </div>
-</div>
 
-<div id="mobileMenuBackdrop" class="fixed inset-0 bg-black/50 z-[190] opacity-0 pointer-events-none transition-opacity duration-300 lg:hidden"></div>
+  <div class="shrink-0 border-t border-[#eadfd4] p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
+    {% if is_logged_in %}
+      <p class="mb-4 text-[10px] font-black uppercase tracking-[.22em] text-[#b98b62]">
+        Hi, {{ user_name }}
+      </p>
 
-{# ── SCROLL FX + HIGH-PERFORMANCE SCRIPT (Zero Render Blocking) ── #}
+      <div class="grid gap-2">
+        <a href="/profile/" data-nav class="rounded-2xl bg-[#fffdf9] px-4 py-3 text-[11px] font-black uppercase tracking-[.15em] text-[#241207]">
+          Tài khoản
+        </a>
+
+        <a href="/profile/orders" data-nav class="rounded-2xl bg-[#fffdf9] px-4 py-3 text-[11px] font-black uppercase tracking-[.15em] text-[#241207]">
+          Đơn hàng
+        </a>
+
+        <a href="/profile/favorites" data-nav class="rounded-2xl bg-[#fffdf9] px-4 py-3 text-[11px] font-black uppercase tracking-[.15em] text-[#241207]">
+          Yêu thích
+        </a>
+
+        <form action="/auth/logout" method="POST" class="m-0">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="w-full rounded-2xl bg-red-50 px-4 py-3 text-left text-[11px] font-black uppercase tracking-[.15em] text-red-600">
+            Đăng xuất
+          </button>
+        </form>
+      </div>
+    {% else %}
+      <a href="/auth/login" data-nav class="flex h-12 w-full items-center justify-center rounded-2xl bg-[#3b2414] text-[11px] font-black uppercase tracking-[.18em] text-white">
+        Login / Register
+      </a>
+    {% endif %}
+  </div>
+</aside>
+
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-  // 1. Mobile Menu Logic
-  const menu = document.getElementById('mobileMenu');
-  const backdrop = document.getElementById('mobileMenuBackdrop');
-  const openBtn = document.getElementById('openMenu');
-  const closeBtn = document.getElementById('closeMenu');
+(function () {
+  "use strict";
 
-  const openMenu = () => {
-    menu.classList.remove('-translate-x-full', 'pointer-events-none');
-    backdrop.classList.remove('opacity-0', 'pointer-events-none');
-    backdrop.classList.add('opacity-100');
-    document.body.style.overflow = 'hidden';
-  };
+  function initNavbar() {
+    const menu = document.getElementById("mobileMenu");
+    const backdrop = document.getElementById("mobileMenuBackdrop");
+    const openBtn = document.getElementById("openMenu");
+    const closeBtn = document.getElementById("closeMenu");
 
-  const closeMenu = () => {
-    menu.classList.add('-translate-x-full', 'pointer-events-none');
-    backdrop.classList.remove('opacity-100');
-    backdrop.classList.add('opacity-0', 'pointer-events-none');
-    document.body.style.overflow = '';
-  };
+    if (!menu || !backdrop || !openBtn || !closeBtn) return;
 
-  openBtn?.addEventListener('click', (e) => { e.preventDefault(); openMenu(); });
-  closeBtn?.addEventListener('click', closeMenu);
-  backdrop?.addEventListener('click', closeMenu);
+    function openMenu(event) {
+      if (event) event.preventDefault();
 
-  // 2. Notification Lazy-Load Logic
-  const initNotifications = () => {
-    // Đoạn code này đã được gỡ bỏ logic thừa để trang web chạy nhẹ nhất có thể 
-    // vì thiết kế BARAVAS không yêu cầu popup thông báo dạng Text như cũ.
-  };
+      menu.classList.remove("-translate-x-full");
+      menu.setAttribute("aria-hidden", "false");
 
-  if ('requestIdleCallback' in window) {
-    requestIdleCallback(initNotifications);
-  } else {
-    setTimeout(initNotifications, 500);
+      backdrop.classList.remove("opacity-0", "pointer-events-none");
+      backdrop.classList.add("opacity-100");
+
+      document.body.classList.add("mm-mobile-menu-open");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeMenu() {
+      menu.classList.add("-translate-x-full");
+      menu.setAttribute("aria-hidden", "true");
+
+      backdrop.classList.remove("opacity-100");
+      backdrop.classList.add("opacity-0", "pointer-events-none");
+
+      document.body.classList.remove("mm-mobile-menu-open");
+      document.body.style.overflow = "";
+    }
+
+    openBtn.addEventListener("click", openMenu, { passive: false });
+    closeBtn.addEventListener("click", closeMenu);
+    backdrop.addEventListener("click", closeMenu);
+
+    menu.querySelectorAll("a[data-nav]").forEach((link) => {
+      link.addEventListener("click", closeMenu);
+    });
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") closeMenu();
+    });
   }
-});
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initNavbar);
+  } else {
+    initNavbar();
+  }
+})();
 </script>

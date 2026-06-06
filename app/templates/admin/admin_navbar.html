@@ -1,20 +1,44 @@
 {#
   app/templates/admin/admin_navbar.html
   ===================================
-  MMESTLINE Admin Navigation Shell.
+  MMESTLINE Admin Navigation Shell
 
-  CSS/JS được load trong admin_base.html.
-  File này chỉ chuẩn bị biến và include partial navbar.
+  Nhiệm vụ:
+  - Chuẩn bị biến dùng chung cho sidebar/topbar/mobile bar/dropdown.
+  - Không đặt overlay chặn click.
+  - Progress bar phải pointer-events:none.
+  - Đồng bộ ID: mmAdminSidebar, adminSidebar alias.
 #}
 
 {% set pending_returns = pending_returns|default(0) %}
 {% set admin_notification_count = admin_notification_count|default(0) %}
 {% set current_ep = request.endpoint or '' %}
-{% set admin_role = session.get('user_role') or session.get('role') or 'admin' %}
+
+{# Role normalize #}
+{% set raw_admin_role =
+  session.get('admin_role_slug')
+  or session.get('user_role')
+  or session.get('role')
+  or 'admin'
+%}
+
+{% set admin_role = raw_admin_role|string|lower|replace('-', '_') %}
+
+{% if admin_role == 'superadmin' %}
+  {% set admin_role = 'super_admin' %}
+{% endif %}
+
+{% set is_super_admin = admin_role in ['super_admin', 'owner', 'root'] %}
+{% set is_admin = admin_role in ['super_admin', 'owner', 'root', 'admin'] %}
+
+{% set can_view_settings = true %}
+{% set can_manage_permissions = is_admin %}
+{% set can_view_audit_logs = is_admin %}
 
 {% set display_shop_name = display_shop_name|default('MMESTLINE') %}
 {% set brand_logo = admin_logo_url if admin_logo_url is defined else url_for('static', filename='images/mmestlinelogo.svg') %}
 
+{# Active states #}
 {% set dashboard_active = current_ep == 'admin.dashboard' %}
 {% set reports_active = current_ep == 'admin.reports' %}
 
@@ -60,7 +84,11 @@
 ] %}
 
 {% set returns_active = current_ep.startswith('admin.return') %}
-{% set providers_active = current_ep.startswith('admin_providers') or current_ep.startswith('admin_shipping') %}
+
+{% set providers_active =
+  current_ep.startswith('admin_providers')
+  or current_ep.startswith('admin_shipping')
+%}
 
 {% set settings_active = current_ep in [
   'admin.settings_page',
@@ -79,6 +107,7 @@
   'admin.logs'
 ] %}
 
+{# Sidebar sections: tuple format (label, endpoint, icon, badge) #}
 {% set sidebar_sections = [
   {
     'title': 'Tổng quan',
@@ -114,15 +143,32 @@
   }
 ] %}
 
-{% set system_links = [
-  ('Cài đặt', 'admin.settings_page', 'fa-gear'),
-  ('Phân quyền', 'admin.permissions_index', 'fa-shield-halved'),
-  ('Nhật ký', 'admin.audit_logs', 'fa-clock-rotate-left')
+{% set system_public_links = [
+  ('Cài đặt', 'admin.settings_page', 'fa-gear')
 ] %}
 
+{% set system_admin_links = [
+  ('Phân quyền', 'admin.permissions_index', 'fa-shield-halved'),
+  ('Nhật ký', 'admin.audit_logs', 'fa-clock-rotate-left')
+] if is_admin else [] %}
+
+{% set system_links = system_public_links + system_admin_links %}
+
+{# 
+  Progress bar không được chặn click.
+  CSS bắt buộc: pointer-events:none.
+#}
 <div id="mmAdminProgress" class="mm-admin-progress" aria-hidden="true"></div>
 
+{# 
+  Thứ tự layer:
+  1. Mobile bar
+  2. Sidebar
+  3. Topbar
+  4. User dropdown
+#}
 {% include "admin/partials/_admin_mobile_bar.html" %}
 {% include "admin/partials/_admin_sidebar.html" %}
 {% include "admin/partials/_admin_topbar.html" %}
 {% include "admin/partials/_admin_user_dropdown.html" %}
+

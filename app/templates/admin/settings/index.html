@@ -1,267 +1,373 @@
 {# app/templates/admin/settings/index.html #}
 {% extends "admin/admin_base.html" %}
-{% block title %}Cài đặt Hệ thống — GUA Admin{% endblock %}
+
+{% block title %}Cài đặt giao diện cửa hàng — MMESTLINE Admin{% endblock %}
 
 {% block extra_head %}
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --font-jakarta: 'Plus Jakarta Sans', sans-serif;
+  .mm-settings-page {
+    --s-ink: #241207;
+    --s-brown: #3b2414;
+    --s-caramel: #b98b62;
+    --s-muted: #8a6a52;
+    --s-soft: #fffaf5;
+    --s-cream: #fbf7f1;
+    --s-card: #fffdf9;
+    --s-line: #eadfd4;
+
+    color: var(--s-ink);
   }
 
-  body {
-    font-family: var(--font-jakarta);
-    background-color: #f8fafc;
+  .mm-settings-hero {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--s-line);
+    border-radius: 30px;
+    background:
+      radial-gradient(circle at top right, rgba(185, 139, 98, 0.18), transparent 36%),
+      linear-gradient(135deg, #fffaf5, #fbf7f1);
+    box-shadow: 0 24px 70px -54px rgba(36, 18, 7, 0.65);
+  }
+
+  .mm-settings-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(90deg, rgba(255, 255, 255, 0.52), transparent 54%),
+      radial-gradient(circle at bottom left, rgba(59, 36, 20, 0.06), transparent 38%);
+  }
+
+  .mm-settings-hero > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .mm-settings-kicker {
+    margin: 0;
+    color: var(--s-caramel);
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+  }
+
+  .mm-settings-title {
+    margin: 8px 0 0;
+    color: var(--s-ink);
+    font-size: clamp(30px, 4vw, 52px);
+    font-weight: 950;
+    letter-spacing: -0.055em;
+    line-height: 0.95;
+  }
+
+  .mm-settings-subtitle {
+    max-width: 780px;
+    margin: 14px 0 0;
+    color: var(--s-muted);
+    font-size: 14px;
+    font-weight: 650;
+    line-height: 1.7;
+  }
+
+  .mm-settings-status {
+    min-height: 42px;
+    border: 1px solid rgba(16, 185, 129, 0.24);
+    border-radius: 999px;
+    background: rgba(236, 253, 245, 0.74);
+    color: #047857;
+    padding: 0 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    white-space: nowrap;
+  }
+
+  .mm-settings-status span {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: #10b981;
+    box-shadow: 0 0 0 5px rgba(16, 185, 129, 0.12);
+  }
+
+  .mm-settings-breadcrumb {
+    margin-top: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    color: var(--s-muted);
+    font-size: 11px;
+    font-weight: 850;
+  }
+
+  .mm-settings-breadcrumb a {
+    color: #5f3b1e;
+    transition: color 0.16s ease;
+  }
+
+  .mm-settings-breadcrumb a:hover {
+    color: var(--s-ink);
+  }
+
+  .mm-settings-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 22px;
+    align-items: start;
+  }
+
+  .mm-settings-single-card {
+    border: 1px solid var(--s-line);
+    border-radius: 26px;
+    background: rgba(255, 250, 245, 0.92);
+    padding: 14px;
+    box-shadow: 0 20px 54px -46px rgba(36, 18, 7, 0.55);
+    backdrop-filter: blur(14px);
+  }
+
+  .mm-settings-tab-label {
+    min-height: 52px;
+    border-radius: 18px;
+    background: var(--s-brown);
+    color: #fff;
+    padding: 0 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    font-weight: 950;
+    box-shadow: 0 18px 38px -30px rgba(36, 18, 7, 0.72);
+  }
+
+  .mm-settings-tab-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 13px;
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
   }
 
   .modern-card {
-    background: #ffffff;
-    border: 1px solid #f1f5f9;
-    border-radius: 1.5rem;
-    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+    border: 1px solid var(--s-line) !important;
+    border-radius: 24px !important;
+    background: var(--s-card) !important;
+    box-shadow: 0 18px 50px -44px rgba(36, 18, 7, 0.55) !important;
   }
 
-  .glass-nav {
-    background: rgba(248, 250, 252, 0.85);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-  }
-
-  .fade-up {
-    opacity: 0;
-    animation: fadeUpAnim 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  }
-
-  @keyframes fadeUpAnim {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background-color: #cbd5e1;
-    border-radius: 10px;
-  }
-
-  /* Settings Layout */
-  .s-layout {
-    display: grid;
-    grid-template-columns: 240px 1fr;
-    min-height: calc(100vh - 72px);
-    gap: 2rem;
-  }
-
-  @media(max-width: 900px) {
-    .s-layout {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  .s-panel {
-    display: none;
-  }
-
-  .s-panel.active {
-    display: block;
-    animation: fadeIn .2s ease;
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: none; }
-  }
-
-  /* Toast */
   #toastContainer {
     position: fixed;
-    bottom: 22px;
     right: 22px;
+    bottom: 22px;
     z-index: 9999;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 9px;
     pointer-events: none;
   }
 
   .toast {
+    min-width: 260px;
+    max-width: 360px;
+    border: 1px solid var(--s-line);
+    border-radius: 18px;
+    background: rgba(255, 250, 245, 0.96);
+    color: var(--s-ink);
+    box-shadow: 0 26px 70px -44px rgba(36, 18, 7, 0.7);
+    backdrop-filter: blur(16px);
+    padding: 13px 15px;
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 12px 16px;
-    border-radius: 1rem;
-    font-size: 13px;
-    font-weight: 600;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, .08);
-    pointer-events: all;
-    animation: toastIn .22s ease;
-    min-width: 240px;
-    max-width: 340px;
+    font-size: 12px;
+    font-weight: 850;
+    pointer-events: auto;
+    animation: mmToastIn 0.22s ease both;
   }
 
-  @keyframes toastIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: none; }
+  .toast--success {
+    border-color: rgba(16, 185, 129, 0.26);
+  }
+
+  .toast--error {
+    border-color: rgba(225, 29, 72, 0.28);
+  }
+
+  .toast--info {
+    border-color: rgba(185, 139, 98, 0.34);
   }
 
   .toast.fade-out {
-    animation: toastOut .22s ease forwards;
+    animation: mmToastOut 0.22s ease forwards;
   }
 
-  @keyframes toastOut {
-    from { opacity: 1; }
-    to { opacity: 0; transform: translateY(4px); }
+  @keyframes mmToastIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
 
-  .toast--success { background: #0f172a; color: #fff; }
-  .toast--error { background: #e11d48; color: #fff; }
-  .toast--info { background: #4f46e5; color: #fff; }
+  @keyframes mmToastOut {
+    to {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+
+  .mm-settings-alert {
+    border: 1px solid var(--s-line);
+    border-radius: 20px;
+    background: #fffdf9;
+    color: #75543f;
+    padding: 13px 15px;
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    font-size: 12px;
+    font-weight: 750;
+    line-height: 1.55;
+  }
+
+  .mm-settings-alert i {
+    margin-top: 2px;
+    color: var(--s-brown);
+  }
+
+  @media (max-width: 640px) {
+    .mm-settings-hero {
+      border-radius: 24px;
+    }
+
+    .mm-settings-hero-inner {
+      padding: 20px !important;
+    }
+
+    .mm-settings-status {
+      width: max-content;
+    }
+
+    .mm-settings-single-card {
+      border-radius: 22px;
+      padding: 10px;
+    }
+
+    #toastContainer {
+      left: 14px;
+      right: 14px;
+      bottom: 14px;
+    }
+
+    .toast {
+      max-width: none;
+      width: 100%;
+    }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
 <div id="toastContainer" aria-live="polite"></div>
 
-<div class="min-h-screen pb-16 font-sans text-slate-800 selection:bg-indigo-500 selection:text-white">
+<div class="mm-settings-page">
+  <section class="mm-settings-hero mb-6">
+    <div class="mm-settings-hero-inner p-6 lg:p-8">
+      <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
+        <div class="min-w-0">
+          <p class="mm-settings-kicker">MMESTLINE Workspace</p>
 
-  {# ── STICKY TOP BAR ── #}
-  <div class="glass-nav sticky top-0 z-30 border-b border-slate-200/60">
-    <div class="max-w-[1400px] mx-auto px-6 lg:px-12 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shadow-sm">
-          <i class="fa-solid fa-gear text-lg"></i>
-        </div>
-        <div>
-          <h1 class="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-            Cài đặt Hệ thống
-            <span class="flex items-center gap-1.5 text-[10px] bg-emerald-50 text-emerald-600 px-2 py-1 rounded-md uppercase tracking-widest font-bold">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live
-            </span>
+          <h1 class="mm-settings-title">
+            Giao diện cửa hàng
           </h1>
-          <div class="flex items-center gap-2 mt-0.5">
-            <a href="/admin/" class="text-slate-500 hover:text-indigo-600 text-xs font-semibold transition-colors">Dashboard</a>
-            <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
-            <span class="text-indigo-600 text-xs font-semibold">Cấu hình</span>
+
+          <p class="mm-settings-subtitle">
+            Quản lý banner, topbar, nội dung hiển thị ngoài storefront và các thiết lập giao diện
+            đang được sử dụng trực tiếp trên website bán hàng.
+          </p>
+
+          <div class="mm-settings-breadcrumb">
+            <a href="{{ url_for('admin.dashboard') }}" data-nav>Dashboard</a>
+            <i class="fa-solid fa-chevron-right text-[9px] opacity-60"></i>
+            <span>Cài đặt</span>
+            <i class="fa-solid fa-chevron-right text-[9px] opacity-60"></i>
+            <span>Giao diện cửa hàng</span>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
 
-  {# ── Flash messages ── #}
-  {% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-  <div class="max-w-[1400px] mx-auto px-6 lg:px-12 mt-6">
-    {% for category, msg in messages %}
-    <div class="flex items-center justify-between p-4 rounded-xl mb-3 text-sm font-bold border 
-                {% if category == 'success' %}bg-emerald-50 text-emerald-700 border-emerald-100
-                {% elif category == 'danger' %}bg-rose-50 text-rose-700 border-rose-100
-                {% else %}bg-indigo-50 text-indigo-700 border-indigo-100{% endif %}">
-      <div class="flex items-center gap-3">
-        <i class="fa-solid {% if category == 'success' %}fa-circle-check{% elif category == 'danger' %}fa-circle-xmark{% else %}fa-circle-info{% endif %} text-lg"></i>
-        <span>{{ msg }}</span>
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="mm-settings-status">
+            <span></span>
+            Storefront Live
+          </span>
+        </div>
       </div>
-      <button class="text-current opacity-60 hover:opacity-100 transition-opacity cursor-pointer" onclick="this.parentElement.remove()"><i class="fa-solid fa-xmark"></i></button>
     </div>
-    {% endfor %}
-  </div>
-  {% endif %}
+  </section>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="mb-6 grid gap-3">
+        {% for category, msg in messages %}
+          {% set is_success = category == 'success' %}
+          {% set is_danger = category in ['danger', 'error'] %}
+
+          <div class="mm-settings-alert">
+            <i class="fa-solid {% if is_success %}fa-circle-check{% elif is_danger %}fa-circle-xmark{% else %}fa-circle-info{% endif %}"></i>
+
+            <div class="min-w-0 flex-1">
+              <strong class="block text-[#241207]">
+                {% if is_success %}
+                  Thành công
+                {% elif is_danger %}
+                  Có lỗi xảy ra
+                {% else %}
+                  Thông báo
+                {% endif %}
+              </strong>
+              <span>{{ msg }}</span>
+            </div>
+
+            <button
+              type="button"
+              class="h-7 w-7 rounded-full text-[#9b7b63] hover:bg-[#f6eee7] hover:text-[#241207] transition"
+              onclick="this.closest('.mm-settings-alert').remove()"
+              aria-label="Đóng thông báo"
+            >
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
   {% endwith %}
 
-  <div class="max-w-[1400px] mx-auto px-6 lg:px-12 mt-8 fade-up s-layout">
+  <div class="mm-settings-layout">
+    <div class="mm-settings-single-card mb-5">
+      <div class="mm-settings-tab-label">
+        <span class="mm-settings-tab-icon">
+          <i class="fa-solid fa-store"></i>
+        </span>
+        <span>Giao diện cửa hàng</span>
+      </div>
+    </div>
 
-    {# ── Sidebar Tabs Menu ── #}
-    {# ✅ ĐÃ SỬA: Loại bỏ toàn bộ onclick inline, thay thế hoàn toàn bằng trình nghe DOM chuẩn tắc #}
-    <aside class="flex flex-col gap-1 md:sticky md:top-[88px] h-max">
-      <div class="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-2 px-3">Cơ bản</div>
-
-      <button class="s-nav__item active flex items-center justify-between w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group cursor-pointer"
-        data-tab="general">
-        <div class="flex items-center gap-3">
-          <i class="fa-solid fa-sliders text-slate-400 group-hover:text-indigo-500 w-4 text-center"></i>
-          Thông tin chung
-        </div>
-      </button>
-
-      <button class="s-nav__item flex items-center justify-between w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group cursor-pointer"
-        data-tab="storefront">
-        <div class="flex items-center gap-3">
-          <i class="fa-solid fa-store text-slate-400 group-hover:text-indigo-500 w-4 text-center"></i>
-          Giao diện cửa hàng
-        </div>
-        <span class="text-[9px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-md uppercase tracking-wider">Banner</span>
-      </button>
-
-      <button class="s-nav__item flex items-center justify-between w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group cursor-pointer"
-        data-tab="integrations">
-        <div class="flex items-center gap-3">
-          <i class="fa-solid fa-link text-slate-400 group-hover:text-indigo-500 w-4 text-center"></i>
-          API & Tích hợp
-        </div>
-      </button>
-
-      <button class="s-nav__item flex items-center justify-between w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group cursor-pointer"
-        data-tab="shipping">
-        <div class="flex items-center gap-3">
-          <i class="fa-solid fa-truck-fast text-slate-400 group-hover:text-indigo-500 w-4 text-center"></i>
-          Vận chuyển
-        </div>
-      </button>
-
-      <div class="h-px bg-slate-200 my-4 mx-3"></div>
-      <div class="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-2 px-3">Hệ thống</div>
-
-      <button class="s-nav__item flex items-center justify-between w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group cursor-pointer"
-        data-tab="language">
-        <div class="flex items-center gap-3">
-          <i class="fa-solid fa-earth-americas text-slate-400 group-hover:text-indigo-500 w-4 text-center"></i>
-          Ngôn ngữ Admin
-        </div>
-        <span class="text-[9px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-md uppercase tracking-wider">New</span>
-      </button>
-
-      <button class="s-nav__item flex items-center justify-between w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group cursor-pointer"
-        data-tab="admin_ui">
-        <div class="flex items-center gap-3">
-          <i class="fa-solid fa-palette text-slate-400 group-hover:text-indigo-500 w-4 text-center"></i>
-          Giao diện Admin
-        </div>
-      </button>
-    </aside>
-
-    {# ── Panels Render Content ── #}
-    <main class="w-full">
-      <section class="s-panel active" id="panel-general">
-        {% include "admin/settings/_tab_general.html" %}
-      </section>
-      <section class="s-panel" id="panel-storefront">
-        {% include "admin/settings/_tab_storefront.html" %}
-      </section>
-      <section class="s-panel" id="panel-integrations">
-        {% include "admin/settings/_tab_integrations.html" %}
-      </section>
-      <section class="s-panel" id="panel-shipping">
-        {% include "admin/settings/_tab_shipping.html" %}
-      </section>
-      <section class="s-panel" id="panel-language">
-        {% include "admin/settings/_tab_language.html" ignore missing %}
-      </section>
-      <section class="s-panel" id="panel-admin_ui">
-        {% include "admin/settings/_tab_admin_ui.html" ignore missing %}
-      </section>
+    <main class="mm-settings-content">
+      {% include "admin/settings/_tab_storefront.html" %}
     </main>
   </div>
 </div>
@@ -269,51 +375,62 @@
 
 {% block extra_scripts %}
 <script>
-  // ✅ GIẢI PHÁP TRIỆT TIÊU LỖI 404/NOT DEFINED: Tạo Namespace chống bẫy bất đồng bộ Vercel CDN
+(function () {
+  "use strict";
+
   window.Settings = window.Settings || {};
 
-  document.addEventListener("DOMContentLoaded", () => {
-    
-    // Định nghĩa logic chuyển tab gắn cứng vào đối tượng toàn cục
-    window.Settings.switchTab = function (tabId, btn) {
-      if (!btn || !tabId) return;
-      
-      document.querySelectorAll('.s-nav__item').forEach(el => {
-        el.classList.remove('active', 'bg-slate-100', 'text-indigo-600');
-        el.classList.add('text-slate-600');
-        const icon = el.querySelector('i');
-        if (icon) { icon.classList.remove('text-indigo-600'); icon.classList.add('text-slate-400'); }
-      });
-      
-      btn.classList.add('active', 'bg-slate-100', 'text-indigo-600');
-      btn.classList.remove('text-slate-600');
-      const btnIcon = btn.querySelector('i');
-      if (btnIcon) { btnIcon.classList.remove('text-slate-400'); btnIcon.classList.add('text-indigo-600'); }
+  function escapeHtml(value) {
+    return String(value || "").replace(/[<>&]/g, function (char) {
+      return {
+        "<": "&lt;",
+        ">": "&gt;",
+        "&": "&amp;"
+      }[char];
+    });
+  }
 
-      document.querySelectorAll('.s-panel').forEach(p => p.classList.remove('active'));
-      const targetPanel = document.getElementById('panel-' + tabId);
-      if (targetPanel) { targetPanel.classList.add('active'); }
+  function initToastApi() {
+    window.Settings.toast = function (message, type = "info") {
+      const wrap = document.getElementById("toastContainer");
+      if (!wrap || !message) return;
+
+      const toast = document.createElement("div");
+      toast.className = "toast toast--" + type;
+
+      const icon =
+        type === "success"
+          ? "fa-circle-check"
+          : type === "error"
+            ? "fa-circle-exclamation"
+            : "fa-circle-info";
+
+      toast.innerHTML = `
+        <i class="fa-solid ${icon}"></i>
+        <span>${escapeHtml(message)}</span>
+      `;
+
+      wrap.appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.add("fade-out");
+        setTimeout(() => toast.remove(), 260);
+      }, 2600);
     };
 
-    // Khởi tạo giao diện Active mặc định ban đầu cho mượt mà
-    const activeTab = document.querySelector('.s-nav__item.active');
-    if (activeTab) {
-      activeTab.classList.add('bg-slate-100', 'text-indigo-600');
-      activeTab.classList.remove('text-slate-600');
-      const btnIcon = activeTab.querySelector('i');
-      if (btnIcon) { btnIcon.classList.remove('text-slate-400'); btnIcon.classList.add('text-indigo-600'); }
-    }
+    window.GUA = window.GUA || {};
+    window.GUA.snackbar = function (message, type) {
+      const normalized = type === "danger" ? "error" : (type || "info");
+      window.Settings.toast(message, normalized);
+    };
 
-    // ✅ ĐỒNG BỘ: Đăng ký trình nghe click động để dọn sạch lỗi ReferenceError 
-    document.querySelectorAll('.s-nav__item').forEach(btn => {
-      btn.addEventListener('click', function(e) {
-        e.preventDefault();
-        const tabId = this.dataset.tab;
-        window.Settings.switchTab(tabId, this);
-      });
-    });
-  });
+    window.MM = window.MM || {};
+    window.MM.snackbar = window.Settings.toast;
+  }
+
+  document.addEventListener("DOMContentLoaded", initToastApi);
+})();
 </script>
-{# Nạp logic lưu trữ dữ liệu thô từ file tĩnh #}
+
 <script src="{{ url_for('static', filename='js/admin/settings.js') }}"></script>
 {% endblock %}

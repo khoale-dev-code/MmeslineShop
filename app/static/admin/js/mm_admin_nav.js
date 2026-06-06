@@ -1,44 +1,132 @@
-
 (function () {
-  const sidebar = document.getElementById("adminSidebar");
-  const backdrop = document.getElementById("adminSidebarBackdrop");
-  const progress = document.getElementById("mmAdminProgress");
-  const SIDEBAR_KEY = "mm_admin_sidebar_collapsed";
+  "use strict";
 
-  function setCollapsed(collapsed) {
-    document.body.classList.toggle("admin-sidebar-collapsed", Boolean(collapsed));
+  const SELECTORS = {
+    sidebar: "#mmAdminSidebar, #adminSidebar, [data-admin-sidebar]",
+    backdrop: "#adminSidebarBackdrop, #mmAdminSidebarBackdrop, [data-admin-sidebar-backdrop]",
+    progress: "#mmAdminProgress",
 
-    const icon = document.getElementById("desktopSidebarToggleIcon");
-    const button = document.getElementById("desktopSidebarToggle");
+    userDropdown: "#adminUserDropdown",
+    userDropdownBackdrop: "#adminUserDropdownBackdrop",
+    userMenuButton: "#adminUserMenuButton",
+    userMenuChevron: "#adminUserMenuChevron",
 
-    if (icon) {
-      icon.className = collapsed
-        ? "fa-solid fa-angles-right"
-        : "fa-solid fa-bars-staggered";
-    }
+    sidebarToggle: "[data-admin-sidebar-toggle], #desktopSidebarToggle",
+    mobileMenuToggle: "[data-admin-mobile-menu-toggle], #adminMobileMenuButton, #openAdminSidebar",
+    mobileMenuClose: "[data-admin-mobile-menu-close], #closeAdminSidebar"
+  };
 
-    if (button) {
-      button.title = collapsed ? "Mở rộng sidebar" : "Thu gọn sidebar";
-      button.setAttribute("aria-label", button.title);
+  const STORAGE_KEYS = {
+    collapsed: "mmAdminSidebarCollapsed",
+    collapsedLegacy: "mm_admin_sidebar_collapsed"
+  };
+
+  const state = {
+    progressStarted: false,
+    progressTimer: null,
+    initialized: false
+  };
+
+  function $(selector, root = document) {
+    return root.querySelector(selector);
+  }
+
+  function $all(selector, root = document) {
+    return Array.from(root.querySelectorAll(selector));
+  }
+
+  function getSidebar() {
+    return $(SELECTORS.sidebar);
+  }
+
+  function getBackdrop() {
+    return $(SELECTORS.backdrop);
+  }
+
+  function isDesktop() {
+    return window.matchMedia("(min-width: 1024px)").matches;
+  }
+
+  function readCollapsedState() {
+    try {
+      return (
+        localStorage.getItem(STORAGE_KEYS.collapsed) === "1" ||
+        localStorage.getItem(STORAGE_KEYS.collapsedLegacy) === "1"
+      );
+    } catch (_) {
+      return false;
     }
   }
 
-  try {
-    setCollapsed(localStorage.getItem(SIDEBAR_KEY) === "1");
-  } catch (_) {
-    setCollapsed(false);
+  function writeCollapsedState(collapsed) {
+    try {
+      localStorage.setItem(STORAGE_KEYS.collapsed, collapsed ? "1" : "0");
+      localStorage.setItem(STORAGE_KEYS.collapsedLegacy, collapsed ? "1" : "0");
+    } catch (_) {}
+  }
+
+  function setCollapsed(collapsed) {
+    const enabled = Boolean(collapsed);
+    const sidebar = getSidebar();
+
+    document.documentElement.classList.toggle("mm-sidebar-collapsed", enabled);
+    document.documentElement.classList.toggle("admin-sidebar-collapsed", enabled);
+    document.documentElement.classList.toggle("mm-admin-sidebar-collapsed", enabled);
+
+    document.body.classList.toggle("mm-sidebar-collapsed", enabled);
+    document.body.classList.toggle("admin-sidebar-collapsed", enabled);
+    document.body.classList.toggle("mm-admin-sidebar-collapsed", enabled);
+
+    if (sidebar) {
+      sidebar.dataset.collapsed = enabled ? "1" : "0";
+      sidebar.setAttribute("aria-expanded", enabled ? "false" : "true");
+    }
+
+    $all(SELECTORS.sidebarToggle).forEach((button) => {
+      const icon =
+        button.querySelector("i") ||
+        document.getElementById("desktopSidebarToggleIcon");
+
+      button.setAttribute("aria-expanded", enabled ? "false" : "true");
+      button.setAttribute(
+        "aria-label",
+        enabled ? "Mở rộng thanh điều hướng" : "Thu gọn thanh điều hướng"
+      );
+      button.setAttribute(
+        "title",
+        enabled ? "Mở rộng thanh điều hướng" : "Thu gọn thanh điều hướng"
+      );
+
+      if (icon) {
+        icon.className = enabled
+          ? "fa-solid fa-angles-right"
+          : "fa-solid fa-bars-staggered";
+      }
+    });
+  }
+
+  function toggleCollapsed() {
+    const next = !document.body.classList.contains("mm-sidebar-collapsed");
+
+    writeCollapsedState(next);
+    setCollapsed(next);
+
+    window.dispatchEvent(
+      new CustomEvent("mm-admin-sidebar-change", {
+        detail: { collapsed: next }
+      })
+    );
   }
 
   const Progress = {
-    started: false,
-    timer: null,
-
     start() {
-      if (!progress || this.started) return;
+      const progress = $(SELECTORS.progress);
+      if (!progress || state.progressStarted) return;
 
-      this.started = true;
-      clearTimeout(this.timer);
+      state.progressStarted = true;
+      clearTimeout(state.progressTimer);
 
+      progress.style.pointerEvents = "none";
       progress.style.opacity = "1";
       progress.style.transition = "none";
       progress.style.width = "0%";
@@ -50,20 +138,24 @@
     },
 
     done() {
+      const progress = $(SELECTORS.progress);
       if (!progress) return;
 
+      clearTimeout(state.progressTimer);
+
+      progress.style.pointerEvents = "none";
       progress.style.transition = "width 160ms ease-out";
       progress.style.width = "100%";
 
-      this.timer = setTimeout(() => {
+      state.progressTimer = setTimeout(() => {
         progress.style.transition = "opacity 220ms ease";
         progress.style.opacity = "0";
 
         setTimeout(() => {
           progress.style.transition = "none";
           progress.style.width = "0%";
-          progress.style.opacity = "1";
-          this.started = false;
+          progress.style.opacity = "0";
+          state.progressStarted = false;
         }, 240);
       }, 130);
     }
@@ -71,45 +163,84 @@
 
   const AdminShell = {
     openSidebar() {
-      if (!sidebar || !backdrop) return;
+      const sidebar = getSidebar();
+      const backdrop = getBackdrop();
+
+      if (!sidebar) return;
 
       sidebar.classList.add("is-open");
-      backdrop.classList.add("is-open");
-      document.body.style.overflow = "hidden";
+      sidebar.setAttribute("aria-hidden", "false");
+
+      if (backdrop) {
+        backdrop.classList.add("is-open");
+        backdrop.setAttribute("aria-hidden", "false");
+      }
+
+      document.body.classList.add("admin-sidebar-open", "mm-admin-sidebar-open");
+
+      if (!isDesktop()) {
+        document.body.style.overflow = "hidden";
+      }
     },
 
     closeSidebar() {
-      if (!sidebar || !backdrop) return;
+      const sidebar = getSidebar();
+      const backdrop = getBackdrop();
 
-      sidebar.classList.remove("is-open");
-      backdrop.classList.remove("is-open");
-      document.body.style.overflow = "";
+      if (sidebar) {
+        sidebar.classList.remove("is-open");
+        sidebar.setAttribute("aria-hidden", isDesktop() ? "false" : "true");
+      }
+
+      if (backdrop) {
+        backdrop.classList.remove("is-open");
+        backdrop.setAttribute("aria-hidden", "true");
+      }
+
+      document.body.classList.remove("admin-sidebar-open", "mm-admin-sidebar-open");
+
+      if (!document.body.classList.contains("mm-modal-open")) {
+        document.body.style.overflow = "";
+      }
+    },
+
+    toggleSidebar() {
+      const sidebar = getSidebar();
+
+      if (!sidebar) return;
+
+      if (isDesktop()) {
+        toggleCollapsed();
+        return;
+      }
+
+      if (sidebar.classList.contains("is-open")) {
+        this.closeSidebar();
+      } else {
+        this.openSidebar();
+      }
     },
 
     toggleDesktopSidebar() {
-      const willCollapse = !document.body.classList.contains("admin-sidebar-collapsed");
-      setCollapsed(willCollapse);
-
-      try {
-        localStorage.setItem(SIDEBAR_KEY, willCollapse ? "1" : "0");
-      } catch (_) {}
+      toggleCollapsed();
     },
 
     openUserMenu() {
-      const dropdown = document.getElementById("adminUserDropdown");
-      const menuBackdrop = document.getElementById("adminUserDropdownBackdrop");
-      const button = document.getElementById("adminUserMenuButton");
-      const chevron = document.getElementById("adminUserMenuChevron");
+      const dropdown = $(SELECTORS.userDropdown);
+      const backdrop = $(SELECTORS.userDropdownBackdrop);
+      const button = $(SELECTORS.userMenuButton);
+      const chevron = $(SELECTORS.userMenuChevron);
 
-      if (!dropdown || !menuBackdrop) return;
+      if (!dropdown || !backdrop) return;
 
       dropdown.classList.remove("hidden");
-      menuBackdrop.classList.remove("hidden");
+      dropdown.setAttribute("aria-hidden", "false");
 
-      if (button) {
-        button.classList.add("is-open");
-        button.setAttribute("aria-expanded", "true");
-      }
+      backdrop.classList.remove("hidden");
+      backdrop.setAttribute("aria-hidden", "false");
+
+      button?.classList.add("is-open");
+      button?.setAttribute("aria-expanded", "true");
 
       if (chevron) {
         chevron.style.transform = "rotate(180deg)";
@@ -117,20 +248,21 @@
     },
 
     closeUserMenu() {
-      const dropdown = document.getElementById("adminUserDropdown");
-      const menuBackdrop = document.getElementById("adminUserDropdownBackdrop");
-      const button = document.getElementById("adminUserMenuButton");
-      const chevron = document.getElementById("adminUserMenuChevron");
+      const dropdown = $(SELECTORS.userDropdown);
+      const backdrop = $(SELECTORS.userDropdownBackdrop);
+      const button = $(SELECTORS.userMenuButton);
+      const chevron = $(SELECTORS.userMenuChevron);
 
-      if (!dropdown || !menuBackdrop) return;
+      if (!dropdown || !backdrop) return;
 
       dropdown.classList.add("hidden");
-      menuBackdrop.classList.add("hidden");
+      dropdown.setAttribute("aria-hidden", "true");
 
-      if (button) {
-        button.classList.remove("is-open");
-        button.setAttribute("aria-expanded", "false");
-      }
+      backdrop.classList.add("hidden");
+      backdrop.setAttribute("aria-hidden", "true");
+
+      button?.classList.remove("is-open");
+      button?.setAttribute("aria-expanded", "false");
 
       if (chevron) {
         chevron.style.transform = "rotate(0deg)";
@@ -143,7 +275,7 @@
         event.stopPropagation();
       }
 
-      const dropdown = document.getElementById("adminUserDropdown");
+      const dropdown = $(SELECTORS.userDropdown);
       if (!dropdown) return;
 
       if (dropdown.classList.contains("hidden")) {
@@ -153,9 +285,6 @@
       }
     }
   };
-
-  window.AdminShell = AdminShell;
-  window.AdminProgress = Progress;
 
   function shouldHandleNav(anchor) {
     const href = anchor.getAttribute("href");
@@ -169,7 +298,11 @@
       const url = new URL(href, window.location.origin);
 
       if (url.origin !== window.location.origin) return false;
-      if (url.pathname === window.location.pathname && url.search === window.location.search) {
+
+      if (
+        url.pathname === window.location.pathname &&
+        url.search === window.location.search
+      ) {
         return false;
       }
 
@@ -196,52 +329,188 @@
     } catch (_) {}
   }
 
-  document.querySelectorAll("a[data-prefetch]").forEach((anchor) => {
-    const href = anchor.getAttribute("href");
+  function initSidebarState() {
+    const sidebar = getSidebar();
+    const backdrop = getBackdrop();
 
-    anchor.addEventListener("mouseenter", () => prefetchUrl(href), { passive: true });
-    anchor.addEventListener("focus", () => prefetchUrl(href), { passive: true });
-    anchor.addEventListener("touchstart", () => prefetchUrl(href), { passive: true });
-  });
+    setCollapsed(readCollapsedState());
 
-  document.querySelectorAll("a[data-nav]").forEach((anchor) => {
-    anchor.addEventListener("click", () => {
-      if (!shouldHandleNav(anchor)) return;
+    if (sidebar) {
+      sidebar.setAttribute("aria-hidden", isDesktop() ? "false" : "true");
+    }
 
-      anchor.classList.add("is-loading");
-      Progress.start();
-      AdminShell.closeSidebar();
-      AdminShell.closeUserMenu();
-    });
-  });
+    if (backdrop) {
+      backdrop.setAttribute("aria-hidden", "true");
+    }
+  }
 
-  document.querySelectorAll("form[data-form-nav]").forEach((form) => {
-    form.addEventListener("submit", () => {
-      const button = form.querySelector('button[type="submit"]');
+  function initSidebarControls() {
+    document.addEventListener("click", (event) => {
+      const toggle = event.target.closest(SELECTORS.sidebarToggle);
+      if (toggle) {
+        event.preventDefault();
+        event.stopPropagation();
 
-      if (button) {
-        button.disabled = true;
-        button.classList.add("opacity-70", "cursor-not-allowed");
+        if (isDesktop()) {
+          toggleCollapsed();
+        } else {
+          AdminShell.toggleSidebar();
+        }
+
+        return;
       }
 
-      Progress.start();
+      const openButton = event.target.closest(SELECTORS.mobileMenuToggle);
+      if (openButton) {
+        event.preventDefault();
+        event.stopPropagation();
+        AdminShell.openSidebar();
+        return;
+      }
+
+      const closeButton = event.target.closest(SELECTORS.mobileMenuClose);
+      if (closeButton) {
+        event.preventDefault();
+        event.stopPropagation();
+        AdminShell.closeSidebar();
+        return;
+      }
+
+      const backdrop = event.target.closest(SELECTORS.backdrop);
+      if (backdrop && backdrop.classList.contains("is-open")) {
+        event.preventDefault();
+        AdminShell.closeSidebar();
+      }
+    });
+
+    window.addEventListener("storage", (event) => {
+      if (
+        event.key === STORAGE_KEYS.collapsed ||
+        event.key === STORAGE_KEYS.collapsedLegacy
+      ) {
+        setCollapsed(readCollapsedState());
+      }
+    });
+
+    window.addEventListener("resize", () => {
+      if (isDesktop()) {
+        AdminShell.closeSidebar();
+        const sidebar = getSidebar();
+        sidebar?.setAttribute("aria-hidden", "false");
+      }
+    }, { passive: true });
+  }
+
+  function initUserMenu() {
+    const button = $(SELECTORS.userMenuButton);
+    const backdrop = $(SELECTORS.userDropdownBackdrop);
+
+    button?.addEventListener("click", (event) => {
+      AdminShell.toggleUserMenu(event);
+    });
+
+    backdrop?.addEventListener("click", () => {
       AdminShell.closeUserMenu();
     });
-  });
 
-  window.addEventListener("pageshow", () => Progress.done());
-  window.addEventListener("load", () => Progress.done());
-  window.addEventListener("beforeunload", () => Progress.start());
+    document.addEventListener("click", (event) => {
+      const dropdown = $(SELECTORS.userDropdown);
+      const menuButton = $(SELECTORS.userMenuButton);
 
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
-      AdminShell.closeSidebar();
+      if (!dropdown || dropdown.classList.contains("hidden")) return;
+      if (dropdown.contains(event.target)) return;
+      if (menuButton && menuButton.contains(event.target)) return;
+
       AdminShell.closeUserMenu();
-    }
+    });
+  }
 
-    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "b") {
-      event.preventDefault();
-      AdminShell.toggleDesktopSidebar();
-    }
-  });
+  function initPrefetch() {
+    $all("a[data-prefetch]").forEach((anchor) => {
+      const href = anchor.getAttribute("href");
+
+      anchor.addEventListener("mouseenter", () => prefetchUrl(href), { passive: true });
+      anchor.addEventListener("focus", () => prefetchUrl(href), { passive: true });
+      anchor.addEventListener("touchstart", () => prefetchUrl(href), { passive: true });
+    });
+  }
+
+  function initNavigationProgress() {
+    $all("a[data-nav]").forEach((anchor) => {
+      anchor.addEventListener("click", () => {
+        if (!shouldHandleNav(anchor)) return;
+
+        anchor.classList.add("is-loading");
+        Progress.start();
+        AdminShell.closeSidebar();
+        AdminShell.closeUserMenu();
+      });
+    });
+
+    $all("form[data-form-nav]").forEach((form) => {
+      form.addEventListener("submit", () => {
+        const button = form.querySelector('button[type="submit"]');
+
+        if (button) {
+          button.disabled = true;
+          button.classList.add("opacity-70", "cursor-not-allowed");
+        }
+
+        Progress.start();
+        AdminShell.closeUserMenu();
+      });
+    });
+
+    window.addEventListener("pageshow", () => Progress.done());
+    window.addEventListener("load", () => Progress.done());
+    window.addEventListener("beforeunload", () => Progress.start());
+  }
+
+  function initKeyboardShortcuts() {
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        AdminShell.closeSidebar();
+        AdminShell.closeUserMenu();
+      }
+
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "b") {
+        event.preventDefault();
+        AdminShell.toggleDesktopSidebar();
+      }
+    });
+  }
+
+  function exposeGlobals() {
+    window.AdminShell = AdminShell;
+    window.AdminProgress = Progress;
+
+    window.MMAdminLayout = window.MMAdminLayout || {};
+    window.MMAdminLayout.applySidebarState = function () {
+      setCollapsed(readCollapsedState());
+    };
+    window.MMAdminLayout.toggleSidebarCollapsed = toggleCollapsed;
+    window.MMAdminLayout.openSidebar = AdminShell.openSidebar.bind(AdminShell);
+    window.MMAdminLayout.closeSidebar = AdminShell.closeSidebar.bind(AdminShell);
+  }
+
+  function init() {
+    if (state.initialized) return;
+    state.initialized = true;
+
+    initSidebarState();
+    initSidebarControls();
+    initUserMenu();
+    initPrefetch();
+    initNavigationProgress();
+    initKeyboardShortcuts();
+    exposeGlobals();
+
+    Progress.done();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init, { once: true });
+  } else {
+    init();
+  }
 })();

@@ -1,62 +1,108 @@
-{# address/_delete_dialog.html
-   Custom confirm dialog — K-Fashion Minimalism 2026 (Responsive & Clean UI) #}
-<div id="delete-dialog"
-  role="alertdialog" aria-modal="true" aria-labelledby="del-title" aria-describedby="del-desc"
+{# app/templates/profile/address/_delete_dialog.html #}
+
+<div
+  id="delete-dialog"
+  role="alertdialog"
+  aria-modal="true"
+  aria-labelledby="del-title"
+  aria-describedby="del-desc"
   aria-hidden="true"
   style="display:none"
-  class="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6 font-sans">
+  class="fixed inset-0 z-[9995] hidden items-end justify-center font-sans sm:items-center sm:p-4"
+>
+  <div
+    id="del-backdrop"
+    class="fixed inset-0 cursor-pointer bg-[#241207]/55 opacity-0 backdrop-blur-md transition-opacity duration-300"
+    aria-hidden="true"
+    onclick="GUA.deleteDialog.cancel()"
+  ></div>
 
-  {# Backdrop (Đậm và có độ mờ kính tinh tế) #}
-  <div class="absolute inset-0 bg-black/60 backdrop-blur-sm opacity-0 transition-opacity duration-300 cursor-pointer" 
-       id="del-backdrop" onclick="GUA.deleteDialog.cancel()"></div>
+  <div
+    id="del-panel"
+    class="relative z-[9996] flex w-full max-w-[460px] flex-col overflow-hidden rounded-t-[28px] border border-[#eadfd4] bg-[#fffaf5] opacity-0 shadow-[0_34px_100px_-58px_rgba(36,18,7,.78)] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] sm:rounded-[30px]"
+  >
+    <button
+      type="button"
+      class="absolute left-1/2 top-3 z-20 h-1.5 w-12 -translate-x-1/2 rounded-full bg-[#d8c6b6] sm:hidden"
+      onclick="GUA.deleteDialog.cancel()"
+      aria-label="Đóng"
+    ></button>
 
-  {# Panel Modal (Form khối sắc sảo, không bo tròn lố) #}
-  <div id="del-panel"
-    class="relative w-full max-w-[420px] bg-white rounded-sm shadow-2xl opacity-0 scale-95 transition-all duration-300 flex flex-col z-10 border border-neutral-100">
-
-    {# Nút Đóng (Góc trên phải) #}
-    <button type="button" onclick="GUA.deleteDialog.cancel()" 
-            class="absolute top-5 right-5 w-8 h-8 flex items-center justify-center text-neutral-400 hover:text-black hover:bg-neutral-50 rounded-sm transition-colors z-20">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-        </svg>
+    <button
+      type="button"
+      onclick="GUA.deleteDialog.cancel()"
+      aria-label="Đóng"
+      class="absolute right-5 top-5 z-20 flex h-10 w-10 items-center justify-center rounded-2xl border border-[#eadfd4] bg-[#fffdf9] text-[#8a6a52] transition hover:bg-[#3b2414] hover:text-white"
+    >
+      <i class="fa-solid fa-xmark text-sm"></i>
     </button>
 
-    {# Nội dung chính #}
-    <div class="p-8 md:p-10 flex flex-col items-center text-center">
-        
-        {# Icon cảnh báo #}
-        <div class="w-16 h-16 mb-6 rounded-full border border-red-100 bg-red-50 flex items-center justify-center text-red-500 shrink-0 shadow-sm">
-          <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/>
-          </svg>
+    <div class="relative px-5 pb-6 pt-12 text-center sm:px-8 sm:pb-8 sm:pt-10">
+      <div class="absolute right-0 top-0 h-28 w-28 rounded-full bg-red-500/10 blur-3xl"></div>
+
+      <div class="relative z-10">
+        <div class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-[24px] border border-red-200 bg-red-50 text-red-600 shadow-[0_18px_38px_-30px_rgba(220,38,38,.5)]">
+          <i class="fa-solid fa-trash-can text-xl"></i>
         </div>
 
-        {# Text #}
-        <h3 id="del-title" class="text-sm md:text-base font-black text-black uppercase tracking-[0.1em] mb-3">
-            Xác nhận xóa địa chỉ?
-        </h3>
-        <p id="del-desc" class="text-xs text-neutral-500 leading-relaxed mb-8 px-2">
-          Địa chỉ của <strong id="del-name" class="text-black font-bold uppercase tracking-wider"></strong> sẽ bị xoá vĩnh viễn khỏi sổ địa chỉ. Bạn không thể hoàn tác hành động này.
+        <p class="mb-2 text-[10px] font-black uppercase tracking-[.24em] text-[#b98b62]">
+          MMESTLINE Address
         </p>
 
-        {# Khu vực Nút bấm (Dọc trên Mobile, Ngang trên Tablet/PC) #}
-        <div class="flex flex-col-reverse sm:flex-row gap-3 w-full">
-          <button type="button" onclick="GUA.deleteDialog.cancel()"
-            class="flex-1 h-12 flex items-center justify-center rounded-sm border border-neutral-200 bg-white text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 hover:bg-neutral-50 hover:text-black transition-colors">
+        <h3
+          id="del-title"
+          class="text-2xl font-black tracking-[-.05em] text-[#241207]"
+        >
+          Xóa địa chỉ này?
+        </h3>
+
+        <p
+          id="del-desc"
+          class="mx-auto mt-4 max-w-sm text-sm font-semibold leading-7 text-[#8a6a52]"
+        >
+          Địa chỉ của
+          <strong
+            id="del-name"
+            class="font-black text-[#241207]"
+          ></strong>
+          sẽ bị xóa khỏi sổ địa chỉ. Hành động này không thể hoàn tác.
+        </p>
+
+        <div class="mt-7 rounded-[22px] border border-amber-200 bg-amber-50 px-4 py-3 text-left">
+          <div class="flex items-start gap-3">
+            <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-white text-amber-600">
+              <i class="fa-solid fa-triangle-exclamation text-xs"></i>
+            </span>
+
+            <p class="text-xs font-bold leading-6 text-amber-800">
+              Nếu đây là địa chỉ mặc định, bạn nên chọn một địa chỉ mặc định khác trước khi xóa để tránh lỗi khi thanh toán.
+            </p>
+          </div>
+        </div>
+
+        <div class="mt-7 flex flex-col-reverse gap-3 sm:flex-row">
+          <button
+            type="button"
+            onclick="GUA.deleteDialog.cancel()"
+            class="flex h-12 flex-1 items-center justify-center rounded-2xl border border-[#eadfd4] bg-[#fffdf9] px-5 text-[10px] font-black uppercase tracking-[.16em] text-[#75543f] transition hover:bg-[#fbf7f1] hover:text-[#241207]"
+          >
             Hủy bỏ
           </button>
-          
-          <button type="button" onclick="GUA.deleteDialog.confirm()"
-            class="flex-1 h-12 flex items-center justify-center rounded-sm bg-red-600 text-[10px] font-bold uppercase tracking-[0.2em] text-white hover:bg-red-700 active:scale-[0.98] transition-all shadow-md">
-            Xóa vĩnh viễn
+
+          <button
+            type="button"
+            onclick="GUA.deleteDialog.confirm()"
+            class="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-red-600 px-5 text-[10px] font-black uppercase tracking-[.16em] text-white shadow-[0_18px_38px_-28px_rgba(220,38,38,.7)] transition hover:bg-red-700 active:scale-[.98]"
+          >
+            <i class="fa-solid fa-trash-can text-xs"></i>
+            Xóa địa chỉ
           </button>
         </div>
+      </div>
     </div>
   </div>
 </div>
 
-{# Hidden delete form — submitted programmatically #}
 <form id="delete-form" method="POST" class="hidden">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 </form>

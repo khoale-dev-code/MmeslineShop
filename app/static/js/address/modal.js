@@ -1,215 +1,213 @@
-/**
- * static/js/address/modal.js
- * GUA.modal.open('add')
- * GUA.modal.open('edit', id, addrObj)
- * GUA.modal.close()
- *
- * GUA.confirmDelete(id, name)  — custom confirm dialog
- * GUA.deleteDialog.confirm()
- * GUA.deleteDialog.cancel()
- */
 (function () {
-  'use strict';
+  "use strict";
 
   window.GUA = window.GUA || {};
 
-  // ── Elements ─────────────────────────────────────────
+  const modal = document.getElementById("addr-modal");
+  const form = document.getElementById("addr-form");
 
-  var _modalEl    = document.getElementById('addr-modal');
-  var _panelEl    = document.getElementById('modal-panel');
-  var _backdropEl = document.getElementById('modal-backdrop');
-  var _formEl     = document.getElementById('addr-form');
-  var _titleEl    = document.getElementById('modal-title');
-  var _btnText    = document.getElementById('btn-text');
-  var _btnSubmit  = document.getElementById('btn-submit');
-  var _btnSpin    = document.getElementById('btn-spin');
+  const els = {
+    title: document.getElementById("modal-title"),
+    addrId: document.getElementById("addr-id"),
+    name: document.getElementById("inp-name"),
+    phone: document.getElementById("inp-phone"),
+    address: document.getElementById("inp-addr"),
+    note: document.getElementById("inp-note"),
+    isDefault: document.getElementById("chk-default"),
 
-  var _delDialog  = document.getElementById('delete-dialog');
-  var _delPanel   = document.getElementById('del-panel');
-  var _delBack    = document.getElementById('del-backdrop');
-  var _delName    = document.getElementById('del-name');
-  var _delForm    = document.getElementById('delete-form');
+    province: document.getElementById("sel-prov"),
+    district: document.getElementById("sel-dist"),
+    ward: document.getElementById("sel-ward"),
 
-  // ── State ─────────────────────────────────────────────
+    provinceCode: document.getElementById("hid-prov-code"),
+    districtCode: document.getElementById("hid-dist-code"),
+    wardCode: document.getElementById("hid-ward-code"),
 
-  var _lastFocus = null;
-  // FIX: Track mode explicitly instead of reading DOM text (was buggy on close reset)
-  var _currentMode = 'add';
+    provinceName: document.getElementById("hid-prov"),
+    districtName: document.getElementById("hid-dist"),
+    wardName: document.getElementById("hid-ward"),
 
-  // ── Focus trap ────────────────────────────────────────
+    provinceAlias: document.getElementById("hid-province-alias"),
+    districtAlias: document.getElementById("hid-district-alias"),
+    wardAlias: document.getElementById("hid-ward-alias"),
 
-  var FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    btn: document.getElementById("btn-submit"),
+    btnText: document.getElementById("btn-text"),
+    btnSpin: document.getElementById("btn-spin")
+  };
 
-  function trapFocus(el) {
-    var nodes = el.querySelectorAll(FOCUSABLE);
-    if (!nodes.length) return;
-    var first = nodes[0];
-    var last  = nodes[nodes.length - 1];
-    el._trap = function (e) {
-      if (e.key !== 'Tab') return;
-      if (e.shiftKey) {
-        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
-      } else {
-        if (document.activeElement === last)  { e.preventDefault(); first.focus(); }
-      }
-    };
-    el.addEventListener('keydown', el._trap);
-    setTimeout(function () { first.focus(); }, 50);
+  function getOptionText(select) {
+    if (!select) return "";
+    const option = select.options[select.selectedIndex];
+    return option ? option.textContent.trim() : "";
   }
 
-  function releaseFocus(el) {
-    if (el._trap) { el.removeEventListener('keydown', el._trap); delete el._trap; }
+  function getOptionValue(select) {
+    return select ? String(select.value || "").trim() : "";
   }
 
-  // ── Modal ─────────────────────────────────────────────
+  function syncLocationHiddenFields() {
+    const provinceCode = getOptionValue(els.province);
+    const districtCode = getOptionValue(els.district);
+    const wardCode = getOptionValue(els.ward);
 
-  GUA.modal = {
-    open: function (mode, id, addr) {
-      _lastFocus   = document.activeElement;
-      _currentMode = mode;
-      var isEdit   = mode === 'edit' && id;
+    const provinceName = getOptionText(els.province);
+    const districtName = getOptionText(els.district);
+    const wardName = getOptionText(els.ward);
 
-      // Build form action — FIX: preserve `next` query param correctly
-      var nextParam = new URLSearchParams(window.location.search).get('next');
-      var base = isEdit
-        ? ('/profile/addresses/edit/' + id)
-        : '/profile/addresses';
-      _formEl.action = nextParam
-        ? base + '?next=' + encodeURIComponent(nextParam)
-        : base;
+    if (els.provinceCode) els.provinceCode.value = provinceCode;
+    if (els.districtCode) els.districtCode.value = districtCode;
+    if (els.wardCode) els.wardCode.value = wardCode;
 
-      // Labels
-      _titleEl.textContent = isEdit ? 'Chỉnh sửa địa chỉ' : 'Thêm địa chỉ mới';
-      _btnText.textContent = isEdit ? 'Cập nhật'           : 'Lưu địa chỉ';
+    if (els.provinceName) els.provinceName.value = provinceName;
+    if (els.districtName) els.districtName.value = districtName;
+    if (els.wardName) els.wardName.value = wardName;
 
-      // Populate or reset
-      if (isEdit && addr) {
-        document.getElementById('addr-id').value       = id;
-        document.getElementById('inp-name').value      = addr.full_name    || '';
-        document.getElementById('inp-phone').value     = addr.phone        || '';
-        document.getElementById('inp-addr').value      = addr.address_line || '';
-        document.getElementById('inp-note').value      = addr.note         || '';
-        // FIX: is_default from Supabase can be Python True (truthy) — coerce correctly
-        document.getElementById('chk-default').checked = !!(addr.is_default);
-        GUA.geo.preselectEdit(addr);
-      } else {
-        _formEl.reset();
-        document.getElementById('addr-id').value = '';
-        GUA.geo.reset();
+    if (els.provinceAlias) els.provinceAlias.value = provinceName;
+    if (els.districtAlias) els.districtAlias.value = districtName;
+    if (els.wardAlias) els.wardAlias.value = wardName;
+  }
+
+  function setSubmitting(isSubmitting) {
+    if (!els.btn) return;
+
+    els.btn.disabled = Boolean(isSubmitting);
+
+    if (els.btnText) {
+      els.btnText.textContent = isSubmitting ? "Đang lưu..." : "Lưu địa chỉ";
+    }
+
+    if (els.btnSpin) {
+      els.btnSpin.classList.toggle("hidden", !isSubmitting);
+    }
+  }
+
+  function resetForm() {
+    if (!form) return;
+
+    form.reset();
+    form.action = "/profile/addresses/add";
+
+    if (els.addrId) els.addrId.value = "";
+
+    [
+      els.provinceCode,
+      els.districtCode,
+      els.wardCode,
+      els.provinceName,
+      els.districtName,
+      els.wardName,
+      els.provinceAlias,
+      els.districtAlias,
+      els.wardAlias
+    ].forEach((input) => {
+      if (input) input.value = "";
+    });
+
+    setSubmitting(false);
+  }
+
+  function fillForm(addr) {
+    if (!addr) return;
+
+    if (els.addrId) els.addrId.value = addr.id || "";
+    if (els.name) els.name.value = addr.full_name || "";
+    if (els.phone) els.phone.value = addr.phone || "";
+    if (els.address) els.address.value = addr.address_line || "";
+    if (els.note) els.note.value = addr.note || "";
+    if (els.isDefault) els.isDefault.checked = Boolean(addr.is_default);
+
+    if (els.provinceName) els.provinceName.value = addr.province_name || addr.province || "";
+    if (els.districtName) els.districtName.value = addr.district_name || addr.district || "";
+    if (els.wardName) els.wardName.value = addr.ward_name || addr.ward || "";
+
+    if (els.provinceAlias) els.provinceAlias.value = addr.province || addr.province_name || "";
+    if (els.districtAlias) els.districtAlias.value = addr.district || addr.district_name || "";
+    if (els.wardAlias) els.wardAlias.value = addr.ward || addr.ward_name || "";
+  }
+
+  function open(mode, id, addr) {
+    if (!modal || !form) return;
+
+    const isEdit = mode === "edit";
+
+    resetForm();
+
+    if (isEdit) {
+      form.action = `/profile/addresses/edit/${id || addr?.id || ""}`;
+      if (els.title) els.title.textContent = "Chỉnh sửa địa chỉ";
+      if (els.btnText) els.btnText.textContent = "Cập nhật địa chỉ";
+      fillForm(addr);
+    } else {
+      form.action = "/profile/addresses/add";
+      if (els.title) els.title.textContent = "Thêm địa chỉ mới";
+      if (els.btnText) els.btnText.textContent = "Lưu địa chỉ";
+    }
+
+    modal.classList.add("is-open");
+    modal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+
+    setTimeout(() => {
+      els.name?.focus();
+    }, 120);
+  }
+
+  function close() {
+    if (!modal) return;
+
+    modal.classList.remove("is-open");
+    modal.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+  }
+
+  function initFormSubmit() {
+    if (!form) return;
+
+    form.addEventListener("submit", function (event) {
+      syncLocationHiddenFields();
+
+      const required = [
+        els.name,
+        els.phone,
+        els.address,
+        els.province,
+        els.district,
+        els.ward
+      ];
+
+      const invalid = required.find((el) => !el || !String(el.value || "").trim());
+
+      if (invalid) {
+        event.preventDefault();
+        invalid?.focus();
+
+        if (window.showToast) {
+          window.showToast("Vui lòng nhập đầy đủ thông tin địa chỉ.", "error");
+        }
+
+        return;
       }
 
-      // Reset submit button state
-      _btnSubmit.disabled     = false;
-      _btnText.textContent    = isEdit ? 'Cập nhật' : 'Lưu địa chỉ';
-      _btnSpin.classList.add('hidden');
+      setSubmitting(true);
+    });
+  }
 
-      // Show
-      _modalEl.style.display = '';
-      _modalEl.classList.add('is-open');
-      _modalEl.removeAttribute('aria-hidden');
-      document.body.style.overflow = 'hidden';
-      trapFocus(_panelEl);
-    },
+  els.province?.addEventListener("change", syncLocationHiddenFields);
+  els.district?.addEventListener("change", syncLocationHiddenFields);
+  els.ward?.addEventListener("change", syncLocationHiddenFields);
 
-    close: function () {
-      releaseFocus(_panelEl);
-      _panelEl.style.opacity    = '0';
-      _panelEl.style.transform  = 'translateY(2rem)';
-      _backdropEl.style.opacity = '0';
-
-      setTimeout(function () {
-        _modalEl.classList.remove('is-open');
-        _modalEl.setAttribute('aria-hidden', 'true');
-        _modalEl.style.display = 'none';
-        // Reset panel inline styles (animation cleanup)
-        _panelEl.style.cssText    = '';
-        _backdropEl.style.cssText = '';
-        document.body.style.overflow = '';
-        // FIX: Reset button using tracked mode, not DOM text
-        _btnSubmit.disabled  = false;
-        _btnText.textContent = _currentMode === 'edit' ? 'Cập nhật' : 'Lưu địa chỉ';
-        _btnSpin.classList.add('hidden');
-        if (_lastFocus) _lastFocus.focus();
-      }, 300);
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") {
+      close();
     }
-  };
-
-  // ── Form submit — loading state ───────────────────────
-
-  _formEl.addEventListener('submit', function (e) {
-    // Sync hidden geo fields (safety guard)
-    var selProv = document.getElementById('sel-prov');
-    var selDist = document.getElementById('sel-dist');
-    var selWard = document.getElementById('sel-ward');
-    if (selProv.selectedIndex > 0) document.getElementById('hid-prov').value = selProv.options[selProv.selectedIndex].text;
-    if (selDist.selectedIndex > 0) document.getElementById('hid-dist').value = selDist.options[selDist.selectedIndex].text;
-    if (selWard.selectedIndex > 0) document.getElementById('hid-ward').value = selWard.options[selWard.selectedIndex].text;
-
-    // HTML5 validation
-    if (!this.checkValidity()) {
-      e.preventDefault();
-      this.reportValidity();
-      return;
-    }
-
-    // Location completeness check
-    if (!selProv.value || !selDist.value || !selWard.value) {
-      e.preventDefault();
-      GUA.toast('Vui lòng chọn đầy đủ Tỉnh → Quận → Phường', 'error');
-      return;
-    }
-
-    // Activate loading state
-    _btnSubmit.disabled  = true;
-    _btnText.textContent = 'Đang lưu…';
-    _btnSpin.classList.remove('hidden');
   });
 
-  // ── Delete confirm dialog ─────────────────────────────
-
-  var _pendingDeleteId = null;
-
-  GUA.confirmDelete = function (id, name) {
-    _pendingDeleteId  = id;
-    _delName.textContent = name;
-
-    _delDialog.style.display = '';
-    _delDialog.classList.add('is-open');
-    _delDialog.removeAttribute('aria-hidden');
-    document.body.style.overflow = 'hidden';
-
-    // Focus the cancel button (safer default)
-    setTimeout(function () {
-      var cancelBtn = _delDialog.querySelector('button');
-      if (cancelBtn) cancelBtn.focus();
-    }, 50);
+  window.GUA.modal = {
+    open,
+    close,
+    syncLocationHiddenFields
   };
 
-  GUA.deleteDialog = {
-    confirm: function () {
-      if (!_pendingDeleteId) return;
-      _delForm.action = '/profile/addresses/delete/' + _pendingDeleteId;
-      _delForm.submit();
-    },
-    cancel: function () {
-      _pendingDeleteId = null;
-      _delDialog.classList.remove('is-open');
-      _delDialog.setAttribute('aria-hidden', 'true');
-      setTimeout(function () {
-        _delDialog.style.display = 'none';
-        _delPanel.style.cssText  = '';
-        _delBack.style.cssText   = '';
-        document.body.style.overflow = '';
-      }, 200);
-    }
-  };
-
-  // ── Keyboard handlers ─────────────────────────────────
-
-  document.addEventListener('keydown', function (e) {
-    if (e.key !== 'Escape') return;
-    if (_modalEl.classList.contains('is-open'))   GUA.modal.close();
-    if (_delDialog.classList.contains('is-open')) GUA.deleteDialog.cancel();
-  });
-
+  initFormSubmit();
 })();

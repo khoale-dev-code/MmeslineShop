@@ -1,9 +1,66 @@
 {% extends "base.html" %}
-{% block title %}500 - Lỗi Hệ Thống{% endblock %}
+
+{% block title %}500 - Lỗi hệ thống | MMESTLINE{% endblock %}
+
 {% block content %}
-<div class="py-24 text-center">
-    <h1 class="text-9xl font-black">500</h1>
-    <p class="text-xl uppercase font-bold mt-4">Hệ thống đang gặp sự cố trích xuất dữ liệu.</p>
-    <a href="/admin" class="inline-block mt-8 bg-black text-white px-8 py-3 uppercase font-black">Quay lại Dashboard</a>
-</div>
+<section class="min-h-[calc(100dvh-var(--header-h,0px))] bg-[#fbf7f1] px-4 py-10 md:py-16 flex items-center">
+  <div class="mx-auto w-full max-w-[920px]">
+    <div class="relative overflow-hidden rounded-[32px] border border-[#eadfd4] bg-[#fffaf5] p-6 text-center shadow-[0_30px_90px_-58px_rgba(36,18,7,.7)] sm:p-10 md:p-14">
+      <div class="pointer-events-none absolute right-0 top-0 h-48 w-48 rounded-full bg-[#b98b62]/15 blur-3xl"></div>
+      <div class="pointer-events-none absolute bottom-0 left-0 h-44 w-44 rounded-full bg-[#3b2414]/10 blur-3xl"></div>
+
+      <div class="relative z-10">
+        <p class="mb-4 text-[10px] font-black uppercase tracking-[.3em] text-[#b98b62]">
+          MMESTLINE System
+        </p>
+
+        <h1 class="text-[82px] font-black leading-none tracking-[-.08em] text-[#241207] sm:text-[110px] md:text-[140px]">
+          500
+        </h1>
+
+        <h2 class="mt-4 text-2xl font-black tracking-[-.04em] text-[#241207] sm:text-3xl">
+          Hệ thống đang gặp sự cố
+        </h2>
+
+        <p class="mx-auto mt-4 max-w-xl text-sm font-semibold leading-7 text-[#8a6a52] sm:text-base">
+          Trang này chưa thể tải dữ liệu ngay lúc này. Vui lòng thử lại sau vài giây
+          hoặc quay về khu vực quản lý để tiếp tục thao tác.
+        </p>
+
+        {% if error %}
+          <div class="mx-auto mt-6 max-w-2xl rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-left">
+            <p class="text-[10px] font-black uppercase tracking-[.18em] text-red-600">
+              Chi tiết lỗi
+            </p>
+            <p class="mt-1 break-words text-xs font-semibold leading-6 text-red-700">
+              {{ error }}
+            </p>
+          </div>
+        {% endif %}
+
+        <div class="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <a
+            href="/admin/"
+            class="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#3b2414] px-6 text-[11px] font-black uppercase tracking-[.18em] text-white transition hover:bg-[#241207] sm:w-auto"
+          >
+            <i class="fa-solid fa-chart-pie"></i>
+            Quay lại Dashboard
+          </a>
+
+          <a
+            href="/"
+            class="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-[#eadfd4] bg-[#fffdf9] px-6 text-[11px] font-black uppercase tracking-[.18em] text-[#5f3b1e] transition hover:bg-[#3b2414] hover:text-white sm:w-auto"
+          >
+            <i class="fa-solid fa-house"></i>
+            Về trang chủ
+          </a>
+        </div>
+
+        <p class="mt-8 text-[10px] font-bold uppercase tracking-[.22em] text-[#b7a191]">
+          Error Code · Internal Server Error
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
 {% endblock %}

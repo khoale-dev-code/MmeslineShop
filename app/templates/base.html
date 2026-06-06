@@ -1,399 +1,921 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="{{ system_settings.general.shop_name or 'GUA Maison' }} — Thương hiệu thời trang Sport-Luxe 2026">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  {% set storefront_settings = system_settings.get('storefront', {}) if system_settings is defined and system_settings else {} %}
+  {% set has_topbar = storefront_settings.get('topbar_active') == 'true' and storefront_settings.get('topbar_text') %}
+  {% set shop_name = 'MMESTLINE' %}
+  {% set shop_description = 'MMESTLINE | Official Online Store' %}
+  {% set shop_logo = url_for('static', filename='images/mmestlinelogo.svg') %}
+
+  <title>{% block title %}{{ shop_name }} | Official Online Store{% endblock %}</title>
+
+  <meta name="description" content="{{ shop_description }}">
+  <meta name="theme-color" content="#241207">
   <meta name="csrf-token" content="{{ csrf_token() }}">
 
-  <title>{% block title %}{{ system_settings.general.shop_name or 'GUA Maison' }}{% endblock %}</title>
-  <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
+  <link rel="icon" type="image/svg+xml" href="{{ shop_logo }}?v=mmestline-2026">
+  <link rel="shortcut icon" href="{{ shop_logo }}?v=mmestline-2026">
+  <link rel="apple-touch-icon" href="{{ shop_logo }}?v=mmestline-2026">
 
-  {# ── FONTS: Cormorant (display) + DM Sans (body) ── #}
+  <meta property="og:site_name" content="{{ shop_name }}">
+  <meta property="og:title" content="{{ shop_name }} | Official Online Store">
+  <meta property="og:description" content="{{ shop_description }}">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="{{ shop_logo }}">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ shop_name }} | Official Online Store">
+  <meta name="twitter:description" content="{{ shop_description }}">
+  <meta name="twitter:image" content="{{ shop_logo }}">
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700;9..40,800;9..40,900&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script src="https://unpkg.com/@studio-freight/lenis@1.0.34/dist/lenis.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet"
+  >
+
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+  >
+
   <script>
+    window.tailwind = window.tailwind || {};
     tailwind.config = {
       theme: {
         extend: {
           fontFamily: {
-            sans:    ['"DM Sans"', 'sans-serif'],
-            display: ['"Cormorant"', 'serif'],
+            sans: ['"DM Sans"', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'sans-serif'],
+            display: ['"DM Sans"', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'sans-serif']
+          },
+          colors: {
+            mm: {
+              ink: '#241207',
+              brown: '#3b2414',
+              caramel: '#b98b62',
+              cream: '#fbf7f1',
+              soft: '#fffaf5'
+            }
           }
         }
       }
-    }
+    };
   </script>
+  <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
-    /* ════════════════════════════════════════
-       GUA DESIGN TOKENS
-       ════════════════════════════════════════ */
     :root {
-      --header-h:    68px;
-      --gua-ink:     #0a0a0a;
-      --gua-paper:   #fafaf9;
-      --gua-muted:   #e8e5e0;
-      --gua-ghost:   #f2f0ed;
-      --gua-warm:    #737065;
-      --gua-sub:     #9e9890;
-      --gua-faint:   #b5b0a8;
-      --gua-accent:  #c8a96e;
-      --gua-radius:  2px;
-      --gua-shadow:  0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.05);
-      --gua-shadow-lg: 0 2px 8px rgba(0,0,0,.08), 0 16px 40px rgba(0,0,0,.08);
+      --header-h: 72px;
+      --topbar-h: 0px;
+      --scroll-offset: calc(var(--header-h) + var(--topbar-h) + 16px);
+
+      --mm-ink: #241207;
+      --mm-brown: #3b2414;
+      --mm-brown-2: #5f3b1e;
+      --mm-caramel: #b98b62;
+      --mm-cream: #fbf7f1;
+      --mm-soft: #fffaf5;
+      --mm-line: #eadfd4;
+      --mm-muted: #8a6a52;
+      --mm-faint: #b7a191;
+
+      --gua-ink: var(--mm-ink);
+      --gua-paper: #fffaf5;
+      --gua-muted: var(--mm-line);
+      --gua-ghost: #f6eee7;
+      --gua-warm: #75543f;
+      --gua-sub: #9b7b63;
+      --gua-faint: var(--mm-faint);
+      --gua-accent: var(--mm-caramel);
+      --gua-radius: 8px;
+      --gua-shadow: 0 8px 24px -20px rgba(36, 18, 7, 0.35);
+      --gua-shadow-lg: 0 18px 44px -30px rgba(36, 18, 7, 0.45);
     }
 
-    *, *::before, *::after { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
+    @media (min-width: 1024px) {
+      :root {
+        --header-h: 84px;
+      }
+    }
+
+    body.has-topbar {
+      --topbar-h: 34px;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    html {
+      width: 100%;
+      max-width: 100%;
+      min-height: 100%;
+      scroll-behavior: smooth;
+      scroll-padding-top: var(--scroll-offset);
+      background: #ffffff;
+      font-synthesis: none;
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior-y: none;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
     body {
-      font-family: 'DM Sans', sans-serif;
+      width: 100%;
+      max-width: 100%;
+      min-height: 100vh;
+      margin: 0;
+      font-family: "DM Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #000000;
+      background: #ffffff;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       text-rendering: optimizeLegibility;
+      overflow-x: hidden;
     }
 
-    /* Lenis smooth scroll */
-    html.lenis, html.lenis body { height: auto; }
-    .lenis.lenis-smooth { scroll-behavior: auto !important; }
-    .lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
-    .lenis.lenis-stopped { overflow: hidden; }
+    html::-webkit-scrollbar,
+    body::-webkit-scrollbar {
+      width: 0 !important;
+      height: 0 !important;
+      display: none !important;
+    }
 
-    /* Scrollbar ẩn toàn cục, có thể bật lại cho từng vùng */
-    ::-webkit-scrollbar { width: 0; height: 0; }
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .no-scrollbar,
+    [data-hide-scrollbar] {
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
+    }
 
-    /* Scroll reveal */
-    .reveal {
+    .no-scrollbar::-webkit-scrollbar,
+    [data-hide-scrollbar]::-webkit-scrollbar {
+      width: 0 !important;
+      height: 0 !important;
+      display: none !important;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    img,
+    video,
+    svg,
+    canvas {
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    img,
+    video {
+      background: #f6f6f6;
+    }
+
+    ::selection {
+      background: var(--mm-ink);
+      color: #ffffff;
+    }
+
+    .top-bar {
+      min-height: var(--topbar-h);
+      height: var(--topbar-h);
+      background: var(--mm-ink);
+      color: #ffffff;
+      text-align: center;
+      padding: 0 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      line-height: 1.2;
+      text-transform: uppercase;
+      overflow: hidden;
+      position: relative;
+      z-index: 1001;
+    }
+
+    .mm-navbar-shell {
+      min-height: var(--header-h);
+      height: var(--header-h);
+      position: relative;
+      z-index: 1000;
+      background: transparent;
+      overflow: visible;
+      contain: none !important;
+      isolation: auto;
+    }
+
+    .mm-navbar-shell > header,
+    .mm-navbar-shell > nav,
+    .mm-navbar-shell [data-navbar],
+    #mainNav {
+      min-height: var(--header-h);
+    }
+
+    #mainNav {
+      top: var(--topbar-h) !important;
+      z-index: 1000 !important;
+      transform: translate3d(0, 0, 0);
+      backface-visibility: hidden;
+    }
+
+    body.mm-home-transparent-nav .mm-navbar-shell {
+      background: transparent;
+    }
+
+    body.mm-home-transparent-nav #main-content {
+      margin-top: calc(var(--header-h) * -1);
+    }
+
+    body.mm-mobile-menu-open,
+    body.mm-modal-open {
+      overflow: hidden !important;
+      touch-action: none;
+    }
+
+    #mobileMenu {
+      z-index: 1002 !important;
+    }
+
+    #mobileMenuBackdrop {
+      z-index: 1001 !important;
+    }
+
+    #main-content {
+      width: 100%;
+      min-height: 50vh;
+      overflow-x: hidden;
+      position: relative;
+      z-index: 1;
+    }
+
+    .mm-home,
+    .mm-page,
+    .page-wrap,
+    .lazy-render-section {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+
+    .mm-horizontal-scroll,
+    #slider-container,
+    [data-horizontal-scroll] {
+      overflow-x: auto !important;
+      overflow-y: hidden !important;
+      overscroll-behavior-x: contain;
+      overscroll-behavior-y: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
+    }
+
+    .mm-horizontal-scroll::-webkit-scrollbar,
+    #slider-container::-webkit-scrollbar,
+    [data-horizontal-scroll]::-webkit-scrollbar {
+      width: 0 !important;
+      height: 0 !important;
+      display: none !important;
+    }
+
+    .lazy-render-section {
+      min-height: 520px;
+      background: #ffffff;
+      content-visibility: auto;
+      contain-intrinsic-size: 520px;
+      contain: layout paint;
+    }
+
+    .lazy-render-section.is-loading,
+    .lazy-render-section[data-loading="true"] {
+      background: #ffffff !important;
+    }
+
+    .lazy-render-section::before {
+      content: none !important;
+    }
+
+    .reveal,
+    .reveal.active,
+    .gua-reveal,
+    .gua-d1,
+    .gua-d2,
+    .gua-d3 {
+      opacity: 1 !important;
+      transform: none !important;
+      animation: none !important;
+      transition: none !important;
+    }
+
+    [data-reveal] {
       opacity: 0;
-      transform: translateY(20px);
-      transition: opacity .9s cubic-bezier(.16,1,.3,1), transform .9s cubic-bezier(.16,1,.3,1);
-      will-change: transform, opacity;
+      transform: translateY(18px);
+      transition:
+        opacity 520ms cubic-bezier(0.16, 1, 0.3, 1),
+        transform 520ms cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .reveal.active { opacity: 1; transform: none; }
 
-    /* Profile system classes */
+    [data-reveal].is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .font-display {
+      font-family: "DM Sans", system-ui, sans-serif !important;
+    }
+
+    .drop-shadow-xl {
+      filter: none !important;
+    }
+
+    .aspect-product {
+      aspect-ratio: 3 / 4;
+    }
+
+    .aspect-hero {
+      aspect-ratio: 16 / 9;
+    }
+
+    .product-card img,
+    [data-product-card] img,
+    .mm-product-card img {
+      width: 100%;
+      aspect-ratio: 3 / 4;
+      object-fit: cover;
+    }
+
+    .hero img,
+    [data-hero] img {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+    }
+
+    .mm-video,
+    .mm-media-frame video,
+    [data-scroll-video] {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      display: block;
+      background: #111111;
+      transform: translate3d(0, 0, 0);
+      backface-visibility: hidden;
+      contain: paint;
+    }
+
+    .mm-media-frame {
+      transform: translate3d(0, 0, 0);
+      backface-visibility: hidden;
+      overflow: hidden;
+      background: #f6f6f6;
+    }
+
+    .mm-media-frame img,
+    .mm-media-frame video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .mm-img-pan {
+      transform: translate3d(0, 0, 0) scale(1.01);
+      backface-visibility: hidden;
+    }
+
     .gua-card {
-      background: #fff;
+      background: #ffffff;
       border: 1px solid var(--gua-muted);
       border-radius: var(--gua-radius);
       box-shadow: var(--gua-shadow);
-      transition: border-color .18s, box-shadow .18s;
     }
-    .gua-card:hover { border-color: #b5b0a8; box-shadow: var(--gua-shadow-lg); }
 
-    .gua-reveal { opacity: 0; animation: guaUp .55s cubic-bezier(.16,1,.3,1) forwards; }
-    .gua-d1 { animation-delay: .05s; }
-    .gua-d2 { animation-delay: .12s; }
-    .gua-d3 { animation-delay: .20s; }
-    @keyframes guaUp { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:none; } }
+    .gua-card:hover {
+      box-shadow: var(--gua-shadow-lg);
+    }
 
     .gua-btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
-      padding: .875rem 2.5rem;
-      background: var(--gua-ink); color: #fff;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 10px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase;
-      border-radius: var(--gua-radius); border: none; cursor: pointer;
-      transition: background .15s, transform .1s, box-shadow .15s;
-      box-shadow: 0 2px 8px rgba(0,0,0,.2);
-      text-decoration: none;
+      min-height: 46px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0 1.6rem;
+      border: 0;
+      border-radius: var(--gua-radius);
+      background: var(--mm-ink);
+      color: #ffffff;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      transition: background 0.15s ease, transform 0.15s ease;
     }
-    .gua-btn:hover  { background: #1c1c1a; box-shadow: 0 4px 16px rgba(0,0,0,.25); }
-    .gua-btn:active { transform: scale(.975); }
-    .gua-btn-ghost  {
-      background: #fff; color: var(--gua-ink);
-      border: 1px solid var(--gua-muted); box-shadow: var(--gua-shadow);
+
+    .gua-btn:hover {
+      background: var(--mm-brown);
+      transform: translateY(-1px);
     }
-    .gua-btn-ghost:hover { border-color: var(--gua-ink); background: var(--gua-ghost); box-shadow: var(--gua-shadow-lg); }
+
+    .gua-btn:active {
+      transform: scale(0.98);
+    }
+
+    .gua-btn-ghost {
+      background: #ffffff;
+      color: var(--mm-ink);
+      border: 1px solid var(--mm-line);
+    }
+
+    .gua-btn-ghost:hover {
+      background: #f6eee7;
+      color: var(--mm-ink);
+    }
 
     .gua-input {
-      width: 100%; height: 48px; padding: 0 1rem;
-      background: var(--gua-ghost); border: 1px solid var(--gua-muted);
+      width: 100%;
+      min-height: 48px;
+      padding: 0 1rem;
+      border: 1px solid var(--mm-line);
       border-radius: var(--gua-radius);
-      font-family: 'DM Sans', sans-serif;
-      font-size: 13px; font-weight: 600; color: var(--gua-ink);
-      outline: none; transition: border-color .15s, box-shadow .15s, background .15s;
+      background: #ffffff;
+      color: var(--mm-ink);
+      outline: none;
+      font-size: 13px;
+      font-weight: 600;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
-    .gua-input:focus   { background: #fff; border-color: var(--gua-ink); box-shadow: 0 0 0 3px rgba(10,10,10,.06); }
-    .gua-input:disabled { opacity: .5; cursor: not-allowed; }
+
+    .gua-input:focus {
+      border-color: var(--mm-ink);
+      box-shadow: 0 0 0 3px rgba(36, 18, 7, 0.08);
+    }
+
+    .gua-input:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
 
     .gua-label {
-      display: block; font-size: 10px; font-weight: 800;
-      letter-spacing: .18em; text-transform: uppercase; color: #4a4740; margin-bottom: .6rem;
+      display: block;
+      margin-bottom: 0.55rem;
+      color: #4c2d18;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
     }
 
     .gua-nav-item {
-      display: flex; align-items: center; gap: .75rem;
-      padding: .75rem 1rem; border-radius: var(--gua-radius);
-      font-size: 10px; font-weight: 800; letter-spacing: .15em; text-transform: uppercase;
-      transition: all .18s ease; border: 1px solid transparent;
-      white-space: nowrap; color: var(--gua-sub); text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      border: 1px solid transparent;
+      border-radius: var(--gua-radius);
+      color: var(--gua-sub);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
     }
-    .gua-nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
-    .gua-nav-item:hover  { background: var(--gua-ghost); color: var(--gua-ink); border-color: var(--gua-muted); }
-    .gua-nav-item.active { background: var(--gua-ink); color: #fff; border-color: var(--gua-ink); box-shadow: 0 4px 12px rgba(0,0,0,.2); }
+
+    .gua-nav-item:hover {
+      background: var(--gua-ghost);
+      color: var(--gua-ink);
+      border-color: var(--gua-muted);
+    }
+
+    .gua-nav-item.active {
+      background: var(--gua-ink);
+      color: #ffffff;
+      border-color: var(--gua-ink);
+    }
+
+    .notif-bell {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .notif-badge {
+      position: absolute;
+      top: -4px;
+      right: -5px;
+      min-width: 16px;
+      height: 16px;
+      padding: 0 4px;
+      border: 1.5px solid #ffffff;
+      border-radius: 999px;
+      background: var(--mm-ink);
+      color: #ffffff;
+      font-size: 9px;
+      font-weight: 900;
+      line-height: 16px;
+      text-align: center;
+    }
+
+    .notif-badge.is-zero {
+      visibility: hidden;
+    }
+
+    .mm-footer-brand {
+      color: var(--mm-ink);
+      font-weight: 900;
+    }
+
+    #mmToastWrap,
+    .chat-widget,
+    .quick-view-modal,
+    [data-chat],
+    [data-modal],
+    .modal,
+    .drawer,
+    .mobile-menu {
+      position: fixed;
+    }
+
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
 
     @media (max-width: 1023px) {
-      .gua-sidebar { display: flex; flex-direction: row; overflow-x: auto; gap: .375rem; padding-bottom: .5rem; }
+      :root {
+        --header-h: 72px;
+      }
+
+      .mm-navbar-shell {
+        min-height: var(--header-h);
+        height: var(--header-h);
+      }
+
+      .mm-navbar-shell img[src*="mmestlinelogo"] {
+        width: 42px;
+        height: 42px;
+      }
+
+      .gua-sidebar {
+        display: flex;
+        flex-direction: row;
+        gap: 0.375rem;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding-bottom: 0.5rem;
+      }
+
+      .lazy-render-section {
+        min-height: 420px;
+        contain-intrinsic-size: 420px;
+      }
     }
+
     @media (min-width: 1024px) {
-      .gua-sidebar { display: flex; flex-direction: column; gap: .25rem; position: sticky; top: calc(var(--header-h) + 1.5rem); }
+      .gua-sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        position: sticky;
+        top: calc(var(--header-h) + var(--topbar-h) + 1.5rem);
+      }
     }
 
-    /* Topbar */
-    .top-bar {
-      background: var(--gua-ink);
-      color: #fff;
-      font-size: 0.7rem;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      text-align: center;
-      padding: 0.6rem 1rem;
+    @media (max-width: 640px) {
+      body.has-topbar {
+        --topbar-h: 38px;
+      }
+
+      .top-bar {
+        font-size: 0.62rem;
+        letter-spacing: 0.09em;
+      }
     }
 
-    /* Ẩn spinner cho input number */
-    input[type=number]::-webkit-inner-spin-button,
-    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-    input[type=number] { -moz-appearance: textfield; }
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        animation: none !important;
+        transition: none !important;
+      }
 
-    /* ── Notification Bell ── */
-    .notif-bell { position: relative; display: inline-flex; align-items: center; justify-content: center; }
-    .notif-badge {
-      position: absolute; top: -3px; right: -4px;
-      min-width: 16px; height: 16px; padding: 0 4px;
-      background: var(--gua-ink); color: #fff;
-      font-size: 9px; font-weight: 800; line-height: 16px;
-      border-radius: 8px; text-align: center;
-      border: 1.5px solid #fff;
-      transition: transform .2s cubic-bezier(.34,1.56,.64,1), opacity .2s;
+      [data-reveal] {
+        opacity: 1 !important;
+        transform: none !important;
+      }
     }
-    .notif-badge.is-zero { transform: scale(0); opacity: 0; pointer-events: none; }
-    @keyframes notifPop { 0%{transform:scale(1)} 40%{transform:scale(1.4)} 100%{transform:scale(1)} }
-    .notif-badge.pop { animation: notifPop .3s ease; }
-  
   </style>
 
   {% block extra_head %}{% endblock %}
 </head>
 
-<body class="bg-white text-black flex flex-col min-h-screen selection:bg-black selection:text-white">
+<body class="bg-white text-black flex flex-col min-h-screen overflow-x-hidden {% if has_topbar %}has-topbar{% endif %}">
 
-  {# ═══ TOPBAR (điều khiển từ Admin Settings) ═══ #}
-  {% if system_settings.storefront.topbar_active == 'true' and system_settings.storefront.topbar_text %}
-  <div class="top-bar">{{ system_settings.storefront.topbar_text }}</div>
+  {% if has_topbar %}
+    <div class="top-bar">
+      {{ storefront_settings.get('topbar_text')
+        | replace('GUA Maison', 'MMESTLINE')
+        | replace('GUA MAISON', 'MMESTLINE')
+        | replace('GUA.', 'MMESTLINE')
+        | replace('GUA', 'MMESTLINE')
+      }}
+    </div>
   {% endif %}
 
-  {# ═══ NAVBAR ═══ #}
-  {% include 'partials/navbar.html' ignore missing %}
+  <div class="mm-navbar-shell">
+    {% include 'partials/navbar.html' ignore missing %}
+  </div>
 
-  {# ═══ FLASH MESSAGES ═══ #}
   {% include 'flash.html' ignore missing %}
 
-  {# ═══ MAIN CONTENT ═══ #}
-  <main class="flex-1 w-full relative" id="main-content">
+  <main id="main-content" class="flex-1 w-full">
     {% block content %}{% endblock %}
   </main>
 
-  {# ═══ FOOTER ═══ #}
-  <footer class="bg-white pt-16 pb-8 border-t border-neutral-200 mt-auto" aria-label="Footer">
+  <footer class="bg-white pt-16 pb-8 border-t border-neutral-200 mt-auto min-h-[520px] md:min-h-[360px]">
     <div class="max-w-[1400px] mx-auto px-4 md:px-8">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-12 md:gap-8 mb-16">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-10 mb-14">
+
         <div class="md:col-span-2">
-          <h3 class="text-xs font-bold uppercase tracking-widest text-black mb-4">Đăng Ký Nhận Tin</h3>
-          <p class="text-[11px] text-neutral-500 mb-6 uppercase tracking-wider">Đăng ký để nhận thông báo về bộ sưu tập mới và quyền lợi ưu tiên.</p>
+          <h3 class="text-xs font-bold uppercase tracking-widest text-black mb-4">
+            Đăng ký nhận tin
+          </h3>
+
+          <p class="text-[11px] text-neutral-500 mb-6 uppercase tracking-wider">
+            Nhận thông báo về bộ sưu tập mới và quyền lợi ưu tiên từ {{ shop_name }}.
+          </p>
+
           <form class="flex w-full max-w-sm border-b border-black pb-2">
-            <input type="email" placeholder="Địa chỉ email" required
-              class="w-full text-xs font-medium tracking-widest uppercase border-0 px-0 py-2 placeholder:text-neutral-400 outline-none focus:ring-0 bg-transparent" />
-            <button type="submit" class="text-xs font-bold uppercase tracking-widest text-black hover:text-neutral-500 transition-colors">Đăng Ký</button>
+            <input
+              type="email"
+              placeholder="Địa chỉ email"
+              required
+              class="w-full text-xs font-medium tracking-widest uppercase border-0 px-0 py-2 placeholder:text-neutral-400 outline-none bg-transparent"
+            >
+
+            <button
+              type="submit"
+              class="text-xs font-bold uppercase tracking-widest text-black hover:text-neutral-500 transition-colors"
+            >
+              Đăng ký
+            </button>
           </form>
         </div>
+
         <div>
-          <h3 class="text-xs font-bold uppercase tracking-widest text-black mb-6">Hỗ Trợ</h3>
+          <h3 class="text-xs font-bold uppercase tracking-widest text-black mb-6">
+            Hỗ trợ
+          </h3>
+
           <ul class="space-y-4">
-            <li><a href="#" class="text-[11px] uppercase tracking-widest text-neutral-500 hover:text-black transition-colors">Vận chuyển & Giao hàng</a></li>
-            <li><a href="#" class="text-[11px] uppercase tracking-widest text-neutral-500 hover:text-black transition-colors">Đổi trả & Hoàn tiền</a></li>
-            <li><a href="#" class="text-[11px] uppercase tracking-widest text-neutral-500 hover:text-black transition-colors">Chính sách bảo mật</a></li>
-            <li><a href="#" class="text-[11px] uppercase tracking-widest text-neutral-500 hover:text-black transition-colors">Liên hệ</a></li>
+            <li><a href="#" class="text-[11px] uppercase tracking-widest text-neutral-500 hover:text-black">Vận chuyển & Giao hàng</a></li>
+            <li><a href="#" class="text-[11px] uppercase tracking-widest text-neutral-500 hover:text-black">Đổi trả & Hoàn tiền</a></li>
+            <li><a href="#" class="text-[11px] uppercase tracking-widest text-neutral-500 hover:text-black">Chính sách bảo mật</a></li>
+            <li><a href="#" class="text-[11px] uppercase tracking-widest text-neutral-500 hover:text-black">Liên hệ</a></li>
           </ul>
         </div>
+
         <div>
-          <h3 class="text-xs font-bold uppercase tracking-widest text-black mb-6">Về {{ system_settings.general.shop_name or 'GUA' }}</h3>
+          <h3 class="text-xs font-bold uppercase tracking-widest text-black mb-6">
+            Về {{ shop_name }}
+          </h3>
+
           <ul class="space-y-4">
-            <li><a href="#" class="text-[11px] uppercase tracking-widest text-neutral-500 hover:text-black transition-colors">Câu chuyện</a></li>
-            <li><a href="#" class="text-[11px] uppercase tracking-widest text-neutral-500 hover:text-black transition-colors">Hệ thống cửa hàng</a></li>
-            <li><a href="#" class="text-[11px] uppercase tracking-widest text-neutral-500 hover:text-black transition-colors">Tuyển dụng</a></li>
+            <li><a href="#" class="text-[11px] uppercase tracking-widest text-neutral-500 hover:text-black">Câu chuyện thương hiệu</a></li>
+            <li><a href="#" class="text-[11px] uppercase tracking-widest text-neutral-500 hover:text-black">Hệ thống cửa hàng</a></li>
+            <li><a href="#" class="text-[11px] uppercase tracking-widest text-neutral-500 hover:text-black">Tuyển dụng</a></li>
           </ul>
         </div>
+
       </div>
-      <div class="flex flex-col md:flex-row justify-between items-center gap-4 pt-8" style="border-top:1px solid var(--gua-muted);">
-        <p class="text-[10px] uppercase tracking-[.2em] text-neutral-400">&copy; 2026 {{ system_settings.general.shop_name or 'GUA' }}. All Rights Reserved.</p>
+
+      <div class="flex flex-col md:flex-row justify-between items-center gap-4 pt-8 border-t border-neutral-200">
+        <p class="text-[10px] uppercase tracking-[.2em] text-neutral-400">
+          &copy; 2026 <span class="mm-footer-brand">{{ shop_name }}</span>. All Rights Reserved.
+        </p>
+
         <div class="flex items-center gap-6">
-          <a href="#" class="text-neutral-400 hover:text-black transition-colors"><i class="fa-brands fa-instagram"></i></a>
-          <a href="#" class="text-neutral-400 hover:text-black transition-colors"><i class="fa-brands fa-facebook-f"></i></a>
-          <a href="#" class="text-neutral-400 hover:text-black transition-colors"><i class="fa-brands fa-tiktok"></i></a>
+          <a href="#" class="text-neutral-400 hover:text-black" aria-label="Instagram">
+            <i class="fa-brands fa-instagram"></i>
+          </a>
+
+          <a href="#" class="text-neutral-400 hover:text-black" aria-label="Facebook">
+            <i class="fa-brands fa-facebook-f"></i>
+          </a>
+
+          <a href="#" class="text-neutral-400 hover:text-black" aria-label="TikTok">
+            <i class="fa-brands fa-tiktok"></i>
+          </a>
         </div>
       </div>
     </div>
   </footer>
 
-  {# ═══ GLOBAL COMPONENTS ═══ #}
   {% include 'chat.html' ignore missing %}
   {% include 'components/modals/_quick_view.html' ignore missing %}
 
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-
-      // Đo chiều cao navbar thực tế -> set CSS variable --header-h
-      const navbar = document.querySelector('nav, header, [data-navbar]');
-      if (navbar) {
-        const setHeaderH = () => document.documentElement.style.setProperty('--header-h', navbar.offsetHeight + 'px');
-        setHeaderH();
-        new ResizeObserver(setHeaderH).observe(navbar);
-      }
-
-      // Mobile menu toggle
-      const openBtn = document.getElementById('openMenu');
-      const closeBtn = document.getElementById('closeMenu');
-      const menu    = document.getElementById('mobileMenu');
-      if (openBtn && closeBtn && menu) {
-        const toggleMenu = (show) => {
-          menu.classList.toggle('invisible', !show);
-          menu.classList.toggle('opacity-0', !show);
-          menu.classList.toggle('opacity-100', show);
-          openBtn.setAttribute('aria-expanded', show);
-          document.body.style.overflow = show ? 'hidden' : '';
-        };
-        openBtn.addEventListener('click', () => toggleMenu(true));
-        closeBtn.addEventListener('click', () => toggleMenu(false));
-      }
-
-      // Scroll reveal
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('active');
-            observer.unobserve(entry.target);
-          }
-        });
-      }, { threshold: 0.08 });
-      document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-    });
-
-    // CSRF helper
     function getCSRFToken() {
-      return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+      return document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "";
     }
 
-    // Analytics tracking
-    function trackEvent(data) {
-      fetch('/api/analytics/track', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() },
-        body: JSON.stringify(data)
-      }).catch(() => {});
-    }
+    function showToast(message, isError = false) {
+      let wrap = document.getElementById("mmToastWrap");
 
-    // Toast notification
-    let toastContainer = null;
-    function showToast(msg, isError = false) {
-      if (!toastContainer) {
-        toastContainer = Object.assign(document.createElement('div'), {
-          className: 'fixed bottom-8 left-1/2 -translate-x-1/2 z-[9999] flex flex-col gap-2 pointer-events-none'
-        });
-        document.body.appendChild(toastContainer);
+      if (!wrap) {
+        wrap = document.createElement("div");
+        wrap.id = "mmToastWrap";
+        wrap.className = "fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] flex flex-col gap-2";
+        document.body.appendChild(wrap);
       }
-      const toast = Object.assign(document.createElement('div'), {
-        className: `bg-white text-black px-6 py-3 flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest shadow-lg border transition-all duration-300 translate-y-4 opacity-0 pointer-events-auto rounded-sm ${isError ? 'border-red-500 text-red-600' : 'border-neutral-200'}`,
-        innerHTML: `<span>${msg}</span>`
-      });
-      toastContainer.appendChild(toast);
-      requestAnimationFrame(() => toast.classList.remove('translate-y-4', 'opacity-0'));
-      setTimeout(() => {
-        toast.classList.add('opacity-0', 'translate-y-4');
-        setTimeout(() => toast.remove(), 300);
+
+      const toast = document.createElement("div");
+      toast.className = "bg-white px-5 py-3 border shadow-lg text-[11px] font-bold uppercase tracking-widest " + (isError ? "border-red-500 text-red-600" : "border-neutral-200 text-black");
+      toast.textContent = message || "";
+
+      wrap.appendChild(toast);
+
+      setTimeout(function () {
+        toast.remove();
       }, 2500);
     }
 
-    // Wishlist toggle (heart)
     async function toggleHeart(productId, btn) {
       if (window.event) window.event.preventDefault();
-      const icon = btn.querySelector('.heart-icon');
+
+      const icon = btn && btn.querySelector ? btn.querySelector(".heart-icon") : null;
+
       try {
-        const res = await fetch('/api/favorites/toggle', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() },
+        const res = await fetch("/api/favorites/toggle", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCSRFToken()
+          },
           body: JSON.stringify({ product_id: productId })
         });
+
         if (res.status === 401) {
-          showToast('Vui lòng đăng nhập', true);
-          setTimeout(() => location.href = '/auth/login', 1400);
+          showToast("Vui lòng đăng nhập", true);
+          setTimeout(function () {
+            location.href = "/auth/login";
+          }, 1000);
           return;
         }
+
         const data = await res.json();
-        if (data.status === 'success') {
-          trackEvent({ product_id: productId, event_type: 'wishlist' });
-          const added = data.action === 'added';
-          icon?.classList.toggle('text-neutral-300', !added);
-          icon?.classList.toggle('text-black', added);
-          icon?.classList.toggle('fill-black', added);
-          showToast(added ? 'Đã thêm vào yêu thích' : 'Đã xóa khỏi yêu thích');
+
+        if (data.status === "success") {
+          const added = data.action === "added";
+
+          if (icon) {
+            icon.classList.toggle("text-neutral-300", !added);
+            icon.classList.toggle("text-black", added);
+            icon.classList.toggle("fill-black", added);
+          }
+
+          showToast(added ? "Đã thêm vào yêu thích" : "Đã xóa khỏi yêu thích");
         }
-      } catch {
-        showToast('Lỗi kết nối', true);
+      } catch (_) {
+        showToast("Lỗi kết nối", true);
       }
     }
-
-    // Lenis smooth scroll
-    const lenis = new Lenis({ duration: 1.2, easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)) });
-    (function raf(time) {
-      lenis.raf(time);
-      requestAnimationFrame(raf);
-    })(0);
   </script>
 
-
-  {# ── Notification Bell Script ── #}
-  {% if current_user.id %}
   <script>
-  (function () {
-    let _prevCount = -1;
+    (function () {
+      "use strict";
 
-    async function refreshNotifBadge() {
-      try {
-        const res  = await fetch('/notifications/unread-count', {
-          headers: { 'X-CSRFToken': getCSRFToken() }
-        });
-        if (!res.ok) return;
-        const { count } = await res.json();
-        const n = parseInt(count) || 0;
+      function initSmoothPage() {
+        document.documentElement.classList.add("mm-page-ready");
 
-        document.querySelectorAll('.notif-badge').forEach(badge => {
-          badge.textContent = n > 99 ? '99+' : (n || '');
-          badge.classList.toggle('is-zero', n === 0);
-          // Pop animation khi số tăng
-          if (_prevCount >= 0 && n > _prevCount) {
-            badge.classList.remove('pop');
-            void badge.offsetWidth; // reflow
-            badge.classList.add('pop');
-          }
-        });
-        _prevCount = n;
-      } catch (_) {}
-    }
+        const videos = document.querySelectorAll("video[autoplay], .mm-video, [data-scroll-video]");
 
-    // Chạy ngay khi load + mỗi 60s
-    document.addEventListener('DOMContentLoaded', refreshNotifBadge);
-    setInterval(refreshNotifBadge, 60_000);
-  })();
+        if ("IntersectionObserver" in window && videos.length) {
+          const videoObserver = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+              const video = entry.target;
+
+              if (!(video instanceof HTMLVideoElement)) return;
+
+              if (entry.isIntersecting) {
+                video.muted = true;
+                video.playsInline = true;
+
+                const playPromise = video.play();
+                if (playPromise && typeof playPromise.catch === "function") {
+                  playPromise.catch(function () {});
+                }
+              } else {
+                video.pause();
+              }
+            });
+          }, {
+            root: null,
+            threshold: 0.12,
+            rootMargin: "180px 0px"
+          });
+
+          videos.forEach(function (video) {
+            if (video instanceof HTMLVideoElement) {
+              video.muted = true;
+              video.playsInline = true;
+              videoObserver.observe(video);
+            }
+          });
+        }
+
+        const revealItems = document.querySelectorAll("[data-reveal]");
+
+        if ("IntersectionObserver" in window && revealItems.length) {
+          const revealObserver = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+              if (!entry.isIntersecting) return;
+
+              entry.target.classList.add("is-visible");
+              revealObserver.unobserve(entry.target);
+            });
+          }, {
+            threshold: 0.15,
+            rootMargin: "80px 0px"
+          });
+
+          revealItems.forEach(function (el) {
+            revealObserver.observe(el);
+          });
+        } else {
+          revealItems.forEach(function (el) {
+            el.classList.add("is-visible");
+          });
+        }
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initSmoothPage, { once: true });
+      } else {
+        initSmoothPage();
+      }
+    })();
   </script>
+
+  {% if current_user is defined and current_user and current_user.id %}
+    <script>
+      async function refreshNotifBadge() {
+        try {
+          const res = await fetch("/notifications/unread-count", {
+            headers: {
+              "X-CSRFToken": getCSRFToken()
+            }
+          });
+
+          if (!res.ok) return;
+
+          const payload = await res.json();
+          const count = parseInt(payload.count, 10) || 0;
+
+          document.querySelectorAll(".notif-badge").forEach(function (badge) {
+            badge.textContent = count > 99 ? "99+" : (count || "");
+            badge.classList.toggle("is-zero", count === 0);
+          });
+        } catch (_) {}
+      }
+
+      document.addEventListener("DOMContentLoaded", refreshNotifBadge, { once: true });
+      setInterval(refreshNotifBadge, 60000);
+    </script>
   {% endif %}
 
   {% block extra_scripts %}{% endblock %}

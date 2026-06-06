@@ -1,369 +1,304 @@
 {% extends "base.html" %}
-{% block title %}Đăng ký thành viên | GUA Maison{% endblock %}
+
+{% block title %}Đăng ký | MMESTLINE{% endblock %}
 
 {% block content %}
-<section class="reveal min-h-screen bg-[#f7f4ef] px-4 pt-24 pb-12 sm:px-6 lg:px-8 lg:pt-32 flex items-center justify-center">
+{% set storefront_settings = system_settings.get('storefront', {}) if system_settings is defined and system_settings else {} %}
+{% set shop_name = 'MMESTLINE' %}
+{% set register_img = storefront_settings.get('register_image_url') or url_for('static', filename='images/signUp.png') %}
+{% set errors = errors if errors is defined and errors else {} %}
 
-  <div class="mx-auto grid w-full max-w-[1200px] grid-cols-1 overflow-hidden border border-stone-300 bg-white shadow-[0_22px_70px_rgba(20,18,14,0.14)] lg:grid-cols-[1fr_1.1fr]">
+<section class="min-h-[calc(100dvh-var(--header-h,0px))] bg-[#fbf7f1] px-4 py-8 md:py-12 flex items-center">
+  <div class="mx-auto grid w-full max-w-6xl overflow-hidden rounded-[28px] border border-[#eadfd4] bg-[#fffaf5] shadow-[0_28px_80px_-55px_rgba(36,18,7,.6)] lg:grid-cols-[1fr_1.05fr]">
 
-    {# ── CỘT TRÁI: ẢNH ── #}
-    <aside class="relative hidden min-h-[600px] xl:min-h-[700px] bg-stone-950 text-white lg:flex flex-col justify-between">
-      {% set reg_img = system_settings.storefront.register_image_url | default('') %}
+    <aside class="relative hidden min-h-[660px] overflow-hidden bg-[#241207] lg:block">
       <img
-        src="{{ reg_img if reg_img else url_for('static', filename='images/signUp.png') }}"
-        alt="GUA Maison Collection"
+        src="{{ register_img }}"
+        alt="{{ shop_name }} register"
+        width="900"
+        height="1200"
+        loading="eager"
+        fetchpriority="high"
+        decoding="async"
         class="absolute inset-0 h-full w-full object-cover opacity-80"
       >
-      <div class="absolute inset-0 border-[12px] xl:border-[18px] border-white/10"></div>
-      <div class="relative z-10 flex h-full flex-col justify-between p-10 xl:p-12">
-        <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.34em] text-white/70">
-          <span>The Club</span><span>Membership</span>
+
+
+      <div class="relative z-10 flex h-full flex-col justify-between p-10 text-white">
+        <div class="flex items-center justify-between text-[10px] font-black uppercase tracking-[.3em] text-white/60">
+          <span>{{ shop_name }}</span>
+          <span>Membership</span>
         </div>
-        <div class="max-w-[470px]">
-          <p class="mb-4 text-[10px] xl:text-[11px] font-bold uppercase tracking-[0.42em] text-[#d6bd82]">Exclusive Access</p>
-          <h1 class="font-display text-5xl font-semibold leading-[1.1] tracking-normal xl:text-[72px] xl:leading-[0.95]">
-            Join<br>GUA Maison
+
+        <div>
+          <p class="mb-4 text-[10px] font-black uppercase tracking-[.36em] text-[#d8b99f]">
+            Member Club
+          </p>
+
+          <h1 class="text-6xl xl:text-7xl font-black uppercase leading-[.85] tracking-[-.08em]">
+            Join<br><span class="text-[#d8b99f]">MMESTLINE</span>
           </h1>
-          <div class="mt-6 xl:mt-8 h-px w-20 xl:w-24 bg-[#d6bd82]"></div>
-          <p class="mt-5 xl:mt-6 max-w-[360px] text-xs xl:text-sm leading-relaxed text-white/80">
-            Trở thành thành viên của GUA để mở khóa các đặc quyền mua sắm, nhận thông tin về bộ sưu tập mới và theo dõi hành trình phong cách của bạn.
+
+          <p class="mt-6 max-w-md text-sm font-semibold leading-7 text-[#ead8c8]/80">
+            Tạo tài khoản để theo dõi đơn hàng, lưu sản phẩm yêu thích và nhận thông tin bộ sưu tập mới.
           </p>
         </div>
-        <p class="text-[9px] xl:text-[10px] font-bold uppercase tracking-[0.28em] text-white/50">Est. 2026 • Minimalism Edition</p>
+
+        <div class="rounded-3xl border border-white/15 bg-white/10 p-5 backdrop-blur-md">
+          <p class="text-[10px] font-black uppercase tracking-[.26em] text-white/55">
+            Minimalism Edition
+          </p>
+        </div>
       </div>
     </aside>
 
-    {# ── CỘT PHẢI: FORM ĐĂNG KÝ ── #}
-    <div class="relative flex w-full items-center justify-center bg-[#fbfaf8] px-5 py-12 sm:px-12 lg:py-16">
-      <div class="absolute left-0 top-0 h-full w-1.5 bg-stone-950 hidden lg:block lg:w-2 xl:w-3"></div>
+    <div class="relative flex items-center justify-center px-5 py-10 sm:px-10 lg:px-14">
+      <div class="absolute left-0 top-0 h-1.5 w-full bg-[#3b2414] lg:h-full lg:w-1.5"></div>
 
       <div class="w-full max-w-[460px]">
-        <div class="mb-8 border-b border-stone-200 pb-6 text-center sm:text-left">
-          <p class="mb-2 text-[9px] sm:text-[10px] font-extrabold uppercase tracking-[0.36em] text-[#9d7b3f]">GUA Account</p>
-          <h2 class="font-display text-3xl font-semibold leading-tight text-stone-950 sm:text-4xl lg:text-5xl">Tạo tài khoản</h2>
-          <p class="mt-2 text-xs sm:text-sm leading-6 text-stone-500">Vui lòng điền thông tin bên dưới để tham gia.</p>
+        <div class="mb-8 text-center lg:hidden">
+          <h1 class="text-2xl font-black uppercase tracking-[.18em] text-[#241207]">
+            {{ shop_name }}
+          </h1>
+          <div class="mx-auto mt-3 h-px w-14 bg-[#b98b62]"></div>
+        </div>
+
+        <div class="mb-8 border-b border-[#eadfd4] pb-6">
+          <p class="mb-3 text-[10px] font-black uppercase tracking-[.28em] text-[#b98b62]">
+            MMESTLINE Account
+          </p>
+
+          <h2 class="text-4xl sm:text-5xl font-black tracking-[-.06em] leading-none text-[#241207]">
+            Tạo tài khoản
+          </h2>
+
+          <p class="mt-4 text-sm font-semibold leading-7 text-[#8a6a52]">
+            Điền thông tin bên dưới để bắt đầu trải nghiệm mua sắm cá nhân hóa.
+          </p>
         </div>
 
         {% if errors %}
-        <div class="mb-5 space-y-1.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
-          {% for field, msg in errors.items() %}
-          <div class="flex items-start gap-2">
-            <span class="mt-1.5 h-1.5 w-1.5 rounded-full bg-red-500 shrink-0"></span>
-            <p class="text-sm text-red-800 font-medium">{{ msg }}</p>
+          <div class="mb-5 space-y-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
+            {% for field, msg in errors.items() %}
+              <p class="text-sm font-bold text-red-700">
+                {{ msg }}
+              </p>
+            {% endfor %}
           </div>
-          {% endfor %}
-        </div>
         {% endif %}
 
-        <form action="/auth/register" method="POST" class="space-y-4">
+        <form
+          id="registerForm"
+          action="{{ url_for('auth.register') }}"
+          method="POST"
+          class="space-y-5"
+          autocomplete="off"
+          novalidate
+        >
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-          {# Họ tên & SĐT #}
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label for="full_name" class="mb-2 block text-[10px] font-extrabold uppercase tracking-[0.22em] text-stone-700">Họ và tên</label>
-              <input type="text" id="full_name" name="full_name" required placeholder="John Doe"
-                     class="h-12 w-full border {% if errors.full_name %}border-red-400 bg-red-50{% else %}border-stone-300 bg-white{% endif %} px-4 text-sm font-semibold text-stone-900 outline-none transition-all placeholder:text-stone-400 focus:border-stone-950 focus:shadow-[0_0_0_4px_rgba(12,10,9,0.06)]" />
-              {% if errors.full_name %}<p class="mt-1 text-xs text-red-600">{{ errors.full_name }}</p>{% endif %}
+              <label for="full_name" class="mb-2 block text-[10px] font-black uppercase tracking-[.2em] text-[#5f3b1e]">
+                Họ và tên
+              </label>
+
+              <input
+                type="text"
+                id="full_name"
+                name="full_name"
+                required
+                autocomplete="name"
+                value="{{ request.form.get('full_name', '') if request.method == 'POST' else '' }}"
+                placeholder="Nguyễn Văn A"
+                class="h-14 w-full rounded-2xl border {{ 'border-red-300 bg-red-50' if errors.full_name else 'border-[#eadfd4] bg-white' }} px-4 text-sm font-bold text-[#241207] outline-none transition focus:border-[#5f3b1e] focus:shadow-[0_0_0_4px_rgba(185,139,98,.15)]"
+              >
             </div>
+
             <div>
-              <label for="phone" class="mb-2 block text-[10px] font-extrabold uppercase tracking-[0.22em] text-stone-700">Số điện thoại</label>
-              <input type="tel" id="phone" name="phone" placeholder="0912 345 678"
-                     class="h-12 w-full border border-stone-300 bg-white px-4 text-sm font-semibold text-stone-900 outline-none transition-all placeholder:text-stone-400 focus:border-stone-950 focus:shadow-[0_0_0_4px_rgba(12,10,9,0.06)]" />
+              <label for="phone" class="mb-2 block text-[10px] font-black uppercase tracking-[.2em] text-[#5f3b1e]">
+                Số điện thoại
+              </label>
+
+              <input
+                type="tel"
+                id="phone"
+                name="phone"
+                autocomplete="tel"
+                inputmode="tel"
+                value="{{ request.form.get('phone', '') if request.method == 'POST' else '' }}"
+                placeholder="0912 345 678"
+                class="h-14 w-full rounded-2xl border border-[#eadfd4] bg-white px-4 text-sm font-bold text-[#241207] outline-none transition focus:border-[#5f3b1e] focus:shadow-[0_0_0_4px_rgba(185,139,98,.15)]"
+              >
             </div>
           </div>
 
-          {# Email #}
           <div>
-            <label for="email" class="mb-2 block text-[10px] font-extrabold uppercase tracking-[0.22em] text-stone-700">Email</label>
+            <label for="email" class="mb-2 block text-[10px] font-black uppercase tracking-[.2em] text-[#5f3b1e]">
+              Email
+            </label>
+
             <div class="relative">
-              <span class="pointer-events-none absolute inset-y-0 left-0 flex w-12 items-center justify-center border-r border-stone-300 text-stone-400">
-                <i class="fa-regular fa-envelope"></i>
-              </span>
-              <input type="email" id="email" name="email" required autocomplete="email" placeholder="you@example.com"
-                     class="h-12 w-full border {% if errors.email %}border-red-400 bg-red-50{% else %}border-stone-300 bg-white{% endif %} pl-16 pr-4 text-sm font-semibold text-stone-900 outline-none transition-all placeholder:text-stone-400 focus:border-stone-950 focus:shadow-[0_0_0_4px_rgba(12,10,9,0.06)]" />
+              <i class="fa-regular fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-[#b98b62]"></i>
+
+              <input
+                type="email"
+                id="email"
+                name="email"
+                required
+                autocomplete="email"
+                inputmode="email"
+                value="{{ request.form.get('email', '') if request.method == 'POST' else '' }}"
+                placeholder="you@example.com"
+                class="h-14 w-full rounded-2xl border {{ 'border-red-300 bg-red-50' if errors.email else 'border-[#eadfd4] bg-white' }} pl-12 pr-4 text-sm font-bold text-[#241207] outline-none transition focus:border-[#5f3b1e] focus:shadow-[0_0_0_4px_rgba(185,139,98,.15)]"
+              >
             </div>
-            {% if errors.email %}<p class="mt-1 text-xs text-red-600">{{ errors.email }}</p>{% endif %}
           </div>
 
-          {# Mật khẩu + Strength Meter #}
           <div>
-            <div class="mb-2 flex items-center justify-between">
-              <label for="password" class="block text-[10px] font-extrabold uppercase tracking-[0.22em] text-stone-700">Mật khẩu</label>
-              {# Badge mức độ bảo mật #}
-              <span id="strength-badge" class="hidden items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-all duration-300">
-                <span id="strength-dot" class="h-1.5 w-1.5 rounded-full"></span>
-                <span id="strength-label"></span>
-              </span>
-            </div>
+            <label for="password" class="mb-2 block text-[10px] font-black uppercase tracking-[.2em] text-[#5f3b1e]">
+              Mật khẩu
+            </label>
 
             <div class="relative">
-              <span class="pointer-events-none absolute inset-y-0 left-0 flex w-12 items-center justify-center border-r border-stone-300 text-stone-400">
-                <i class="fa-solid fa-lock"></i>
-              </span>
-              <input type="password" id="password" name="password" required minlength="6" autocomplete="new-password"
-                     placeholder="Tối thiểu 6 ký tự"
-                     oninput="checkStrength(this.value)"
-                     class="h-12 w-full border {% if errors.password %}border-red-400 bg-red-50{% else %}border-stone-300 bg-white{% endif %} pl-16 pr-12 text-sm font-semibold text-stone-900 outline-none transition-all placeholder:text-stone-400 focus:border-stone-950 focus:shadow-[0_0_0_4px_rgba(12,10,9,0.06)]" />
-              <button type="button" onclick="togglePassword('password','eye-pwd')"
-                      class="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-stone-400 hover:text-stone-900 transition-colors focus:outline-none">
-                <i id="eye-pwd" class="fa-regular fa-eye"></i>
+              <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-[#b98b62]"></i>
+
+              <input
+                type="password"
+                id="password"
+                name="password"
+                required
+                minlength="6"
+                autocomplete="new-password"
+                placeholder="Tối thiểu 6 ký tự"
+                class="h-14 w-full rounded-2xl border {{ 'border-red-300 bg-red-50' if errors.password else 'border-[#eadfd4] bg-white' }} pl-12 pr-12 text-sm font-bold text-[#241207] outline-none transition focus:border-[#5f3b1e] focus:shadow-[0_0_0_4px_rgba(185,139,98,.15)]"
+              >
+
+              <button
+                type="button"
+                class="js-toggle-password absolute right-4 top-1/2 -translate-y-1/2 text-[#b98b62] hover:text-[#241207]"
+                data-target="password"
+                aria-label="Hiển thị hoặc ẩn mật khẩu"
+              >
+                <i class="fa-regular fa-eye"></i>
               </button>
             </div>
-            {% if errors.password %}<p class="mt-1 text-xs text-red-600">{{ errors.password }}</p>{% endif %}
 
-            {# ── Thanh strength meter ── #}
-            <div class="mt-2.5 flex gap-1" id="strength-bars">
-              <div class="strength-bar h-1 flex-1 rounded-full bg-stone-200 transition-all duration-500"></div>
-              <div class="strength-bar h-1 flex-1 rounded-full bg-stone-200 transition-all duration-500"></div>
-              <div class="strength-bar h-1 flex-1 rounded-full bg-stone-200 transition-all duration-500"></div>
-              <div class="strength-bar h-1 flex-1 rounded-full bg-stone-200 transition-all duration-500"></div>
-            </div>
-
-            {# ── Checklist tiêu chí mật khẩu ── #}
-            <div id="pwd-checklist" class="mt-3 hidden space-y-1.5 rounded-lg border border-stone-200 bg-stone-50 p-3">
-              <p class="mb-2 text-[10px] font-extrabold uppercase tracking-widest text-stone-500">Yêu cầu mật khẩu</p>
-              <div class="check-item flex items-center gap-2" data-rule="length">
-                <span class="check-icon h-4 w-4 rounded-full border border-stone-300 flex items-center justify-center shrink-0 transition-all duration-300">
-                  <svg class="check-tick hidden h-2.5 w-2.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                </span>
-                <span class="text-xs text-stone-500 transition-colors duration-300">Ít nhất 8 ký tự</span>
-              </div>
-              <div class="check-item flex items-center gap-2" data-rule="upper">
-                <span class="check-icon h-4 w-4 rounded-full border border-stone-300 flex items-center justify-center shrink-0 transition-all duration-300">
-                  <svg class="check-tick hidden h-2.5 w-2.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                </span>
-                <span class="text-xs text-stone-500 transition-colors duration-300">Chứa chữ hoa (A–Z)</span>
-              </div>
-              <div class="check-item flex items-center gap-2" data-rule="number">
-                <span class="check-icon h-4 w-4 rounded-full border border-stone-300 flex items-center justify-center shrink-0 transition-all duration-300">
-                  <svg class="check-tick hidden h-2.5 w-2.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                </span>
-                <span class="text-xs text-stone-500 transition-colors duration-300">Chứa số (0–9)</span>
-              </div>
-              <div class="check-item flex items-center gap-2" data-rule="special">
-                <span class="check-icon h-4 w-4 rounded-full border border-stone-300 flex items-center justify-center shrink-0 transition-all duration-300">
-                  <svg class="check-tick hidden h-2.5 w-2.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                </span>
-                <span class="text-xs text-stone-500 transition-colors duration-300">Ký tự đặc biệt (!@#$%...)</span>
-              </div>
-            </div>
-
-            {# ── Gợi ý mật khẩu mạnh ── #}
-            <div id="pwd-suggestion" class="mt-2.5 hidden items-start gap-2 rounded-lg border border-[#d6bd82]/40 bg-[#fdf8ee] px-3 py-2.5">
-              <i class="fa-solid fa-wand-magic-sparkles mt-0.5 text-[#9d7b3f] text-xs shrink-0"></i>
-              <div>
-                <p class="text-[10px] font-extrabold uppercase tracking-wider text-[#9d7b3f] mb-1">Gợi ý tối ưu</p>
-                <p class="text-xs text-stone-600 leading-relaxed">Dùng cụm từ dễ nhớ kết hợp số và ký tự đặc biệt. Ví dụ: <span id="pwd-example" class="font-bold text-stone-800 font-mono"></span></p>
-              </div>
-            </div>
+            <p class="mt-2 text-xs font-semibold text-[#8a6a52]">
+              Nên dùng chữ hoa, số hoặc ký tự đặc biệt để bảo mật tốt hơn.
+            </p>
           </div>
 
-          {# Xác nhận mật khẩu #}
           <div>
-            <label for="confirm_password" class="mb-2 block text-[10px] font-extrabold uppercase tracking-[0.22em] text-stone-700">Xác nhận mật khẩu</label>
+            <label for="confirm_password" class="mb-2 block text-[10px] font-black uppercase tracking-[.2em] text-[#5f3b1e]">
+              Xác nhận mật khẩu
+            </label>
+
             <div class="relative">
-              <span class="pointer-events-none absolute inset-y-0 left-0 flex w-12 items-center justify-center border-r border-stone-300 text-stone-400">
-                <i class="fa-solid fa-shield-check"></i>
-              </span>
-              <input type="password" id="confirm_password" name="confirm_password" required minlength="6" autocomplete="new-password"
-                     placeholder="Nhập lại mật khẩu"
-                     oninput="checkMatch()"
-                     class="h-12 w-full border {% if errors.confirm_password %}border-red-400 bg-red-50{% else %}border-stone-300 bg-white{% endif %} pl-16 pr-12 text-sm font-semibold text-stone-900 outline-none transition-all placeholder:text-stone-400 focus:border-stone-950 focus:shadow-[0_0_0_4px_rgba(12,10,9,0.06)]" />
-              <button type="button" onclick="togglePassword('confirm_password','eye-cpwd')"
-                      class="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-stone-400 hover:text-stone-900 transition-colors focus:outline-none">
-                <i id="eye-cpwd" class="fa-regular fa-eye"></i>
+              <i class="fa-solid fa-shield-halved absolute left-4 top-1/2 -translate-y-1/2 text-[#b98b62]"></i>
+
+              <input
+                type="password"
+                id="confirm_password"
+                name="confirm_password"
+                required
+                minlength="6"
+                autocomplete="new-password"
+                placeholder="Nhập lại mật khẩu"
+                class="h-14 w-full rounded-2xl border {{ 'border-red-300 bg-red-50' if errors.confirm_password else 'border-[#eadfd4] bg-white' }} pl-12 pr-12 text-sm font-bold text-[#241207] outline-none transition focus:border-[#5f3b1e] focus:shadow-[0_0_0_4px_rgba(185,139,98,.15)]"
+              >
+
+              <button
+                type="button"
+                class="js-toggle-password absolute right-4 top-1/2 -translate-y-1/2 text-[#b98b62] hover:text-[#241207]"
+                data-target="confirm_password"
+                aria-label="Hiển thị hoặc ẩn mật khẩu"
+              >
+                <i class="fa-regular fa-eye"></i>
               </button>
             </div>
-            {# Match indicator #}
-            <p id="match-msg" class="mt-1 hidden text-xs font-semibold"></p>
-            {% if errors.confirm_password %}<p class="mt-1 text-xs text-red-600">{{ errors.confirm_password }}</p>{% endif %}
+
+            <p id="passwordMatchMsg" class="mt-2 hidden text-xs font-bold"></p>
           </div>
 
-          {# Submit #}
-          <button type="submit"
-                  class="group mt-6 flex h-14 w-full items-center justify-center gap-3 bg-stone-950 px-5 text-[11px] font-extrabold uppercase tracking-[0.24em] text-white shadow-[0_14px_34px_rgba(12,10,9,0.24)] transition-all hover:bg-[#2a251d] active:scale-[0.98]">
-            Đăng ký thành viên
-            <svg class="h-4 w-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/></svg>
+          <button
+            type="submit"
+            id="registerSubmitBtn"
+            class="flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-[#3b2414] text-[11px] font-black uppercase tracking-[.22em] text-white shadow-[0_18px_38px_-28px_rgba(36,18,7,.8)] transition hover:bg-[#241207] disabled:cursor-wait disabled:opacity-70"
+          >
+            <span id="registerSubmitText">Đăng ký thành viên</span>
+            <i id="registerSubmitIcon" class="fa-solid fa-arrow-right"></i>
           </button>
         </form>
 
-        <div class="mt-8 border-t border-stone-200 pt-5 text-center">
-          <p class="text-[13px] text-stone-500">
-            Đã có tài khoản?
-            <a href="/auth/login" class="ml-1 font-extrabold text-stone-950 underline-offset-4 transition-colors hover:text-[#9d7b3f] hover:underline">Đăng nhập ngay</a>
-          </p>
-        </div>
+        <p class="mt-8 border-t border-[#eadfd4] pt-6 text-center text-sm font-semibold text-[#8a6a52]">
+          Đã có tài khoản?
+          <a href="{{ url_for('auth.login') }}" class="font-black text-[#241207] underline-offset-4 hover:underline">
+            Đăng nhập ngay
+          </a>
+        </p>
       </div>
     </div>
   </div>
 </section>
 
-<style>
-  .reveal { opacity: 0; animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-  @keyframes revealUp {
-    from { opacity: 0; transform: translateY(30px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  /* Strength bar colors */
-  .strength-bar.active-1 { background-color: #ef4444; }   /* Yếu — đỏ */
-  .strength-bar.active-2 { background-color: #f97316; }   /* Trung bình — cam */
-  .strength-bar.active-3 { background-color: #eab308; }   /* Khá — vàng */
-  .strength-bar.active-4 { background-color: #22c55e; }   /* Mạnh — xanh */
-
-  /* Checklist item khi pass */
-  .check-item.passed .check-icon {
-    background-color: #22c55e;
-    border-color: #22c55e;
-  }
-  .check-item.passed .check-tick { display: block; stroke: white; }
-  .check-item.passed span:last-child { color: #166534; font-weight: 600; }
-
-  /* Pulse animation khi đạt mức strong */
-  @keyframes pulseGreen {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
-    50%       { box-shadow: 0 0 0 6px rgba(34,197,94,0); }
-  }
-  .strength-bar.pulse { animation: pulseGreen 0.6s ease-out; }
-
-  /* Checklist slide-down */
-  #pwd-checklist { animation: slideDown 0.25s ease-out; }
-  #pwd-suggestion { animation: slideDown 0.25s ease-out; }
-  @keyframes slideDown {
-    from { opacity: 0; transform: translateY(-6px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-</style>
-
 <script>
-// ── Gợi ý mật khẩu mạnh ──────────────────────────────────────────
-const suggestions = [
-  "GUA@Style2026!", "Maison#Luxury8", "Fashion$Gold99",
-  "Couture!2026Gua", "Minimal*Style7", "Member@Club2026"
-];
+(function () {
+  "use strict";
 
-function randomSuggestion() {
-  return suggestions[Math.floor(Math.random() * suggestions.length)];
-}
+  const form = document.getElementById("registerForm");
+  const submitBtn = document.getElementById("registerSubmitBtn");
+  const submitText = document.getElementById("registerSubmitText");
+  const submitIcon = document.getElementById("registerSubmitIcon");
+  const password = document.getElementById("password");
+  const confirmPassword = document.getElementById("confirm_password");
+  const matchMsg = document.getElementById("passwordMatchMsg");
 
-// ── Đánh giá độ mạnh mật khẩu ────────────────────────────────────
-function checkStrength(val) {
-  const bars      = document.querySelectorAll('.strength-bar');
-  const badge     = document.getElementById('strength-badge');
-  const badgeDot  = document.getElementById('strength-dot');
-  const badgeLbl  = document.getElementById('strength-label');
-  const checklist = document.getElementById('pwd-checklist');
-  const suggest   = document.getElementById('pwd-suggestion');
-  const example   = document.getElementById('pwd-example');
+  document.querySelectorAll(".js-toggle-password").forEach((button) => {
+    button.addEventListener("click", function () {
+      const input = document.getElementById(button.dataset.target);
+      const icon = button.querySelector("i");
 
-  // Hiện checklist khi bắt đầu gõ
-  if (val.length > 0) {
-    checklist.classList.remove('hidden');
-    checklist.classList.add('flex');
-    checklist.style.display = 'block';
-  } else {
-    checklist.classList.add('hidden');
-    badge.classList.remove('flex');
-    badge.classList.add('hidden');
-    suggest.classList.add('hidden');
-    suggest.style.display = 'none';
-    bars.forEach(b => { b.className = 'strength-bar h-1 flex-1 rounded-full bg-stone-200 transition-all duration-500'; });
-    return;
-  }
+      if (!input || !icon) return;
 
-  // Kiểm tra từng rule
-  const rules = {
-    length:  val.length >= 8,
-    upper:   /[A-Z]/.test(val),
-    number:  /[0-9]/.test(val),
-    special: /[^A-Za-z0-9]/.test(val),
-  };
-
-  document.querySelectorAll('.check-item').forEach(item => {
-    const rule = item.dataset.rule;
-    if (rules[rule]) {
-      item.classList.add('passed');
-    } else {
-      item.classList.remove('passed');
-    }
+      const show = input.type === "password";
+      input.type = show ? "text" : "password";
+      icon.className = show ? "fa-regular fa-eye-slash" : "fa-regular fa-eye";
+    });
   });
 
-  // Tính điểm (0–4)
-  const score = Object.values(rules).filter(Boolean).length;
+  function checkMatch() {
+    if (!password || !confirmPassword || !matchMsg) return;
 
-  // Reset bars
-  bars.forEach(b => { b.className = 'strength-bar h-1 flex-1 rounded-full bg-stone-200 transition-all duration-500'; });
-
-  // Cấu hình từng mức
-  const levels = [
-    null,
-    { color: 'active-1', label: 'Yếu',       badgeBg: 'bg-red-100',    badgeText: 'text-red-700',    dotColor: 'bg-red-500'    },
-    { color: 'active-2', label: 'Trung bình', badgeBg: 'bg-orange-100', badgeText: 'text-orange-700', dotColor: 'bg-orange-500' },
-    { color: 'active-3', label: 'Khá mạnh',  badgeBg: 'bg-yellow-100', badgeText: 'text-yellow-700', dotColor: 'bg-yellow-500' },
-    { color: 'active-4', label: 'Rất mạnh',  badgeBg: 'bg-green-100',  badgeText: 'text-green-700',  dotColor: 'bg-green-500'  },
-  ];
-
-  if (score > 0) {
-    const lvl = levels[score];
-
-    // Tô màu các bar tương ứng
-    for (let i = 0; i < score; i++) {
-      bars[i].classList.add(lvl.color);
-      if (score === 4) { bars[i].classList.add('pulse'); }
+    if (!confirmPassword.value) {
+      matchMsg.className = "mt-2 hidden text-xs font-bold";
+      matchMsg.textContent = "";
+      return;
     }
 
-    // Cập nhật badge
-    badge.className = `flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-all duration-300 ${lvl.badgeBg} ${lvl.badgeText}`;
-    badgeDot.className = `h-1.5 w-1.5 rounded-full ${lvl.dotColor}`;
-    badgeLbl.textContent = lvl.label;
+    const matched = password.value === confirmPassword.value;
 
-    // Hiện/ẩn gợi ý
-    if (score <= 2) {
-      example.textContent = randomSuggestion();
-      suggest.classList.remove('hidden');
-      suggest.style.display = 'flex';
-    } else {
-      suggest.classList.add('hidden');
-      suggest.style.display = 'none';
-    }
+    matchMsg.textContent = matched ? "✓ Mật khẩu khớp" : "✗ Mật khẩu chưa khớp";
+    matchMsg.className = matched
+      ? "mt-2 text-xs font-bold text-emerald-600"
+      : "mt-2 text-xs font-bold text-red-500";
   }
 
-  // Realtime check match nếu confirm đã có giá trị
-  const confirm = document.getElementById('confirm_password');
-  if (confirm.value) checkMatch();
-}
+  password?.addEventListener("input", checkMatch);
+  confirmPassword?.addEventListener("input", checkMatch);
 
-// ── Kiểm tra khớp mật khẩu ───────────────────────────────────────
-function checkMatch() {
-  const pwd     = document.getElementById('password').value;
-  const confirm = document.getElementById('confirm_password').value;
-  const msg     = document.getElementById('match-msg');
+  form?.addEventListener("submit", function () {
+    submitBtn.disabled = true;
+    submitText.textContent = "Đang xử lý";
+    submitIcon.className = "fa-solid fa-circle-notch fa-spin";
+  });
 
-  if (!confirm) { msg.classList.add('hidden'); return; }
-
-  if (pwd === confirm) {
-    msg.textContent  = '✓ Mật khẩu khớp';
-    msg.className    = 'mt-1 text-xs font-semibold text-green-600';
-    msg.classList.remove('hidden');
-  } else {
-    msg.textContent  = '✗ Mật khẩu chưa khớp';
-    msg.className    = 'mt-1 text-xs font-semibold text-red-500';
-    msg.classList.remove('hidden');
-  }
-}
-
-// ── Toggle hiện/ẩn mật khẩu ──────────────────────────────────────
-function togglePassword(inputId, iconId) {
-  const input = document.getElementById(inputId);
-  const icon  = document.getElementById(iconId);
-  if (input.type === 'password') {
-    input.type = 'text';
-    icon.classList.replace('fa-eye', 'fa-eye-slash');
-  } else {
-    input.type = 'password';
-    icon.classList.replace('fa-eye-slash', 'fa-eye');
-  }
-}
+  window.addEventListener("pageshow", function () {
+    if (!submitBtn) return;
+    submitBtn.disabled = false;
+    submitText.textContent = "Đăng ký thành viên";
+    submitIcon.className = "fa-solid fa-arrow-right";
+  });
+})();
 </script>
 {% endblock %}

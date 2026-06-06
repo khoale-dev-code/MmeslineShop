@@ -23,32 +23,71 @@ logger = logging.getLogger(__name__)
 #  DASHBOARD CÁ NHÂN
 # ═══════════════════════════════════════════════════════════════
 
-
 @profile_bp.route("/")
 @login_required
 def index():
-    """Trang quản trị tổng hợp cho khách hàng (Client Overview)."""
+    """Trang tổng quan tài khoản khách hàng."""
     user_id = session.get("user_id")
+
+    if not user_id:
+        session.clear()
+        return redirect(url_for("auth.login"))
+
     try:
         user = UserModel.get_by_id(user_id)
+
         if not user:
             session.clear()
+            flash("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.", "warning")
             return redirect(url_for("auth.login"))
 
-        orders = OrderModel.get_user_orders(user_id)
-        
+        # Chuẩn hóa tên hiển thị để tránh None/"None"
+        full_name = (user.get("full_name") or "").strip()
+
+        if full_name.lower() in ("none", "null", "undefined"):
+            full_name = ""
+
+        fallback_name = (
+            full_name
+            or session.get("user_name")
+            or session.get("full_name")
+            or (user.get("email", "").split("@")[0] if user.get("email") else "Khách hàng")
+        )
+
+        user["full_name"] = fallback_name
+
+        # Đồng bộ session để navbar/profile dùng cùng dữ liệu
+        session["user_name"] = fallback_name
+        session["full_name"] = fallback_name
+        session["email"] = user.get("email") or session.get("email")
+
+        orders = OrderModel.get_user_orders(user_id) or []
+
         stats = {
             "total": len(orders),
             "pending": sum(1 for o in orders if o.get("status") == "pending"),
-            "delivered": sum(1 for o in orders if o.get("status") == "delivered"),
-            "spent": sum(float(o.get("total_amount", 0)) for o in orders if o.get("status") != "cancelled"),
+            "delivered": sum(
+                1 for o in orders
+                if o.get("status") in ("delivered", "completed")
+            ),
+            "spent": sum(
+                float(o.get("total_amount") or 0)
+                for o in orders
+                if o.get("status") != "cancelled"
+            ),
         }
-        
-        return render_template("profile/index.html", user=user, orders=orders[:5], stats=stats)
-    except Exception as e:
-        logger.error(f"Critical Error in Profile Index: {e}")
-        return abort(500)
 
+        return render_template(
+            "profile/index.html",
+            user=user,
+            current_user=user,
+            orders=orders[:5],
+            stats=stats,
+        )
+
+    except Exception as e:
+        logger.exception(f"Critical Error in Profile Index: {e}")
+        return abort(500)
 # ═══════════════════════════════════════════════════════════════
 #  LỊCH SỬ ĐƠN HÀNG & THEO DÕI VẬN CHUYỂN
 # ═══════════════════════════════════════════════════════════════
@@ -189,28 +228,48 @@ def request_return(order_id):
 @login_required
 def edit():
     user_id = session.get("user_id")
+
+    if not user_id:
+        session.clear()
+        return redirect(url_for("auth.login"))
+
     user = UserModel.get_by_id(user_id)
+
+    if not user:
+        session.clear()
+        flash("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.", "warning")
+        return redirect(url_for("auth.login"))
 
     if request.method == "POST":
         form_data = request.form
-        full_name = form_data.get("full_name", "").strip()
-        phone = form_data.get("phone", "").strip()
+        full_name = (form_data.get("full_name") or "").strip()
+        phone = (form_data.get("phone") or "").strip()
 
         if not full_name or len(full_name) < 2:
-            flash("Định dạng tên không hợp lệ (Tối thiểu 2 ký tự).", "danger")
-            return render_template("profile/edit.html", user=user)
+            flash("Định dạng tên không hợp lệ. Tên cần tối thiểu 2 ký tự.", "danger")
+            return render_template("profile/edit.html", user=user, current_user=user)
 
         try:
-            update_data = {"full_name": full_name, "phone": phone}
+            update_data = {
+                "full_name": full_name,
+                "phone": phone,
+            }
+
             if UserModel.update_profile(user_id, update_data):
+                # Đồng bộ đủ key session
+                session["user_name"] = full_name
                 session["full_name"] = full_name
-                flash("Hồ sơ cá nhân đã được đồng bộ hóa.", "success")
+
+                flash("Hồ sơ cá nhân đã được cập nhật.", "success")
                 return redirect(url_for("profile.index"))
+
+            flash("Không thể cập nhật hồ sơ. Vui lòng thử lại.", "danger")
+
         except Exception as e:
-            logger.error(f"Profile Sync Failed: {e}")
+            logger.exception(f"Profile Sync Failed: {e}")
             flash("Lỗi kết nối máy chủ dữ liệu.", "danger")
 
-    return render_template("profile/edit.html", user=user)
+    return render_template("profile/edit.html", user=user, current_user=user)
 
 
 @profile_bp.route("/change-password", methods=["GET", "POST"])
@@ -281,7 +340,59 @@ def addresses():
 
     user_addresses = AddressModel.get_user_addresses(user_id)
     return render_template("profile/address/addresses.html", addresses=user_addresses)
+@profile_bp.route("/addresses/add", methods=["POST"])
+@login_required
+def add_address():
+    user_id = session.get("user_id")
 
+    full_name = (request.form.get("full_name") or "").strip()
+    phone = re.sub(r"\s+", "", (request.form.get("phone") or "").strip())
+    address_line = (request.form.get("address_line") or "").strip()
+
+    province = (
+        request.form.get("province_name")
+        or request.form.get("province")
+        or ""
+    ).strip()
+
+    district = (
+        request.form.get("district_name")
+        or request.form.get("district")
+        or ""
+    ).strip()
+
+    ward = (
+        request.form.get("ward_name")
+        or request.form.get("ward")
+        or ""
+    ).strip()
+
+    note = (request.form.get("note") or "").strip()
+    is_default = request.form.get("is_default") == "1"
+
+    if not all([full_name, phone, address_line, province, district, ward]):
+        flash("Vui lòng nhập đầy đủ thông tin địa chỉ.", "danger")
+        return redirect(url_for("profile.addresses"))
+
+    data = {
+        "user_id": user_id,
+        "full_name": full_name,
+        "phone": phone,
+        "address_line": address_line,
+        "province": province,
+        "district": district,
+        "ward": ward,
+        "province_name": province,
+        "district_name": district,
+        "ward_name": ward,
+        "note": note,
+        "is_default": is_default,
+    }
+
+    AddressModel.create(data)
+
+    flash("Đã thêm địa chỉ mới.", "success")
+    return redirect(url_for("profile.addresses"))
 
 @profile_bp.route("/addresses/set-default/<address_id>", methods=["POST"])
 @login_required

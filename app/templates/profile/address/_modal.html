@@ -1,161 +1,355 @@
-{# address/_modal.html — Add / Edit address modal (K-Fashion Minimalist 2026) #}
-<div id="addr-modal"
-  role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-hidden="true"
+{# app/templates/profile/address/_modal.html #}
+
+<div
+  id="addr-modal"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="modal-title"
+  aria-hidden="true"
   style="display:none"
-  class="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4 font-sans selection:bg-black selection:text-white">
-
-  {# ── Backdrop (Kính mờ sang trọng) ── #}
-  <div id="modal-backdrop"
-    class="fixed inset-0 bg-black/60 backdrop-blur-sm opacity-0 transition-opacity duration-300"
+  class="fixed inset-0 z-[2147483000] items-end justify-center font-sans sm:items-center sm:p-4"
+>
+  <div
+    id="modal-backdrop"
+    class="fixed inset-0 z-[2147483001] bg-[#241207]/60 opacity-0 backdrop-blur-md transition-opacity duration-300"
     aria-hidden="true"
-    onclick="GUA.modal.close()"></div>
+    onclick="GUA.modal.close()"
+  ></div>
 
-  {# ── Modal Panel ── #}
-  <div id="modal-panel"
-    class="relative w-full sm:max-w-[700px] max-h-[90dvh] flex flex-col bg-white sm:rounded-sm rounded-t-2xl shadow-2xl translate-y-full sm:translate-y-8 opacity-0 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden">
+  <div
+    id="modal-panel"
+    class="relative z-[2147483002] flex max-h-[94dvh] w-full flex-col overflow-hidden rounded-t-[28px] border border-[#eadfd4] bg-[#fffaf5] opacity-0 shadow-[0_34px_100px_-58px_rgba(36,18,7,.78)] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] sm:max-h-[90dvh] sm:max-w-[760px] sm:rounded-[30px]"
+  >
+    {# Mobile drag handle #}
+    <button
+      type="button"
+      class="absolute left-1/2 top-3 z-20 h-1.5 w-12 -translate-x-1/2 rounded-full bg-[#d8c6b6] sm:hidden"
+      onclick="GUA.modal.close()"
+      aria-label="Đóng"
+    ></button>
 
-    {# Thanh kéo trên Mobile (Drag handle) #}
-    <div class="sm:hidden flex justify-center pt-3 pb-2 w-full absolute top-0 z-20 cursor-grab active:cursor-grabbing" onclick="GUA.modal.close()">
-      <div class="w-12 h-1 bg-neutral-300 rounded-full"></div>
+    {# Header #}
+    <div class="relative shrink-0 border-b border-[#eadfd4] bg-[#fffaf5]/95 px-5 pb-5 pt-8 backdrop-blur-xl sm:px-6 sm:pt-6">
+      <div class="pointer-events-none absolute right-0 top-0 h-24 w-24 rounded-full bg-[#b98b62]/10 blur-2xl"></div>
+
+      <div class="relative z-10 flex items-start justify-between gap-4">
+        <div class="min-w-0">
+          <p class="mb-2 text-[10px] font-black uppercase tracking-[.24em] text-[#b98b62]">
+            MMESTLINE Delivery
+          </p>
+
+          <h2
+            id="modal-title"
+            class="text-xl font-black tracking-[-.04em] text-[#241207] sm:text-2xl"
+          >
+            Thêm địa chỉ mới
+          </h2>
+
+          <p class="mt-2 text-xs font-semibold leading-5 text-[#8a6a52]">
+            Thông tin này sẽ được dùng cho giao hàng và thanh toán.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onclick="GUA.modal.close()"
+          aria-label="Đóng"
+          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[#eadfd4] bg-[#fffdf9] text-[#8a6a52] transition hover:bg-[#3b2414] hover:text-white"
+        >
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
     </div>
 
-    {# ── Sticky Header ── #}
-    <div class="shrink-0 bg-white z-10 flex items-center justify-between px-6 pt-8 sm:pt-6 pb-5 border-b border-neutral-100">
-      <h2 id="modal-title" class="text-sm sm:text-base font-black uppercase tracking-[0.1em] text-black">Thêm địa chỉ mới</h2>
-      <button type="button" onclick="GUA.modal.close()" aria-label="Đóng"
-        class="size-8 flex items-center justify-center rounded-sm text-neutral-400 hover:text-black hover:bg-neutral-100 transition-colors">
-        <svg class="size-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-      </button>
-    </div>
-
-    {# ── Form Body (Cuộn độc lập) ── #}
-    <form id="addr-form" method="POST" novalidate class="flex flex-col flex-1 overflow-hidden">
-      <div class="flex-1 overflow-y-auto overscroll-contain no-scrollbar p-6 space-y-6">
-        
+    <form
+      id="addr-form"
+      method="POST"
+      action="{{ url_for('profile.add_address') }}"
+      novalidate
+      class="flex min-h-0 flex-1 flex-col overflow-hidden"
+    >
+      <div class="no-scrollbar min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-5 py-5 sm:space-y-6 sm:px-6">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="hidden" id="addr-id"    name="addr_id"       value="">
-        <input type="hidden" id="hid-prov"   name="province_name" value="">
-        <input type="hidden" id="hid-dist"   name="district_name" value="">
-        <input type="hidden" id="hid-ward"   name="ward_name"     value="">
+        <input type="hidden" id="addr-id" name="addr_id" value="">
 
-        {# Họ tên & SĐT #}
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
-          <div>
-            <label for="inp-name" class="block text-[10px] font-bold text-black uppercase tracking-[0.15em] mb-2">
-              Họ và tên <span class="text-red-500" aria-hidden="true">*</span>
-            </label>
-            <input id="inp-name" type="text" name="full_name" required autocomplete="name"
-              placeholder="VD: Lê Trần Đăng Khoa" 
-              class="w-full border border-neutral-200 focus:border-black rounded-sm px-4 py-3 text-sm text-black placeholder-neutral-300 outline-none transition-colors bg-[#f8f8f8] focus:bg-white"/>
-          </div>
-          <div>
-            <label for="inp-phone" class="block text-[10px] font-bold text-black uppercase tracking-[0.15em] mb-2">
-              Số điện thoại <span class="text-red-500" aria-hidden="true">*</span>
-            </label>
-            <input id="inp-phone" type="tel" name="phone" required autocomplete="tel" inputmode="numeric"
-              placeholder="VD: 0987 654 321"
-              pattern="^(84|0)(3[2-9]|5[6-9]|7[06-9]|8[1-9]|9[0-9])[0-9]{7}$"
-              title="Số điện thoại Việt Nam hợp lệ (VD: 0987654321)"
-              class="w-full border border-neutral-200 focus:border-black rounded-sm px-4 py-3 text-sm text-black placeholder-neutral-300 outline-none transition-colors bg-[#f8f8f8] focus:bg-white"/>
-          </div>
-        </div>
+        {# Code / ID vùng hành chính #}
+        <input type="hidden" id="hid-prov-code" name="province_code" value="">
+        <input type="hidden" id="hid-dist-code" name="district_code" value="">
+        <input type="hidden" id="hid-ward-code" name="ward_code" value="">
 
-        {# Tỉnh/Huyện/Xã #}
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 sm:gap-6">
-          <div>
-            <label for="sel-prov" class="block text-[10px] font-bold text-black uppercase tracking-[0.15em] mb-2">
-              Tỉnh / Thành phố <span class="text-red-500" aria-hidden="true">*</span>
-            </label>
-            <div class="relative">
-              <select id="sel-prov" required 
-                class="w-full border border-neutral-200 focus:border-black rounded-sm pl-4 pr-10 py-3 text-sm text-black outline-none transition-colors appearance-none bg-[#f8f8f8] focus:bg-white disabled:opacity-50 cursor-pointer">
-                <option value="" disabled selected>Đang tải…</option>
-              </select>
-              <svg class="absolute right-4 top-1/2 -translate-y-1/2 size-4 text-neutral-400 pointer-events-none" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
-            </div>
-          </div>
-          <div>
-            <label for="sel-dist" class="block text-[10px] font-bold text-black uppercase tracking-[0.15em] mb-2">
-              Quận / Huyện <span class="text-red-500" aria-hidden="true">*</span>
-            </label>
-            <div class="relative">
-              <select id="sel-dist" required disabled 
-                class="w-full border border-neutral-200 focus:border-black rounded-sm pl-4 pr-10 py-3 text-sm text-black outline-none transition-colors appearance-none bg-[#f8f8f8] focus:bg-white disabled:opacity-50 disabled:bg-neutral-100 cursor-pointer">
-                <option value="" disabled selected>Chọn Tỉnh trước</option>
-              </select>
-              <svg class="absolute right-4 top-1/2 -translate-y-1/2 size-4 text-neutral-400 pointer-events-none" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
-            </div>
-          </div>
-          <div>
-            <label for="sel-ward" class="block text-[10px] font-bold text-black uppercase tracking-[0.15em] mb-2">
-              Phường / Xã <span class="text-red-500" aria-hidden="true">*</span>
-            </label>
-            <div class="relative">
-              <select id="sel-ward" required disabled 
-                class="w-full border border-neutral-200 focus:border-black rounded-sm pl-4 pr-10 py-3 text-sm text-black outline-none transition-colors appearance-none bg-[#f8f8f8] focus:bg-white disabled:opacity-50 disabled:bg-neutral-100 cursor-pointer">
-                <option value="" disabled selected>Chọn Quận trước</option>
-              </select>
-              <svg class="absolute right-4 top-1/2 -translate-y-1/2 size-4 text-neutral-400 pointer-events-none" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
-            </div>
-          </div>
-        </div>
+        {# Tên vùng hành chính #}
+        <input type="hidden" id="hid-prov" name="province_name" value="">
+        <input type="hidden" id="hid-dist" name="district_name" value="">
+        <input type="hidden" id="hid-ward" name="ward_name" value="">
 
-        {# Tên đường #}
-        <div>
-          <label for="inp-addr" class="block text-[10px] font-bold text-black uppercase tracking-[0.15em] mb-2">
-            Số nhà, Tên đường <span class="text-red-500" aria-hidden="true">*</span>
-          </label>
-          <input id="inp-addr" type="text" name="address_line" required autocomplete="street-address"
-            placeholder="VD: 12B Tôn Thất Thuyết, Tòa nhà M-Plaza" 
-            class="w-full border border-neutral-200 focus:border-black rounded-sm px-4 py-3 text-sm text-black placeholder-neutral-300 outline-none transition-colors bg-[#f8f8f8] focus:bg-white"/>
-        </div>
+        {# Alias tương thích backend cũ #}
+        <input type="hidden" id="hid-province-alias" name="province" value="">
+        <input type="hidden" id="hid-district-alias" name="district" value="">
+        <input type="hidden" id="hid-ward-alias" name="ward" value="">
 
-        {# Ghi chú #}
-        <div>
-          <label for="inp-note" class="block text-[10px] font-bold text-black uppercase tracking-[0.15em] mb-2">
-            Ghi chú <span class="font-medium text-neutral-400 normal-case tracking-normal">(Tùy chọn)</span>
-          </label>
-          <input id="inp-note" type="text" name="note" maxlength="200" autocomplete="off"
-            placeholder="VD: Giao giờ hành chính, gọi trước khi giao..." 
-            class="w-full border border-neutral-200 focus:border-black rounded-sm px-4 py-3 text-sm text-black placeholder-neutral-300 outline-none transition-colors bg-[#f8f8f8] focus:bg-white"/>
-        </div>
-
-        {# Set Default #}
-        <div class="pt-2">
-          <label class="inline-flex items-center gap-3 cursor-pointer select-none group w-fit">
-            <div class="relative flex items-center justify-center">
-              <input id="chk-default" type="checkbox" name="is_default"
-                class="peer appearance-none size-4 sm:size-5 border border-neutral-300 rounded-sm checked:bg-black checked:border-black transition-colors cursor-pointer outline-none focus:ring-2 focus:ring-black/20 focus:ring-offset-1"/>
-              <svg class="absolute size-3 sm:size-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-            </div>
-            <span class="text-xs font-bold uppercase tracking-[0.1em] text-neutral-500 group-hover:text-black transition-colors">
-              Đặt làm địa chỉ mặc định
+        {# Người nhận #}
+        <section class="rounded-[24px] border border-[#eadfd4] bg-[#fffdf9] p-4 sm:p-5">
+          <div class="mb-4 flex items-center gap-3">
+            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#fbf7f1] text-[#5f3b1e]">
+              <i class="fa-solid fa-user"></i>
             </span>
-          </label>
-        </div>
 
+            <div class="min-w-0">
+              <h3 class="text-sm font-black text-[#241207]">
+                Người nhận
+              </h3>
+
+              <p class="text-xs font-semibold leading-5 text-[#8a6a52]">
+                Nhập thông tin liên hệ khi giao hàng.
+              </p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label for="inp-name" class="mb-2 block text-[10px] font-black uppercase tracking-[.18em] text-[#5f3b1e]">
+                Họ và tên <span class="text-red-500">*</span>
+              </label>
+
+              <input
+                id="inp-name"
+                type="text"
+                name="full_name"
+                required
+                autocomplete="name"
+                placeholder="VD: Lê Trần Đăng Khoa"
+                class="gua-input"
+              >
+            </div>
+
+            <div>
+              <label for="inp-phone" class="mb-2 block text-[10px] font-black uppercase tracking-[.18em] text-[#5f3b1e]">
+                Số điện thoại <span class="text-red-500">*</span>
+              </label>
+
+              <input
+                id="inp-phone"
+                type="tel"
+                name="phone"
+                required
+                autocomplete="tel"
+                inputmode="tel"
+                placeholder="VD: 0987 654 321"
+                class="gua-input"
+              >
+            </div>
+          </div>
+        </section>
+
+        {# Khu vực giao hàng #}
+        <section class="rounded-[24px] border border-[#eadfd4] bg-[#fffdf9] p-4 sm:p-5">
+          <div class="mb-4 flex items-center gap-3">
+            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#fbf7f1] text-[#5f3b1e]">
+              <i class="fa-solid fa-location-dot"></i>
+            </span>
+
+            <div class="min-w-0">
+              <h3 class="text-sm font-black text-[#241207]">
+                Khu vực giao hàng
+              </h3>
+
+              <p class="text-xs font-semibold leading-5 text-[#8a6a52]">
+                Chọn đúng Tỉnh / Quận / Phường để đơn hàng được xử lý chính xác.
+              </p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div>
+              <label for="sel-prov" class="mb-2 block text-[10px] font-black uppercase tracking-[.18em] text-[#5f3b1e]">
+                Tỉnh / Thành phố <span class="text-red-500">*</span>
+              </label>
+
+              <div class="relative">
+                <select
+                  id="sel-prov"
+                  name="province_select"
+                  required
+                  class="gua-select"
+                >
+                  <option value="" disabled selected>Đang tải…</option>
+                </select>
+
+                <svg class="gua-chevron" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
+                </svg>
+              </div>
+            </div>
+
+            <div>
+              <label for="sel-dist" class="mb-2 block text-[10px] font-black uppercase tracking-[.18em] text-[#5f3b1e]">
+                Quận / Huyện <span class="text-red-500">*</span>
+              </label>
+
+              <div class="relative">
+                <select
+                  id="sel-dist"
+                  name="district_select"
+                  required
+                  disabled
+                  class="gua-select"
+                >
+                  <option value="" disabled selected>Chọn Tỉnh trước</option>
+                </select>
+
+                <svg class="gua-chevron" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
+                </svg>
+              </div>
+            </div>
+
+            <div>
+              <label for="sel-ward" class="mb-2 block text-[10px] font-black uppercase tracking-[.18em] text-[#5f3b1e]">
+                Phường / Xã <span class="text-red-500">*</span>
+              </label>
+
+              <div class="relative">
+                <select
+                  id="sel-ward"
+                  name="ward_select"
+                  required
+                  disabled
+                  class="gua-select"
+                >
+                  <option value="" disabled selected>Chọn Quận trước</option>
+                </select>
+
+                <svg class="gua-chevron" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {# Địa chỉ chi tiết #}
+        <section class="rounded-[24px] border border-[#eadfd4] bg-[#fffdf9] p-4 sm:p-5">
+          <div class="mb-4 flex items-center gap-3">
+            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#fbf7f1] text-[#5f3b1e]">
+              <i class="fa-solid fa-map-location-dot"></i>
+            </span>
+
+            <div class="min-w-0">
+              <h3 class="text-sm font-black text-[#241207]">
+                Địa chỉ chi tiết
+              </h3>
+
+              <p class="text-xs font-semibold leading-5 text-[#8a6a52]">
+                Số nhà, tên đường, tòa nhà hoặc chỉ dẫn giao hàng.
+              </p>
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <div>
+              <label for="inp-addr" class="mb-2 block text-[10px] font-black uppercase tracking-[.18em] text-[#5f3b1e]">
+                Số nhà, tên đường <span class="text-red-500">*</span>
+              </label>
+
+              <input
+                id="inp-addr"
+                type="text"
+                name="address_line"
+                required
+                autocomplete="street-address"
+                placeholder="VD: 12B Tôn Thất Thuyết, Tòa nhà M-Plaza"
+                class="gua-input"
+              >
+            </div>
+
+            <div>
+              <label for="inp-note" class="mb-2 block text-[10px] font-black uppercase tracking-[.18em] text-[#5f3b1e]">
+                Ghi chú
+                <span class="font-bold normal-case tracking-normal text-[#b7a191]">
+                  (Tùy chọn)
+                </span>
+              </label>
+
+              <input
+                id="inp-note"
+                type="text"
+                name="note"
+                maxlength="200"
+                autocomplete="off"
+                placeholder="VD: Giao giờ hành chính, gọi trước khi giao..."
+                class="gua-input"
+              >
+            </div>
+
+            <label class="group inline-flex w-fit max-w-full cursor-pointer select-none items-center gap-3 rounded-2xl border border-[#eadfd4] bg-[#fffaf5] px-4 py-3 transition hover:border-[#5f3b1e] hover:bg-[#fbf7f1]">
+              <span class="relative flex items-center justify-center">
+                <input
+                  id="chk-default"
+                  type="checkbox"
+                  name="is_default"
+                  value="1"
+                  class="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-[#d8c6b6] bg-white outline-none transition checked:border-[#3b2414] checked:bg-[#3b2414] focus:ring-4 focus:ring-[#b98b62]/15"
+                >
+
+                <svg class="pointer-events-none absolute h-3.5 w-3.5 text-white opacity-0 transition-opacity peer-checked:opacity-100" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+                </svg>
+              </span>
+
+              <span class="text-xs font-black uppercase tracking-[.14em] text-[#75543f] transition group-hover:text-[#241207]">
+                Đặt làm địa chỉ mặc định
+              </span>
+            </label>
+          </div>
+        </section>
       </div>
 
-      {# ── Sticky Footer (Nút Submit) ── #}
-      <div class="shrink-0 p-6 border-t border-neutral-100 bg-white pb-8 sm:pb-6">
-        <button id="btn-submit" type="submit"
-          class="w-full h-12 sm:h-14 bg-black text-white text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] rounded-sm
-                 hover:bg-neutral-800 active:scale-[0.98] transition-all
-                 flex items-center justify-center gap-3
-                 disabled:bg-neutral-200 disabled:text-neutral-400 disabled:cursor-not-allowed">
-          <span id="btn-text">Lưu địa chỉ</span>
-          <svg id="btn-spin" class="hidden size-4 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
-          </svg>
-        </button>
+      {# Footer actions #}
+      <div class="shrink-0 border-t border-[#eadfd4] bg-[#fffaf5]/95 p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] backdrop-blur-xl sm:p-6">
+        <div class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
+          <button
+            type="button"
+            onclick="GUA.modal.close()"
+            class="flex h-12 items-center justify-center rounded-2xl border border-[#eadfd4] bg-[#fffdf9] px-5 text-[10px] font-black uppercase tracking-[.16em] text-[#75543f] transition hover:bg-[#fbf7f1] hover:text-[#241207] sm:min-w-[130px]"
+          >
+            Hủy
+          </button>
+
+          <button
+            id="btn-submit"
+            type="submit"
+            class="flex h-12 items-center justify-center gap-3 rounded-2xl bg-[#3b2414] px-5 text-[10px] font-black uppercase tracking-[.16em] text-white shadow-[0_18px_38px_-28px_rgba(36,18,7,.8)] transition hover:bg-[#241207] active:scale-[.98] disabled:cursor-wait disabled:opacity-70 sm:min-w-[180px]"
+          >
+            <span id="btn-text">Lưu địa chỉ</span>
+
+            <svg id="btn-spin" class="hidden h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+            </svg>
+          </button>
+        </div>
       </div>
     </form>
   </div>
 </div>
 
-<style>
-  /* Ẩn scrollbar thô kệch để modal nhìn clean hơn */
-  .no-scrollbar::-webkit-scrollbar { display: none; }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-</style>
+<script>
+(function () {
+  "use strict";
+
+  function teleportAddressModal() {
+    const modal = document.getElementById("addr-modal");
+
+    if (!modal || modal.dataset.teleported === "1") return;
+
+    document.body.appendChild(modal);
+    modal.dataset.teleported = "1";
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", teleportAddressModal);
+  } else {
+    teleportAddressModal();
+  }
+})();
+</script>
