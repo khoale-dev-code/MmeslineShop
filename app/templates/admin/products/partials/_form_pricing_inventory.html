@@ -1,0 +1,174 @@
+<section class="mm-card">
+  <div class="mm-card-head">
+    <div>
+      <p class="mm-kicker">Pricing</p>
+      <h2>Giá bán & tồn kho</h2>
+    </div>
+    <span class="mm-card-icon">
+      <i class="fa-solid fa-tags"></i>
+    </span>
+  </div>
+
+  <div class="mm-card-body">
+    <div class="mm-pricing-note">
+      <i class="fa-solid fa-circle-info"></i>
+      <div>
+        <strong>Gợi ý vận hành</strong>
+        <p>
+          SKU có thể để trống. Barcode có thể nhập thủ công hoặc bấm tự tạo.
+          Nếu giá so sánh lớn hơn giá bán, website sẽ hiển thị giá gạch ngang và phần trăm giảm.
+        </p>
+      </div>
+    </div>
+
+    <div class="mm-grid-3">
+      <div>
+        <label class="mm-label">Giá bán <span>*</span></label>
+        <div class="mm-money-wrap">
+          <input
+            type="text"
+            name="price"
+            id="basePrice"
+            value="{{ vnd(p.price) if p else '' }}"
+            required
+            inputmode="numeric"
+            data-money
+            placeholder="199.000"
+            class="mm-input"
+          >
+          <small>đ</small>
+        </div>
+        <p class="mm-help">Giá khách thanh toán.</p>
+      </div>
+
+      <div>
+        <label class="mm-label">Giá so sánh</label>
+        <div class="mm-money-wrap">
+          <input
+            type="text"
+            name="compare_at_price"
+            id="comparePrice"
+            value="{{ vnd(p.compare_at_price) if p and p.compare_at_price else '' }}"
+            inputmode="numeric"
+            data-money
+            placeholder="249.000"
+            class="mm-input"
+          >
+          <small>đ</small>
+        </div>
+        <p id="comparePriceHelp" class="mm-help">
+          Nếu lớn hơn giá bán, storefront sẽ hiển thị giá gạch ngang.
+        </p>
+      </div>
+
+      <div>
+        <label class="mm-label">Giá vốn</label>
+        <div class="mm-money-wrap">
+          <input
+            type="text"
+            name="cost_price"
+            id="costPrice"
+            value="{{ vnd(p.cost_price) if p and p.cost_price else '' }}"
+            inputmode="numeric"
+            data-money
+            placeholder="120.000"
+            class="mm-input"
+          >
+          <small>đ</small>
+        </div>
+        <p class="mm-help">Dùng nội bộ để tính lợi nhuận.</p>
+      </div>
+    </div>
+
+    <div class="mm-profit-preview">
+      <div>
+        <span>Lợi nhuận dự kiến</span>
+        <strong id="profitPreview">0đ</strong>
+      </div>
+      <div>
+        <span>Biên lợi nhuận</span>
+        <strong id="marginPreview">0%</strong>
+      </div>
+      <div>
+        <span>Giảm giá hiển thị</span>
+        <strong id="discountPreviewText">Không có</strong>
+      </div>
+    </div>
+
+    <div class="mm-grid-3 mm-field-block">
+      <div>
+        <label class="mm-label">SKU sản phẩm</label>
+        <input
+          type="text"
+          name="sku"
+          id="productSku"
+          value="{{ p.sku if p and p.sku else '' }}"
+          placeholder="Có thể để trống"
+          class="mm-input"
+          autocomplete="off"
+        >
+        <p class="mm-help">Mã nội bộ để quản lý kho. Không bắt buộc.</p>
+      </div>
+
+      <div>
+        <div class="mm-label-row">
+          <label class="mm-label">Barcode</label>
+          <button type="button" class="mm-mini-action" id="generateBarcodeBtn">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            Tự tạo
+          </button>
+        </div>
+
+        <input
+          type="text"
+          name="barcode"
+          id="productBarcode"
+          value="{{ p.barcode if p and p.barcode else '' }}"
+          placeholder="Tự tạo nếu để trống"
+          class="mm-input"
+          autocomplete="off"
+        >
+        <p class="mm-help">Có thể nhập barcode thật hoặc để hệ thống tự tạo mã.</p>
+      </div>
+
+      <div>
+        <label class="mm-label">Ngưỡng cảnh báo tồn kho</label>
+        <input
+          type="number"
+          name="low_stock_threshold"
+          min="0"
+          value="{{ p.low_stock_threshold if p and p.low_stock_threshold is not none else 5 }}"
+          class="mm-input"
+        >
+        <p class="mm-help">Khi tổng tồn nhỏ hơn ngưỡng này sẽ báo sắp hết hàng.</p>
+      </div>
+    </div>
+
+    <div class="mm-inventory-actions">
+      <button type="button" class="mm-soft-btn" id="generateSkuBtn">
+        <i class="fa-solid fa-barcode"></i>
+        Gợi ý SKU
+      </button>
+
+      <button type="button" class="mm-soft-btn" id="syncVariantBarcodeBtn">
+        <i class="fa-solid fa-layer-group"></i>
+        Gợi ý mã cho biến thể
+      </button>
+    </div>
+
+    <label class="mm-switch-row mm-field-block">
+      <span>
+        <strong>Cho phép đặt khi hết hàng</strong>
+        <small>Khách có thể đặt trước nếu tồn kho về 0.</small>
+      </span>
+      <input type="checkbox" name="allow_backorder" {% if p and p.allow_backorder %}checked{% endif %}>
+    </label>
+
+    <div class="mm-price-preview">
+      <span>Xem trước giá ngoài storefront:</span>
+      <strong id="pricePreview">0đ</strong>
+      <del id="comparePreview" class="hidden">0đ</del>
+      <span id="discountPreview" class="hidden mm-discount-preview"></span>
+    </div>
+  </div>
+</section>

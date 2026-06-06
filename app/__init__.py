@@ -12,7 +12,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 csrf = CSRFProtect()
-
+def _env_enabled(name: str, default: str = "false") -> bool:
+    return os.environ.get(name, default).strip().lower() in {"1", "true", "yes", "on"}
 from app.models.cart_model     import CartModel
 from app.models.category_model import CategoryModel
 from app.models.setting_model  import SettingModel
@@ -164,33 +165,58 @@ def create_app() -> Flask:
     # 2. Extensions
     csrf.init_app(flask_app)
 
-    # 3. Blueprints
-    from app.controllers.auth_controller                               import auth_bp
-    from app.controllers.product_controller                            import products_bp
-    from app.controllers.cart_controller                               import cart_bp
-    from app.controllers.admin                                         import admin_bp
-    from app.controllers.profile_controller                            import profile_bp
-    from app.controllers.chat_controller                               import chat_bp
-    from app.controllers.ai_controller                                 import ai_bp
-    from app.controllers.favorite_controller                           import favorite_bp
-    from app.controllers.payment_controller                            import payment_bp
-    from app.controllers.admin.admin_shipping_controller               import admin_shipping_bp
-    from app.controllers.admin.admin_shipping_providers_controller     import admin_providers_bp
-    from app.controllers.promotions_controller                         import promotions_bp
-    from app.controllers.analytics_controller                          import analytics_bp
-    from app.controllers.notification_controller                      import notification_bp
+ # 3. Blueprints
+    # Storefront/public routes: luôn cần cho website bán hàng
+    from app.controllers.auth_controller          import auth_bp
+    from app.controllers.product_controller       import products_bp
+    from app.controllers.cart_controller          import cart_bp
+    from app.controllers.profile_controller       import profile_bp
+    from app.controllers.favorite_controller      import favorite_bp
+    from app.controllers.payment_controller       import payment_bp
+    from app.controllers.promotions_controller    import promotions_bp
+    from app.controllers.notification_controller  import notification_bp
 
-    try:
-        import app.controllers.admin.settings
-    except ImportError as e:
-        logger.warning(f"Chưa load được settings controller: {e}")
+    public_blueprints = [
+        auth_bp,
+        products_bp,
+        cart_bp,
+        profile_bp,
+        favorite_bp,
+        payment_bp,
+        promotions_bp,
+        notification_bp,
+    ]
 
-    for bp in [
-        auth_bp, products_bp, cart_bp, admin_bp,
-        profile_bp, chat_bp, ai_bp, favorite_bp, payment_bp,
-        admin_shipping_bp, admin_providers_bp, promotions_bp, analytics_bp, notification_bp
-    ]:
+    for bp in public_blueprints:
         flask_app.register_blueprint(bp)
+
+    # Analytics: tách riêng để có thể tắt nếu đang ưu tiên tốc độ storefront
+    if _env_enabled("ENABLE_ANALYTICS", "true"):
+        from app.controllers.analytics_controller import analytics_bp
+        flask_app.register_blueprint(analytics_bp)
+        logger.info("✅ Analytics blueprint enabled.")
+
+    # AI / Chat: chỉ bật khi cần, vì import AI service có thể làm cold start nặng
+    if _env_enabled("ENABLE_AI", "false"):
+        from app.controllers.chat_controller import chat_bp
+        from app.controllers.ai_controller   import ai_bp
+
+        flask_app.register_blueprint(chat_bp)
+        flask_app.register_blueprint(ai_bp)
+        logger.info("✅ AI / Chat blueprints enabled.")
+
+    # Admin: chỉ bật khi cần. Không nên load admin vào storefront production nếu đang tối ưu tốc độ.
+    if _env_enabled("ENABLE_ADMIN", "true"):
+        from app.controllers.admin import admin_bp
+        from app.controllers.admin.admin_shipping_controller import admin_shipping_bp
+        from app.controllers.admin.admin_shipping_providers_controller import admin_providers_bp
+
+        flask_app.register_blueprint(admin_bp)
+        flask_app.register_blueprint(admin_shipping_bp)
+        flask_app.register_blueprint(admin_providers_bp)
+        logger.info("✅ Admin blueprints enabled.")
+    else:
+        logger.info("🚫 Admin blueprints disabled for faster storefront cold start.")
 
     if flask_app.config.get("DEBUG"):
         from app.controllers.debug_controller import debug_bp

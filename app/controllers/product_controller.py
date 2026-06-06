@@ -1,160 +1,427 @@
 """
 app/controllers/product_controller.py
-======================================
-Quản lý luồng hiển thị sản phẩm Storefront dành cho Khách hàng.
-Tích hợp hệ thống tìm kiếm bằng hình ảnh (AI Visual Search) và xử lý phân tách 
-hoàn toàn giữa Danh mục (Category) và Bộ sưu tập (Collection) chuẩn E-commerce.
+=====================================
+Storefront controller cho MMESTLINE.
+
+Đồng bộ với product form/backend mới:
+- Hiểu compare_at_price thay cho old_price.
+- Hiểu giá riêng theo biến thể: product_variants.price_override.
+- Hiểu compare_at_price riêng của biến thể.
+- Tính trạng thái tồn kho theo variant và allow_backorder.
+- Format tiền Việt Nam dạng 199.000đ.
+- Tạo color_groups cho trang chi tiết sản phẩm dùng JS/template dễ hơn.
 """
 
 import logging
-import requests
-from flask import Blueprint, render_template, request, current_app, flash, redirect, url_for
-from typing import Optional
+from math import ceil
+from typing import Any, Optional
 
-from app.models.product_model import ProductModel
-from app.models.category_model import CategoryModel
+import requests
+from flask import (
+    Blueprint,
+    current_app,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
+
 from app.models.collection_model import CollectionModel
+from app.models.product_model import ProductModel
 from app.utils.supabase_client import get_supabase
 
 products_bp = Blueprint("products", __name__)
 logger = logging.getLogger(__name__)
 
+
 # ═══════════════════════════════════════════════════════════════
-#  INTERNAL HELPERS (HÀM TRỢ GIÚP NỘI BỘ)
+# HELPERS
 # ═══════════════════════════════════════════════════════════════
 
-def _get_ai_headers() -> dict:
-    """Trả về Authorization header nếu Hugging Face Space đang ở chế độ Private."""
-    token = current_app.config.get("HF_TOKEN")
-    return {"Authorization": f"Bearer {token}"} if token else {}
+def _clean(value: Any) -> Optional[str]:
+    text = str(value or "").strip()
+    return text or None
 
 
-def _build_color_groups(variants: list, base_price: float) -> dict:
+def _safe_int(value: Any, default: int = 0) -> int:
+    try:
+        return int(float(value or 0))
+    except Exception:
+        return default
+
+
+def _safe_float(value: Any, default: float = 0.0) -> float:
+    try:
+        return float(value or 0)
+    except Exception:
+        return default
+
+
+def _format_vnd(value: Any) -> str:
+    number = _safe_int(value, 0)
+    return f"{number:,.0f}".replace(",", ".") + "đ"
+
+
+def _discount_percent(price: Any, compare_at_price: Any) -> int | None:
+    price_num = _safe_float(price)
+    compare_num = _safe_float(compare_at_price)
+
+    if compare_num > price_num > 0:
+        return int(round((compare_num - price_num) / compare_num * 100))
+
+    return None
+
+
+def _normalize_price_fields(product: dict) -> dict:
     """
-    Gom nhóm product_variants theo màu sắc phục vụ trải nghiệm mua sắm Visual.
-    Trả về cấu trúc dict: { color_name: { hex, sizes: [...] } }
+    Chuẩn hóa giá ở cấp sản phẩm.
+
+    Ưu tiên:
+    - compare_at_price mới.
+    - fallback old_price nếu model/template cũ vẫn còn dùng.
     """
-    color_groups: dict = {}
-    for v in variants:
-        c_name = v.get("color_name")
-        if not c_name:
-            continue
-        if c_name not in color_groups:
-            color_groups[c_name] = {
-                "hex": v.get("color_hex") or "#1a1a1a",
+    if not product:
+        return product
+
+    price = _safe_int(product.get("price"), 0)
+    compare_at_price = _safe_int(
+        product.get("compare_at_price") or product.get("old_price"),
+        0,
+    )
+    cost_price = _safe_int(product.get("cost_price"), 0)
+
+    if compare_at_price <= price:
+        compare_at_price = 0
+
+    discount = _discount_percent(price, compare_at_price)
+
+    product["price"] = price
+    product["compare_at_price"] = compare_at_price or None
+    product["old_price"] = compare_at_price or None
+    product["cost_price"] = cost_price or None
+
+    product["price_formatted"] = _format_vnd(price)
+    product["compare_at_price_formatted"] = (
+        _format_vnd(compare_at_price) if compare_at_price else None
+    )
+    product["old_price_formatted"] = product["compare_at_price_formatted"]
+    product["cost_price_formatted"] = _format_vnd(cost_price) if cost_price else None
+
+    product["discount_percent"] = discount
+    product["has_discount"] = discount is not None
+
+    return product
+
+
+def _normalize_variant(
+    variant: dict,
+    base_price: int,
+    base_compare_at_price: int | None = None,
+    allow_backorder: bool = False,
+) -> dict:
+    """
+    Chuẩn hóa một biến thể.
+
+    Logic giá:
+    - effective_price = price_override nếu có, ngược lại dùng product.price.
+    - effective_compare_at_price:
+        1. dùng variant.compare_at_price nếu có và > effective_price
+        2. nếu không có, dùng product.compare_at_price nếu > effective_price
+        3. không thì None
+    """
+    if not variant:
+        return variant
+
+    stock = _safe_int(variant.get("stock"), 0)
+
+    price_override = _safe_int(variant.get("price_override"), 0)
+    effective_price = price_override or base_price
+
+    variant_compare_at_price = _safe_int(variant.get("compare_at_price"), 0)
+    product_compare_at_price = _safe_int(base_compare_at_price, 0)
+
+    if variant_compare_at_price > effective_price:
+        effective_compare_at_price = variant_compare_at_price
+    elif product_compare_at_price > effective_price:
+        effective_compare_at_price = product_compare_at_price
+    else:
+        effective_compare_at_price = 0
+
+    discount = _discount_percent(effective_price, effective_compare_at_price)
+
+    color_name = variant.get("color_name") or "Mặc định"
+    color_hex = variant.get("color_hex") or "#3b2414"
+
+    variant["color_name"] = color_name
+    variant["color_hex"] = color_hex
+
+    variant["stock"] = stock
+    variant["is_in_stock"] = stock > 0
+    variant["is_available"] = stock > 0 or bool(allow_backorder)
+
+    variant["price_override"] = price_override or None
+    variant["effective_price"] = effective_price
+    variant["effective_price_formatted"] = _format_vnd(effective_price)
+
+    variant["compare_at_price"] = effective_compare_at_price or None
+    variant["effective_compare_at_price"] = effective_compare_at_price or None
+    variant["effective_compare_at_price_formatted"] = (
+        _format_vnd(effective_compare_at_price) if effective_compare_at_price else None
+    )
+
+    variant["discount_percent"] = discount
+    variant["has_discount"] = discount is not None
+
+    variant["sku"] = variant.get("sku") or None
+    variant["barcode"] = variant.get("barcode") or None
+
+    return variant
+
+
+def _normalize_product_for_storefront(product: dict) -> dict:
+    """
+    Chuẩn hóa product trước khi đưa vào template storefront.
+    """
+    if not product:
+        return product
+
+    product = _normalize_price_fields(product)
+
+    allow_backorder = bool(product.get("allow_backorder"))
+    base_price = _safe_int(product.get("price"), 0)
+    base_compare_at_price = _safe_int(product.get("compare_at_price"), 0)
+
+    variants = product.get("product_variants") or []
+
+    normalized_variants = [
+        _normalize_variant(
+            variant=v,
+            base_price=base_price,
+            base_compare_at_price=base_compare_at_price,
+            allow_backorder=allow_backorder,
+        )
+        for v in variants
+    ]
+
+    product["product_variants"] = normalized_variants
+    product["variants"] = normalized_variants
+
+    if normalized_variants:
+        total_stock = sum(_safe_int(v.get("stock"), 0) for v in normalized_variants)
+    else:
+        total_stock = _safe_int(product.get("stock"), 0)
+
+    low_stock_threshold = _safe_int(product.get("low_stock_threshold"), 5)
+
+    product["stock"] = total_stock
+    product["total_stock"] = total_stock
+    product["allow_backorder"] = allow_backorder
+    product["is_in_stock"] = total_stock > 0
+    product["is_available"] = total_stock > 0 or allow_backorder
+    product["is_low_stock"] = 0 < total_stock <= low_stock_threshold
+    product["stock_status"] = _get_stock_status(total_stock, allow_backorder, low_stock_threshold)
+
+    # SEO fallback cho product detail.
+    product["seo_title"] = (
+        product.get("seo_title")
+        or product.get("meta_title")
+        or product.get("name")
+    )
+
+    product["seo_description"] = (
+        product.get("seo_description")
+        or product.get("meta_description")
+        or _clean(product.get("description"))
+        or ""
+    )
+
+    product["description_html"] = (
+        product.get("description_html")
+        or product.get("description")
+        or ""
+    )
+
+    return product
+
+
+def _get_stock_status(stock: int, allow_backorder: bool, low_stock_threshold: int = 5) -> dict:
+    if stock > low_stock_threshold:
+        return {
+            "key": "in_stock",
+            "label": "Còn hàng",
+            "message": f"Còn {stock} sản phẩm",
+            "can_buy": True,
+        }
+
+    if stock > 0:
+        return {
+            "key": "low_stock",
+            "label": "Sắp hết hàng",
+            "message": f"Chỉ còn {stock} sản phẩm",
+            "can_buy": True,
+        }
+
+    if allow_backorder:
+        return {
+            "key": "backorder",
+            "label": "Cho phép đặt trước",
+            "message": "Sản phẩm tạm hết hàng nhưng vẫn có thể đặt trước",
+            "can_buy": True,
+        }
+
+    return {
+        "key": "out_of_stock",
+        "label": "Hết hàng",
+        "message": "Sản phẩm hiện đã hết hàng",
+        "can_buy": False,
+    }
+
+
+def _build_color_groups(product: dict) -> dict:
+    """
+    Build dữ liệu cho trang detail.
+
+    Output ví dụ:
+    {
+      "Nâu Espresso": {
+        "hex": "#3b2414",
+        "total_stock": 12,
+        "is_available": true,
+        "sizes": [
+          {
+            "variant_id": "...",
+            "size": "M",
+            "stock": 3,
+            "price": 199000,
+            "price_formatted": "199.000đ",
+            "compare_at_price": 249000,
+            "compare_at_price_formatted": "249.000đ",
+            "discount_percent": 20,
+            "is_available": true
+          }
+        ]
+      }
+    }
+    """
+    groups: dict = {}
+
+    if not product:
+        return groups
+
+    allow_backorder = bool(product.get("allow_backorder"))
+    variants = product.get("product_variants") or []
+
+    for variant in variants:
+        color_name = variant.get("color_name") or "Mặc định"
+        color_hex = variant.get("color_hex") or "#3b2414"
+        stock = _safe_int(variant.get("stock"), 0)
+        is_available = stock > 0 or allow_backorder
+
+        if color_name not in groups:
+            groups[color_name] = {
+                "name": color_name,
+                "hex": color_hex,
+                "total_stock": 0,
+                "is_available": False,
                 "sizes": [],
             }
-        color_groups[c_name]["sizes"].append({
-            "variant_id": v["id"],
-            "size": v.get("size"),
-            "stock": int(v.get("stock") or 0),
-            "price": float(v.get("price_override") or base_price or 0),
+
+        groups[color_name]["total_stock"] += stock
+        groups[color_name]["is_available"] = groups[color_name]["is_available"] or is_available
+
+        groups[color_name]["sizes"].append({
+            "variant_id": variant.get("id"),
+            "size": variant.get("size") or "Freesize",
+            "stock": stock,
+            "is_in_stock": stock > 0,
+            "is_available": is_available,
+
+            "price": variant.get("effective_price"),
+            "price_formatted": variant.get("effective_price_formatted"),
+
+            "compare_at_price": variant.get("effective_compare_at_price"),
+            "compare_at_price_formatted": variant.get("effective_compare_at_price_formatted"),
+
+            "discount_percent": variant.get("discount_percent"),
+            "has_discount": variant.get("has_discount"),
+
+            "sku": variant.get("sku"),
+            "barcode": variant.get("barcode"),
         })
-    return color_groups
+
+    return groups
 
 
-def _clean_str(val) -> Optional[str]:
-    """Trả về None nếu chuỗi rỗng — tránh query DB với param trống hoặc lỗi cú pháp."""
-    v = (val or "").strip()
-    return v if v else None
+def _normalize_product_list(products: list[dict]) -> list[dict]:
+    return [_normalize_product_for_storefront(p) for p in (products or [])]
+
 
 # ═══════════════════════════════════════════════════════════════
-#  STOREFRONT ROUTES (LUỒNG HIỂN THỊ TRANG KHÁCH HÀNG)
+# ROUTES
 # ═══════════════════════════════════════════════════════════════
 
 @products_bp.route("/")
 def index():
-    """Trang chủ Storefront — Nạp hình ảnh/video Bộ sưu tập và sản phẩm nổi bật."""
     try:
-        # Lấy sản phẩm nổi bật trưng bày ra trang chủ
-        res = ProductModel.get_all(page=1, per_page=8, admin_mode=False)
-        featured = res.get("items", [])
+        featured_result = ProductModel.get_all(page=1, per_page=8)
+        featured = _normalize_product_list(featured_result.get("items", []))
     except Exception as e:
-        logger.error(f"[index] Lỗi kéo sản phẩm nổi bật: {e}")
+        logger.error("[index] featured: %s", e, exc_info=True)
         featured = []
 
     try:
-        # 🟢 ĐÃ FIX LỖI CRASH PARAMETER: Dùng admin_mode=False thay vì active_only=True
-        homepage_collections = CollectionModel.get_all(admin_mode=False)
+        collections = CollectionModel.get_all(admin_mode=False)
     except Exception as e:
-        logger.error(f"[index] Lỗi kéo bộ sưu tập trang chủ: {e}")
-        homepage_collections = []
+        logger.error("[index] collections: %s", e, exc_info=True)
+        collections = []
 
-    # 🟢 TRUYỀN ĐÚNG BIẾN collections RA NGOÀI HTML KHỚP VỚI INDEX.HTML MỚI
     return render_template(
         "products/index.html",
         featured_products=featured,
-        collections=homepage_collections
+        collections=collections,
     )
 
 
 @products_bp.route("/shop")
 def shop():
-    """
-    Trang cửa hàng danh sách sản phẩm.
-    Hỗ trợ bộ lọc động học: ?page= | ?category= | ?collection= | ?gender= | ?q=
-    """
     try:
         page = max(1, int(request.args.get("page", 1)))
     except (ValueError, TypeError):
         page = 1
 
-    category_slug = _clean_str(request.args.get("category"))
-    collection_slug = _clean_str(request.args.get("collection")) # 🟢 THÊM: Hứng bộ lọc Bộ sưu tập từ trang chủ ghim kéo thả
-    gender = _clean_str(request.args.get("gender"))
-    keyword = _clean_str(request.args.get("q"))
+    per_page = 30
 
-    products_list = []
-    total_items = 0
+    category_slug = _clean(request.args.get("category"))
+    collection_slug = _clean(request.args.get("collection"))
+    gender = _clean(request.args.get("gender"))
+    keyword = _clean(request.args.get("q"))
 
-    # 🟢 ĐÃ NÂNG CẤP: Nếu có bộ lọc collection, truy vấn bảng trung gian Nhiều - Nhiều
-    if collection_slug:
-        try:
-            db = get_supabase()
-            # Tìm ID bộ sưu tập từ slug trước công khai
-            coll_res = db.table("collections").select("id").eq("slug", collection_slug).eq("is_active", True).limit(1).execute()
-            if coll_res.data:
-                coll_id = coll_res.data[0]["id"]
-                # Truy vấn bảng ánh xạ và join sâu lấy thông tin sản phẩm
-                offset = (page - 1) * 30
-                res = db.table("collection_products")\
-                        .select("products(*, categories(name, slug), product_images(*), product_variants(*))", count="exact")\
-                        .eq("collection_id", coll_id)\
-                        .range(offset, offset + 29)\
-                        .execute()
-                
-                # Khử bóc tách lồng mảng dữ liệu do Supabase trả về
-                raw_items = [item["products"] for item in (res.data or []) if item.get("products")]
-                products_list = [ProductModel._format_product(p) for p in raw_items if p.get("deleted_at") is None and p.get("is_active") == True]
-                total_items = res.count or len(products_list)
-        except Exception as coll_err:
-            logger.error(f"[shop] Lỗi nạp sản phẩm theo bộ sưu tập '{collection_slug}': {coll_err}")
-    else:
-        # Nếu là bộ lọc danh mục cứng hoặc tìm kiếm text thông thường
-        try:
-            result = ProductModel.get_all(
-                page=page,
-                per_page=30,  # Phục vụ hiệu ứng Load More mượt mà trên Mobile/PC
-                category_slug=category_slug,
-                gender=gender,
-                keyword=keyword,
-                admin_mode=False,
-            )
-            products_list = result.get("items", [])
-            total_items = result.get("total", 0)
-        except Exception as e:
-            logger.error(f"[shop] Lỗi ProductModel.get_all: {e}")
+    try:
+        result = ProductModel.get_all(
+            page=page,
+            per_page=per_page,
+            category_slug=category_slug,
+            collection_slug=collection_slug,
+            gender=gender,
+            keyword=keyword,
+        )
 
-    total_pages = max(1, (total_items + 29) // 30)
+        products_list = _normalize_product_list(result.get("items", []))
+        total_items = _safe_int(result.get("total"), 0)
+
+    except Exception as e:
+        logger.error("[shop] get_all: %s", e, exc_info=True)
+        products_list, total_items = [], 0
 
     return render_template(
         "products/shop.html",
         products=products_list,
         total=total_items,
-        total_pages=total_pages,
+        total_pages=max(1, ceil(total_items / per_page)),
         page=page,
         category=category_slug,
-        collection=collection_slug, # Truyền ra ngoài để giữ trạng thái bộ lọc phân trang URL
+        collection=collection_slug,
         current_gender=gender,
         keyword=keyword,
     )
@@ -162,7 +429,6 @@ def shop():
 
 @products_bp.route("/product/<slug>")
 def detail(slug: str):
-    """Trang cấu hình thông tin chi tiết sản phẩm theo đường dẫn tĩnh (Slug)."""
     if not slug or slug in ("None", "null", "undefined", ""):
         flash("Đường dẫn sản phẩm không hợp lệ.", "warning")
         return redirect(url_for("products.shop"))
@@ -170,108 +436,136 @@ def detail(slug: str):
     try:
         product = ProductModel.get_by_slug(slug)
     except Exception as e:
-        logger.error(f"[detail] Lỗi get_by_slug('{slug}'): {e}")
+        logger.error("[detail] get_by_slug '%s': %s", slug, e, exc_info=True)
         product = None
 
     if not product:
         flash("Sản phẩm không tồn tại hoặc đã ngừng kinh doanh.", "warning")
         return redirect(url_for("products.shop"))
 
-    # Gom nhóm biến thể (Kích cỡ, Số lượng tồn, Giá override) theo dải màu sắc trực quan
-    product["color_groups"] = _build_color_groups(
-        variants=product.get("product_variants") or [],
-        base_price=float(product.get("price") or 0),
-    )
+    product = _normalize_product_for_storefront(product)
+    product["color_groups"] = _build_color_groups(product)
 
-    # Đề xuất sản phẩm liên quan (Cùng danh mục ngành hàng, loại trừ bản thân sản phẩm hiện tại)
-    related_products: list = []
+    # Default variant để template/JS có giá đầu tiên đúng.
+    default_variant = None
+    for variant in product.get("product_variants") or []:
+        if variant.get("is_available"):
+            default_variant = variant
+            break
+
+    if not default_variant and product.get("product_variants"):
+        default_variant = product["product_variants"][0]
+
+    product["default_variant"] = default_variant
+
+    related = []
+
     try:
-        cat_slug = (product.get("categories") or {}).get("slug")
-        if cat_slug:
-            related_res = ProductModel.get_all(page=1, per_page=5, category_slug=cat_slug)
-            related_products = [
-                p for p in related_res.get("items", [])
-                if p["id"] != product["id"]
+        product_categories = product.get("product_categories") or []
+        category_slug = None
+
+        if product_categories:
+            first_category = product_categories[0].get("categories") or {}
+            category_slug = first_category.get("slug")
+
+        if category_slug:
+            related_result = ProductModel.get_all(
+                page=1,
+                per_page=8,
+                category_slug=category_slug,
+            )
+
+            related = [
+                item
+                for item in _normalize_product_list(related_result.get("items", []))
+                if item.get("id") != product.get("id")
             ][:4]
+
     except Exception as e:
-        logger.warning(f"[detail] Không lấy được related products: {e}")
+        logger.warning("[detail] related: %s", e, exc_info=True)
 
     return render_template(
         "products/detail.html",
         product=product,
-        related_products=related_products,
+        related_products=related,
     )
 
-# ═══════════════════════════════════════════════════════════════
-#  AI VISUAL SEARCH (TÌM KIẾM BẰNG HÌNH ẢNH)
-# ═══════════════════════════════════════════════════════════════
 
 @products_bp.route("/visual-search", methods=["POST"])
 def visual_search():
-    """Tìm kiếm sản phẩm bằng hình ảnh qua Hugging Face AI Engine."""
-    file = request.files["image"] if "image" in request.files else None
+    file = request.files.get("image")
+
     if not file or not file.filename:
         flash("Vui lòng tải lên một hình ảnh để tìm kiếm.", "warning")
         return redirect(request.referrer or url_for("products.shop"))
 
     engine_url = current_app.config.get("AI_ENGINE_URL")
+
     if not engine_url:
-        logger.error("[visual_search] AI_ENGINE_URL chưa được cấu hình.")
-        flash("Hệ thống AI chưa được cấu hình. Vui lòng liên hệ quản trị viên.", "danger")
+        flash("Hệ thống AI chưa được cấu hình.", "danger")
         return redirect(request.referrer or url_for("products.shop"))
 
-    matched_products = []
+    matched = []
 
     try:
+        token = current_app.config.get("HF_TOKEN")
+        headers = {"Authorization": f"Bearer {token}"} if token else {}
+
         response = requests.post(
             f"{engine_url}/search",
             files={"image": (file.filename, file.stream, file.mimetype)},
-            headers=_get_ai_headers(),
+            headers=headers,
             timeout=20,
         )
         response.raise_for_status()
 
-        ai_results = response.json().get("results", [])
-        matched_product_ids = [item["id"] for item in ai_results if "id" in item]
+        ids = [
+            item["id"]
+            for item in response.json().get("results", [])
+            if item.get("id")
+        ]
 
-        # Ánh xạ ID nhận từ mô hình AI ngược lại Database để đồng bộ Real-time kho hàng
-        if matched_product_ids:
-            try:
-                db = get_supabase()
-                db_res = (
-                    db.table("products")
-                    .select("*, categories(name, slug), product_images(*), product_variants(*)")
-                    .in_("id", matched_product_ids)
-                    .eq("is_active", True)
-                    .is_("deleted_at", "null")
-                    .execute()
+        if ids:
+            db = get_supabase()
+
+            result = (
+                db.table("products")
+                .select(
+                    "*, "
+                    "product_categories(categories(name, slug)), "
+                    "collection_products(collections(name, slug)), "
+                    "product_images(*), "
+                    "product_variants(*)"
                 )
-                raw_data = db_res.data or []
-                # Format dải cấu trúc ảnh bìa/biến thể
-                matched_products = [ProductModel._format_product(p) for p in raw_data]
-            except Exception as db_err:
-                logger.error(f"[visual_search] Lỗi map DB: {db_err}")
+                .in_("id", ids)
+                .eq("is_active", True)
+                .is_("deleted_at", "null")
+                .execute()
+            )
+
+            matched = [
+                _normalize_product_for_storefront(ProductModel._format_product(product))
+                for product in (result.data or [])
+            ]
 
         flash(
-            f"Tìm thấy {len(matched_products)} thiết kế tương tự từ kho mẫu GUA Maison." if matched_products
-            else "Không tìm thấy sản phẩm phù hợp với hình ảnh này.",
-            "success" if matched_products else "info",
+            f"Tìm thấy {len(matched)} thiết kế tương tự." if matched else "Không tìm thấy sản phẩm phù hợp.",
+            "success" if matched else "info",
         )
 
     except requests.exceptions.Timeout:
-        logger.error("[visual_search] AI Engine timeout.")
-        flash("Hệ thống AI đang xử lý quá tải. Vui lòng thử lại sau.", "danger")
+        flash("AI Engine timeout. Vui lòng thử lại sau.", "danger")
         return redirect(request.referrer or url_for("products.shop"))
 
     except Exception as e:
-        logger.error(f"[visual_search] Lỗi không xác định: {e}", exc_info=True)
-        flash("Lỗi kết nối đến máy chủ xử lý ảnh AI.", "danger")
+        logger.error("[visual_search]: %s", e, exc_info=True)
+        flash("Lỗi kết nối máy chủ AI.", "danger")
         return redirect(request.referrer or url_for("products.shop"))
 
     return render_template(
         "products/shop.html",
-        products=matched_products,
-        total=len(matched_products),
+        products=matched,
+        total=len(matched),
         keyword="Kết quả Visual Search",
         category=None,
         collection=None,
@@ -283,33 +577,28 @@ def visual_search():
 
 @products_bp.route("/collections")
 def collections():
-    """Trang Lookbook — Hiển thị TOÀN BỘ danh sách Bộ sưu tập chiến dịch đang kích hoạt."""
     try:
-        # 🟢 ĐÃ FIX HOÀN TOÀN: Dùng tham số admin_mode=False thay vì active_only gây lỗi TypeError
-        all_colles = CollectionModel.get_all(admin_mode=False)
+        all_collections = CollectionModel.get_all(admin_mode=False)
     except Exception as e:
-        logger.error(f"[collections] Lỗi kéo danh sách bộ sưu tập Lookbook: {e}")
-        all_colles = []
+        logger.error("[collections]: %s", e, exc_info=True)
+        all_collections = []
 
-    return render_template("products/collections.html", collections=all_colles)
+    return render_template(
+        "products/collections.html",
+        collections=all_collections,
+    )
 
-# ═══════════════════════════════════════════════════════════════
-#  STATIC PAGES (TẤP TIN TINH TĨNH THƯƠNG HIỆU)
-# ═══════════════════════════════════════════════════════════════
 
 @products_bp.route("/about")
 def about():
-    """Trang giới thiệu câu chuyện thương hiệu GUA Maison."""
     return render_template("partials/about.html")
 
 
 @products_bp.route("/contact")
 def contact():
-    """Trang liên hệ hỗ trợ vận hành và CSKH."""
     return render_template("partials/contact.html")
 
 
-@products_bp.route('/size-guide')
+@products_bp.route("/size-guide")
 def size_guide():
-    """Bảng quy chuẩn thông số kích cỡ (Size Guide) sản phẩm thời trang."""
-    return render_template('products/size_guide.html')
+    return render_template("products/size_guide.html")

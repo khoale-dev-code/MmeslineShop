@@ -1,17 +1,4 @@
-"""
-app/models/product_model.py
-=========================
-Quản lý dữ liệu Sản phẩm, Biến thể (Variants) và SEO chuẩn E-commerce cho GUA Maison.
-Hỗ trợ Soft Delete, Slug generation, Barcode generation, và đồng bộ hình ảnh.
-
-CHANGELOG (Tối ưu hóa Lazy Initialization & Khắc phục bẫy RLS Admin):
-- Chuẩn hóa cơ chế Lazy Initialization qua hàm helper _db() công khai và _db_admin() bảo mật.
-- Ép các hàm ghi dữ liệu (create, update, delete, sync_images) chạy qua admin client để bypass RLS.
-- Đã Fix: Sử dụng bucket 'product_image' mới tạo để lưu trữ hình ảnh.
-- Đã Fix: Sửa lỗi update trả về False khi res.data rỗng, đảm bảo luôn chạy tiếp hàm đồng bộ ảnh.
-- Đã Fix (HOTFIX): Cập nhật toàn bộ truy vấn read sang cấu trúc Nhiều-Nhiều (N-N) cho danh mục và bộ sưu tập.
-"""
-
+"""app/models/product_model.py"""
 import logging
 import re
 import uuid
@@ -20,344 +7,223 @@ from app.utils.supabase_client import get_supabase, get_supabase_admin
 
 logger = logging.getLogger(__name__)
 
+# Chọn join string dùng ở nhiều hàm — định nghĩa 1 lần
+_SELECT_STOREFRONT = (
+    "*, "
+    "product_categories(categories(name, slug)), "
+    "collection_products(collections(name, slug)), "
+    "product_images(*), product_variants(*)"
+)
+
+_VIET_SLUGMAP = [
+    (r'[áàảãạăắằẳẵặâấầẩẫậ]', 'a'), (r'[éèẻẽẹêếềểễệ]', 'e'),
+    (r'[íìỉĩị]', 'i'),              (r'[óòỏõọôốồổỗộơớờởỡợ]', 'o'),
+    (r'[úùủũụưứừửữự]', 'u'),       (r'[ýỳỷỹỵ]', 'y'),
+    (r'[đ]', 'd'),
+]
+
+COLOR_MAP = {
+    'đen': '#000000', 'black': '#000000', 'trắng': '#ffffff', 'white': '#ffffff',
+    'đỏ': '#dc2626',  'red': '#dc2626',   'xanh dương': '#2563eb', 'blue': '#2563eb',
+    'xanh navy': '#1e3a8a', 'navy': '#1e3a8a', 'xanh lá': '#16a34a', 'green': '#16a34a',
+    'vàng': '#eab308', 'yellow': '#eab308', 'cam': '#ea580c', 'orange': '#ea580c',
+    'hồng': '#ec4899', 'pink': '#ec4899',   'tím': '#9333ea', 'purple': '#9333ea',
+    'xám': '#6b7280',  'gray': '#6b7280',   'grey': '#6b7280',
+    'nâu': '#78350f',  'brown': '#78350f',  'be': '#f5f5dc', 'beige': '#f5f5dc',
+    'kem': '#fef3c7',  'cream': '#fef3c7',
+}
+
 
 class ProductModel:
 
-    # ═══════════════════════════════════════════════════════════════
-    #  LAZY INITIALIZATION HELPERS (KHỞI TẠO LƯỜI KHI CÓ REQUEST)
-    # ═══════════════════════════════════════════════════════════════
-
     @staticmethod
-    def _db():
-        """Khởi tạo lười kết nối Client công khai (Dành cho đọc dữ liệu Storefront)"""
-        return get_supabase()
-
+    def _db():        return get_supabase()
     @staticmethod
-    def _db_admin():
-        """Khởi tạo lười kết nối Client quyền Admin (Dành cho ghi/sửa dữ liệu Admin Dashboard)"""
-        return get_supabase_admin()
+    def _db_admin():  return get_supabase_admin()
 
-    # ═══════════════════════════════════════════════════════════════
-    #  UTILITIES & FORMATTERS
-    # ═══════════════════════════════════════════════════════════════
+    # ── Utilities ────────────────────────────────────────────────────────────
 
     @staticmethod
     def generate_slug(name: str) -> str:
-        """Tạo slug không dấu chuẩn SEO: 'Áo Thun GUA' -> 'ao-thun-gua'"""
         if not name:
             return ""
-        slug = name.lower()
-        slug = re.sub(r'[áàảãạăắằẳẵặâấầẩẫậ]', 'a', slug)
-        slug = re.sub(r'[éèẻẽẹêếềểễệ]', 'e', slug)
-        slug = re.sub(r'[íìỉĩị]', 'i', slug)
-        slug = re.sub(r'[óòỏõọôốồổỗộơớờởỡợ]', 'o', slug)
-        slug = re.sub(r'[úùủũụưứừửữự]', 'u', slug)
-        slug = re.sub(r'[ýỳỷỹỵ]', 'y', slug)
-        slug = re.sub(r'[đ]', 'd', slug)
-        slug = re.sub(r'[^a-z0-9\s-]', '', slug)
-        slug = re.sub(r'[\s-]+', '-', slug).strip('-')
-        return slug
+        s = name.lower()
+        for pat, rep in _VIET_SLUGMAP:
+            s = re.sub(pat, rep, s)
+        s = re.sub(r'[^a-z0-9\s-]', '', s)
+        return re.sub(r'[\s-]+', '-', s).strip('-')
 
     @staticmethod
     def generate_barcode(product_id: str = None) -> str:
-        """
-        Sinh mã vạch duy nhất theo format: GUA-YYMM-XXXXXX
-        - GUA     : Thương hiệu GUA Maison
-        - YYMM    : Năm + Tháng tạo (VD: 2605 = tháng 5/2026)
-        - XXXXXX  : 6 ký tự hex đầu của UUID (lấy từ product_id nếu có)
-        """
-        now = datetime.now()
-        prefix = f"GUA-{now.strftime('%y%m')}"
-
-        if product_id:
-            hex_part = str(product_id).replace("-", "")[:6].upper()
-        else:
-            hex_part = uuid.uuid4().hex[:6].upper()
-
+        prefix   = f"GUA-{datetime.now().strftime('%y%m')}"
+        hex_part = (str(product_id).replace("-", "")[:6].upper()
+                    if product_id else uuid.uuid4().hex[:6].upper())
         return f"{prefix}-{hex_part}"
 
-    # Bảng từ điển màu chuẩn phục vụ ngành Fashion
-    COLOR_DICT = {
-        'đen': '#000000', 'black': '#000000',
-        'trắng': '#ffffff', 'white': '#ffffff',
-        'đỏ': '#dc2626', 'red': '#dc2626',
-        'xanh dương': '#2563eb', 'blue': '#2563eb',
-        'xanh navy': '#1e3a8a', 'navy': '#1e3a8a',
-        'xanh lá': '#16a34a', 'green': '#16a34a',
-        'vàng': '#eab308', 'yellow': '#eab308',
-        'cam': '#ea580c', 'orange': '#ea580c',
-        'hồng': '#ec4899', 'pink': '#ec4899',
-        'tím': '#9333ea', 'purple': '#9333ea',
-        'xám': '#6b7280', 'gray': '#6b7280', 'grey': '#6b7280',
-        'nâu': '#78350f', 'brown': '#78350f',
-        'be': '#f5f5dc', 'beige': '#f5f5dc',
-        'kem': '#fef3c7', 'cream': '#fef3c7'
-    }
-
     @staticmethod
-    def _format_product(product: dict) -> dict:
-        if not product:
-            return product
+    def _format_product(p: dict) -> dict:
+        if not p:
+            return p
 
-        # Sắp xếp thư viện ảnh
-        imgs = sorted(product.get("product_images") or [], key=lambda x: x.get("sort_order", 0))
-        product["product_images"] = imgs
-        product["images"] = imgs
+        imgs = sorted(p.get("product_images") or [], key=lambda x: x.get("sort_order", 0))
+        p["product_images"] = p["images"] = imgs
 
-        if not product.get("thumbnail_url"):
-            primary = next((img["url"] for img in imgs if img.get("is_primary")), None)
-            product["thumbnail_url"] = primary or (imgs[0]["url"] if imgs else "https://placehold.co/600x800/f8f8f8/cccccc?text=GUA")
+        if not p.get("thumbnail_url"):
+            primary = next((i["url"] for i in imgs if i.get("is_primary")), None)
+            p["thumbnail_url"] = primary or (imgs[0]["url"] if imgs
+                                 else "https://placehold.co/600x800/f8f8f8/ccc?text=GUA")
 
-        # Tính toán phần trăm giảm giá công khai
-        price = product.get("price")
-        old_price = product.get("old_price")
-        if price and old_price and old_price > price:
-            product["discount_percent"] = int(100 - (price / old_price * 100))
-        else:
-            product["discount_percent"] = None
+        price, old = p.get("price"), p.get("old_price")
+        p["discount_percent"] = int(100 - price / old * 100) if price and old and old > price else None
 
-        # Format hex màu sắc cho biến thể
-        variants = product.get("product_variants") or []
-        for v in variants:
-            c_hex = v.get("color_hex")
-            if not c_hex or c_hex == "#1a1a1a":
-                c_name = (v.get("color_name") or "").lower().strip()
-                v["color_hex"] = ProductModel.COLOR_DICT.get(c_name, "#e5e5e5")
-        product["product_variants"] = variants
+        for v in (p.get("product_variants") or []):
+            if not v.get("color_hex") or v["color_hex"] == "#1a1a1a":
+                v["color_hex"] = COLOR_MAP.get((v.get("color_name") or "").lower().strip(), "#e5e5e5")
 
-        return product
+        return p
 
-    @staticmethod
-    def fix_missing_slugs() -> int:
-        """Backfill slug cho các sản phẩm bị thiếu trong DB (Dùng Admin Client)."""
-        db = ProductModel._db_admin()
-        fixed = 0
-        try:
-            res = db.table("products").select("id, name, slug").execute()
-            for p in (res.data or []):
-                if p.get("slug") and p["slug"] not in ("None", "null", ""):
-                    continue
-                new_slug = ProductModel.generate_slug(p.get("name", ""))
-                if not new_slug:
-                    continue
-                db.table("products").update({"slug": new_slug}).eq("id", p["id"]).execute()
-                fixed += 1
-            return fixed
-        except Exception as e:
-            logger.error(f"[ProductModel.fix_missing_slugs] Gặp sự cố hệ thống: {e}")
-            return 0
-
-    @staticmethod
-    def fix_missing_barcodes() -> int:
-        """Backfill barcode cho các sản phẩm cũ chưa có (Dùng Admin Client)."""
-        db = ProductModel._db_admin()
-        fixed = 0
-        try:
-            res = db.table("products").select("id, created_at, barcode").execute()
-            for p in (res.data or []):
-                if p.get("barcode"):
-                    continue
-                created = p.get("created_at", "")
-                try:
-                    dt = datetime.fromisoformat(created.replace("Z", "+00:00"))
-                    prefix = f"GUA-{dt.strftime('%y%m')}"
-                except Exception:
-                    prefix = f"GUA-{datetime.now().strftime('%y%m')}"
-
-                hex_part = p["id"].replace("-", "")[:6].upper()
-                barcode = f"{prefix}-{hex_part}"
-                db.table("products").update({"barcode": barcode}).eq("id", p["id"]).execute()
-                fixed += 1
-            return fixed
-        except Exception as e:
-            logger.error(f"[ProductModel.fix_missing_barcodes] Gặp sự cố hệ thống: {e}")
-            return 0
-
-    # ═══════════════════════════════════════════════════════════════
-    #  READ (DÙNG PUBLIC CLIENT CHO STOREFRONT CÔNG KHAI)
-    # ═══════════════════════════════════════════════════════════════
-
-    @staticmethod
-    def get_categories(limit: int = 3) -> list:
-        db = ProductModel._db()
-        try:
-            res = db.table("categories").select("*").limit(limit).execute()
-            return res.data or []
-        except Exception as e:
-            logger.error(f"Lỗi get_categories: {e}")
-            return []
-
-    @staticmethod
-    def get_featured(limit: int = 8) -> list:
-        db = ProductModel._db()
-        try:
-            # FIX: Gọi qua bảng trung gian product_categories để nhả ra list danh mục
-            res = (
-                db.table("products")
-                .select("*, product_categories(categories(name, slug)), product_images(*), product_variants(*)")
-                .is_("deleted_at", "null")
-                .eq("is_active", True)
-                .order("created_at", desc=True)
-                .limit(limit)
-                .execute()
-            )
-            return [ProductModel._format_product(item) for item in (res.data or [])]
-        except Exception as e:
-            logger.error(f"Lỗi get_featured: {e}")
-            return []
+    # ── Read ─────────────────────────────────────────────────────────────────
 
     @staticmethod
     def get_all(
         page: int = 1,
         per_page: int = 12,
         category_slug: str = None,
+        collection_slug: str = None,
         gender: str = None,
         keyword: str = None,
         admin_mode: bool = False,
     ) -> dict:
-        # Nếu ở admin_mode, dùng thẳng admin client để kéo toàn bộ sản phẩm bất kể RLS
-        db = ProductModel._db_admin() if admin_mode else ProductModel._db()
+        """
+        Lấy danh sách sản phẩm có phân trang + lọc.
+        Hỗ trợ lọc đồng thời category_slug VÀ collection_slug.
+        """
+        db     = ProductModel._db_admin() if admin_mode else ProductModel._db()
         offset = (page - 1) * per_page
+        empty  = {"items": [], "total": 0, "page": page, "per_page": per_page}
+
         try:
-            # FIX: Gọi bảng trung gian để in ra tag Danh mục / Collection
-            query = db.table("products").select(
-                "*, product_categories(categories(name, slug)), collection_products(collections(name, slug)), product_variants(*), product_images(*)", 
-                count="exact"
-            )
-            
+            query = db.table("products").select(_SELECT_STOREFRONT, count="exact")
             if not admin_mode:
                 query = query.is_("deleted_at", "null").eq("is_active", True)
 
-            # FIX CỰC KỲ QUAN TRỌNG: Lọc theo bảng N-N
+            # Lọc theo danh mục (N-N, bao gồm danh mục con)
             if category_slug:
-                try:
-                    cat_res = db.table("categories").select("id").eq("slug", category_slug).limit(1).execute()
-                    if cat_res.data:
-                        cat_id = cat_res.data[0]["id"]
-                        # Tìm tất cả product_id liên kết với category này
-                        pc_res = db.table("product_categories").select("product_id").eq("category_id", cat_id).execute()
-                        product_ids = [pc["product_id"] for pc in (pc_res.data or [])]
-                        
-                        if product_ids:
-                            query = query.in_("id", product_ids)
-                        else:
-                            return {"items": [], "total": 0, "page": page, "per_page": per_page}
-                    else:
-                        return {"items": [], "total": 0, "page": page, "per_page": per_page}
-                except Exception as cat_err:
-                    logger.error(f"Lỗi resolve category_slug '{category_slug}': {cat_err}")
+                cat = db.table("categories").select("id").eq("slug", category_slug).limit(1).execute()
+                if not cat.data:
+                    return empty
+                cat_id = cat.data[0]["id"]
 
-            if gender:
-                query = query.eq("gender", gender)
-            if keyword:
-                query = query.ilike("name", f"%{keyword}%")
+                children = db.table("categories").select("id").eq("parent_id", cat_id).execute()
+                all_ids  = [cat_id] + [c["id"] for c in (children.data or [])]
+
+                pc = db.table("product_categories").select("product_id").in_("category_id", all_ids).execute()
+                pids = list({r["product_id"] for r in (pc.data or [])})
+                if not pids:
+                    return empty
+                query = query.in_("id", pids)
+
+            # Lọc theo bộ sưu tập (N-N)
+            if collection_slug:
+                coll = (db.table("collections").select("id")
+                          .eq("slug", collection_slug).eq("is_active", True)
+                          .limit(1).execute())
+                if not coll.data:
+                    return empty
+                coll_id = coll.data[0]["id"]
+
+                cp = db.table("collection_products").select("product_id").eq("collection_id", coll_id).execute()
+                pids = list({r["product_id"] for r in (cp.data or [])})
+                if not pids:
+                    return empty
+                query = query.in_("id", pids)
+
+            if gender:   query = query.eq("gender", gender)
+            if keyword:  query = query.ilike("name", f"%{keyword}%")
 
             res = query.order("created_at", desc=True).range(offset, offset + per_page - 1).execute()
             return {
-                "items": [ProductModel._format_product(item) for item in (res.data or [])],
-                "total": res.count or 0,
-                "page": page,
+                "items":    [ProductModel._format_product(p) for p in (res.data or [])],
+                "total":    res.count or 0,
+                "page":     page,
                 "per_page": per_page,
             }
         except Exception as e:
-            logger.error(f"Lỗi get_all products: {e}")
-            return {"items": [], "total": 0, "page": page, "per_page": per_page}
+            logger.error(f"ProductModel.get_all: {e}")
+            return empty
 
     @staticmethod
-    def get_by_id(pid: str):
-        if not pid: return None
-        db = ProductModel._db_admin() # Dùng quyền admin để tránh lỗi RLS khi load form
+    def get_featured(limit: int = 8) -> list:
         try:
-            res = db.table("products").select("*, product_images(*), product_variants(*)").eq("id", str(pid).strip()).limit(1).execute()
-            if not res.data: return None
-            product = res.data[0]
-
-            # 🟢 NẠP MẢNG DANH MỤC LIÊN KẾT (Nhiều - Nhiều)
-            cat_res = db.table("product_categories").select("category_id").eq("product_id", product["id"]).execute()
-            product["category_ids"] = [c["category_id"] for c in (cat_res.data or [])]
-
-            # 🟢 NẠP MẢNG BỘ SƯU TẬP LIÊN KẾT (Nhiều - Nhiều)
-            coll_res = db.table("collection_products").select("collection_id").eq("product_id", product["id"]).execute()
-            product["collection_ids"] = [c["collection_id"] for c in (coll_res.data or [])]
-
-            return ProductModel._format_product(product)
+            res = (ProductModel._db().table("products")
+                   .select(_SELECT_STOREFRONT)
+                   .is_("deleted_at", "null").eq("is_active", True)
+                   .order("created_at", desc=True).limit(limit).execute())
+            return [ProductModel._format_product(p) for p in (res.data or [])]
         except Exception as e:
-            logger.error(f"Lỗi get_by_id product '{pid}': {e}")
-            return None
-        
-    @staticmethod
-    def sync_categories(pid: str, category_ids: list) -> bool:
-        """Đồng bộ mảng danh mục Nhiều - Nhiều của sản phẩm."""
-        db = ProductModel._db_admin()
-        try:
-            db.table("product_categories").delete().eq("product_id", pid).execute()
-            if category_ids:
-                db.table("product_categories").insert([
-                    {"product_id": pid, "category_id": cid} for cid in category_ids if cid
-                ]).execute()
-            return True
-        except Exception as e:
-            logger.error(f"Lỗi sync_categories sản phẩm {pid}: {e}")
-            return False
-
-    @staticmethod
-    def sync_collections(pid: str, collection_ids: list) -> bool:
-        """Đồng bộ mảng bộ sưu tập Nhiều - Nhiều của sản phẩm."""
-        db = ProductModel._db_admin()
-        try:
-            db.table("collection_products").delete().eq("product_id", pid).execute()
-            if collection_ids:
-                db.table("collection_products").insert([
-                    {"product_id": pid, "collection_id": cid} for cid in collection_ids if cid
-                ]).execute()
-            return True
-        except Exception as e:
-            logger.error(f"Lỗi sync_collections sản phẩm {pid}: {e}")
-            return False
+            logger.error(f"get_featured: {e}")
+            return []
 
     @staticmethod
     def get_by_slug(slug: str):
         if not slug or slug in ("None", "null", "undefined", ""):
             return None
-        db = ProductModel._db()
         try:
-            # FIX: Gọi qua bảng trung gian
-            res = (
-                db.table("products")
-                .select("*, product_categories(categories(name, slug)), collection_products(collections(name, slug)), product_images(*), product_variants(*)")
-                .eq("slug", slug)
-                .is_("deleted_at", "null")
-                .limit(1)
-                .execute()
-            )
+            res = (ProductModel._db().table("products")
+                   .select(_SELECT_STOREFRONT)
+                   .eq("slug", slug).is_("deleted_at", "null")
+                   .limit(1).execute())
             return ProductModel._format_product(res.data[0]) if res.data else None
         except Exception as e:
-            logger.error(f"Lỗi get_by_slug '{slug}': {e}")
+            logger.error(f"get_by_slug '{slug}': {e}")
+            return None
+
+    @staticmethod
+    def get_by_id(pid: str):
+        if not pid:
+            return None
+        db = ProductModel._db_admin()
+        try:
+            res = (db.table("products")
+                   .select("*, product_images(*), product_variants(*)")
+                   .eq("id", str(pid).strip()).limit(1).execute())
+            if not res.data:
+                return None
+            p = res.data[0]
+
+            cats  = db.table("product_categories").select("category_id").eq("product_id", p["id"]).execute()
+            colls = db.table("collection_products").select("collection_id").eq("product_id", p["id"]).execute()
+            p["category_ids"]   = [c["category_id"]   for c in (cats.data  or [])]
+            p["collection_ids"] = [c["collection_id"] for c in (colls.data or [])]
+            return ProductModel._format_product(p)
+        except Exception as e:
+            logger.error(f"get_by_id '{pid}': {e}")
             return None
 
     @staticmethod
     def get_by_barcode(barcode: str):
-        """Tìm sản phẩm theo mã vạch — phục vụ hệ thống POS scan tại quầy."""
         if not barcode:
             return None
-        db = ProductModel._db_admin() # Dùng admin client đề phòng nhân viên quét tại quầy POS bị dính RLS công khai
         try:
-            res = (
-                db.table("products")
-                .select("*, product_variants(*)")
-                .eq("barcode", barcode.strip().upper())
-                .is_("deleted_at", "null")
-                .limit(1)
-                .execute()
-            )
+            res = (ProductModel._db_admin().table("products")
+                   .select("*, product_variants(*)")
+                   .eq("barcode", barcode.strip().upper())
+                   .is_("deleted_at", "null").limit(1).execute())
             return ProductModel._format_product(res.data[0]) if res.data else None
         except Exception as e:
-            logger.error(f"Lỗi get_by_barcode '{barcode}': {e}")
+            logger.error(f"get_by_barcode '{barcode}': {e}")
             return None
 
-    # ═══════════════════════════════════════════════════════════════
-    #  WRITE (DÙNG ADMIN CLIENT ĐỂ BYPASS RLS CHO DASHBOARD WORKSPACE)
-    # ═══════════════════════════════════════════════════════════════
+    @staticmethod
+    def get_categories(limit: int = 3) -> list:
+        try:
+            res = ProductModel._db().table("categories").select("*").limit(limit).execute()
+            return res.data or []
+        except Exception as e:
+            logger.error(f"get_categories: {e}")
+            return []
+
+    # ── Write ────────────────────────────────────────────────────────────────
 
     @staticmethod
     def create(data: dict) -> dict:
@@ -367,128 +233,148 @@ class ProductModel:
         try:
             res = db.table("products").insert(data).execute()
             if not res.data:
-                logger.error("[ProductModel.create] Thất bại! Không có dữ liệu trả về từ Supabase.")
+                logger.error("create: Supabase không trả về dữ liệu.")
                 return None
-
-            product = res.data[0]
-            pid = product["id"]
-
-            barcode = ProductModel.generate_barcode(pid)
-            bc_res = db.table("products").update({"barcode": barcode}).eq("id", pid).execute()
-            
+            p   = res.data[0]
+            pid = p["id"]
+            bc_res = db.table("products").update({"barcode": ProductModel.generate_barcode(pid)}).eq("id", pid).execute()
             if bc_res.data:
-                product["barcode"] = barcode
-            else:
-                logger.warning(f"[ProductModel.create] Không thể ghi đè Barcode tự động cho ID '{pid}'.")
-
-            return product
+                p["barcode"] = bc_res.data[0]["barcode"]
+            return p
         except Exception as e:
-            logger.error(f"Lỗi tạo sản phẩm: {e}")
+            logger.error(f"create: {e}")
             return None
 
     @staticmethod
     def update(pid: str, data: dict) -> bool:
-        """Cập nhật thông tin sản phẩm (Bypass RLS an toàn)."""
         if not pid:
             return False
-            
-        # Làm sạch dữ liệu payload rác đầu vào
-        if "slug" in data and not data["slug"]:
-            data.pop("slug")
-        if "thumbnail_url" in data and not data["thumbnail_url"]:
-            data.pop("thumbnail_url")
-            
-        data.pop("barcode", None) # Không cho phép tự ý viết đè mã Barcode gốc hệ thống
-        clean_pid = str(pid).strip()
-        db = ProductModel._db_admin()
-
+        data = {k: v for k, v in data.items() if k not in ("barcode",) and v is not None}
+        data.pop("slug", None) if not data.get("slug") else None
+        data.pop("thumbnail_url", None) if not data.get("thumbnail_url") else None
         try:
-            # Thực thi lệnh update
-            db.table("products").update(data).eq("id", clean_pid).execute()
-            
-            # 🟢 ĐÃ FIX LỖI: Lược bỏ đoạn kiểm tra `if not res.data:`
-            # Nếu lệnh execute() chạy trót lọt (không văng Exception), 
-            # mặc định trả về True để hệ thống BẮT BUỘC phải chạy tiếp hàm lưu Hình ảnh!
+            ProductModel._db_admin().table("products").update(data).eq("id", str(pid).strip()).execute()
             return True
-            
         except Exception as e:
-            logger.error(f"Lỗi cập nhật sản phẩm '{pid}': {e}")
+            logger.error(f"update '{pid}': {e}")
             return False
 
     @staticmethod
     def delete(pid: str, permanent: bool = False) -> bool:
-        """Xóa sản phẩm hệ thống (Mặc định là Soft Delete để bảo toàn liên kết khóa ngoại đơn hàng)."""
-        db = ProductModel._db_admin()
-        clean_pid = str(pid).strip()
+        db  = ProductModel._db_admin()
+        cpid = str(pid).strip()
         try:
             if permanent:
-                res = db.table("products").delete().eq("id", clean_pid).execute()
+                res = db.table("products").delete().eq("id", cpid).execute()
             else:
                 res = db.table("products").update({
                     "deleted_at": datetime.now().isoformat(),
                     "is_active": False,
-                }).eq("id", clean_pid).execute()
-                
-            if not res.data:
-                logger.warning(f"[ProductModel.delete] Không thể xóa hoặc cập nhật dòng cho ID '{clean_pid}'.")
-                return False
-            return True
+                }).eq("id", cpid).execute()
+            return bool(res.data)
         except Exception as e:
-            logger.error(f"Lỗi xóa sản phẩm '{pid}': {e}")
+            logger.error(f"delete '{pid}': {e}")
             return False
 
-    # ═══════════════════════════════════════════════════════════════
-    #  IMAGES MANAGEMENT (QUẢN LÝ THƯ VIỆN ẢNH)
-    # ═══════════════════════════════════════════════════════════════
+    @staticmethod
+    def sync_categories(pid: str, category_ids: list) -> bool:
+        db = ProductModel._db_admin()
+        try:
+            db.table("product_categories").delete().eq("product_id", pid).execute()
+            if category_ids:
+                db.table("product_categories").insert(
+                    [{"product_id": pid, "category_id": cid} for cid in category_ids if cid]
+                ).execute()
+            return True
+        except Exception as e:
+            logger.error(f"sync_categories '{pid}': {e}")
+            return False
+
+    @staticmethod
+    def sync_collections(pid: str, collection_ids: list) -> bool:
+        db = ProductModel._db_admin()
+        try:
+            db.table("collection_products").delete().eq("product_id", pid).execute()
+            if collection_ids:
+                db.table("collection_products").insert(
+                    [{"product_id": pid, "collection_id": cid} for cid in collection_ids if cid]
+                ).execute()
+            return True
+        except Exception as e:
+            logger.error(f"sync_collections '{pid}': {e}")
+            return False
+
+    # ── Images ───────────────────────────────────────────────────────────────
 
     @staticmethod
     def get_images(pid: str) -> list:
         try:
-            res = (
-                ProductModel._db()
-                .table("product_images")
-                .select("*")
-                .eq("product_id", str(pid).strip())
-                .order("sort_order")
-                .execute()
-            )
+            res = (ProductModel._db().table("product_images").select("*")
+                   .eq("product_id", str(pid).strip()).order("sort_order").execute())
             return res.data or []
         except Exception as e:
-            logger.error(f"Lỗi get_images '{pid}': {e}")
+            logger.error(f"get_images '{pid}': {e}")
             return []
 
     @staticmethod
     def sync_images(pid: str, urls: list) -> bool:
-        """Đồng bộ danh sách hình ảnh sản phẩm (Xóa cũ, ghi đè mới bằng quyền Admin)."""
-        db = ProductModel._db_admin()
-        clean_pid = str(pid).strip()
+        db   = ProductModel._db_admin()
+        cpid = str(pid).strip()
         try:
-            db.table("product_images").delete().eq("product_id", clean_pid).execute()
+            db.table("product_images").delete().eq("product_id", cpid).execute()
             if urls:
                 db.table("product_images").insert([
-                    {"product_id": clean_pid, "url": url, "sort_order": i, "is_primary": (i == 0)}
+                    {"product_id": cpid, "url": url, "sort_order": i, "is_primary": i == 0}
                     for i, url in enumerate(urls)
                 ]).execute()
             return True
         except Exception as e:
-            logger.error(f"Lỗi sync_images '{pid}': {e}")
+            logger.error(f"sync_images '{pid}': {e}")
             return False
 
     @staticmethod
     def upload_to_storage(file_bytes: bytes, filename: str, content_type: str) -> str:
-        """Đẩy tệp tin hình ảnh lên Bucket Storage của Supabase."""
         db = ProductModel._db_admin()
         try:
-            # Ảnh vẫn sẽ được lưu gọn gàng vào thư mục 'products' bên trong bucket 'store-assets'
             path = f"products/{datetime.now().strftime('%Y%m%d_%H%M%S')}_{filename}"
-            
-            # 🟢 QUAY LẠI SỬ DỤNG BUCKET ĐÃ CHẮC CHẮN HOẠT ĐỘNG: "store-assets"
-            res = db.storage.from_("store-assets").upload(
-                path, 
-                file_bytes, 
-                {"content-type": content_type}
-            )
+            db.storage.from_("store-assets").upload(path, file_bytes, {"content-type": content_type})
             return db.storage.from_("store-assets").get_public_url(path)
         except Exception as e:
-            logger.error(f"Lỗi upload storage: {e.__dict__ if hasattr(e, '__dict__') else str(e)}")
+            logger.error(f"upload_to_storage: {e}")
             return ""
+
+    # ── Backfills (admin utils) ───────────────────────────────────────────────
+
+    @staticmethod
+    def fix_missing_slugs() -> int:
+        db, fixed = ProductModel._db_admin(), 0
+        try:
+            for p in (db.table("products").select("id, name, slug").execute().data or []):
+                if p.get("slug") and p["slug"] not in ("None", "null", ""):
+                    continue
+                slug = ProductModel.generate_slug(p.get("name", ""))
+                if slug:
+                    db.table("products").update({"slug": slug}).eq("id", p["id"]).execute()
+                    fixed += 1
+        except Exception as e:
+            logger.error(f"fix_missing_slugs: {e}")
+        return fixed
+
+    @staticmethod
+    def fix_missing_barcodes() -> int:
+        db, fixed = ProductModel._db_admin(), 0
+        try:
+            for p in (db.table("products").select("id, created_at, barcode").execute().data or []):
+                if p.get("barcode"):
+                    continue
+                try:
+                    dt = datetime.fromisoformat(p.get("created_at", "").replace("Z", "+00:00"))
+                    prefix = f"GUA-{dt.strftime('%y%m')}"
+                except Exception:
+                    prefix = f"GUA-{datetime.now().strftime('%y%m')}"
+                barcode = f"{prefix}-{p['id'].replace('-', '')[:6].upper()}"
+                db.table("products").update({"barcode": barcode}).eq("id", p["id"]).execute()
+                fixed += 1
+        except Exception as e:
+            logger.error(f"fix_missing_barcodes: {e}")
+        return fixed

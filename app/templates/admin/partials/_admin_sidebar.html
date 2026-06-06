@@ -1,0 +1,105 @@
+<aside id="adminSidebar" class="mm-sidebar">
+
+  <div class="mm-sidebar-head">
+    <a href="{{ url_for('admin.dashboard') }}" data-nav data-prefetch class="mm-brand">
+      <span class="mm-logo-wrap">
+        <img src="{{ brand_logo }}" alt="MMESTLINE" class="mm-logo-img">
+      </span>
+
+      <span class="mm-brand-text">
+        <strong>MMESTLINE</strong>
+        <small>Workspace</small>
+      </span>
+    </a>
+
+    <button type="button" onclick="AdminShell.closeSidebar()" class="mm-close-btn lg:hidden" aria-label="Đóng menu">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
+
+  <div class="mm-sidebar-body">
+    {% for section in sidebar_sections %}
+    <section class="mm-nav-section">
+      <p class="mm-section-title">{{ section['title'] }}</p>
+
+      <nav class="mm-nav-list">
+        {% for label, ep, icon, badge in section['items'] %}
+          {% set active = current_ep == ep
+            or (ep == 'admin.notifications_index' and notification_active)
+            or (ep == 'admin.return_requests' and returns_active)
+            or (ep == 'admin_providers.index' and providers_active)
+          %}
+
+          <a href="{{ url_for(ep) }}"
+             data-nav
+             data-prefetch
+             title="{{ label }}"
+             class="mm-nav-link {{ 'is-active' if active else '' }}">
+            <span class="mm-nav-left">
+              <span class="mm-nav-icon">
+                <i class="fa-solid {{ icon }}"></i>
+              </span>
+              <span class="mm-nav-label">{{ label }}</span>
+            </span>
+
+            {% if badge and badge > 0 %}
+            <span class="mm-nav-badge">
+              {{ badge if badge < 100 else '99+' }}
+            </span>
+            {% endif %}
+          </a>
+        {% endfor %}
+      </nav>
+    </section>
+    {% endfor %}
+
+    {% if admin_role in ('super_admin', 'admin') %}
+    <section class="mm-nav-section">
+      <p class="mm-section-title">Hệ thống</p>
+
+      <nav class="mm-nav-list">
+        {% for label, ep, icon in system_links %}
+        {% set active = current_ep == ep %}
+
+        <a href="{{ url_for(ep) }}"
+           data-nav
+           data-prefetch
+           title="{{ label }}"
+           class="mm-nav-link {{ 'is-active' if active else '' }}">
+          <span class="mm-nav-left">
+            <span class="mm-nav-icon">
+              <i class="fa-solid {{ icon }}"></i>
+            </span>
+            <span class="mm-nav-label">{{ label }}</span>
+          </span>
+        </a>
+        {% endfor %}
+      </nav>
+    </section>
+    {% endif %}
+  </div>
+
+  <div class="mm-sidebar-foot">
+    <a href="/" data-nav data-prefetch title="Xem Storefront" class="mm-nav-link">
+      <span class="mm-nav-left">
+        <span class="mm-nav-icon">
+          <i class="fa-solid fa-store"></i>
+        </span>
+        <span class="mm-nav-label">Xem Storefront</span>
+      </span>
+    </a>
+
+    <form action="{{ url_for('auth.logout') }}" method="POST" data-form-nav>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" title="Đăng xuất" class="mm-nav-link mm-logout-btn">
+        <span class="mm-nav-left">
+          <span class="mm-nav-icon">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          </span>
+          <span class="mm-nav-label">Đăng xuất</span>
+        </span>
+      </button>
+    </form>
+  </div>
+
+</aside>

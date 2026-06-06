@@ -10,8 +10,7 @@ bcrypt>=4.1.0
 email-validator>=2.0.0
 websockets>=12.0       # Nới lỏng phạm vi phiên bản
 
-# --- GIAO DIỆN ADMIN (DASHBOARD) ---
-nicegui>=3.11.1
+ 
 
 # --- TÍNH NĂNG MỞ RỘNG (EMAIL & BACKUP EXCEL) ---
 sendgrid>=6.11.0

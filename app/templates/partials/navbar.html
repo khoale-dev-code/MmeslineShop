@@ -1,4 +1,4 @@
-{# ═══════════════════════════════════════════════════════════
+{# ═════════════════════════════════════════════════════════
    partials/navbar.html — GUA Maison (BARAVAS Style - Supercharged ⚡)
    Tối ưu hóa:
    - GPU Hardware Acceleration: will-change-transform, transform-gpu.
@@ -147,35 +147,36 @@
                 Khám phá toàn bộ Lookbook và chiến dịch mới nhất.
               </p>
             </div>
+            
             <div class="px-8 py-8 border-r border-black/20 flex flex-col gap-5">
-              {% if global_collections|length > 0 %}
+              {% if global_collections and global_collections[0] %}
                 <a href="/shop?collection={{ global_collections[0].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_collections[0].name }}</a>
               {% endif %}
-              {% if global_collections|length > 4 %}
+              {% if global_collections and global_collections[4] %}
                 <a href="/shop?collection={{ global_collections[4].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_collections[4].name }}</a>
               {% endif %}
             </div>
             <div class="px-8 py-8 border-r border-black/20 flex flex-col gap-5">
-              {% if global_collections|length > 1 %}
+              {% if global_collections and global_collections[1] %}
                 <a href="/shop?collection={{ global_collections[1].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_collections[1].name }}</a>
               {% endif %}
-              {% if global_collections|length > 5 %}
+              {% if global_collections and global_collections[5] %}
                 <a href="/shop?collection={{ global_collections[5].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_collections[5].name }}</a>
               {% endif %}
             </div>
             <div class="px-8 py-8 border-r border-black/20 flex flex-col gap-5">
-              {% if global_collections|length > 2 %}
+              {% if global_collections and global_collections[2] %}
                 <a href="/shop?collection={{ global_collections[2].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_collections[2].name }}</a>
               {% endif %}
-              {% if global_collections|length > 6 %}
+              {% if global_collections and global_collections[6] %}
                 <a href="/shop?collection={{ global_collections[6].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_collections[6].name }}</a>
               {% endif %}
             </div>
             <div class="px-8 py-8 flex flex-col gap-5 bg-[#fafafa]/30">
-              {% if global_collections|length > 3 %}
+              {% if global_collections and global_collections[3] %}
                 <a href="/shop?collection={{ global_collections[3].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_collections[3].name }}</a>
               {% endif %}
-              {% if global_collections|length > 7 %}
+              {% if global_collections and global_collections[7] %}
                 <a href="/shop?collection={{ global_collections[7].slug }}" data-nav class="text-[12px] uppercase tracking-widest hover:text-neutral-500 transition-colors">{{ global_collections[7].name }}</a>
               {% endif %}
             </div>
@@ -308,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
   closeBtn?.addEventListener('click', closeMenu);
   backdrop?.addEventListener('click', closeMenu);
 
-  // 2. Notification Lazy-Load Logic (Sử dụng requestIdleCallback để không làm chậm lúc load trang)
+  // 2. Notification Lazy-Load Logic
   const initNotifications = () => {
     // Đoạn code này đã được gỡ bỏ logic thừa để trang web chạy nhẹ nhất có thể 
     // vì thiết kế BARAVAS không yêu cầu popup thông báo dạng Text như cũ.

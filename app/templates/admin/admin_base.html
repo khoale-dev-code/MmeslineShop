@@ -1,195 +1,538 @@
 <!DOCTYPE html>
 <html lang="vi" class="scroll-smooth">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  {# 👉 TỰ ĐỘNG LẤY TÊN SHOP TỪ DATABASE #}
-  <title>{% block title %}{{ system_settings.get('general', {}).get('shop_name') or 'GUA ADMIN' }} | Trung tâm quản trị{% endblock %}</title>
+  {% if csrf_token is defined %}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+  {% endif %}
+
+  {% set general_settings = system_settings.get('general', {}) if system_settings is defined and system_settings else {} %}
+  {% set shop_name = general_settings.get('shop_name') %}
+  {% set support_email = general_settings.get('email') %}
+  {% set display_shop_name = shop_name or 'MMESTLINE' %}
+  {% set admin_logo_url = url_for('static', filename='images/mmestlinelogo.svg') %}
+  {% set favicon_url = url_for('static', filename='images/favicon.png') %}
+
+  <title>
+    {% block title %}
+      {{ display_shop_name }} | Trung tâm quản trị
+    {% endblock %}
+  </title>
+
+  <link rel="icon" href="{{ favicon_url }}" type="image/png">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,500&display=swap" 
-        rel="stylesheet">
 
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,500;0,600;0,700;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  >
 
-  <script>
-    tailwind.config = {
-      content: [],
-      theme: {
-        extend: {
-          fontFamily: { 
-            sans: ['"DM Sans"', 'system-ui', 'sans-serif'],
-            display: ['"Cormorant"', 'serif'],
-            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
-          },
-          boxShadow: {
-            'soft': '0 10px 30px -10px rgb(0 0 0 / 0.08)',
-            'card': '0 4px 20px rgb(0 0 0 / 0.04)'
+  {% if config.get('USE_TAILWIND_CDN', True) %}
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        content: [],
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+              display: ['"Cormorant"', 'serif'],
+              mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
+            },
+            boxShadow: {
+              soft: '0 14px 38px -28px rgb(36 18 7 / 0.38)',
+              card: '0 12px 34px -28px rgb(36 18 7 / 0.32)',
+              float: '0 28px 80px -44px rgb(36 18 7 / 0.62)'
+            }
           }
         }
-      }
-    }
-  </script>
+      };
+    </script>
+  {% else %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin/css/tailwind_admin.css') }}">
+  {% endif %}
+
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+  >
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/css/mm_admin_nav.css') }}">
 
   <style>
-    body { 
-      -webkit-font-smoothing: antialiased; 
+    :root {
+      --mm-brown-950: #241207;
+      --mm-brown-900: #3b2414;
+      --mm-brown-800: #4c2d18;
+      --mm-brown-700: #5f3b1e;
+      --mm-caramel: #b98b62;
+      --mm-muted: #9b7b63;
+      --mm-sand: #ead8c8;
+      --mm-cream: #fbf7f1;
+      --mm-soft: #fffaf5;
+      --mm-card: #fffdf9;
+      --mm-line: #eadfd4;
+
+      --admin-sidebar-width: 280px;
+      --admin-sidebar-mini-width: 84px;
+      --admin-topbar-height: 76px;
+      --admin-mobilebar-height: 64px;
+      --admin-content-ml: var(--admin-sidebar-width);
+      --admin-bg: #fbf7f1;
+    }
+
+    html {
+      min-height: 100%;
+      background:
+        radial-gradient(circle at top left, rgba(185, 139, 98, 0.14), transparent 34%),
+        linear-gradient(180deg, #fbf7f1 0%, #f7eee6 52%, #fbf7f1 100%);
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--mm-brown-950);
+      background:
+        radial-gradient(circle at 0% 0%, rgba(185, 139, 98, 0.10), transparent 30%),
+        linear-gradient(180deg, #fbf7f1 0%, #f8efe7 46%, #fbf7f1 100%);
+      font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       text-rendering: optimizeLegibility;
     }
-    .admin-main {
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    ::selection {
+      color: #ffffff;
+      background: var(--mm-brown-800);
     }
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #f8fafc; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 20px; }
-    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    ::-webkit-scrollbar {
+      width: 7px;
+      height: 7px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #f8efe7;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #c9ad97;
+      border-radius: 999px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #a77e5f;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+      font: inherit;
+    }
+
+    .admin-main,
+    .admin-footer {
+      margin-left: 0;
+      transition:
+        margin-left 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+        padding-top 0.2s ease,
+        background-color 0.2s ease;
+    }
+
+    .admin-main {
+      min-width: 0;
+      min-height: 100vh;
+      padding-top: var(--admin-mobilebar-height);
+    }
+
+    .admin-page-shell {
+      min-height: 100vh;
+    }
+
+    .admin-page-inner {
+      width: 100%;
+      min-width: 0;
+    }
+
+    @media (min-width: 1024px) {
+      .admin-main,
+      .admin-footer {
+        margin-left: var(--admin-content-ml);
+      }
+
+      .admin-main {
+        padding-top: var(--admin-topbar-height);
+      }
+
+      body.mm-sidebar-collapsed,
+      body.admin-sidebar-collapsed {
+        --admin-content-ml: var(--admin-sidebar-mini-width);
+      }
+
+      body.mm-sidebar-hidden,
+      body.admin-sidebar-hidden {
+        --admin-content-ml: 0px;
+      }
+    }
+
+    @media (max-width: 1023.98px) {
+      .admin-main {
+        padding-top: var(--admin-mobilebar-height);
+      }
+
+      .admin-footer {
+        margin-left: 0;
+      }
+    }
+
     .reveal {
       opacity: 0;
-      transform: translateY(25px);
-      transition: all 0.6s cubic-bezier(0.25, 0.1, 0.25, 1);
+      transform: translateY(18px);
+      transition:
+        opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+        transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     }
+
     .reveal.active {
       opacity: 1;
       transform: translateY(0);
     }
+
     .card-hover {
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-                  box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition:
+        transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+        border-color 0.22s cubic-bezier(0.16, 1, 0.3, 1);
     }
+
     .card-hover:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.08), 
-                  0 8px 10px -6px rgb(0 0 0 / 0.08);
+      transform: translateY(-3px);
+      box-shadow: 0 22px 44px -34px rgb(36 18 7 / 0.42);
     }
+
     .btn-admin {
-      transition: all 0.2s ease;
+      transition:
+        transform 0.16s ease,
+        box-shadow 0.16s ease,
+        background-color 0.16s ease,
+        border-color 0.16s ease;
     }
+
     .btn-admin:hover {
       transform: translateY(-1px);
+    }
+
+    .mm-footer-link {
+      color: var(--mm-muted);
+      font-weight: 700;
+      transition: color 0.16s ease;
+    }
+
+    .mm-footer-link:hover {
+      color: var(--mm-brown-800);
+    }
+
+    .mm-toast {
+      background: rgba(255, 250, 245, 0.96);
+      border: 1px solid var(--mm-line);
+      box-shadow: 0 28px 80px -44px rgb(36 18 7 / 0.62);
+      backdrop-filter: blur(18px);
+    }
+
+    .mm-toast-success {
+      border-color: #bbf7d0;
+    }
+
+    .mm-toast-warning {
+      border-color: #fde68a;
+    }
+
+    .mm-toast-error {
+      border-color: #fecdd3;
+    }
+
+    .mm-skip-link {
+      position: fixed;
+      left: 16px;
+      top: 16px;
+      z-index: 10000;
+      transform: translateY(-140%);
+      border-radius: 999px;
+      background: var(--mm-brown-900);
+      color: #fff;
+      padding: 10px 16px;
+      font-size: 12px;
+      font-weight: 900;
+      transition: transform 0.16s ease;
+    }
+
+    .mm-skip-link:focus {
+      transform: translateY(0);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+      }
     }
   </style>
 
   {% block extra_head %}{% endblock %}
 </head>
 
-<body class="bg-stone-50 text-stone-900 flex flex-col min-h-screen">
+<body
+  class="min-h-screen"
+  data-admin-logo="{{ admin_logo_url }}"
+  data-shop-name="{{ display_shop_name }}"
+>
+  <a href="#adminContent" class="mm-skip-link">
+    Bỏ qua menu và vào nội dung
+  </a>
 
   {% include "admin/admin_navbar.html" %}
 
-  <main class="flex-1 admin-main pt-6 pb-12">
-    <div class="max-w-screen-2xl mx-auto px-6 lg:px-10">
+  <main
+    id="adminContent"
+    class="admin-main admin-page-shell"
+    tabindex="-1"
+  >
+    <div class="admin-page-inner max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
       {% block content %}{% endblock %}
     </div>
   </main>
 
-  <footer class="bg-white border-t border-stone-100 py-8 mt-auto">
-    <div class="max-w-screen-2xl mx-auto px-6 lg:px-10">
-      <div class="flex flex-col md:flex-row justify-between items-center gap-4 text-xs">
-        <div class="flex items-center gap-6 text-stone-400">
-          <div class="flex items-center gap-2">
+  <footer
+    id="adminFooter"
+    class="admin-footer border-t border-[#eadfd4] bg-[#fffaf5]/86 backdrop-blur-xl mt-auto"
+  >
+    <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 text-xs">
+
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 text-[#9b7b63]">
+          <div class="inline-flex items-center gap-2">
             <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span class="font-medium">Hệ thống đang hoạt động ổn định</span>
+            <span class="font-bold">Hệ thống {{ display_shop_name }} đang hoạt động ổn định</span>
           </div>
-          {# Badge đổi/trả chờ xử lý — hiện ở footer khi có #}
+
           {% if pending_returns is defined and pending_returns > 0 %}
-          <a href="{{ url_for('admin.return_requests', status='pending') }}"
-             class="flex items-center gap-1.5 text-amber-600 font-bold hover:text-amber-700 transition-colors">
-            <span class="flex h-2 w-2 rounded-full bg-amber-500 animate-pulse"></span>
+          <a
+            href="{{ url_for('admin.return_requests', status='pending') }}"
+            class="inline-flex items-center gap-1.5 text-[#9a5a2f] font-extrabold hover:text-[#5f3b1e] transition-colors"
+          >
+            <span class="flex h-2 w-2 rounded-full bg-[#b98b62] animate-pulse"></span>
             {{ pending_returns }} yêu cầu đổi/trả chờ duyệt
           </a>
           {% endif %}
+
+          {% if admin_notification_count is defined and admin_notification_count > 0 %}
+          <a
+            href="{{ url_for('admin.notifications_index') }}"
+            class="inline-flex items-center gap-1.5 text-[#5f3b1e] font-extrabold hover:text-[#241207] transition-colors"
+          >
+            <i class="fa-solid fa-bell text-[10px]"></i>
+            {{ admin_notification_count }} thông báo đang bật
+          </a>
+          {% endif %}
         </div>
-        
-        {# 👉 BẢN QUYỀN ĐỘNG THEO TÊN SHOP #}
-        <p class="text-stone-400">
-          © 2026 <span class="font-semibold text-stone-600">{{ system_settings.get('general', {}).get('shop_name') or 'GUA Store' }}</span>. 
-          Phát triển bởi <span class="font-medium">Lê Trần Đăng Khoa</span>
+
+        <p class="text-[#9b7b63]">
+          © 2026
+          <span class="font-extrabold text-[#3b2414]">
+            {{ display_shop_name }}
+          </span>.
+          Phát triển bởi
+          <span class="font-semibold text-[#5f3b1e]">Lê Trần Đăng Khoa</span>
         </p>
 
-        <div class="text-stone-400 flex items-center gap-5">
-          {# 👉 HIỂN THỊ EMAIL NẾU ĐÃ CÀI ĐẶT TRONG SYSTEM SETTINGS #}
-          {% set support_email = system_settings.get('general', {}).get('email') %}
+        <div class="text-[#9b7b63] flex items-center gap-4 sm:gap-5">
           {% if support_email %}
-            <a href="mailto:{{ support_email }}" class="hover:text-stone-600 transition-colors">Hỗ trợ ({{ support_email }})</a>
+            <a href="mailto:{{ support_email }}" class="mm-footer-link">
+              Hỗ trợ
+            </a>
           {% else %}
-            <a href="#" class="hover:text-stone-600 transition-colors">Hỗ trợ</a>
+            <a href="#" class="mm-footer-link">
+              Hỗ trợ
+            </a>
           {% endif %}
-          
-          <a href="#" class="hover:text-stone-600 transition-colors">Tài liệu</a>
-          <a href="#" class="hover:text-stone-600 transition-colors">Phiên bản 1.0.27</a>
+
+          <a href="#" class="mm-footer-link">
+            Tài liệu
+          </a>
+
+          <span class="font-bold">
+            v1.0.30
+          </span>
         </div>
+
       </div>
     </div>
   </footer>
 
-  {# ── SNACKBAR (TOAST) THÔNG BÁO TỪ FLASK ── #}
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-      <div id="gua-snackbar-container" class="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3 pointer-events-none">
+      <div
+        id="mm-snackbar-container"
+        class="fixed bottom-5 right-5 z-[9999] flex flex-col gap-3 pointer-events-none w-[calc(100vw-2.5rem)] max-w-sm"
+      >
         {% for category, message in messages %}
-          
-          {% set icon = 'fa-circle-check text-emerald-500' if category == 'success' else 'fa-circle-exclamation text-rose-500' %}
-          {% set border = 'border-emerald-100' if category == 'success' else 'border-rose-100' %}
-          
-          <div class="gua-toast flex items-center gap-3 bg-white border {{ border }} shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] rounded-2xl p-4 pr-5 transform transition-all duration-500 translate-y-10 opacity-0 pointer-events-auto">
-            <div class="w-8 h-8 rounded-full bg-stone-50 flex items-center justify-center shrink-0">
+          {% set is_success = category == 'success' %}
+          {% set is_warning = category in ['warning', 'info'] %}
+          {% set icon = 'fa-circle-check text-emerald-500' if is_success else ('fa-circle-info text-amber-500' if is_warning else 'fa-circle-exclamation text-rose-500') %}
+          {% set toast_type = 'mm-toast-success' if is_success else ('mm-toast-warning' if is_warning else 'mm-toast-error') %}
+
+          <div
+            class="mm-toast {{ toast_type }} mm-admin-toast pointer-events-auto flex items-start gap-3 rounded-2xl p-4 transform transition-all duration-500 translate-y-8 opacity-0"
+            role="status"
+            aria-live="polite"
+          >
+            <div class="w-9 h-9 rounded-2xl bg-[#fbf4ed] flex items-center justify-center shrink-0">
               <i class="fa-solid {{ icon }} text-lg"></i>
             </div>
-            <span class="text-sm font-bold text-stone-800">{{ message }}</span>
-            <button type="button" onclick="this.closest('.gua-toast').remove()" class="ml-4 w-6 h-6 flex items-center justify-center text-stone-400 hover:bg-stone-100 hover:text-stone-700 rounded-full transition-colors">
+
+            <div class="min-w-0 flex-1 pt-0.5">
+              <p class="text-sm font-extrabold text-[#3b2414] leading-snug">
+                {{ message }}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onclick="this.closest('.mm-admin-toast').remove()"
+              class="w-7 h-7 flex items-center justify-center text-[#9b7b63] hover:bg-[#f6eee7] hover:text-[#3b2414] rounded-full transition-colors shrink-0"
+              aria-label="Đóng thông báo"
+            >
               <i class="fa-solid fa-xmark text-sm"></i>
             </button>
           </div>
-          
         {% endfor %}
       </div>
-
-      <script>
-        document.addEventListener("DOMContentLoaded", () => {
-          const toasts = document.querySelectorAll('.gua-toast');
-          toasts.forEach((toast, index) => {
-            // Animation hiện vào (Slide up + Fade in)
-            setTimeout(() => {
-              toast.classList.remove('translate-y-10', 'opacity-0');
-              toast.classList.add('translate-y-0', 'opacity-100');
-            }, 100 * index);
-            
-            // Tự động ẩn sau 4 giây
-            setTimeout(() => {
-              toast.classList.remove('translate-y-0', 'opacity-100');
-              toast.classList.add('translate-y-10', 'opacity-0');
-              setTimeout(() => toast.remove(), 500); // Xóa khỏi DOM sau khi kết thúc transition
-            }, 4000);
-          });
-        });
-      </script>
     {% endif %}
   {% endwith %}
 
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('active');
-            observer.unobserve(entry.target);
-          }
+    (function () {
+      "use strict";
+
+      function setBodyState(name, enabled) {
+        document.body.classList.toggle(name, Boolean(enabled));
+      }
+
+      function applySidebarState() {
+        try {
+          var collapsed = localStorage.getItem("mmAdminSidebarCollapsed") === "1";
+          var hidden = localStorage.getItem("mmAdminSidebarHidden") === "1";
+
+          setBodyState("mm-sidebar-collapsed", collapsed && !hidden);
+          setBodyState("admin-sidebar-collapsed", collapsed && !hidden);
+
+          setBodyState("mm-sidebar-hidden", hidden);
+          setBodyState("admin-sidebar-hidden", hidden);
+        } catch (error) {
+          document.body.classList.remove(
+            "mm-sidebar-collapsed",
+            "admin-sidebar-collapsed",
+            "mm-sidebar-hidden",
+            "admin-sidebar-hidden"
+          );
+        }
+      }
+
+      function initToasts() {
+        var toasts = document.querySelectorAll(".mm-admin-toast");
+
+        toasts.forEach(function (toast, index) {
+          setTimeout(function () {
+            toast.classList.remove("translate-y-8", "opacity-0");
+            toast.classList.add("translate-y-0", "opacity-100");
+          }, 90 * index);
+
+          setTimeout(function () {
+            toast.classList.remove("translate-y-0", "opacity-100");
+            toast.classList.add("translate-y-8", "opacity-0");
+
+            setTimeout(function () {
+              if (toast && toast.parentNode) {
+                toast.remove();
+              }
+            }, 500);
+          }, 4200 + (index * 250));
         });
-      }, { threshold: 0.08, rootMargin: "0px 0px -50px 0px" });
-      document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-    });
-    
-    function initTailwind() {
-      const shopName = "{{ system_settings.get('general', {}).get('shop_name') or 'GUA' }}";
-      console.log(`%c${shopName} Admin Dashboard loaded successfully`, 'color: #4f46e5; font-weight: 600;');
-    }
-    window.onload = initTailwind;
+      }
+
+      function initReveal() {
+        var items = document.querySelectorAll(".reveal");
+
+        if (!("IntersectionObserver" in window)) {
+          items.forEach(function (el) {
+            el.classList.add("active");
+          });
+          return;
+        }
+
+        var observer = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("active");
+              observer.unobserve(entry.target);
+            }
+          });
+        }, {
+          threshold: 0.08,
+          rootMargin: "0px 0px -40px 0px"
+        });
+
+        items.forEach(function (el) {
+          observer.observe(el);
+        });
+      }
+
+      applySidebarState();
+
+      window.MMAdminLayout = window.MMAdminLayout || {};
+      window.MMAdminLayout.applySidebarState = applySidebarState;
+
+      window.addEventListener("mm-admin-sidebar-change", applySidebarState);
+
+      window.addEventListener("storage", function (event) {
+        if (
+          event.key === "mmAdminSidebarCollapsed" ||
+          event.key === "mmAdminSidebarHidden"
+        ) {
+          applySidebarState();
+        }
+      });
+
+      document.addEventListener("DOMContentLoaded", function () {
+        applySidebarState();
+        initToasts();
+        initReveal();
+
+        var shopName = document.body.getAttribute("data-shop-name") || "MMESTLINE";
+
+        console.log(
+          "%c" + shopName + " Admin Dashboard loaded",
+          "color:#5f3b1e;font-weight:800;"
+        );
+      });
+    })();
   </script>
+
+  <script src="{{ url_for('static', filename='admin/js/mm_admin_nav.js') }}" defer></script>
 
   {% block extra_scripts %}{% endblock %}
 </body>

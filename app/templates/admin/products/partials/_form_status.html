@@ -1,0 +1,29 @@
+<section class="mm-card">
+  <div class="mm-card-head">
+    <div>
+      <p class="mm-kicker">Status</p>
+      <h2>Trạng thái</h2>
+    </div>
+    <span class="mm-card-icon">
+      <i class="fa-solid fa-toggle-on"></i>
+    </span>
+  </div>
+
+  <div class="mm-card-body">
+    <label class="mm-switch-row">
+      <span>
+        <strong>Hiển thị sản phẩm</strong>
+        <small>Sản phẩm có thể xuất hiện trên storefront.</small>
+      </span>
+      <input type="checkbox" name="is_active" {% if not p or p.is_active %}checked{% endif %}>
+    </label>
+
+    <label class="mm-switch-row mm-field-block">
+      <span>
+        <strong>Sản phẩm nổi bật</strong>
+        <small>Dùng cho khu vực best seller / featured.</small>
+      </span>
+      <input type="checkbox" name="is_featured" {% if p and p.is_featured %}checked{% endif %}>
+    </label>
+  </div>
+</section>

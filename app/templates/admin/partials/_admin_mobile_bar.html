@@ -1,0 +1,34 @@
+<header class="mm-mobilebar lg:hidden">
+  <button type="button" onclick="AdminShell.openSidebar()" class="mm-icon-btn" aria-label="Mở menu">
+    <i class="fa-solid fa-bars"></i>
+  </button>
+
+  <a href="{{ url_for('admin.dashboard') }}" data-nav data-prefetch class="mm-mobile-brand">
+    <img src="{{ brand_logo }}" alt="MMESTLINE" class="mm-mobile-logo">
+    <div>
+      <p>MMESTLINE</p>
+      <span>Admin</span>
+    </div>
+  </a>
+
+  <a href="{{ url_for('admin.notifications_index') }}"
+     data-nav
+     data-prefetch
+     class="mm-icon-btn relative {{ 'is-active' if notification_active else '' }}"
+     aria-label="Thông báo">
+    <i class="fa-solid fa-bell"></i>
+
+    {% if admin_notification_count > 0 %}
+    <span class="mm-dot-badge">
+      {{ admin_notification_count if admin_notification_count < 100 else '99+' }}
+    </span>
+    {% endif %}
+  </a>
+</header>
+
+<div class="lg:hidden h-[64px]"></div>
+
+<div id="adminSidebarBackdrop"
+     onclick="AdminShell.closeSidebar()"
+     class="mm-sidebar-backdrop lg:hidden">
+</div>

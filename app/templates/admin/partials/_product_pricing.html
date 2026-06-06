@@ -1,0 +1,340 @@
+{# ─────────────────────────────────────────────────────────────
+   app/templates/admin/partials/_product_pricing.html
+   Partial: Giá bán + Giá so sánh (gạch ngang) + Quản lý tồn kho
+   Include: {% include 'admin/partials/_product_pricing.html' %}
+───────────────────────────────────────────────────────────── #}
+
+{# ══ SECTION 1: GIÁ SẢN PHẨM ══ #}
+<div class="bg-white border border-stone-200/80 rounded-[24px] p-6 md:p-8 shadow-sm">
+  <h2 class="text-xs font-bold uppercase tracking-widest text-stone-400 mb-6 flex items-center gap-2">
+    <i class="fa-solid fa-tag text-stone-300 text-base"></i> Giá sản phẩm
+  </h2>
+
+  <div class="space-y-5">
+
+    {# Giá bán #}
+    <div>
+      <label class="block text-[11px] font-bold uppercase tracking-widest text-stone-500 mb-2">
+        Giá bán <span class="text-rose-500">*</span>
+        <span class="ml-2 text-[10px] font-normal normal-case text-stone-400">Giá khách trả khi mua</span>
+      </label>
+      <div class="relative">
+        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 text-sm font-semibold">₫</span>
+        <input
+          type="text"
+          name="price"
+          id="input_price"
+          value="{{ '{:,.0f}'.format(product.price) if product and product.price else '' }}"
+          data-raw="{{ product.price or '' }}"
+          required
+          placeholder="0"
+          inputmode="numeric"
+          autocomplete="off"
+          class="w-full bg-stone-50/50 border border-stone-200 rounded-2xl pl-9 pr-4 py-3.5 text-sm font-bold focus:outline-none focus:bg-white focus:border-stone-400 focus:ring-4 focus:ring-stone-100 transition-all"
+        >
+        <input type="hidden" name="price_raw" id="price_raw" value="{{ product.price or '' }}">
+      </div>
+      <p id="price_preview" class="mt-1.5 text-xs text-stone-400 font-medium h-4"></p>
+    </div>
+
+    {# Giá so sánh (gạch ngang) #}
+    <div>
+      <label class="block text-[11px] font-bold uppercase tracking-widest text-stone-500 mb-2">
+        Giá so sánh
+        <span class="ml-2 text-[10px] font-normal normal-case text-stone-400">Giá cũ bị gạch ngang — để trống nếu không có khuyến mãi</span>
+      </label>
+      <div class="relative">
+        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 text-sm font-semibold">₫</span>
+        <input
+          type="text"
+          name="compare_at_price"
+          id="input_compare"
+          value="{{ '{:,.0f}'.format(product.compare_at_price) if product and product.compare_at_price else '' }}"
+          data-raw="{{ product.compare_at_price or '' }}"
+          placeholder="Không có (không khuyến mãi)"
+          inputmode="numeric"
+          autocomplete="off"
+          class="w-full bg-stone-50/50 border border-stone-200 rounded-2xl pl-9 pr-4 py-3.5 text-sm font-medium focus:outline-none focus:bg-white focus:border-amber-400 focus:ring-4 focus:ring-amber-50 transition-all"
+        >
+        <input type="hidden" name="compare_at_price_raw" id="compare_raw" value="{{ product.compare_at_price or '' }}">
+      </div>
+    </div>
+
+    {# Preview giá gạch ngang live #}
+    <div id="price_badge_preview" class="hidden bg-stone-50 border border-stone-100 rounded-2xl px-4 py-3 flex items-center gap-3">
+      <span class="text-[11px] font-bold uppercase tracking-widest text-stone-400">Preview:</span>
+      <span id="badge_compare" class="text-sm font-medium text-stone-400 line-through"></span>
+      <span id="badge_sale" class="text-base font-bold text-rose-600"></span>
+      <span id="badge_pct" class="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full"></span>
+    </div>
+
+  </div>
+</div>
+
+{# ══ SECTION 2: QUẢN LÝ TỒN KHO ══ #}
+<div class="bg-white border border-stone-200/80 rounded-[24px] p-6 md:p-8 shadow-sm">
+  <h2 class="text-xs font-bold uppercase tracking-widest text-stone-400 mb-6 flex items-center gap-2">
+    <i class="fa-solid fa-warehouse text-stone-300 text-base"></i> Quản lý tồn kho
+  </h2>
+
+  <div class="space-y-5">
+
+    {# Giá vốn #}
+    <div>
+      <label class="block text-[11px] font-bold uppercase tracking-widest text-stone-500 mb-2">
+        Giá vốn
+        <span class="ml-2 text-[10px] font-normal normal-case text-stone-400">Chi phí nhập hàng, không hiển thị với khách</span>
+      </label>
+      <div class="relative">
+        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 text-sm font-semibold">₫</span>
+        <input
+          type="text"
+          name="cost_price"
+          id="input_cost"
+          value="{{ '{:,.0f}'.format(product.cost_price) if product and product.cost_price else '' }}"
+          data-raw="{{ product.cost_price or '' }}"
+          placeholder="Nhập giá vốn để tính lợi nhuận"
+          inputmode="numeric"
+          autocomplete="off"
+          class="w-full bg-stone-50/50 border border-stone-200 rounded-2xl pl-9 pr-4 py-3.5 text-sm font-medium focus:outline-none focus:bg-white focus:border-stone-400 focus:ring-4 focus:ring-stone-100 transition-all"
+        >
+        <input type="hidden" name="cost_price_raw" id="cost_raw" value="{{ product.cost_price or '' }}">
+      </div>
+      {# Margin preview #}
+      <p id="margin_preview" class="mt-1.5 text-xs text-emerald-600 font-semibold h-4"></p>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+      {# SKU #}
+      <div>
+        <label class="block text-[11px] font-bold uppercase tracking-widest text-stone-500 mb-2">SKU</label>
+        <input
+          type="text"
+          name="sku"
+          value="{{ product.sku or '' }}"
+          placeholder="Vd: GUA-AO-001"
+          class="w-full bg-stone-50/50 border border-stone-200 rounded-2xl px-5 py-3.5 text-sm font-mono focus:outline-none focus:bg-white focus:border-stone-400 focus:ring-4 focus:ring-stone-100 transition-all"
+        >
+      </div>
+
+      {# Barcode #}
+      <div>
+        <label class="block text-[11px] font-bold uppercase tracking-widest text-stone-500 mb-2">
+          Barcode
+          <span class="ml-2 text-[10px] font-normal normal-case text-stone-400">EAN/UPC/CODE128</span>
+        </label>
+        <div class="flex gap-2">
+          <input
+            type="text"
+            name="barcode"
+            id="prod_barcode"
+            value="{{ product.barcode or '' }}"
+            placeholder="Tự động sinh hoặc nhập tay"
+            class="flex-1 bg-stone-50/50 border border-stone-200 rounded-2xl px-5 py-3.5 text-sm font-mono focus:outline-none focus:bg-white focus:border-stone-400 focus:ring-4 focus:ring-stone-100 transition-all"
+          >
+          <button
+            type="button"
+            onclick="previewBarcodeInline()"
+            class="shrink-0 px-3 py-3.5 bg-stone-100 rounded-2xl text-stone-600 hover:bg-stone-200 transition-colors text-xs font-bold"
+            title="Xem barcode"
+          >
+            <i class="fa-solid fa-barcode"></i>
+          </button>
+        </div>
+        {# Barcode SVG inline preview #}
+        <div id="barcode_inline_wrap" class="mt-3 hidden bg-stone-50 rounded-xl p-4 flex items-center justify-center">
+          <svg id="barcode_inline_svg" class="max-w-[200px]"></svg>
+        </div>
+        {% if product and product.barcode %}
+        <div class="mt-3 bg-stone-50 rounded-xl p-4 flex items-center justify-center">
+          <svg id="barcode_inline_svg" class="max-w-[200px]"></svg>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Ngưỡng tồn kho thấp #}
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+      <div>
+        <label class="block text-[11px] font-bold uppercase tracking-widest text-stone-500 mb-2">
+          Ngưỡng cảnh báo tồn kho thấp
+        </label>
+        <input
+          type="number"
+          name="low_stock_threshold"
+          value="{{ product.low_stock_threshold or 5 }}"
+          min="0"
+          class="w-full bg-stone-50/50 border border-stone-200 rounded-2xl px-5 py-3.5 text-sm font-medium focus:outline-none focus:bg-white focus:border-stone-400 focus:ring-4 focus:ring-stone-100 transition-all"
+        >
+      </div>
+      <div class="flex items-end pb-1">
+        <label class="flex items-center gap-3 cursor-pointer">
+          <div class="relative inline-flex items-center">
+            <input
+              type="checkbox"
+              name="allow_backorder"
+              class="sr-only peer"
+              {% if product and product.allow_backorder %}checked{% endif %}
+            >
+            <div class="w-11 h-6 bg-stone-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-stone-700">Cho phép đặt hàng khi hết kho</p>
+            <p class="text-[11px] text-stone-400">Backorder — khách vẫn mua được dù hết hàng</p>
+          </div>
+        </label>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ══ Pricing Partial Scripts ══
+   Format tiền VNĐ + preview giảm giá + barcode inline
+   Chạy sau DOMContentLoaded, an toàn nếu include nhiều lần
+*/
+(function() {
+  if (window.__pricingLoaded) return;
+  window.__pricingLoaded = true;
+
+  /* --- Tiện ích format VNĐ --- */
+  function fmtVnd(raw) {
+    const n = parseFloat(String(raw).replace(/[^\d.]/g, ''));
+    if (isNaN(n) || n === 0) return '';
+    return n.toLocaleString('vi-VN') + ' ₫';
+  }
+
+  function parseRaw(formatted) {
+    return parseFloat(String(formatted).replace(/[^\d.]/g, '')) || 0;
+  }
+
+  /* --- Bind input với formatting --- */
+  function bindCurrencyInput(inputId, hiddenId, previewId) {
+    const inp = document.getElementById(inputId);
+    const hid = document.getElementById(hiddenId);
+    if (!inp) return;
+
+    // Khởi tạo: set hidden từ data-raw
+    const initVal = inp.dataset.raw || '';
+    if (hid && initVal) hid.value = initVal;
+
+    inp.addEventListener('focus', function() {
+      // Khi focus: hiển thị số thuần để dễ sửa
+      const raw = parseRaw(this.value);
+      this.value = raw > 0 ? raw : '';
+    });
+
+    inp.addEventListener('input', function() {
+      const raw = parseRaw(this.value);
+      if (hid) hid.value = raw || '';
+      updatePricePreview();
+    });
+
+    inp.addEventListener('blur', function() {
+      const raw = parseRaw(this.value);
+      if (hid) hid.value = raw || '';
+      this.value = raw > 0 ? raw.toLocaleString('vi-VN') : '';
+      updatePricePreview();
+    });
+  }
+
+  bindCurrencyInput('input_price',   'price_raw',   'price_preview');
+  bindCurrencyInput('input_compare', 'compare_raw', null);
+  bindCurrencyInput('input_cost',    'cost_raw',    null);
+
+  /* --- Preview giá bán chữ --- */
+  function updatePricePreview() {
+    const priceInp   = document.getElementById('input_price');
+    const compareInp = document.getElementById('input_compare');
+    const marginEl   = document.getElementById('margin_preview');
+    const badgeWrap  = document.getElementById('price_badge_preview');
+    const costInp    = document.getElementById('input_cost');
+
+    if (!priceInp) return;
+
+    const price   = parseRaw(priceInp.value);
+    const compare = compareInp ? parseRaw(compareInp.value) : 0;
+    const cost    = costInp    ? parseRaw(costInp.value)    : 0;
+
+    // Preview text giá bán
+    const prPrev = document.getElementById('price_preview');
+    if (prPrev) {
+      prPrev.textContent = price > 0 ? '= ' + price.toLocaleString('vi-VN') + ' ₫' : '';
+    }
+
+    // Preview discount badge
+    if (badgeWrap) {
+      if (compare > 0 && price > 0 && compare > price) {
+        const pct = Math.round(((compare - price) / compare) * 100);
+        document.getElementById('badge_compare').textContent = compare.toLocaleString('vi-VN') + ' ₫';
+        document.getElementById('badge_sale').textContent    = price.toLocaleString('vi-VN') + ' ₫';
+        document.getElementById('badge_pct').textContent     = '-' + pct + '%';
+        badgeWrap.classList.remove('hidden');
+        badgeWrap.classList.add('flex');
+      } else {
+        badgeWrap.classList.add('hidden');
+        badgeWrap.classList.remove('flex');
+      }
+    }
+
+    // Preview margin lợi nhuận
+    if (marginEl && cost > 0 && price > 0) {
+      const margin = price - cost;
+      const pct    = ((margin / price) * 100).toFixed(1);
+      if (margin >= 0) {
+        marginEl.textContent = `Lợi nhuận ≈ ${margin.toLocaleString('vi-VN')} ₫ (${pct}%)`;
+        marginEl.className   = 'mt-1.5 text-xs text-emerald-600 font-semibold h-4';
+      } else {
+        marginEl.textContent = `⚠ Bán lỗ ${Math.abs(margin).toLocaleString('vi-VN')} ₫`;
+        marginEl.className   = 'mt-1.5 text-xs text-rose-500 font-semibold h-4';
+      }
+    } else if (marginEl) {
+      marginEl.textContent = '';
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', updatePricePreview);
+
+  /* --- Barcode inline preview --- */
+  window.previewBarcodeInline = function() {
+    const val  = document.getElementById('prod_barcode').value.trim();
+    const wrap = document.getElementById('barcode_inline_wrap');
+    const svg  = document.getElementById('barcode_inline_svg');
+    if (!val || !wrap || !svg) return;
+    try {
+      JsBarcode(svg, val, {
+        format: 'CODE128', width: 1.8, height: 45,
+        displayValue: true, background: 'transparent',
+        lineColor: '#1c1917', margin: 0,
+      });
+      wrap.classList.remove('hidden');
+    } catch(e) {
+      alert('Mã barcode không hợp lệ. Vui lòng kiểm tra lại.');
+    }
+  };
+
+  /* --- Render barcode khi edit --- */
+  document.addEventListener('DOMContentLoaded', function() {
+    const svg = document.getElementById('barcode_inline_svg');
+    const val = document.getElementById('prod_barcode');
+    if (svg && val && val.value.trim()) {
+      try {
+        JsBarcode(svg, val.value.trim(), {
+          format: 'CODE128', width: 1.8, height: 45,
+          displayValue: true, background: 'transparent',
+          lineColor: '#1c1917', margin: 0,
+        });
+        const wrap = document.getElementById('barcode_inline_wrap');
+        if (wrap) wrap.classList.remove('hidden');
+      } catch(e) {}
+    }
+    updatePricePreview();
+  });
+
+  /* --- Expose cho variant partial dùng lại --- */
+  window.parseVndRaw  = parseRaw;
+  window.formatVnd    = fmtVnd;
+
+})();
+</script>

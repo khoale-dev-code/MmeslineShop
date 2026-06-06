@@ -1,185 +1,346 @@
 {% extends "base.html" %}
-{% block title %}{{ product.name }} | GUA Maison{% endblock %}
+{% block title %}{{ product.seo_title or product.name }} | MMESTLINE{% endblock %}
 
 {% block extra_head %}
+<meta name="description" content="{{ product.seo_description or product.name }}">
 <style>
-  /* Cấu hình theme Editorial / Brutalist */
   :root {
-    --ink: #111111;
-    --paper: #ffffff;
-    --border: #e5e5e5;
-    --muted: #888888;
+    --mm-ink: #241207;
+    --mm-brown: #3b2414;
+    --mm-brown-2: #5f3b1e;
+    --mm-caramel: #b98b62;
+    --mm-cream: #fbf7f1;
+    --mm-soft: #fffaf5;
+    --mm-line: #eadfd4;
+    --mm-muted: #9b7b63;
+    --mm-danger: #dc2626;
   }
-  
-  body { background-color: var(--paper); color: var(--ink); }
 
-  /* Ẩn thanh cuộn */
-  .no-scrollbar::-webkit-scrollbar { display: none; }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  body {
+    background: #fffaf5;
+    color: var(--mm-ink);
+    -webkit-font-smoothing: antialiased;
+  }
 
-  /* Custom input number */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
   input[type="number"]::-webkit-outer-spin-button,
-  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-  input[type="number"] { -moz-appearance: textfield; }
-
-  /* Accordion Transition */
-  .accordion-content { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.3s ease-out; }
-  .accordion-content.open { grid-template-rows: 1fr; }
-  .accordion-inner { overflow: hidden; }
-  .accordion-icon { transition: transform 0.3s ease; }
-  .accordion-icon.open { transform: rotate(180deg); }
-
-  /* ✅ CẤU HÌNH TRƯỢT SƯỜN NÂNG CAO CHO MOBILE */
-  @media (max-width: 1023px) {
-    .mobile-swipe-container {
-      display: flex !important;
-      overflow-x: auto !important;
-      scroll-snap-type: x mandatory !important;
-      scroll-behavior: smooth !important;
-      -webkit-overflow-scrolling: touch !important;
-    }
-    .mobile-swipe-slide {
-      width: 100% !important;
-      flex-shrink: 0 !important;
-      scroll-snap-align: start !important;
-      position: relative !important;
-      opacity: 1 !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-    }
-    .desktop-arrows { display: none !important; }
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
   }
 
-  * { -webkit-tap-highlight-color: transparent; }
+  input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  .mm-main-image {
+    width: 100%;
+    max-height: 46vh;
+    aspect-ratio: 3 / 4;
+  }
+
+  @media (min-width: 1024px) {
+    .mm-main-image {
+      max-height: 620px;
+    }
+  }
+
+  .acc-content {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .acc-content.open {
+    grid-template-rows: 1fr;
+  }
+
+  .acc-inner {
+    overflow: hidden;
+  }
+
+  .acc-icon {
+    transition: transform 0.24s ease;
+  }
+
+  .acc-icon.open {
+    transform: rotate(180deg);
+  }
+
+  .mm-rich-description h1,
+  .mm-rich-description h2,
+  .mm-rich-description h3 {
+    color: var(--mm-ink);
+    font-weight: 900;
+    margin: 18px 0 10px;
+  }
+
+  .mm-rich-description p {
+    margin: 0 0 12px;
+  }
+
+  .mm-rich-description ul,
+  .mm-rich-description ol {
+    padding-left: 18px;
+    margin: 10px 0;
+  }
+
+  .mm-rich-description li {
+    margin: 5px 0;
+  }
+
+  .mm-price-flash {
+    animation: mmPriceFlash 0.26s ease;
+  }
+
+  @keyframes mmPriceFlash {
+    from {
+      transform: translateY(4px);
+      opacity: 0.35;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+    }
+  }
 </style>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
-{# ── TỪ ĐIỂN MÀU SẮC FALLBACK ── #}
-{% set color_map = {'đen': '#1c1917', 'trắng': '#ffffff', 'đỏ': '#ef4444', 'be': '#f5f5dc', 'xám': '#78716c'} %}
+{% set images = product.product_images if product.product_images and product.product_images|length > 0 else ([{'url': product.thumbnail_url, 'is_primary': true}] if product.thumbnail_url else []) %}
+{% set has_variants = product.color_groups is defined and product.color_groups and product.color_groups|length > 0 %}
+{% set can_buy_product = product.stock_status.can_buy if product.stock_status is defined else product.is_available %}
+{% set default_variant = product.default_variant if product.default_variant is defined else none %}
 
-{# ── CHUẨN BỊ ẢNH ── #}
-{% set images = product.product_images if (product.product_images and product.product_images|length > 0) else ([{'url': product.thumbnail_url, 'is_primary': true}] if product.thumbnail_url else []) %}
+<div
+  id="mm-product-meta"
+  data-id="{{ product.id }}"
+  data-csrf="{{ csrf_token() }}"
+  data-base-price="{{ product.price or 0 }}"
+  data-base-price-formatted="{{ product.price_formatted or '' }}"
+  data-base-compare="{{ product.compare_at_price or '' }}"
+  data-base-compare-formatted="{{ product.compare_at_price_formatted or '' }}"
+  data-base-discount="{{ product.discount_percent or '' }}"
+  data-product-stock="{{ product.stock or 0 }}"
+  data-product-can-buy="{{ '1' if can_buy_product else '0' }}"
+  style="display:none;"
+></div>
 
-<div class="min-h-screen bg-white pb-24 font-sans selection:bg-black selection:text-white pt-[72px]">
-  
-  <main class="max-w-[1440px] mx-auto px-5 lg:px-12 pt-6 lg:pt-10">
-    
-    {# ── BREADCRUMB ── #}
-    <nav class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-8">
-        <a href="/shop" class="hover:text-black transition-colors">Shop All</a>
-        {% if product.categories %}
-        <span class="mx-1">/</span>
-        <span class="text-black">{{ product.categories.name }}</span>
-        {% endif %}
+<div class="min-h-screen bg-[#fffaf5] pb-32 lg:pb-20 pt-[80px]">
+  <main class="max-w-[1440px] mx-auto px-4 sm:px-6 md:px-10 pt-6">
+
+    <nav class="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-[0.25em] text-[#9b7b63] mb-6 border-b border-[#eadfd4] pb-4">
+      <a href="{{ url_for('products.shop') }}" class="hover:text-[#241207] transition-colors">Shop All</a>
+
+      {% if product.product_categories and product.product_categories[0] and product.product_categories[0].categories %}
+        <span class="text-[#d8c5b5]">/</span>
+        <span class="text-[#241207]">{{ product.product_categories[0].categories.name }}</span>
+      {% endif %}
     </nav>
 
-    <div class="flex flex-col lg:flex-row gap-12 lg:gap-20">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 xl:gap-16 items-start">
 
-      {# ══════════════════════════════
-           CỘT TRÁI — IMAGE GALLERY (ĐÃ UPGRADE QUẸT VUỐT)
-         ══════════════════════════════ #}
-      <section class="w-full lg:w-[55%] flex flex-col gap-6 select-none">
-        
-        <div class="relative w-full aspect-[3/4] md:aspect-[4/5] bg-white flex items-center justify-center group overflow-hidden">
-          {% if images|length > 1 %}
-          <button data-dir="-1" class="btn-slide desktop-arrows absolute left-2 top-1/2 -translate-y-1/2 z-20 text-black p-3 hover:opacity-50 transition-opacity">
-            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
-          </button>
-          {% endif %}
-
-          {# Wrapper Track tích hợp cấu trúc đa luồng Swipe trên Mobile #}
-          <div id="carousel-track" class="mobile-swipe-container w-full h-full relative">
-            {% for img in images %}
-            <div class="carousel-slide mobile-swipe-slide absolute inset-0 w-full h-full transition-opacity duration-500 ease-in-out p-10 md:p-16 lg:p-20
-                        {% if loop.first %}opacity-100 z-10{% else %}opacity-0 z-0{% endif %} flex items-center justify-center" data-index="{{ loop.index0 }}">
-              <img src="{{ img.url }}" alt="{{ product.name }}" fetchpriority="{% if loop.first %}high{% else %}auto{% endif %}" loading="{% if loop.first %}eager{% else %}lazy{% endif %}" class="w-full h-full object-contain mix-blend-multiply pointer-events-none">
-            </div>
-            {% endfor %}
+      <section class="lg:col-span-6 flex flex-col gap-4 select-none">
+        <div class="relative mm-main-image bg-[#fbf7f1] border border-[#eadfd4] overflow-hidden flex items-center justify-center rounded-[1.75rem]">
+          {% if product.has_discount %}
+          <div id="main-discount-badge" class="absolute left-5 top-5 z-20 rounded-full bg-[#3b2414] px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white">
+            -{{ product.discount_percent }}%
           </div>
-          
-          {% if images|length > 1 %}
-          <button data-dir="1" class="btn-slide desktop-arrows absolute right-2 top-1/2 -translate-y-1/2 z-20 text-black p-3 hover:opacity-50 transition-opacity">
-            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
-          </button>
+          {% else %}
+          <div id="main-discount-badge" class="absolute left-5 top-5 z-20 rounded-full bg-[#3b2414] px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white hidden"></div>
           {% endif %}
 
-          {# Nút thích sản phẩm #}
-          <button type="button" id="btn-wishlist" data-pid="{{ product.id }}" class="absolute top-4 right-4 z-30 w-10 h-10 flex items-center justify-center text-neutral-400 hover:text-black transition-all">
-            <svg class="w-5 h-5 heart-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" /></svg>
+          <img
+            id="main-focus-image"
+            src="{{ images[0].url if images else 'https://placehold.co/900x1200/fbf7f1/5f3b1e?text=MMESTLINE' }}"
+            alt="{{ product.name }}"
+            fetchpriority="high"
+            loading="eager"
+            class="gallery-main-img max-h-full max-w-full object-contain transition-opacity duration-300 ease-out p-4"
+          >
+
+          <button
+            type="button"
+            id="btn-wishlist"
+            class="absolute top-5 right-5 z-20 h-11 w-11 rounded-full bg-white/85 border border-[#eadfd4] flex items-center justify-center text-[#9b7b63] hover:text-[#241207] hover:bg-white transition-colors"
+            aria-label="Thêm vào yêu thích"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+            </svg>
           </button>
         </div>
 
-        {# Danh sách chấm / ảnh nhỏ chỉ báo phía dưới #}
         {% if images|length > 1 %}
-        <div class="flex gap-4 overflow-x-auto no-scrollbar w-full justify-center lg:justify-start" id="thumbnail-wrapper">
+        <div class="grid grid-cols-5 gap-2 mt-1" id="editorial-matrix">
           {% for img in images %}
-          <button data-index="{{ loop.index0 }}" class="thumbnail-btn w-16 h-20 md:w-20 md:h-24 shrink-0 overflow-hidden transition-all bg-white border {% if loop.first %}border-black opacity-100{% else %}border-transparent opacity-40 hover:opacity-80{% endif %}">
-            <img src="{{ img.url }}" class="w-full h-full object-contain p-2 mix-blend-multiply">
+          <button
+            type="button"
+            data-url="{{ img.url }}"
+            data-index="{{ loop.index0 }}"
+            class="matrix-cell relative aspect-square bg-[#fbf7f1] border cursor-pointer overflow-hidden rounded-2xl transition-all duration-300 {% if loop.first %}border-[#241207] opacity-100{% else %}border-[#eadfd4] opacity-60 hover:opacity-100{% endif %}"
+          >
+            <img src="{{ img.url }}" alt="{{ product.name }} image {{ loop.index }}" class="w-full h-full object-contain p-1" loading="lazy">
           </button>
           {% endfor %}
         </div>
         {% endif %}
       </section>
 
-      {# ══════════════════════════════
-           CỘT PHẢI — THÔNG TIN SẢN PHẨM
-         ══════════════════════════════ #}
-      <section class="w-full lg:w-[45%] flex flex-col">
-        <div class="lg:sticky lg:top-[120px] space-y-8">
-          
-          <div class="space-y-4 pb-6 border-b border-[#e5e5e5]">
-            <h1 class="font-display text-[28px] md:text-[32px] lg:text-[36px] font-bold tracking-tight text-black uppercase leading-tight">{{ product.name }}</h1>
-            
-            <div class="flex items-baseline gap-4" id="price-container">
-              <p id="price-display" class="font-mono text-[15px] font-medium text-neutral-500 tabular-nums tracking-widest" data-base-price="{{ product.price }}">{{ "{:,.0f}".format(product.price).replace(',','.') }} VND</p>
-              <p id="price-original" class="font-mono text-[13px] text-neutral-300 line-through tabular-nums hidden"></p>
+      <section class="lg:col-span-6 flex flex-col">
+        <div class="space-y-8">
+
+          <div class="space-y-4 pb-6 border-b border-[#eadfd4]">
+            <div class="flex flex-wrap items-center gap-2">
+              {% if product.is_featured %}
+              <span class="rounded-full bg-[#ead8c8] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.2em] text-[#3b2414]">
+                Featured
+              </span>
+              {% endif %}
+
+              <span
+                id="stock-pill"
+                class="rounded-full px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.2em]
+                {% if can_buy_product %}
+                  bg-emerald-50 text-emerald-700
+                {% else %}
+                  bg-red-50 text-red-700
+                {% endif %}"
+              >
+                {{ product.stock_status.label if product.stock_status is defined else ('Còn hàng' if can_buy_product else 'Hết hàng') }}
+              </span>
             </div>
-            
-            {% if product.description %}
-            <p class="text-[13px] text-neutral-600 leading-relaxed pt-2">
-              {{ product.description }}
+
+            <h1 class="text-2xl md:text-4xl font-black uppercase tracking-tight text-[#241207] leading-tight">
+              {{ product.name }}
+            </h1>
+
+            <div class="flex flex-wrap items-baseline gap-3 font-mono tracking-wider" id="price-container">
+              <p
+                id="price-display"
+                class="text-3xl md:text-5xl font-black text-[#5f3b1e] mm-price-flash"
+              >
+                {{ product.price_formatted }}
+              </p>
+
+              <p
+                id="price-original"
+                class="text-[#b7a191] line-through text-sm md:text-base font-bold {% if not product.compare_at_price_formatted %}hidden{% endif %}"
+              >
+                {{ product.compare_at_price_formatted or '' }}
+              </p>
+
+              <span
+                id="price-discount"
+                class="rounded-full bg-red-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-red-600 {% if not product.has_discount %}hidden{% endif %}"
+              >
+                -{{ product.discount_percent }}%
+              </span>
+            </div>
+
+            <p id="stock-status" class="text-[11px] font-black uppercase tracking-[0.18em] text-[#9b7b63]">
+              {{ product.stock_status.message if product.stock_status is defined else '' }}
             </p>
-            {% endif %}
           </div>
 
-          <form action="/cart/add" method="POST" class="space-y-8">
+          <form id="purchase-form" action="/cart/add" method="POST" class="space-y-8">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="product_id" value="{{ product.id }}">
-            <input type="hidden" name="variant_id" id="selected-variant-id" value="">
+            <input type="hidden" name="variant_id" id="selected-variant-id" value="{{ default_variant.id if default_variant else '' }}">
+            <input type="hidden" name="quantity" id="hidden-qty" value="1">
 
-            {# Chọn màu #}
+            {% if has_variants %}
             <div class="space-y-3">
-              <div class="flex items-baseline gap-2">
-                <span class="text-[11px] font-bold uppercase tracking-[0.1em] text-black">Color</span>
-                <span id="color-label" class="text-[11px] text-neutral-500 uppercase tracking-widest">---</span>
+              <div class="text-[11px] font-black uppercase tracking-[0.2em] text-[#9b7b63]">
+                Màu sắc:
+                <span id="color-label" class="text-[#241207] ml-1">---</span>
               </div>
+
               <div class="flex flex-wrap gap-3">
                 {% for c_name, group in product.color_groups.items() %}
-                <label class="cursor-pointer relative group">
-                  <input type="radio" name="color" value="{{ c_name }}" class="sr-only peer color-radio">
-                  <span class="block w-10 h-12 border border-[#e5e5e5] peer-checked:border-black peer-checked:ring-1 peer-checked:ring-black transition-all color-swatch" 
-                        data-bg="{{ group.hex if group.hex else color_map.get(c_name|lower, '#e7e5e4') }}"></span>
+                <label class="cursor-pointer relative">
+                  <input
+                    type="radio"
+                    name="color"
+                    value="{{ c_name }}"
+                    class="sr-only peer color-radio"
+                    {% if loop.first %}checked{% endif %}
+                  >
+                  <span
+                    class="block w-12 h-12 rounded-2xl border border-[#eadfd4] peer-checked:border-[#241207] peer-checked:ring-2 peer-checked:ring-[#241207] transition-all color-swatch"
+                    data-bg="{{ group.hex or '#ead8c8' }}"
+                    title="{{ c_name }}"
+                  ></span>
                 </label>
                 {% endfor %}
               </div>
             </div>
 
-            {# Chọn size #}
             <div class="space-y-3">
-              <div class="flex items-baseline justify-between">
-                <span class="text-[11px] font-bold uppercase tracking-[0.1em] text-black">Size</span>
+              <div class="flex items-baseline justify-between gap-4">
+                <div class="text-[11px] font-black uppercase tracking-[0.2em] text-[#9b7b63]">
+                  Kích cỡ
+                </div>
+
+                <button
+                  type="button"
+                  onclick="openSizeGuide()"
+                  class="text-[10px] font-black uppercase tracking-wider text-[#241207] underline underline-offset-4 hover:text-[#9a5a2f] transition-colors"
+                >
+                  Bảng quy chuẩn size
+                </button>
               </div>
-              
-              <div id="size-wrapper" class="min-h-[3rem]">
+
+              <div id="size-wrapper" class="w-full">
                 {% for c_name, group in product.color_groups.items() %}
-                <div class="size-group flex flex-wrap gap-2" data-color="{{ c_name }}" style="display: none;">
+                <div
+                  class="size-group grid grid-cols-4 gap-2{% if not loop.first %} hidden{% endif %}"
+                  data-color="{{ c_name }}"
+                >
                   {% for sz in group.sizes %}
-                  <label class="relative {% if sz.stock > 0 %}cursor-pointer{% endif %} w-full sm:w-auto flex-1 sm:flex-none">
-                    <input type="radio" name="size_radio" class="sr-only peer size-radio" {% if sz.stock <= 0 %}disabled{% endif %} 
-                           data-vid="{{ sz.variant_id }}" data-stock="{{ sz.stock }}" data-price="{{ sz.price }}">
-                    <span class="flex items-center justify-center min-w-[4rem] px-3 h-[42px] border border-[#e5e5e5] text-[11px] font-bold transition-all peer-checked:bg-black peer-checked:text-white peer-checked:border-black peer-disabled:bg-[#fafafa] peer-disabled:text-neutral-300 peer-disabled:cursor-not-allowed uppercase tracking-widest hover:border-black">
+                  <label class="relative {% if sz.is_available %}cursor-pointer{% else %}cursor-not-allowed{% endif %}">
+                    <input
+                      type="radio"
+                      name="size_radio"
+                      class="sr-only peer size-radio"
+                      {% if not sz.is_available %}disabled{% endif %}
+                      data-vid="{{ sz.variant_id }}"
+                      data-stock="{{ sz.stock }}"
+                      data-available="{{ '1' if sz.is_available else '0' }}"
+                      data-price="{{ sz.price or product.price }}"
+                      data-price-formatted="{{ sz.price_formatted or product.price_formatted }}"
+                      data-compare="{{ sz.compare_at_price or '' }}"
+                      data-compare-formatted="{{ sz.compare_at_price_formatted or '' }}"
+                      data-discount="{{ sz.discount_percent or '' }}"
+                      data-sku="{{ sz.sku or '' }}"
+                    >
+                    <span class="flex items-center justify-center h-[52px] rounded-2xl border border-[#eadfd4] bg-white text-[12px] font-black transition-colors uppercase tracking-widest peer-checked:bg-[#3b2414] peer-checked:text-white peer-checked:border-[#3b2414] peer-disabled:bg-[#fbf7f1] peer-disabled:text-[#c7b6a7] peer-disabled:line-through hover:border-[#3b2414]">
                       {{ sz.size }}
                     </span>
                   </label>
@@ -187,443 +348,758 @@
                 </div>
                 {% endfor %}
               </div>
-              
-              {# NÚT GỌI POPUP SIZE GUIDE #}
-              <div class="mt-3">
-                 <button type="button" onclick="openSizeGuide()" class="text-[11px] flex items-center gap-2 font-bold text-black border border-black px-4 py-2 hover:bg-black hover:text-white transition-colors">
-                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h16v16H4zM4 9h16M9 4v16"/></svg> 
-                   Size Guide
-                 </button>
-              </div>
             </div>
+            {% else %}
+            <div class="rounded-[1.5rem] border border-[#eadfd4] bg-white px-4 py-4">
+              <p class="text-[11px] font-black uppercase tracking-[0.2em] text-[#9b7b63]">
+                Tồn kho
+              </p>
+              <p class="mt-1 text-sm font-bold text-[#241207]">
+                {{ product.stock_status.message if product.stock_status is defined else ('Có sẵn hàng' if can_buy_product else 'Sản phẩm hiện đã hết hàng') }}
+              </p>
+            </div>
+            {% endif %}
 
-            {# Số lượng & Nút mua #}
-            <div class="pt-2 flex flex-col sm:flex-row gap-3">
-              <div class="flex items-center border border-[#e5e5e5] h-12 w-full sm:w-32 shrink-0 bg-white">
-                <button type="button" data-qty="-1" class="btn-qty w-10 h-full flex items-center justify-center text-neutral-400 hover:text-black transition-colors">−</button>
-                <input type="number" id="qty" name="quantity" value="1" min="1" max="1" readonly class="flex-1 text-center text-[13px] font-bold bg-transparent outline-none pointer-events-none tabular-nums">
-                <button type="button" data-qty="1" class="btn-qty w-10 h-full flex items-center justify-center text-neutral-400 hover:text-black transition-colors">+</button>
+            <div class="hidden lg:flex pt-2 flex-col sm:flex-row gap-4 w-full">
+              <div class="flex items-center border border-[#3b2414] h-14 w-full sm:w-40 bg-white shrink-0 rounded-2xl overflow-hidden">
+                <button type="button" data-qty="-1" class="btn-qty w-12 h-full flex items-center justify-center text-[#9b7b63] hover:text-[#241207] text-lg font-black">−</button>
+                <input
+                  type="number"
+                  id="qty"
+                  value="1"
+                  min="1"
+                  max="{{ product.stock if product.stock and product.stock > 0 else 1 }}"
+                  readonly
+                  class="flex-1 text-center text-[14px] font-black bg-transparent outline-none pointer-events-none font-mono"
+                >
+                <button type="button" data-qty="1" class="btn-qty w-12 h-full flex items-center justify-center text-[#9b7b63] hover:text-[#241207] text-lg font-black">+</button>
               </div>
 
-              <button type="submit" id="btn-submit" disabled class="flex-1 h-12 bg-[#888888] text-white text-[11px] font-bold uppercase tracking-[0.2em] cursor-not-allowed transition-all flex items-center justify-center">
-                Sold Out
+              <button
+                type="submit"
+                id="btn-submit"
+                {% if not can_buy_product %}disabled{% endif %}
+                class="flex-1 h-14 rounded-2xl text-[12px] font-black uppercase tracking-[0.25em] transition-colors flex items-center justify-center border
+                {% if can_buy_product %}
+                  bg-[#3b2414] text-white border-[#3b2414] hover:bg-[#241207] cursor-pointer
+                {% else %}
+                  bg-[#f3e7dc] text-[#a89586] border-transparent cursor-not-allowed
+                {% endif %}"
+              >
+                {% if has_variants %}
+                  CHỌN PHÂN LOẠI
+                {% elif can_buy_product %}
+                  THÊM VÀO GIỎ
+                {% else %}
+                  HẾT HÀNG
+                {% endif %}
               </button>
             </div>
-            
-            <p id="stock-status" class="text-[10px] font-bold uppercase tracking-widest text-neutral-400 mt-2 text-center sm:text-left">
-              Vui lòng chọn Màu & Size
-            </p>
           </form>
 
-          {# Accordion Info #}
-          <div class="border-t border-[#e5e5e5] pt-2 mt-8 space-y-0">
-            <div class="border-b border-[#e5e5e5]">
-              <button class="w-full py-4 flex justify-between items-center text-left" onclick="toggleAccordion('acc-1')">
-                <span class="text-[11px] font-bold uppercase tracking-[0.1em] text-black">Giao Hàng</span>
-                <svg id="icon-acc-1" class="w-4 h-4 text-black accordion-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
-              </button>
-              <div id="acc-1" class="accordion-content">
-                <div class="accordion-inner pb-4 text-[13px] text-neutral-600 leading-relaxed">
-                  - Đơn hàng nội thành: 1-2 ngày làm việc.<br>
-                  - Đơn hàng ngoại thành: 3-4 ngày làm việc.<br>
-                  - Miễn phí vận chuyển toàn quốc cho hóa đơn từ 1.000.000 VNĐ.
-                </div>
-              </div>
-            </div>
+          <div class="border-t border-[#eadfd4] pt-2 mt-8">
+            {% set detail_text = product.description_html or product.description or 'Thiết kế cao cấp nằm trong tinh thần tối giản của MMESTLINE. Đường may tỉ mỉ, form dáng hiện đại và dễ phối trong nhiều hoàn cảnh.' %}
 
-            <div class="border-b border-[#e5e5e5]">
-              <button class="w-full py-4 flex justify-between items-center text-left" onclick="toggleAccordion('acc-2')">
-                <span class="text-[11px] font-bold uppercase tracking-[0.1em] text-black">Đổi Hàng</span>
-                <svg id="icon-acc-2" class="w-4 h-4 text-black accordion-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+            {% for id, title, text in [
+              ('acc-1', 'CHI TIẾT VÀ CHẤT LIỆU', detail_text),
+              ('acc-2', 'CHÍNH SÁCH VẬN CHUYỂN', 'Giao hàng nội thành và toàn quốc. Thời gian giao hàng tùy khu vực, thông tin sẽ được xác nhận trong quá trình đặt hàng.'),
+              ('acc-3', 'ĐỔI TRẢ TRONG 7 NGÀY', 'Hỗ trợ đổi mẫu hoặc đổi size trong vòng 7 ngày kể từ khi nhận hàng nếu sản phẩm còn nguyên tag, chưa qua sử dụng và đáp ứng điều kiện đổi trả.')
+            ] %}
+            <div class="border-b border-[#eadfd4]">
+              <button
+                type="button"
+                class="w-full py-4 flex justify-between items-center text-left text-[11px] font-black uppercase tracking-wider text-[#241207]"
+                onclick="toggleAccordion('{{ id }}')"
+              >
+                <span>{{ title }}</span>
+                <svg id="icon-{{ id }}" class="w-3 h-3 text-[#241207] acc-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                </svg>
               </button>
-              <div id="acc-2" class="accordion-content">
-                <div class="accordion-inner pb-4 text-[13px] text-neutral-600 leading-relaxed">
-                  Hỗ trợ đổi size/mẫu trong vòng 7 ngày kể từ ngày nhận hàng với điều kiện sản phẩm còn nguyên tag, chưa qua sử dụng.
+
+              <div id="{{ id }}" class="acc-content {% if loop.first %}open{% endif %}">
+                <div class="acc-inner pb-5 text-[13px] text-[#75543f] leading-relaxed mm-rich-description">
+                  {{ text|safe }}
                 </div>
               </div>
             </div>
+            {% endfor %}
           </div>
+
         </div>
       </section>
     </div>
 
-    {# ── SẢN PHẨM TƯƠNG TỰ ── #}
     {% if related_products %}
-    <div class="mt-24 pt-16 border-t border-[#e5e5e5]">
-      <div class="mb-12">
-        <h2 class="font-display text-2xl md:text-3xl font-bold tracking-tight text-black uppercase leading-none">Related Products</h2>
+    <section class="mt-24 pt-14 border-t border-[#eadfd4]">
+      <div class="mb-10 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div>
+          <p class="text-[10px] font-black uppercase tracking-[0.28em] text-[#b98b62]">
+            Recommended
+          </p>
+          <h2 class="mt-2 text-xl md:text-2xl font-black uppercase tracking-tight text-[#241207]">
+            Sản phẩm liên quan
+          </h2>
+        </div>
+
+        <a href="{{ url_for('products.shop') }}" class="text-[10px] font-black uppercase tracking-[0.22em] text-[#75543f] hover:text-[#241207]">
+          Xem tất cả
+        </a>
       </div>
 
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-12">
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {% for rp in related_products %}
-        <article class="flex flex-col bg-white group">
-          <div class="relative overflow-hidden aspect-[3/4] bg-white">
-            <a href="/product/{{ rp.slug }}" class="block w-full h-full p-4 md:p-8">
-              <img src="{{ rp.thumbnail_url or 'https://placehold.co/600x800/f4f4f5/111?text=GUA' }}" alt="{{ rp.name }}" loading="lazy" class="w-full h-full object-contain object-center transition-transform duration-700 ease-out group-hover:scale-105 mix-blend-multiply">
+        <article class="flex flex-col bg-white group border border-[#eadfd4] p-3 rounded-[1.5rem] overflow-hidden">
+          <div class="relative overflow-hidden aspect-[3/4] bg-[#fbf7f1] rounded-[1.25rem]">
+            {% if rp.has_discount %}
+            <span class="absolute left-3 top-3 z-10 rounded-full bg-[#3b2414] px-2.5 py-1.5 text-[9px] font-black text-white">
+              -{{ rp.discount_percent }}%
+            </span>
+            {% endif %}
+
+            <a href="{{ url_for('products.detail', slug=rp.slug) }}" class="block w-full h-full">
+              <img
+                src="{{ rp.thumbnail_url or 'https://placehold.co/600x800/fbf7f1/5f3b1e?text=MMESTLINE' }}"
+                alt="{{ rp.name }}"
+                loading="lazy"
+                class="w-full h-full object-contain p-4 transition-transform duration-700 ease-out group-hover:scale-105"
+              >
             </a>
           </div>
-          <div class="pt-4 flex flex-col flex-1 text-left px-1 border-t border-transparent group-hover:border-black/5 transition-colors">
-            <a href="/product/{{ rp.slug }}" class="font-bold text-[11px] uppercase tracking-tight text-[#0e0e0e] hover:text-[#6d1f1f] transition-colors line-clamp-2 leading-relaxed">
+
+          <div class="pt-4 flex flex-col flex-1">
+            <a href="{{ url_for('products.detail', slug=rp.slug) }}" class="text-[11px] font-black uppercase tracking-wide text-[#241207] hover:text-[#9a5a2f] transition-colors line-clamp-1">
               {{ rp.name }}
             </a>
-            <span class="font-mono text-[11px] text-neutral-500 mt-2">{{ "{:,.0f}".format(rp.price).replace(',','.') }} VND</span>
+
+            <div class="mt-2 flex flex-wrap items-center gap-2">
+              <span class="font-mono text-[12px] font-black text-[#5f3b1e]">
+                {{ rp.price_formatted }}
+              </span>
+
+              {% if rp.compare_at_price_formatted %}
+              <del class="font-mono text-[11px] text-[#b7a191]">
+                {{ rp.compare_at_price_formatted }}
+              </del>
+              {% endif %}
+            </div>
           </div>
         </article>
         {% endfor %}
       </div>
-    </div>
+    </section>
     {% endif %}
 
   </main>
 </div>
 
-{# ══════════════════════════════
-    POPUP MODAL: SIZE GUIDE
-   ══════════════════════════════ #}
-<div id="sizeGuideModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 sm:p-6 opacity-0 transition-opacity duration-300">
-  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeSizeGuide()"></div>
-  
-  <div class="relative bg-white w-full max-w-3xl max-h-[90vh] flex flex-col border border-black/10 shadow-2xl scale-95 transition-transform duration-300" id="sgContent">
-    
-    <div class="sticky top-0 bg-white px-6 py-5 border-b border-[#e5e5e5] flex justify-between items-center z-10">
-      <h2 class="font-display text-2xl uppercase tracking-tight text-black leading-none">Size Guide</h2>
-      <button onclick="closeSizeGuide()" class="text-neutral-400 hover:text-black transition-colors" title="Đóng">
-        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+<div class="lg:hidden fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur border-t border-[#eadfd4] p-4 z-[140] flex gap-3">
+  <div class="flex items-center border border-[#3b2414] h-14 w-32 bg-white shrink-0 rounded-2xl overflow-hidden">
+    <button type="button" data-qty="-1" class="btn-qty w-10 h-full flex items-center justify-center text-[#9b7b63] hover:text-[#241207] text-xl font-black">−</button>
+    <input
+      type="number"
+      id="mobile-qty"
+      value="1"
+      min="1"
+      max="{{ product.stock if product.stock and product.stock > 0 else 1 }}"
+      readonly
+      class="flex-1 text-center text-[14px] font-black bg-transparent outline-none pointer-events-none font-mono"
+    >
+    <button type="button" data-qty="1" class="btn-qty w-10 h-full flex items-center justify-center text-[#9b7b63] hover:text-[#241207] text-xl font-black">+</button>
+  </div>
+
+  <button
+    type="button"
+    id="mobile-btn-submit"
+    onclick="MobileCTA.submitForm()"
+    {% if not can_buy_product %}disabled{% endif %}
+    class="flex-1 h-14 rounded-2xl text-[11px] font-black uppercase tracking-[0.22em] flex items-center justify-center transition-colors
+    {% if can_buy_product %}
+      bg-[#3b2414] text-white active:bg-[#241207]
+    {% else %}
+      bg-[#f3e7dc] text-[#a89586]
+    {% endif %}"
+  >
+    {% if has_variants %}
+      CHỌN SIZE
+    {% elif can_buy_product %}
+      THÊM VÀO GIỎ
+    {% else %}
+      HẾT HÀNG
+    {% endif %}
+  </button>
+</div>
+
+<div id="sizeGuideModal" class="fixed inset-0 z-[200] hidden items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+  <button type="button" class="absolute inset-0 bg-black/45 backdrop-blur-sm" onclick="closeSizeGuide()" aria-label="Đóng bảng size"></button>
+
+  <div class="relative bg-white w-full max-w-2xl max-h-[85vh] flex flex-col border border-[#eadfd4] rounded-[1.75rem] scale-95 transition-transform duration-300 overflow-hidden" id="sgContent">
+    <div class="sticky top-0 bg-white px-6 py-4 border-b border-[#eadfd4] flex justify-between items-center z-10">
+      <h2 class="text-[12px] font-black uppercase tracking-[0.2em] text-[#241207]">
+        Bảng quy định kích cỡ
+      </h2>
+
+      <button type="button" onclick="closeSizeGuide()" class="text-[#9b7b63] hover:text-[#241207] transition-colors">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path d="M6 18L18 6M6 6l12 12"/>
+        </svg>
       </button>
     </div>
-    
-    <div class="p-6 md:p-8 overflow-y-auto no-scrollbar">
-       <div class="flex gap-2 mb-6">
-          <button class="sg-tab-btn active flex-1 h-12 flex items-center justify-center text-[10px] font-bold uppercase tracking-widest border border-black bg-black text-white transition-all" data-target="sg-tops">Áo (Tops)</button>
-          <button class="sg-tab-btn flex-1 h-12 flex items-center justify-center text-[10px] font-bold uppercase tracking-widest border border-[#e5e5e5] text-neutral-500 hover:text-black hover:border-black transition-all bg-white" data-target="sg-bottoms">Quần (Bottoms)</button>
-       </div>
-       
-       <div id="sg-tops" class="sg-tab-content block animate-[fadeIn_0.3s_ease-out]">
-         <div class="overflow-x-auto no-scrollbar border border-[#e5e5e5]">
-            <table class="w-full text-center text-xs">
-              <thead class="bg-[#fafafa] text-[9px] uppercase tracking-widest text-neutral-500 border-b border-[#e5e5e5]">
-                <tr><th class="p-3 border-r border-[#e5e5e5]">Size</th><th class="p-3 border-r border-[#e5e5e5]">Chiều cao (cm)</th><th class="p-3 border-r border-[#e5e5e5]">Cân nặng (kg)</th><th class="p-3 border-r border-[#e5e5e5]">Dài áo (cm)</th><th class="p-3">Rộng ngực (cm)</th></tr>
-              </thead>
-              <tbody>
-                <tr class="border-b border-[#e5e5e5] hover:bg-[#fafafa]"><td class="p-3 border-r border-[#e5e5e5] font-bold">S</td><td class="p-3 border-r border-[#e5e5e5]">155 - 165</td><td class="p-3 border-r border-[#e5e5e5]">45 - 55</td><td class="p-3 border-r border-[#e5e5e5]">70</td><td class="p-3">54</td></tr>
-                <tr class="border-b border-[#e5e5e5] hover:bg-[#fafafa]"><td class="p-3 border-r border-[#e5e5e5] font-bold">M</td><td class="p-3 border-r border-[#e5e5e5]">165 - 172</td><td class="p-3 border-r border-[#e5e5e5]">55 - 65</td><td class="p-3 border-r border-[#e5e5e5]">72</td><td class="p-3">56</td></tr>
-                <tr class="border-b border-[#e5e5e5] hover:bg-[#fafafa]"><td class="p-3 border-r border-[#e5e5e5] font-bold">L</td><td class="p-3 border-r border-[#e5e5e5]">170 - 178</td><td class="p-3 border-r border-[#e5e5e5]">65 - 75</td><td class="p-3 border-r border-[#e5e5e5]">74</td><td class="p-3">58</td></tr>
-                <tr class="hover:bg-[#fafafa]"><td class="p-3 border-r border-[#e5e5e5] font-bold">XL</td><td class="p-3 border-r border-[#e5e5e5]">175 - 185</td><td class="p-3 border-r border-[#e5e5e5]">75 - 85</td><td class="p-3 border-r border-[#e5e5e5]">76</td><td class="p-3">60</td></tr>
-              </tbody>
-            </table>
-         </div>
-         <p class="text-[10px] text-neutral-400 mt-4">* Thông số có thể xê dịch 1-2cm tùy theo chất liệu vải.</p>
-       </div>
-       
-       <div id="sg-bottoms" class="sg-tab-content hidden animate-[fadeIn_0.3s_ease-out]">
-         <div class="overflow-x-auto no-scrollbar border border-[#e5e5e5]">
-            <table class="w-full text-center text-xs">
-              <thead class="bg-[#fafafa] text-[9px] uppercase tracking-widest text-neutral-500 border-b border-[#e5e5e5]">
-                <tr><th class="p-3 border-r border-[#e5e5e5]">Size</th><th class="p-3 border-r border-[#e5e5e5]">Chiều cao (cm)</th><th class="p-3 border-r border-[#e5e5e5]">Cân nặng (kg)</th><th class="p-3 border-r border-[#e5e5e5]">Dài quần (cm)</th><th class="p-3">Vòng eo (cm)</th></tr>
-              </thead>
-              <tbody>
-                <tr class="border-b border-[#e5e5e5] hover:bg-[#fafafa]"><td class="p-3 border-r border-[#e5e5e5] font-bold">S (28)</td><td class="p-3 border-r border-[#e5e5e5]">155 - 165</td><td class="p-3 border-r border-[#e5e5e5]">45 - 55</td><td class="p-3 border-r border-[#e5e5e5]">98</td><td class="p-3">74</td></tr>
-                <tr class="border-b border-[#e5e5e5] hover:bg-[#fafafa]"><td class="p-3 border-r border-[#e5e5e5] font-bold">M (30)</td><td class="p-3 border-r border-[#e5e5e5]">165 - 172</td><td class="p-3 border-r border-[#e5e5e5]">55 - 65</td><td class="p-3 border-r border-[#e5e5e5]">100</td><td class="p-3">78</td></tr>
-                <tr class="border-b border-[#e5e5e5] hover:bg-[#fafafa]"><td class="p-3 border-r border-[#e5e5e5] font-bold">L (32)</td><td class="p-3 border-r border-[#e5e5e5]">170 - 178</td><td class="p-3 border-r border-[#e5e5e5]">65 - 75</td><td class="p-3 border-r border-[#e5e5e5]">102</td><td class="p-3">82</td></tr>
-                <tr class="hover:bg-[#fafafa]"><td class="p-3 border-r border-[#e5e5e5] font-bold">XL (34)</td><td class="p-3 border-r border-[#e5e5e5]">175 - 185</td><td class="p-3 border-r border-[#e5e5e5]">75 - 85</td><td class="p-3 border-r border-[#e5e5e5]">104</td><td class="p-3">86</td></tr>
-              </tbody>
-            </table>
-         </div>
-         <p class="text-[10px] text-neutral-400 mt-4">* Cạp quần chun có thể linh hoạt co giãn thêm 3-5cm.</p>
-       </div>
+
+    <div class="p-6 overflow-y-auto no-scrollbar">
+      <div class="flex gap-2 mb-6">
+        <button type="button" class="sg-tab-btn active flex-1 h-12 flex items-center justify-center text-[10px] font-black uppercase tracking-widest border border-[#3b2414] bg-[#3b2414] text-white rounded-2xl" data-target="sg-tops">
+          Áo
+        </button>
+
+        <button type="button" class="sg-tab-btn flex-1 h-12 flex items-center justify-center text-[10px] font-black uppercase tracking-widest border border-[#eadfd4] text-[#9b7b63] bg-white rounded-2xl" data-target="sg-bottoms">
+          Quần
+        </button>
+      </div>
+
+      <div id="sg-tops" class="sg-tab-content block">
+        <div class="overflow-x-auto border border-[#eadfd4] rounded-2xl">
+          <table class="w-full text-center text-xs border-collapse">
+            <thead class="bg-[#fbf7f1] text-[9px] uppercase tracking-widest text-[#9b7b63] border-b border-[#eadfd4]">
+              <tr>
+                <th class="p-3 border-r border-[#eadfd4]">Size</th>
+                <th class="p-3 border-r border-[#eadfd4]">Chiều cao</th>
+                <th class="p-3 border-r border-[#eadfd4]">Cân nặng</th>
+                <th class="p-3 border-r border-[#eadfd4]">Dài áo</th>
+                <th class="p-3">Rộng ngực</th>
+              </tr>
+            </thead>
+            <tbody class="text-[#5f3b1e]">
+              <tr class="border-b border-[#eadfd4]"><td class="p-3 border-r border-[#eadfd4] font-black">S</td><td class="p-3 border-r border-[#eadfd4]">155 - 165</td><td class="p-3 border-r border-[#eadfd4]">45 - 55</td><td class="p-3 border-r border-[#eadfd4]">70</td><td class="p-3">54</td></tr>
+              <tr class="border-b border-[#eadfd4]"><td class="p-3 border-r border-[#eadfd4] font-black">M</td><td class="p-3 border-r border-[#eadfd4]">165 - 172</td><td class="p-3 border-r border-[#eadfd4]">55 - 65</td><td class="p-3 border-r border-[#eadfd4]">72</td><td class="p-3">56</td></tr>
+              <tr class="border-b border-[#eadfd4]"><td class="p-3 border-r border-[#eadfd4] font-black">L</td><td class="p-3 border-r border-[#eadfd4]">170 - 178</td><td class="p-3 border-r border-[#eadfd4]">65 - 75</td><td class="p-3 border-r border-[#eadfd4]">74</td><td class="p-3">58</td></tr>
+              <tr><td class="p-3 border-r border-[#eadfd4] font-black">XL</td><td class="p-3 border-r border-[#eadfd4]">175 - 185</td><td class="p-3 border-r border-[#eadfd4]">75 - 85</td><td class="p-3 border-r border-[#eadfd4]">76</td><td class="p-3">60</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="sg-bottoms" class="sg-tab-content hidden">
+        <div class="overflow-x-auto border border-[#eadfd4] rounded-2xl">
+          <table class="w-full text-center text-xs border-collapse">
+            <thead class="bg-[#fbf7f1] text-[9px] uppercase tracking-widest text-[#9b7b63] border-b border-[#eadfd4]">
+              <tr>
+                <th class="p-3 border-r border-[#eadfd4]">Size</th>
+                <th class="p-3 border-r border-[#eadfd4]">Chiều cao</th>
+                <th class="p-3 border-r border-[#eadfd4]">Cân nặng</th>
+                <th class="p-3 border-r border-[#eadfd4]">Dài quần</th>
+                <th class="p-3">Vòng eo</th>
+              </tr>
+            </thead>
+            <tbody class="text-[#5f3b1e]">
+              <tr class="border-b border-[#eadfd4]"><td class="p-3 border-r border-[#eadfd4] font-black">S / 28</td><td class="p-3 border-r border-[#eadfd4]">155 - 165</td><td class="p-3 border-r border-[#eadfd4]">45 - 55</td><td class="p-3 border-r border-[#eadfd4]">98</td><td class="p-3">74</td></tr>
+              <tr class="border-b border-[#eadfd4]"><td class="p-3 border-r border-[#eadfd4] font-black">M / 30</td><td class="p-3 border-r border-[#eadfd4]">165 - 172</td><td class="p-3 border-r border-[#eadfd4]">55 - 65</td><td class="p-3 border-r border-[#eadfd4]">100</td><td class="p-3">78</td></tr>
+              <tr class="border-b border-[#eadfd4]"><td class="p-3 border-r border-[#eadfd4] font-black">L / 32</td><td class="p-3 border-r border-[#eadfd4]">170 - 178</td><td class="p-3 border-r border-[#eadfd4]">65 - 75</td><td class="p-3 border-r border-[#eadfd4]">102</td><td class="p-3">82</td></tr>
+              <tr><td class="p-3 border-r border-[#eadfd4] font-black">XL / 34</td><td class="p-3 border-r border-[#eadfd4]">175 - 185</td><td class="p-3 border-r border-[#eadfd4]">75 - 85</td><td class="p-3 border-r border-[#eadfd4]">104</td><td class="p-3">86</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
+{% endblock %}
 
+{% block extra_scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', () => {
+const ProductUI = (() => {
+  const meta = document.getElementById("mm-product-meta");
 
-  /* ==============================
-      🎯 ANALYTICS CORE
-  ============================== */
-  const PRODUCT_ID = "{{ product.id }}";
+  const state = {
+    productId: meta ? meta.dataset.id : "",
+    csrf: meta ? meta.dataset.csrf : "",
+    basePrice: Number(meta ? meta.dataset.basePrice || 0 : 0),
+    basePriceFormatted: meta ? meta.dataset.basePriceFormatted || "" : "",
+    baseCompare: Number(meta ? meta.dataset.baseCompare || 0 : 0),
+    baseCompareFormatted: meta ? meta.dataset.baseCompareFormatted || "" : "",
+    baseDiscount: meta ? meta.dataset.baseDiscount || "" : "",
+    productStock: Number(meta ? meta.dataset.productStock || 0 : 0),
+    productCanBuy: meta ? meta.dataset.productCanBuy === "1" : false,
+    selectedStock: Number(meta ? meta.dataset.productStock || 0 : 0),
+    selectedAvailable: meta ? meta.dataset.productCanBuy === "1" : false
+  };
 
-  function getTrafficSource() {
-    const params = new URLSearchParams(window.location.search);
-    return params.get("utm_source") || localStorage.getItem("utm_source") || "organic";
+  function formatVnd(value) {
+    const number = Number(value || 0);
+    return new Intl.NumberFormat("vi-VN").format(number) + "đ";
   }
 
-  function trackEvent(eventType, qty = 1) {
-    try {
-      const payload = JSON.stringify({ product_id: PRODUCT_ID, event_type: eventType, channel: "web", source: getTrafficSource(), qty: qty });
-      if (navigator.sendBeacon) { navigator.sendBeacon("/api/analytics/track", new Blob([payload], { type: "application/json" })); } 
-      else { fetch("/api/analytics/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: payload }).catch(() => {}); }
-    } catch (err) {}
-  }
-  if (PRODUCT_ID) trackEvent("view");
-
-  const form = document.querySelector('form[action="/cart/add"]');
-  if (form) {
-    form.addEventListener("submit", () => {
-      const qty = parseInt(document.getElementById("qty")?.value || 1);
-      trackEvent("cart", qty);
-    });
+  function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value || "";
   }
 
-  /* ==============================
-      ❤️ WISHLIST
-  ============================== */
-  const wishlistBtn = document.getElementById("btn-wishlist");
-  if (wishlistBtn) {
-    wishlistBtn.addEventListener("click", async function() {
-      const productId = this.dataset.pid;
-      wishlistBtn.disabled = true;
-      try {
-        const favRes = await fetch('/api/favorites/toggle', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
-          body: JSON.stringify({ product_id: productId })
-        });
-        const favData = await favRes.json();
-        if (favData.status === 'success') {
-          if (favData.action === 'added') {
-            wishlistBtn.querySelector('svg').setAttribute('fill', 'currentColor');
-            wishlistBtn.classList.add('text-red-600');
-            trackEvent("wishlist", 1);
-          } else {
-            wishlistBtn.querySelector('svg').setAttribute('fill', 'none');
-            wishlistBtn.classList.remove('text-red-600');
-          }
-        } else if (favRes.status === 401) {
-          alert("Vui lòng đăng nhập!"); window.location.href = "/auth/login";
-        }
-      } catch (err) {} 
-      finally { wishlistBtn.disabled = false; }
-    });
+  function setHidden(id, hidden) {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle("hidden", Boolean(hidden));
   }
 
-  /* ==============================
-      🎨 UI & VARIANT LOGIC
-  ============================== */
-  document.querySelectorAll('.color-swatch').forEach(el => { el.style.backgroundColor = el.dataset.bg; });
+  function flashPrice() {
+    const price = document.getElementById("price-display");
+    if (!price) return;
 
-  const firstColor = document.querySelector('.color-radio');
-  if (firstColor) { firstColor.checked = true; selectColor(firstColor.value); }
-
-  document.querySelectorAll('.color-radio').forEach(radio => {
-    radio.addEventListener('change', function() { selectColor(this.value); });
-  });
-
-  document.querySelectorAll('.size-radio').forEach(radio => {
-    radio.addEventListener('change', function() {
-      selectSize(this.dataset.vid, parseInt(this.dataset.stock), parseFloat(this.dataset.price));
-    });
-  });
-
-  document.querySelectorAll('.btn-qty').forEach(btn => {
-    btn.addEventListener('click', function() { chQty(parseInt(this.dataset.qty)); });
-  });
-
-  document.querySelectorAll('.btn-slide').forEach(btn => {
-    btn.addEventListener('click', function() { slide(parseInt(this.dataset.dir)); });
-  });
-
-  document.querySelectorAll('.thumbnail-btn').forEach(btn => {
-    btn.addEventListener('click', function() { goTo(parseInt(this.dataset.index)); });
-  });
-
-  /* ==============================
-      📐 SIZE GUIDE MODAL TABS
-  ============================== */
-  const sgTabs = document.querySelectorAll('.sg-tab-btn');
-  const sgContents = document.querySelectorAll('.sg-tab-content');
-
-  sgTabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      sgTabs.forEach(t => {
-        t.classList.remove('bg-black', 'text-white', 'border-black');
-        t.classList.add('bg-white', 'text-neutral-500', 'border-[#e5e5e5]');
-      });
-      tab.classList.add('bg-black', 'text-white', 'border-black');
-      tab.classList.remove('bg-white', 'text-neutral-500', 'border-[#e5e5e5]');
-
-      const target = tab.getAttribute('data-target');
-      sgContents.forEach(c => {
-        c.classList.remove('block');
-        c.classList.add('hidden');
-        if (c.id === target) {
-          c.classList.remove('hidden');
-          c.classList.add('block');
-        }
-      });
-    });
-  });
-
-  /* ==============================
-      🔄 SỬA ĐỒNG BỘ: DETECT KHI VUỐT TRÊN MOBILE
-  ============================== */
-  const track = document.getElementById('carousel-track');
-  if (track) {
-    track.addEventListener('scroll', () => {
-      if (window.innerWidth >= 1024) return; // Bỏ qua nếu là màn Desktop
-      const width = track.clientWidth;
-      // Tính toán vị trí ảnh đang được cuộn tới
-      const newIndex = Math.round(track.scrollLeft / width);
-      if (newIndex !== current && newIndex >= 0 && newIndex < slides.length) {
-        current = newIndex;
-        updateThumbnailState(current);
-      }
-    }, { passive: true });
+    price.classList.remove("mm-price-flash");
+    void price.offsetWidth;
+    price.classList.add("mm-price-flash");
   }
 
-});
+  function updatePrice(price, priceFormatted, compare, compareFormatted, discount) {
+    setText("price-display", priceFormatted || formatVnd(price));
 
-/* ==============================
-    🧠 SELECTOR LOGIC
-============================== */
-function selectColor(color) {
-  document.getElementById('color-label').innerText = color;
-  document.querySelectorAll('.size-group').forEach(g => { g.style.display = 'none'; });
+    const original = document.getElementById("price-original");
+    if (original) {
+      original.textContent = compareFormatted || "";
+      original.classList.toggle("hidden", !compare);
+    }
 
-  const activeGroup = document.querySelector(`.size-group[data-color="${color}"]`);
-  if(activeGroup) {
-      activeGroup.style.display = 'flex';
-      const firstAvailableSize = activeGroup.querySelector('.size-radio:not([disabled])');
+    const badge = document.getElementById("price-discount");
+    if (badge) {
+      badge.textContent = discount ? "-" + discount + "%" : "";
+      badge.classList.toggle("hidden", !discount);
+    }
 
-      if (firstAvailableSize) {
-          firstAvailableSize.checked = true;
-          selectSize(firstAvailableSize.dataset.vid, parseInt(firstAvailableSize.dataset.stock), parseFloat(firstAvailableSize.dataset.price));
+    const mainBadge = document.getElementById("main-discount-badge");
+    if (mainBadge) {
+      mainBadge.textContent = discount ? "-" + discount + "%" : "";
+      mainBadge.classList.toggle("hidden", !discount);
+    }
+
+    flashPrice();
+  }
+
+  function setSubmitState(canBuy, text) {
+    const desktop = document.getElementById("btn-submit");
+    const mobile = document.getElementById("mobile-btn-submit");
+
+    [desktop, mobile].forEach((btn) => {
+      if (!btn) return;
+
+      btn.disabled = !canBuy;
+      btn.textContent = text;
+
+      if (canBuy) {
+        btn.className = btn.id === "btn-submit"
+          ? "flex-1 h-14 rounded-2xl text-[12px] font-black uppercase tracking-[0.25em] transition-colors flex items-center justify-center border bg-[#3b2414] text-white border-[#3b2414] hover:bg-[#241207] cursor-pointer"
+          : "flex-1 h-14 rounded-2xl text-[11px] font-black uppercase tracking-[0.22em] flex items-center justify-center transition-colors bg-[#3b2414] text-white active:bg-[#241207]";
       } else {
-          disableSubmitState("Sold Out");
+        btn.className = btn.id === "btn-submit"
+          ? "flex-1 h-14 rounded-2xl text-[12px] font-black uppercase tracking-[0.25em] transition-colors flex items-center justify-center border bg-[#f3e7dc] text-[#a89586] border-transparent cursor-not-allowed"
+          : "flex-1 h-14 rounded-2xl text-[11px] font-black uppercase tracking-[0.22em] flex items-center justify-center transition-colors bg-[#f3e7dc] text-[#a89586]";
       }
+    });
+  }
+
+  function updateQtyMax(maxValue) {
+    const max = Math.max(1, Number(maxValue || 1));
+    const qty = document.getElementById("qty");
+    const mobileQty = document.getElementById("mobile-qty");
+    const hiddenQty = document.getElementById("hidden-qty");
+
+    [qty, mobileQty].forEach((input) => {
+      if (!input) return;
+      input.max = String(max);
+
+      let current = Number(input.value || 1);
+      if (current > max) current = max;
+      if (current < 1) current = 1;
+
+      input.value = String(current);
+    });
+
+    if (hiddenQty && qty) {
+      hiddenQty.value = qty.value;
+    }
+  }
+
+  function setStockMessage(stock, available) {
+    const status = document.getElementById("stock-status");
+    const pill = document.getElementById("stock-pill");
+
+    if (!status) return;
+
+    if (available && stock > 5) {
+      status.innerHTML = '<span class="text-[#9b7b63] font-black">CÓ SẴN HÀNG</span>';
+      if (pill) {
+        pill.textContent = "Còn hàng";
+        pill.className = "rounded-full px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.2em] bg-emerald-50 text-emerald-700";
+      }
+      return;
+    }
+
+    if (available && stock > 0) {
+      status.innerHTML = '<span class="text-red-600 font-black">CHỈ CÒN ' + stock + ' SẢN PHẨM</span>';
+      if (pill) {
+        pill.textContent = "Sắp hết hàng";
+        pill.className = "rounded-full px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.2em] bg-amber-50 text-amber-700";
+      }
+      return;
+    }
+
+    if (available && stock <= 0) {
+      status.innerHTML = '<span class="text-[#9a5a2f] font-black">SẢN PHẨM CHO PHÉP ĐẶT TRƯỚC</span>';
+      if (pill) {
+        pill.textContent = "Đặt trước";
+        pill.className = "rounded-full px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.2em] bg-[#fbf7f1] text-[#9a5a2f]";
+      }
+      return;
+    }
+
+    status.innerHTML = '<span class="text-red-600 font-black">SẢN PHẨM HIỆN ĐÃ HẾT HÀNG</span>';
+    if (pill) {
+      pill.textContent = "Hết hàng";
+      pill.className = "rounded-full px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.2em] bg-red-50 text-red-700";
+    }
+  }
+
+  return {
+    state,
+    formatVnd,
+    updatePrice,
+    setSubmitState,
+    updateQtyMax,
+    setStockMessage
+  };
+})();
+
+const EditorialGallery = {
+  mainEl: document.getElementById("main-focus-image"),
+
+  init() {
+    const matrix = document.getElementById("editorial-matrix");
+    if (!matrix) return;
+
+    matrix.addEventListener("click", (e) => {
+      const cell = e.target.closest(".matrix-cell");
+      if (!cell) return;
+
+      const url = cell.dataset.url;
+      const index = Number(cell.dataset.index || 0);
+      this.swap(url, index);
+    });
+  },
+
+  swap(url, index) {
+    if (!this.mainEl || !url) return;
+
+    this.mainEl.style.opacity = "0";
+
+    setTimeout(() => {
+      this.mainEl.src = url;
+      this.mainEl.style.opacity = "1";
+    }, 140);
+
+    document.querySelectorAll("#editorial-matrix .matrix-cell").forEach((cell, i) => {
+      const active = i === index;
+      cell.classList.toggle("border-[#241207]", active);
+      cell.classList.toggle("opacity-100", active);
+      cell.classList.toggle("border-[#eadfd4]", !active);
+      cell.classList.toggle("opacity-60", !active);
+    });
+  }
+};
+
+const MobileCTA = {
+  submitForm() {
+    const btn = document.getElementById("mobile-btn-submit");
+    const form = document.getElementById("purchase-form");
+
+    if (form && btn && !btn.disabled) {
+      if (form.requestSubmit) form.requestSubmit();
+      else form.submit();
+    }
+  }
+};
+
+function selectColor(color) {
+  const label = document.getElementById("color-label");
+  if (label) label.textContent = color;
+
+  document.querySelectorAll(".size-group").forEach((group) => {
+    group.style.display = group.dataset.color === color ? "grid" : "none";
+  });
+
+  const groups = Array.from(document.querySelectorAll(".size-group"));
+  const activeGroup = groups.find((group) => group.dataset.color === color);
+
+  if (!activeGroup) return;
+
+  const availableSize = activeGroup.querySelector(".size-radio:not([disabled])");
+  const firstSize = activeGroup.querySelector(".size-radio");
+
+  const target = availableSize || firstSize;
+
+  if (target) {
+    target.checked = true;
+    selectSize(target);
+  } else {
+    disableSubmitState("HẾT HÀNG");
   }
 }
 
-function selectSize(vid, stock, price) {
-  const btn = document.getElementById('btn-submit');
-  const status = document.getElementById('stock-status');
-  const priceEl = document.getElementById('price-display');
-  const originalPriceEl = document.getElementById('price-original');
-  const vidInput = document.getElementById('selected-variant-id');
-  const qtyInput = document.getElementById('qty');
-  const basePrice = parseFloat(priceEl.dataset.basePrice);
+function selectSize(input) {
+  if (!input) return;
 
-  btn.disabled = false;
-  btn.innerText = "ADD TO CART";
-  btn.className = "flex-1 h-12 bg-black text-white text-[11px] font-bold uppercase tracking-[0.2em] rounded-none hover:bg-[#222] transition-colors flex items-center justify-center border border-black";
+  const stock = Number(input.dataset.stock || 0);
+  const available = input.dataset.available === "1";
+  const vid = input.dataset.vid || "";
+  const price = Number(input.dataset.price || ProductUI.state.basePrice || 0);
+  const priceFormatted = input.dataset.priceFormatted || ProductUI.formatVnd(price);
+  const compare = Number(input.dataset.compare || 0);
+  const compareFormatted = input.dataset.compareFormatted || "";
+  const discount = input.dataset.discount || "";
 
-  if (stock <= 5) { status.innerHTML = `<span class="text-rose-600">Only ${stock} left in stock</span>`; } 
-  else { status.innerHTML = `<span class="text-neutral-500">In Stock</span>`; }
+  const variantInput = document.getElementById("selected-variant-id");
+  if (variantInput) variantInput.value = vid;
 
-  priceEl.innerText = new Intl.NumberFormat('vi-VN').format(price).replace(',','.') + " VND";
+  ProductUI.state.selectedStock = stock;
+  ProductUI.state.selectedAvailable = available;
 
-  if (price < basePrice) {
-      originalPriceEl.innerText = new Intl.NumberFormat('vi-VN').format(basePrice).replace(',','.') + " VND";
-      originalPriceEl.classList.remove('hidden');
-      priceEl.classList.add('text-rose-600');
+  ProductUI.updatePrice(price, priceFormatted, compare, compareFormatted, discount);
+  ProductUI.updateQtyMax(stock > 0 ? stock : 1);
+  ProductUI.setStockMessage(stock, available);
+
+  if (available) {
+    ProductUI.setSubmitState(true, "THÊM VÀO GIỎ");
   } else {
-      originalPriceEl.classList.add('hidden');
-      priceEl.classList.remove('text-rose-600');
+    ProductUI.setSubmitState(false, "HẾT HÀNG");
   }
-
-  vidInput.value = vid;
-  qtyInput.max = stock;
-  if(parseInt(qtyInput.value) > stock) qtyInput.value = stock;
 }
 
 function disableSubmitState(message) {
-  const btn = document.getElementById('btn-submit');
-  btn.disabled = true;
-  btn.innerText = "SOLD OUT";
-  btn.className = "flex-1 h-12 bg-[#e5e5e5] text-neutral-500 text-[11px] font-bold uppercase tracking-[0.2em] rounded-none cursor-not-allowed flex items-center justify-center border border-transparent";
+  const variantInput = document.getElementById("selected-variant-id");
+  if (variantInput) variantInput.value = "";
 
-  document.getElementById('selected-variant-id').value = '';
-  document.getElementById('stock-status').innerHTML = `<span class="text-rose-600">${message}</span>`;
-  document.getElementById('price-original').classList.add('hidden');
-  document.getElementById('price-display').classList.remove('text-rose-600');
+  ProductUI.setSubmitState(false, message || "HẾT HÀNG");
+  ProductUI.setStockMessage(0, false);
 }
 
-function chQty(d) {
-  const el = document.getElementById('qty');
-  const maxStock = parseInt(el.max) || 1;
-  let v = parseInt(el.value) + d;
-  if (v < 1) v = 1;
-  if (v > maxStock) v = maxStock;
-  el.value = v;
+function chQty(delta) {
+  const qty = document.getElementById("qty");
+  const mobileQty = document.getElementById("mobile-qty");
+  const hiddenQty = document.getElementById("hidden-qty");
+
+  const maxStock = Number(qty ? qty.max || 1 : 1) || 1;
+
+  let value = Number(qty ? qty.value || 1 : 1) + Number(delta || 0);
+  if (value < 1) value = 1;
+  if (value > maxStock) value = maxStock;
+
+  if (qty) qty.value = String(value);
+  if (mobileQty) mobileQty.value = String(value);
+  if (hiddenQty) hiddenQty.value = String(value);
 }
 
-/* ==============================
-    🎞 CAROUSEL MANAGEMENT
-============================== */
-const slides = document.querySelectorAll('.carousel-slide');
-let current = 0;
-
-function goTo(n) {
-  if (slides.length <= 1) return;
-  const track = document.getElementById('carousel-track');
-
-  // ✅ ĐÃ SỬA: Phân bổ cách chuyển ảnh theo thiết bị
-  if (window.innerWidth < 1024 && track) {
-    // Luồng Mobile: Di chuyển vị trí thanh cuộn ngang để kích hoạt hiệu ứng Snap Native
-    current = (n + slides.length) % slides.length;
-    track.scrollLeft = current * track.clientWidth;
-    updateThumbnailState(current);
-  } else {
-    // Luồng Desktop: Giữ nguyên cơ chế mờ dần Opacity sang trọng
-    slides[current].style.opacity = '0';
-    slides[current].style.zIndex = '0';
-    
-    current = (n + slides.length) % slides.length;
-    
-    slides[current].style.opacity = '1';
-    slides[current].style.zIndex = '10';
-    updateThumbnailState(current);
-  }
-}
-
-function updateThumbnailState(activeIndex) {
-  document.querySelectorAll('.thumbnail-btn').forEach((b, i) => {
-    b.classList.toggle('opacity-100', i === activeIndex);
-    b.classList.toggle('opacity-40', i !== activeIndex);
-    b.classList.toggle('border-black', i === activeIndex);
-    b.classList.toggle('border-transparent', i !== activeIndex);
-  });
-}
-
-function slide(d) { goTo(current + d); }
-
-/* ==============================
-    👇 ACCORDION & MODALS
-============================== */
 window.toggleAccordion = function(id) {
   const content = document.getElementById(id);
-  const icon = document.getElementById('icon-' + id);
-  if (content.classList.contains('open')) {
-    content.classList.remove('open');
-    icon.classList.remove('open');
-  } else {
-    content.classList.add('open');
-    icon.classList.add('open');
-  }
-}
+  const icon = document.getElementById("icon-" + id);
+
+  if (!content) return;
+
+  content.classList.toggle("open");
+  if (icon) icon.classList.toggle("open");
+};
 
 function openSizeGuide() {
-  const modal = document.getElementById('sizeGuideModal');
-  const content = document.getElementById('sgContent');
-  modal.classList.remove('hidden');
-  modal.classList.add('flex');
+  const modal = document.getElementById("sizeGuideModal");
+  const content = document.getElementById("sgContent");
+
+  if (!modal || !content) return;
+
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+
   setTimeout(() => {
-    modal.classList.replace('opacity-0', 'opacity-100');
-    content.classList.replace('scale-95', 'scale-100');
+    modal.classList.remove("opacity-0");
+    modal.classList.add("opacity-100");
+    content.classList.remove("scale-95");
+    content.classList.add("scale-100");
   }, 10);
-  document.body.style.overflow = 'hidden';
+
+  document.body.style.overflow = "hidden";
 }
 
 function closeSizeGuide() {
-  const modal = document.getElementById('sizeGuideModal');
-  const content = document.getElementById('sgContent');
-  modal.classList.replace('opacity-100', 'opacity-0');
-  content.classList.replace('scale-100', 'scale-95');
+  const modal = document.getElementById("sizeGuideModal");
+  const content = document.getElementById("sgContent");
+
+  if (!modal || !content) return;
+
+  modal.classList.remove("opacity-100");
+  modal.classList.add("opacity-0");
+  content.classList.remove("scale-100");
+  content.classList.add("scale-95");
+
   setTimeout(() => {
-    modal.classList.remove('flex');
-    modal.classList.add('hidden');
-  }, 300);
-  document.body.style.overflow = '';
+    modal.classList.remove("flex");
+    modal.classList.add("hidden");
+  }, 260);
+
+  document.body.style.overflow = "";
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  EditorialGallery.init();
+
+  document.querySelectorAll(".color-swatch").forEach((el) => {
+    el.style.backgroundColor = el.dataset.bg || "#ead8c8";
+  });
+
+  const firstColor = document.querySelector(".color-radio:checked") || document.querySelector(".color-radio");
+  if (firstColor) {
+    firstColor.checked = true;
+    selectColor(firstColor.value);
+  } else {
+    ProductUI.updateQtyMax(ProductUI.state.productStock > 0 ? ProductUI.state.productStock : 1);
+    ProductUI.setStockMessage(ProductUI.state.productStock, ProductUI.state.productCanBuy);
+    ProductUI.setSubmitState(ProductUI.state.productCanBuy, ProductUI.state.productCanBuy ? "THÊM VÀO GIỎ" : "HẾT HÀNG");
+  }
+
+  document.querySelectorAll(".color-radio").forEach((radio) => {
+    radio.addEventListener("change", function() {
+      selectColor(this.value);
+    });
+  });
+
+  document.querySelectorAll(".size-radio").forEach((radio) => {
+    radio.addEventListener("change", function() {
+      selectSize(this);
+    });
+  });
+
+  document.querySelectorAll(".btn-qty").forEach((btn) => {
+    btn.addEventListener("click", function() {
+      chQty(Number(this.dataset.qty || 0));
+    });
+  });
+
+  const form = document.getElementById("purchase-form");
+  if (form) {
+    form.addEventListener("submit", (event) => {
+      const hasVariants = Boolean(document.querySelector(".size-radio"));
+      const selectedVariant = document.getElementById("selected-variant-id");
+
+      if (hasVariants && (!selectedVariant || !selectedVariant.value)) {
+        event.preventDefault();
+        ProductUI.setSubmitState(false, "CHỌN PHÂN LOẠI");
+        return;
+      }
+
+      if (!ProductUI.state.selectedAvailable) {
+        event.preventDefault();
+        ProductUI.setSubmitState(false, "HẾT HÀNG");
+        return;
+      }
+
+      trackEvent("cart", Number(document.getElementById("hidden-qty")?.value || 1));
+    });
+  }
+
+  const wishlistBtn = document.getElementById("btn-wishlist");
+  if (wishlistBtn) {
+    wishlistBtn.addEventListener("click", async function() {
+      if (!ProductUI.state.productId) return;
+
+      this.disabled = true;
+
+      try {
+        const response = await fetch("/api/favorites/toggle", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": ProductUI.state.csrf
+          },
+          body: JSON.stringify({ product_id: ProductUI.state.productId })
+        });
+
+        const data = await response.json();
+
+        if (response.status === 401) {
+          window.location.href = "/auth/login";
+          return;
+        }
+
+        if (data.status === "success") {
+          const svg = this.querySelector("svg");
+
+          if (data.action === "added") {
+            if (svg) svg.setAttribute("fill", "currentColor");
+            this.classList.add("text-red-600");
+            trackEvent("wishlist", 1);
+          } else {
+            if (svg) svg.setAttribute("fill", "none");
+            this.classList.remove("text-red-600");
+          }
+        }
+      } catch (err) {
+      } finally {
+        this.disabled = false;
+      }
+    });
+  }
+
+  const sgTabs = document.querySelectorAll(".sg-tab-btn");
+  const sgContents = document.querySelectorAll(".sg-tab-content");
+
+  sgTabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      sgTabs.forEach((item) => {
+        item.classList.remove("bg-[#3b2414]", "text-white", "border-[#3b2414]");
+        item.classList.add("bg-white", "text-[#9b7b63]", "border-[#eadfd4]");
+      });
+
+      tab.classList.add("bg-[#3b2414]", "text-white", "border-[#3b2414]");
+      tab.classList.remove("bg-white", "text-[#9b7b63]", "border-[#eadfd4]");
+
+      const target = tab.dataset.target;
+
+      sgContents.forEach((content) => {
+        content.classList.toggle("block", content.id === target);
+        content.classList.toggle("hidden", content.id !== target);
+      });
+    });
+  });
+
+  if (ProductUI.state.productId) {
+    trackEvent("view", 1);
+  }
+});
+
+function getTrafficSource() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("utm_source") || localStorage.getItem("utm_source") || "organic";
+}
+
+function trackEvent(eventType, qty = 1) {
+  if (!ProductUI.state.productId) return;
+
+  try {
+    const payload = JSON.stringify({
+      product_id: ProductUI.state.productId,
+      event_type: eventType,
+      channel: "web",
+      source: getTrafficSource(),
+      qty: qty
+    });
+
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(
+        "/api/analytics/track",
+        new Blob([payload], { type: "application/json" })
+      );
+    } else {
+      fetch("/api/analytics/track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload
+      }).catch(() => {});
+    }
+  } catch (err) {}
 }
 </script>
 {% endblock %}

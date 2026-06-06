@@ -2,7 +2,7 @@
 app/controllers/admin/returns.py
 Quản lý yêu cầu đổi / trả hàng.
 """
-
+from app.utils.supabase_client import get_supabase_admin
 import logging
 from flask import render_template, redirect, url_for, flash, session
 
@@ -19,17 +19,28 @@ _RETURN_STATUSES = ("pending", "approved", "rejected", "refunded")
 # ── Helpers ───────────────────────────────────────────────────────
 
 
-def _count_by_status(db) -> dict:
+def _count_by_status() -> dict:
     counts = {}
-    try:
-        for s in _RETURN_STATUSES:
-            r = db.table("return_requests").select("id", count="exact").eq("status", s).execute()
-            counts[s] = r.count or 0
-        counts["all"] = sum(counts.values())
-    except Exception:
-        counts = {"all": 0, **{s: 0 for s in _RETURN_STATUSES}}
-    return counts
 
+    try:
+        db = get_supabase_admin()
+
+        for s in _RETURN_STATUSES:
+            r = (
+                db.table("return_requests")
+                .select("id", count="exact")
+                .eq("status", s)
+                .execute()
+            )
+            counts[s] = r.count or 0
+
+        counts["all"] = sum(counts.values())
+
+    except Exception as e:
+        logger.error(f"[returns] Lỗi đếm return_requests theo status: {e}")
+        counts = {"all": 0, **{s: 0 for s in _RETURN_STATUSES}}
+
+    return counts
 # ── Routes ────────────────────────────────────────────────────────
 
 
@@ -42,7 +53,7 @@ def return_requests():
     status_filter = args.get("status", "").strip() or None
 
     result = OrderModel.get_return_requests(page=page, per_page=per_page, status=status_filter)
-    tab_counts = _count_by_status(_db())
+    tab_counts = _count_by_status()
 
     return render_template(
         "admin/return_requests.html",

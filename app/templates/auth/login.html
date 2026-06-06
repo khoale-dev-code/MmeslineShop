@@ -1,152 +1,261 @@
 {% extends "base.html" %}
-{% block title %}Đăng nhập | GUA{% endblock %}
+{% block title %}Đăng nhập | MMESTLINE{% endblock %}
 
 {% block content %}
-<section class="reveal min-h-[100dvh] bg-[#f7f4ef] px-4 pt-20 pb-10 sm:px-6 sm:pt-28 lg:px-8 lg:pt-36 flex flex-col justify-center items-center">
-  
-  <div class="mx-auto grid w-full max-w-[1180px] grid-cols-1 overflow-hidden border border-stone-300 bg-white shadow-[0_22px_70px_rgba(20,18,14,0.1)] rounded-sm lg:grid-cols-[1.1fr_0.9fr]">
-    
-    {# ── CỘT TRÁI: HÌNH ẢNH (Đọc từ Admin Settings → Storefront) ── #}
-    <aside class="relative hidden min-h-[600px] bg-stone-950 text-white lg:block">
+{% set general_settings = system_settings.get('general', {}) if system_settings is defined and system_settings else {} %}
+{% set storefront_settings = system_settings.get('storefront', {}) if system_settings is defined and system_settings else {} %}
+{% set shop_name = general_settings.get('shop_name') or 'MMESTLINE' %}
+{% set login_img = storefront_settings.get('login_image_url') or '' %}
+{% set next_url = request.args.get('next') or request.form.get('next') or '' %}
 
-      {# Ảnh từ settings, fallback về ảnh tĩnh mặc định #}
-      {% set login_img = system_settings.storefront.login_image_url | default('') %}
+<section class="min-h-[100dvh] bg-[#f7f1ea] px-4 pt-20 pb-10 sm:px-6 sm:pt-28 lg:px-8 lg:pt-32 flex flex-col justify-center items-center">
+
+  <div class="mx-auto grid w-full max-w-[1180px] grid-cols-1 overflow-hidden rounded-[2rem] border border-[#eadfd4] bg-[#fffaf5] shadow-[0_28px_90px_-50px_rgba(36,18,7,0.55)] lg:grid-cols-[1.08fr_0.92fr]">
+
+    <aside class="relative hidden min-h-[640px] overflow-hidden bg-[#241207] text-white lg:block">
       <img
         src="{{ login_img if login_img else url_for('static', filename='images/loginImg.png') }}"
-        alt="GUA Maison Login"
-        class="absolute inset-0 h-full w-full object-cover"
+        alt="{{ shop_name }} Login"
+        class="absolute inset-0 h-full w-full object-cover opacity-80"
+        loading="eager"
+        decoding="async"
       >
 
-      <div class="absolute inset-0 border-[16px] border-white/10"></div>
+      <div class="absolute inset-0 bg-gradient-to-br from-[#241207]/92 via-[#3b2414]/60 to-[#b98b62]/20"></div>
+      <div class="absolute inset-0 border-[18px] border-white/10"></div>
+      <div class="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[#b98b62]/30 blur-3xl"></div>
+      <div class="absolute bottom-20 left-10 h-40 w-40 rounded-full bg-white/10 blur-3xl"></div>
 
       <div class="relative z-10 flex h-full flex-col justify-between p-10 xl:p-12">
-        <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.3em] text-white/70">
-          <span>GUA Maison</span>
+        <div class="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.32em] text-[#ead8c8]/75">
+          <span>{{ shop_name }}</span>
           <span>2026 Edit</span>
         </div>
 
-        <div class="max-w-[470px]">
-          <p class="mb-4 text-[10px] font-bold uppercase tracking-[0.4em] text-[#d6bd82]">Private Archive</p>
-          <h1 class="font-display text-[56px] font-semibold leading-[1.1] tracking-tight xl:text-[68px]">
-            GUA<br>STYLE
+        <div class="max-w-[500px]">
+          <p class="mb-4 text-[10px] font-black uppercase tracking-[0.42em] text-[#d8b99f]">
+            Private Wardrobe
+          </p>
+
+          <h1 class="font-display text-[58px] font-semibold leading-[0.95] tracking-tight xl:text-[76px]">
+            MMEST<br>LINE
           </h1>
-          <div class="mt-8 h-px w-20 bg-[#d6bd82]"></div>
-          <p class="mt-6 max-w-[360px] text-sm leading-relaxed text-white/70">
-            Không gian thành viên GUA được tối giản như một trang tạp chí: sắc nét,
-            có chiều sâu và tập trung vào trải nghiệm mua sắm cá nhân.
+
+          <div class="mt-8 h-px w-24 bg-[#d8b99f]"></div>
+
+          <p class="mt-6 max-w-[390px] text-sm leading-relaxed text-[#ead8c8]/80">
+            Không gian thành viên dành cho trải nghiệm mua sắm cá nhân,
+            đơn hàng, ưu đãi và bộ sưu tập mới nhất của MMESTLINE.
           </p>
         </div>
 
-        <div class="grid grid-cols-3 border-y border-white/20 text-center">
+        <div class="grid grid-cols-3 overflow-hidden rounded-3xl border border-white/15 bg-white/10 text-center backdrop-blur-md">
           <div class="py-5">
-            <p class="font-display text-2xl xl:text-3xl">01</p>
-            <p class="mt-1 text-[9px] font-bold uppercase tracking-[0.25em] text-white/60">Lookbook</p>
+            <p class="font-display text-3xl">01</p>
+            <p class="mt-1 text-[9px] font-black uppercase tracking-[0.25em] text-white/55">Lookbook</p>
           </div>
-          <div class="border-x border-white/20 py-5">
-            <p class="font-display text-2xl xl:text-3xl">24</p>
-            <p class="mt-1 text-[9px] font-bold uppercase tracking-[0.25em] text-white/60">Orders</p>
+
+          <div class="border-x border-white/15 py-5">
+            <p class="font-display text-3xl">24</p>
+            <p class="mt-1 text-[9px] font-black uppercase tracking-[0.25em] text-white/55">Orders</p>
           </div>
+
           <div class="py-5">
-            <p class="font-display text-2xl xl:text-3xl">GUA</p>
-            <p class="mt-1 text-[9px] font-bold uppercase tracking-[0.25em] text-white/60">Club</p>
+            <p class="font-display text-3xl">MM</p>
+            <p class="mt-1 text-[9px] font-black uppercase tracking-[0.25em] text-white/55">Club</p>
           </div>
         </div>
       </div>
     </aside>
 
-    {# ── CỘT PHẢI: FORM ĐĂNG NHẬP ── #}
-    <div class="relative flex w-full items-center justify-center bg-[#fbfaf8] px-5 py-10 sm:px-12 sm:py-16 lg:px-12 xl:px-16">
-      <div class="absolute left-0 top-0 h-1.5 w-full bg-stone-950 lg:h-full lg:w-2 lg:bg-stone-950"></div>
-      <div class="absolute right-6 top-6 hidden text-[9px] font-bold uppercase tracking-[0.25em] text-stone-400 sm:block">
+    <div class="relative flex w-full items-center justify-center bg-[#fffaf5] px-5 py-10 sm:px-12 sm:py-16 lg:px-12 xl:px-16">
+      <div class="absolute left-0 top-0 h-1.5 w-full bg-[#3b2414] lg:h-full lg:w-2"></div>
+
+      <div class="absolute right-6 top-6 hidden rounded-full border border-[#eadfd4] bg-[#fbf7f1] px-3 py-2 text-[9px] font-black uppercase tracking-[0.25em] text-[#9b7b63] sm:block">
         Member Access
       </div>
 
-      <div class="w-full max-w-[420px]">
-        
-        {# BRANDING MOBILE #}
-        <div class="mb-8 block lg:hidden text-center">
-          <h1 class="font-display text-2xl font-black tracking-widest text-stone-900 uppercase">GUA Maison</h1>
-          <div class="mt-3 mx-auto h-px w-12 bg-[#d6bd82]"></div>
+      <div class="w-full max-w-[430px]">
+
+        <div class="mb-8 block text-center lg:hidden">
+          <h1 class="font-display text-3xl font-black tracking-[0.16em] text-[#241207] uppercase">
+            {{ shop_name }}
+          </h1>
+          <div class="mt-3 mx-auto h-px w-14 bg-[#b98b62]"></div>
         </div>
 
-        <div class="mb-8 border-b border-stone-200 pb-6 sm:mb-10 sm:pb-8">
-          <p class="mb-2 sm:mb-3 text-[9px] sm:text-[10px] font-extrabold uppercase tracking-[0.3em] text-[#9d7b3f] text-center sm:text-left">GUA Account</p>
-          <h2 class="font-display text-3xl sm:text-4xl lg:text-5xl font-semibold leading-tight text-stone-950 text-center sm:text-left">
+        <div class="mb-8 border-b border-[#eadfd4] pb-6 sm:mb-10 sm:pb-8">
+          <p class="mb-3 text-center text-[10px] font-black uppercase tracking-[0.32em] text-[#b98b62] sm:text-left">
+            MMESTLINE Account
+          </p>
+
+          <h2 class="font-display text-center text-4xl font-semibold leading-tight text-[#241207] sm:text-left sm:text-5xl">
             Đăng nhập
           </h2>
-          <p class="mt-3 text-xs leading-relaxed text-stone-500 sm:text-sm text-center sm:text-left">
-            Trở lại hồ sơ cá nhân, đơn hàng và danh sách sản phẩm yêu thích của bạn.
+
+          <p class="mt-3 text-center text-sm leading-relaxed text-[#9b7b63] sm:text-left">
+            Trở lại hồ sơ cá nhân, đơn hàng, thông báo và danh sách sản phẩm yêu thích của bạn.
           </p>
         </div>
 
-        {# ── Hiển thị lỗi inline (nếu có) ── #}
         {% if error %}
-        <div class="mb-5 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
-          <span class="mt-0.5 h-2 w-2 rounded-full bg-red-500 shrink-0 animate-pulse"></span>
-          <p class="text-sm text-red-800 font-medium">{{ error }}</p>
+        <div class="mb-5 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
+          <span class="mt-1 h-2 w-2 shrink-0 animate-pulse rounded-full bg-red-500"></span>
+          <p class="text-sm font-semibold text-red-800">{{ error }}</p>
         </div>
         {% endif %}
 
-        <form action="/auth/login" method="POST" class="space-y-5 sm:space-y-6">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="mb-5 space-y-3">
+              {% for category, message in messages %}
+                {% set is_success = category == 'success' %}
+                {% set is_warning = category in ['warning', 'info'] %}
+                <div class="flex items-start gap-3 rounded-2xl border px-4 py-3
+                  {% if is_success %}
+                    border-emerald-200 bg-emerald-50 text-emerald-800
+                  {% elif is_warning %}
+                    border-amber-200 bg-amber-50 text-amber-800
+                  {% else %}
+                    border-red-200 bg-red-50 text-red-800
+                  {% endif %}
+                ">
+                  <span class="mt-1 h-2 w-2 shrink-0 rounded-full
+                    {% if is_success %}
+                      bg-emerald-500
+                    {% elif is_warning %}
+                      bg-amber-500
+                    {% else %}
+                      bg-red-500
+                    {% endif %}
+                  "></span>
+                  <p class="text-sm font-semibold">{{ message }}</p>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <form
+          id="loginForm"
+          action="{{ url_for('auth.login') }}"
+          method="POST"
+          class="space-y-5 sm:space-y-6"
+          autocomplete="off"
+          novalidate
+        >
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          {% if next_url %}
+          <input type="hidden" name="next" value="{{ next_url }}">
+          {% endif %}
 
           <div>
-            <label for="email" class="mb-2 block text-[9px] sm:text-[10px] font-extrabold uppercase tracking-[0.2em] text-stone-700">
+            <label for="email" class="mb-2 block text-[10px] font-black uppercase tracking-[0.22em] text-[#5f3b1e]">
               Email
             </label>
+
             <div class="relative">
-              <span class="pointer-events-none absolute inset-y-0 left-0 flex w-12 items-center justify-center border-r border-stone-300 text-stone-400">
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75"/></svg>
+              <span class="pointer-events-none absolute inset-y-0 left-0 flex w-12 items-center justify-center border-r border-[#eadfd4] text-[#b98b62]">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75"/>
+                </svg>
               </span>
-              <input type="email" id="email" name="email" required autocomplete="email"
-                     placeholder="you@example.com"
-                     class="h-12 sm:h-14 w-full border border-stone-300 rounded-sm bg-white pl-16 pr-4 text-xs sm:text-sm font-semibold text-stone-900 outline-none transition-all placeholder:text-stone-400 focus:border-stone-950 focus:shadow-[0_0_0_3px_rgba(12,10,9,0.08)]" />
+
+              <input
+                type="email"
+                id="email"
+                name="email"
+                required
+                autocomplete="username"
+                inputmode="email"
+                value="{{ request.form.get('email', '') if request.method == 'POST' else '' }}"
+                placeholder="you@example.com"
+                class="h-13 sm:h-14 w-full rounded-2xl border border-[#eadfd4] bg-white pl-16 pr-4 text-sm font-bold text-[#241207] outline-none transition-all placeholder:text-[#b7a191] focus:border-[#5f3b1e] focus:shadow-[0_0_0_4px_rgba(185,139,98,0.16)]"
+              >
             </div>
           </div>
 
           <div>
             <div class="mb-2 flex items-center justify-between gap-2">
-              <label for="password" class="block text-[9px] sm:text-[10px] font-extrabold uppercase tracking-[0.2em] text-stone-700">
+              <label for="password" class="block text-[10px] font-black uppercase tracking-[0.22em] text-[#5f3b1e]">
                 Mật khẩu
               </label>
-              <a href="{{ url_for('auth.forgot_password') }}" class="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.15em] text-stone-500 transition-colors hover:text-stone-950">
+
+              <a
+                href="{{ url_for('auth.forgot_password') }}"
+                class="text-[10px] font-black uppercase tracking-[0.15em] text-[#9b7b63] transition-colors hover:text-[#241207]"
+              >
                 Quên mật khẩu?
               </a>
             </div>
+
             <div class="relative">
-              <span class="pointer-events-none absolute inset-y-0 left-0 flex w-12 items-center justify-center border-r border-stone-300 text-stone-400">
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5A2.25 2.25 0 0 0 19.5 19.5v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75A2.25 2.25 0 0 0 6.75 21.75Z"/></svg>
+              <span class="pointer-events-none absolute inset-y-0 left-0 flex w-12 items-center justify-center border-r border-[#eadfd4] text-[#b98b62]">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5A2.25 2.25 0 0 0 19.5 19.5v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75A2.25 2.25 0 0 0 6.75 21.75Z"/>
+                </svg>
               </span>
-              <input type="password" id="password" name="password" required autocomplete="current-password"
-                     placeholder="••••••••"
-                     class="h-12 sm:h-14 w-full border border-stone-300 rounded-sm bg-white pl-16 pr-12 text-xs sm:text-sm font-semibold text-stone-900 outline-none transition-all placeholder:text-stone-400 focus:border-stone-950 focus:shadow-[0_0_0_3px_rgba(12,10,9,0.08)]" />
-              <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 right-0 flex items-center pr-4 text-stone-400 hover:text-stone-900 transition-colors focus:outline-none">
-                <svg id="eye-icon" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+
+              <input
+                type="password"
+                id="password"
+                name="password"
+                required
+                autocomplete="current-password"
+                placeholder="••••••••"
+                class="h-13 sm:h-14 w-full rounded-2xl border border-[#eadfd4] bg-white pl-16 pr-12 text-sm font-bold text-[#241207] outline-none transition-all placeholder:text-[#b7a191] focus:border-[#5f3b1e] focus:shadow-[0_0_0_4px_rgba(185,139,98,0.16)]"
+              >
+
+              <button
+                type="button"
+                id="togglePasswordBtn"
+                class="absolute inset-y-0 right-0 flex items-center pr-4 text-[#b98b62] transition-colors hover:text-[#241207] focus:outline-none"
+                aria-label="Hiển thị hoặc ẩn mật khẩu"
+                aria-pressed="false"
+              >
+                <svg id="eyeIcon" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
                 </svg>
               </button>
             </div>
           </div>
 
-          {# Remember me #}
-          <label class="flex items-center gap-2.5 cursor-pointer select-none">
-            <input type="checkbox" name="remember" value="1"
-                   class="w-4 h-4 rounded border-stone-300 accent-stone-950 cursor-pointer">
-            <span class="text-xs text-stone-600 font-medium">Ghi nhớ đăng nhập</span>
-          </label>
+          <div class="flex items-center justify-between gap-4">
+            <label class="flex cursor-pointer select-none items-center gap-2.5">
+              <input
+                type="checkbox"
+                name="remember"
+                value="1"
+                class="h-4 w-4 cursor-pointer rounded border-[#d8c6b6] accent-[#5f3b1e]"
+              >
+              <span class="text-xs font-semibold text-[#75543f]">Ghi nhớ đăng nhập</span>
+            </label>
 
-          <button type="submit"
-                  class="group flex h-12 sm:h-14 w-full items-center justify-center gap-3 rounded-sm bg-stone-950 px-5 text-[10px] sm:text-[11px] font-extrabold uppercase tracking-[0.25em] text-white shadow-[0_10px_30px_rgba(12,10,9,0.2)] transition-all hover:bg-[#2a251d] active:scale-[0.98]">
-            Truy cập
-            <svg class="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/></svg>
+            <a href="{{ url_for('products.index') }}" class="text-xs font-bold text-[#9b7b63] hover:text-[#241207]">
+              Về cửa hàng
+            </a>
+          </div>
+
+          <button
+            type="submit"
+            id="loginSubmitBtn"
+            class="group flex h-13 sm:h-14 w-full items-center justify-center gap-3 rounded-2xl bg-[#3b2414] px-5 text-[11px] font-black uppercase tracking-[0.25em] text-white shadow-[0_18px_38px_-28px_rgba(36,18,7,0.8)] transition-all hover:bg-[#241207] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            <span id="loginSubmitText">Truy cập</span>
+            <svg id="loginSubmitIcon" class="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/>
+            </svg>
           </button>
         </form>
 
-        <div class="mt-8 border-t border-stone-200 pt-6 text-center sm:mt-10 sm:pt-8">
-          <p class="text-xs sm:text-sm text-stone-500">
+        <div class="mt-8 border-t border-[#eadfd4] pt-6 text-center sm:mt-10 sm:pt-8">
+          <p class="text-sm text-[#9b7b63]">
             Chưa có tài khoản?
-            <a href="/auth/register" class="ml-1 font-extrabold text-stone-950 underline-offset-4 transition-colors hover:text-[#9d7b3f] hover:underline">
+            <a
+              href="{{ url_for('auth.register') }}"
+              class="ml-1 font-black text-[#241207] underline-offset-4 transition-colors hover:text-[#9a5a2f] hover:underline"
+            >
               Đăng ký ngay
             </a>
           </p>
@@ -158,16 +267,51 @@
 </section>
 
 <script>
-function togglePasswordVisibility() {
-  const pwdInput = document.getElementById('password');
-  const eyeIcon  = document.getElementById('eye-icon');
-  if (pwdInput.type === 'password') {
-    pwdInput.type = 'text';
-    eyeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88"/>`;
-  } else {
-    pwdInput.type = 'password';
-    eyeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>`;
+(function () {
+  const form = document.getElementById("loginForm");
+  const submitBtn = document.getElementById("loginSubmitBtn");
+  const submitText = document.getElementById("loginSubmitText");
+  const passwordInput = document.getElementById("password");
+  const toggleBtn = document.getElementById("togglePasswordBtn");
+  const eyeIcon = document.getElementById("eyeIcon");
+
+  if (toggleBtn && passwordInput && eyeIcon) {
+    toggleBtn.addEventListener("click", function () {
+      const isPassword = passwordInput.type === "password";
+
+      passwordInput.type = isPassword ? "text" : "password";
+      toggleBtn.setAttribute("aria-pressed", isPassword ? "true" : "false");
+
+      eyeIcon.innerHTML = isPassword
+        ? '<path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88"/>'
+        : '<path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>';
+    });
   }
-}
+
+  if (form && submitBtn) {
+    form.addEventListener("submit", function () {
+      submitBtn.disabled = true;
+
+      if (submitText) {
+        submitText.textContent = "Đang xử lý";
+      }
+    });
+  }
+
+  window.addEventListener("pageshow", function (event) {
+    if (event.persisted) {
+      window.location.reload();
+      return;
+    }
+
+    if (submitBtn) {
+      submitBtn.disabled = false;
+    }
+
+    if (submitText) {
+      submitText.textContent = "Truy cập";
+    }
+  });
+})();
 </script>
 {% endblock %}
