@@ -1,19 +1,27 @@
 <!DOCTYPE html>
 <html lang="vi" class="scroll-smooth">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  {% set shop_name = system_settings.get('general', {}).get('shop_name') if system_settings is defined else None %}
-  {% set support_email = system_settings.get('general', {}).get('email') if system_settings is defined else None %}
+  {% if csrf_token is defined %}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+  {% endif %}
+
+  {% set general_settings = system_settings.get('general', {}) if system_settings is defined and system_settings else {} %}
+  {% set shop_name = general_settings.get('shop_name') %}
+  {% set support_email = general_settings.get('email') %}
   {% set display_shop_name = shop_name or 'MMESTLINE' %}
+  {% set admin_logo_url = url_for('static', filename='images/mmestlinelogo.svg') %}
+  {% set favicon_url = url_for('static', filename='images/favicon.png') %}
 
   <title>
     {% block title %}
       {{ display_shop_name }} | Trung tâm quản trị
     {% endblock %}
   </title>
+
+  <link rel="icon" href="{{ favicon_url }}" type="image/png">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,32 +31,37 @@
     rel="stylesheet"
   >
 
-  <script src="https://cdn.tailwindcss.com"></script>
+  {% if config.get('USE_TAILWIND_CDN', True) %}
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        content: [],
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+              display: ['"Cormorant"', 'serif'],
+              mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
+            },
+            boxShadow: {
+              soft: '0 14px 38px -28px rgb(36 18 7 / 0.38)',
+              card: '0 12px 34px -28px rgb(36 18 7 / 0.32)',
+              float: '0 28px 80px -44px rgb(36 18 7 / 0.62)'
+            }
+          }
+        }
+      };
+    </script>
+  {% else %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin/css/tailwind_admin.css') }}">
+  {% endif %}
 
   <link
     rel="stylesheet"
     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
   >
 
-  <script>
-    tailwind.config = {
-      content: [],
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
-            display: ['"Cormorant"', 'serif'],
-            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
-          },
-          boxShadow: {
-            soft: '0 14px 38px -28px rgb(36 18 7 / 0.38)',
-            card: '0 12px 34px -28px rgb(36 18 7 / 0.32)',
-            float: '0 28px 80px -44px rgb(36 18 7 / 0.62)'
-          }
-        }
-      }
-    }
-  </script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/css/mm_admin_nav.css') }}">
 
   <style>
     :root {
@@ -57,12 +70,18 @@
       --mm-brown-800: #4c2d18;
       --mm-brown-700: #5f3b1e;
       --mm-caramel: #b98b62;
+      --mm-muted: #9b7b63;
       --mm-sand: #ead8c8;
       --mm-cream: #fbf7f1;
       --mm-soft: #fffaf5;
+      --mm-card: #fffdf9;
       --mm-line: #eadfd4;
+
       --admin-sidebar-width: 280px;
       --admin-sidebar-mini-width: 84px;
+      --admin-topbar-height: 76px;
+      --admin-mobilebar-height: 64px;
+      --admin-content-ml: var(--admin-sidebar-width);
       --admin-bg: #fbf7f1;
     }
 
@@ -80,6 +99,7 @@
       background:
         radial-gradient(circle at 0% 0%, rgba(185, 139, 98, 0.10), transparent 30%),
         linear-gradient(180deg, #fbf7f1 0%, #f8efe7 46%, #fbf7f1 100%);
+      font-family: "Plus Jakarta Sans", system-ui, sans-serif;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       text-rendering: optimizeLegibility;
@@ -109,21 +129,70 @@
     }
 
     a {
+      color: inherit;
       text-decoration: none;
     }
 
-    .admin-main {
+    button,
+    input,
+    textarea,
+    select {
+      font: inherit;
+    }
+
+    .admin-main,
+    .admin-footer {
+      margin-left: 0;
       transition:
-        margin 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+        margin-left 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+        padding-top 0.2s ease,
         background-color 0.2s ease;
     }
 
+    .admin-main {
+      min-width: 0;
+      min-height: 100vh;
+      padding-top: var(--admin-mobilebar-height);
+    }
+
     .admin-page-shell {
-      min-height: calc(100vh - 76px);
+      min-height: 100vh;
     }
 
     .admin-page-inner {
       width: 100%;
+      min-width: 0;
+    }
+
+    @media (min-width: 1024px) {
+      .admin-main,
+      .admin-footer {
+        margin-left: var(--admin-content-ml);
+      }
+
+      .admin-main {
+        padding-top: var(--admin-topbar-height);
+      }
+
+      body.mm-sidebar-collapsed,
+      body.admin-sidebar-collapsed {
+        --admin-content-ml: var(--admin-sidebar-mini-width);
+      }
+
+      body.mm-sidebar-hidden,
+      body.admin-sidebar-hidden {
+        --admin-content-ml: 0px;
+      }
+    }
+
+    @media (max-width: 1023.98px) {
+      .admin-main {
+        padding-top: var(--admin-mobilebar-height);
+      }
+
+      .admin-footer {
+        margin-left: 0;
+      }
     }
 
     .reveal {
@@ -164,7 +233,7 @@
     }
 
     .mm-footer-link {
-      color: #9b7b63;
+      color: var(--mm-muted);
       font-weight: 700;
       transition: color 0.16s ease;
     }
@@ -192,6 +261,25 @@
       border-color: #fecdd3;
     }
 
+    .mm-skip-link {
+      position: fixed;
+      left: 16px;
+      top: 16px;
+      z-index: 10000;
+      transform: translateY(-140%);
+      border-radius: 999px;
+      background: var(--mm-brown-900);
+      color: #fff;
+      padding: 10px 16px;
+      font-size: 12px;
+      font-weight: 900;
+      transition: transform 0.16s ease;
+    }
+
+    .mm-skip-link:focus {
+      transform: translateY(0);
+    }
+
     @media (prefers-reduced-motion: reduce) {
       *,
       *::before,
@@ -202,24 +290,26 @@
         animation-iteration-count: 1 !important;
       }
     }
-
-    @media (max-width: 1023.98px) {
-      .admin-page-shell {
-        min-height: calc(100vh - 64px);
-      }
-    }
   </style>
 
   {% block extra_head %}{% endblock %}
 </head>
 
-<body class="font-sans min-h-screen">
+<body
+  class="min-h-screen"
+  data-admin-logo="{{ admin_logo_url }}"
+  data-shop-name="{{ display_shop_name }}"
+>
+  <a href="#adminContent" class="mm-skip-link">
+    Bỏ qua menu và vào nội dung
+  </a>
 
   {% include "admin/admin_navbar.html" %}
 
   <main
     id="adminContent"
-    class="admin-main admin-page-shell lg:ml-[280px]"
+    class="admin-main admin-page-shell"
+    tabindex="-1"
   >
     <div class="admin-page-inner max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
       {% block content %}{% endblock %}
@@ -228,7 +318,7 @@
 
   <footer
     id="adminFooter"
-    class="lg:ml-[280px] border-t border-[#eadfd4] bg-[#fffaf5]/86 backdrop-blur-xl mt-auto transition-[margin] duration-300"
+    class="admin-footer border-t border-[#eadfd4] bg-[#fffaf5]/86 backdrop-blur-xl mt-auto"
   >
     <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 text-xs">
@@ -236,7 +326,7 @@
         <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 text-[#9b7b63]">
           <div class="inline-flex items-center gap-2">
             <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span class="font-bold">Hệ thống MMESTLINE đang hoạt động ổn định</span>
+            <span class="font-bold">Hệ thống {{ display_shop_name }} đang hoạt động ổn định</span>
           </div>
 
           {% if pending_returns is defined and pending_returns > 0 %}
@@ -285,7 +375,7 @@
           </a>
 
           <span class="font-bold">
-            v1.0.28
+            v1.0.30
           </span>
         </div>
 
@@ -307,6 +397,8 @@
 
           <div
             class="mm-toast {{ toast_type }} mm-admin-toast pointer-events-auto flex items-start gap-3 rounded-2xl p-4 transform transition-all duration-500 translate-y-8 opacity-0"
+            role="status"
+            aria-live="polite"
           >
             <div class="w-9 h-9 rounded-2xl bg-[#fbf4ed] flex items-center justify-center shrink-0">
               <i class="fa-solid {{ icon }} text-lg"></i>
@@ -333,26 +425,65 @@
   {% endwith %}
 
   <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      var toasts = document.querySelectorAll(".mm-admin-toast");
+    (function () {
+      "use strict";
 
-      toasts.forEach(function (toast, index) {
-        setTimeout(function () {
-          toast.classList.remove("translate-y-8", "opacity-0");
-          toast.classList.add("translate-y-0", "opacity-100");
-        }, 90 * index);
+      function setBodyState(name, enabled) {
+        document.body.classList.toggle(name, Boolean(enabled));
+      }
 
-        setTimeout(function () {
-          toast.classList.remove("translate-y-0", "opacity-100");
-          toast.classList.add("translate-y-8", "opacity-0");
+      function applySidebarState() {
+        try {
+          var collapsed = localStorage.getItem("mmAdminSidebarCollapsed") === "1";
+          var hidden = localStorage.getItem("mmAdminSidebarHidden") === "1";
+
+          setBodyState("mm-sidebar-collapsed", collapsed && !hidden);
+          setBodyState("admin-sidebar-collapsed", collapsed && !hidden);
+
+          setBodyState("mm-sidebar-hidden", hidden);
+          setBodyState("admin-sidebar-hidden", hidden);
+        } catch (error) {
+          document.body.classList.remove(
+            "mm-sidebar-collapsed",
+            "admin-sidebar-collapsed",
+            "mm-sidebar-hidden",
+            "admin-sidebar-hidden"
+          );
+        }
+      }
+
+      function initToasts() {
+        var toasts = document.querySelectorAll(".mm-admin-toast");
+
+        toasts.forEach(function (toast, index) {
+          setTimeout(function () {
+            toast.classList.remove("translate-y-8", "opacity-0");
+            toast.classList.add("translate-y-0", "opacity-100");
+          }, 90 * index);
 
           setTimeout(function () {
-            toast.remove();
-          }, 500);
-        }, 4200 + (index * 250));
-      });
+            toast.classList.remove("translate-y-0", "opacity-100");
+            toast.classList.add("translate-y-8", "opacity-0");
 
-      if ("IntersectionObserver" in window) {
+            setTimeout(function () {
+              if (toast && toast.parentNode) {
+                toast.remove();
+              }
+            }, 500);
+          }, 4200 + (index * 250));
+        });
+      }
+
+      function initReveal() {
+        var items = document.querySelectorAll(".reveal");
+
+        if (!("IntersectionObserver" in window)) {
+          items.forEach(function (el) {
+            el.classList.add("active");
+          });
+          return;
+        }
+
         var observer = new IntersectionObserver(function (entries) {
           entries.forEach(function (entry) {
             if (entry.isIntersecting) {
@@ -365,23 +496,44 @@
           rootMargin: "0px 0px -40px 0px"
         });
 
-        document.querySelectorAll(".reveal").forEach(function (el) {
+        items.forEach(function (el) {
           observer.observe(el);
-        });
-      } else {
-        document.querySelectorAll(".reveal").forEach(function (el) {
-          el.classList.add("active");
         });
       }
 
-      var shopName = "{{ display_shop_name }}";
-      console.log(
-        "%c" + shopName + " Admin Dashboard loaded",
-        "color:#5f3b1e;font-weight:800;"
-      );
-    });
+      applySidebarState();
+
+      window.MMAdminLayout = window.MMAdminLayout || {};
+      window.MMAdminLayout.applySidebarState = applySidebarState;
+
+      window.addEventListener("mm-admin-sidebar-change", applySidebarState);
+
+      window.addEventListener("storage", function (event) {
+        if (
+          event.key === "mmAdminSidebarCollapsed" ||
+          event.key === "mmAdminSidebarHidden"
+        ) {
+          applySidebarState();
+        }
+      });
+
+      document.addEventListener("DOMContentLoaded", function () {
+        applySidebarState();
+        initToasts();
+        initReveal();
+
+        var shopName = document.body.getAttribute("data-shop-name") || "MMESTLINE";
+
+        console.log(
+          "%c" + shopName + " Admin Dashboard loaded",
+          "color:#5f3b1e;font-weight:800;"
+        );
+      });
+    })();
   </script>
+
+  <script src="{{ url_for('static', filename='admin/js/mm_admin_nav.js') }}" defer></script>
 
   {% block extra_scripts %}{% endblock %}
 </body>
-</html> 
+</html>

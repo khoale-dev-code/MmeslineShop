@@ -1,10 +1,57 @@
-{# MMESTLINE Admin Navigation Shell #}
+{#
+  app/templates/admin/admin_navbar.html
+  ===================================
+  MMESTLINE Admin Navigation Shell.
+
+  CSS/JS được load trong admin_base.html.
+  File này chỉ chuẩn bị biến và include partial navbar.
+#}
 
 {% set pending_returns = pending_returns|default(0) %}
 {% set admin_notification_count = admin_notification_count|default(0) %}
 {% set current_ep = request.endpoint or '' %}
-{% set admin_role = session.get('user_role') or session.get('role') %}
-{% set brand_logo = url_for('static', filename='images/mmestlinelogo.svg') %}
+{% set admin_role = session.get('user_role') or session.get('role') or 'admin' %}
+
+{% set display_shop_name = display_shop_name|default('MMESTLINE') %}
+{% set brand_logo = admin_logo_url if admin_logo_url is defined else url_for('static', filename='images/mmestlinelogo.svg') %}
+
+{% set dashboard_active = current_ep == 'admin.dashboard' %}
+{% set reports_active = current_ep == 'admin.reports' %}
+
+{% set products_active = current_ep in [
+  'admin.products',
+  'admin.add_product',
+  'admin.edit_product'
+] %}
+
+{% set orders_active = current_ep.startswith('admin.orders') or current_ep in [
+  'admin.order_detail',
+  'admin.edit_order'
+] %}
+
+{% set customers_active = current_ep.startswith('admin.customers') or current_ep in [
+  'admin.edit_customer'
+] %}
+
+{% set pos_active = current_ep in [
+  'admin.pos_terminal',
+  'admin.pos'
+] %}
+
+{% set categories_active = current_ep.startswith('admin.categories') or current_ep in [
+  'admin.add_category',
+  'admin.edit_category'
+] %}
+
+{% set collections_active = current_ep.startswith('admin.collections') or current_ep in [
+  'admin.add_collection',
+  'admin.edit_collection'
+] %}
+
+{% set coupons_active = current_ep.startswith('admin.coupons') or current_ep in [
+  'admin.add_coupon',
+  'admin.edit_coupon'
+] %}
 
 {% set notification_active = current_ep in [
   'admin.notifications_index',
@@ -13,7 +60,24 @@
 ] %}
 
 {% set returns_active = current_ep.startswith('admin.return') %}
-{% set providers_active = current_ep.startswith('admin_providers') %}
+{% set providers_active = current_ep.startswith('admin_providers') or current_ep.startswith('admin_shipping') %}
+
+{% set settings_active = current_ep in [
+  'admin.settings_page',
+  'admin.settings'
+] %}
+
+{% set permissions_active = current_ep in [
+  'admin.permissions_index',
+  'admin.permissions',
+  'admin.roles_index',
+  'admin.admin_roles'
+] %}
+
+{% set audit_active = current_ep in [
+  'admin.audit_logs',
+  'admin.logs'
+] %}
 
 {% set sidebar_sections = [
   {
@@ -56,15 +120,9 @@
   ('Nhật ký', 'admin.audit_logs', 'fa-clock-rotate-left')
 ] %}
 
-<link rel="stylesheet" href="{{ url_for('static', filename='admin/css/mm_admin_nav.css') }}">
-
-<div id="mmAdminProgress" class="mm-admin-progress"></div>
+<div id="mmAdminProgress" class="mm-admin-progress" aria-hidden="true"></div>
 
 {% include "admin/partials/_admin_mobile_bar.html" %}
 {% include "admin/partials/_admin_sidebar.html" %}
 {% include "admin/partials/_admin_topbar.html" %}
 {% include "admin/partials/_admin_user_dropdown.html" %}
-
-<div class="hidden lg:block h-[76px]"></div>
-
-<script src="{{ url_for('static', filename='admin/js/mm_admin_nav.js') }}" defer></script>
