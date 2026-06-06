@@ -1,0 +1,160 @@
+<section class="mm-card" id="mmProductMedia">
+  <div class="mm-card-head">
+    <div>
+      <p class="mm-kicker">Media</p>
+      <h2>Hình ảnh / video sản phẩm</h2>
+    </div>
+    <span class="mm-card-icon">
+      <i class="fa-solid fa-camera-retro"></i>
+    </span>
+  </div>
+
+  <div class="mm-card-body">
+    <div
+      class="mm-media-zone"
+      data-media-dropzone
+      role="button"
+      tabindex="0"
+      aria-label="Tải media sản phẩm"
+    >
+      <input
+        type="file"
+        name="image_files"
+        id="mmMediaFiles"
+        multiple
+        accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm"
+        data-media-input
+      >
+
+      <div class="mm-media-zone-icon">
+        <i class="fa-solid fa-cloud-arrow-up"></i>
+      </div>
+
+      <strong>Tải hoặc kéo thả media vào đây</strong>
+      <span>Hỗ trợ JPG, PNG, WEBP, GIF, MP4, WEBM. Kéo thả các thẻ bên dưới để đổi thứ tự hiển thị.</span>
+
+      <button type="button" class="mm-media-pick-btn" data-media-pick>
+        <i class="fa-solid fa-plus"></i>
+        Chọn media
+      </button>
+    </div>
+
+    <div class="mm-field-block">
+  <label class="mm-label">Thêm media bằng URL</label>
+
+  <div class="mm-media-url-row">
+    <input
+      type="url"
+      id="mmMediaUrlInput"
+      placeholder="Dán link JPG, PNG, WEBP, GIF, MP4, WEBM..."
+      class="mm-input"
+      autocomplete="off"
+      data-media-url-input
+    >
+
+    <button type="button" class="mm-media-url-add" data-media-url-add title="Thêm media từ URL">
+      <i class="fa-solid fa-plus"></i>
+    </button>
+  </div>
+
+  <input
+    type="hidden"
+    name="thumbnail_url"
+    id="mmThumbnailUrl"
+    value="{{ p.thumbnail_url if p and p.thumbnail_url else '' }}"
+  >
+
+  <p class="mm-help">
+    Dán link rồi bấm Enter hoặc dấu cộng. Media sẽ nhảy xuống danh sách bên dưới và ô nhập tự làm trống để bạn thêm link khác.
+  </p>
+</div>
+
+    <div class="mm-media-toolbar">
+      <div>
+        <strong>Thứ tự hiển thị</strong>
+        <span>Media đầu tiên sẽ được ưu tiên làm ảnh đại diện ngoài storefront.</span>
+      </div>
+
+      <button type="button" class="mm-media-clear-btn" data-media-clear-new>
+        <i class="fa-solid fa-rotate-left"></i>
+        Xóa media mới chọn
+      </button>
+    </div>
+
+    <div id="mmMediaGrid" class="mm-media-grid" data-media-grid>
+      {% for img in images %}
+      {% set media_url = img.url if img.url is defined else img %}
+      {% set lower_url = media_url|lower %}
+      {% set is_video = lower_url.endswith('.mp4') or lower_url.endswith('.webm') or lower_url.endswith('.mov') %}
+      <div
+        class="mm-media-card"
+        draggable="true"
+        data-media-card
+        data-media-kind="{{ 'video' if is_video else 'image' }}"
+        data-existing="1"
+      >
+        <div class="mm-media-preview">
+          {% if is_video %}
+            <video src="{{ media_url }}" muted playsinline preload="metadata"></video>
+            <span class="mm-media-type-badge">Video</span>
+          {% else %}
+            <img src="{{ media_url }}" alt="Product media" loading="eager" decoding="async">
+            {% if lower_url.endswith('.gif') %}
+              <span class="mm-media-type-badge">GIF</span>
+            {% elif lower_url.endswith('.webp') %}
+              <span class="mm-media-type-badge">WEBP</span>
+            {% else %}
+              <span class="mm-media-type-badge">Image</span>
+            {% endif %}
+          {% endif %}
+        </div>
+
+        <div class="mm-media-card-footer">
+          <button type="button" class="mm-media-drag" title="Kéo để sắp xếp">
+            <i class="fa-solid fa-grip-vertical"></i>
+          </button>
+
+          <span class="mm-media-order" data-media-order>{{ loop.index }}</span>
+
+          <button type="button" class="mm-media-remove" data-media-remove title="Xóa media">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <input type="hidden" name="image_urls" value="{{ media_url }}" data-media-url>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="mm-media-empty" data-media-empty>
+      <i class="fa-regular fa-images"></i>
+      <strong>Chưa có media</strong>
+      <span>Thêm ít nhất 1 ảnh để sản phẩm hiển thị đẹp ngoài shop.</span>
+    </div>
+
+    <input type="hidden" name="_images_synced" id="imagesSynced" value="{{ '1' if images else '' }}">
+    <input type="hidden" name="media_order" id="mmMediaOrder" value="">
+
+    <p class="mm-help">
+      Có thể kéo thả để đổi vị trí. Nếu xóa media cũ, media đó sẽ không được đồng bộ lại khi lưu.
+    </p>
+  </div>
+</section>
+
+<template id="mmMediaCardTemplate">
+  <div class="mm-media-card" draggable="true" data-media-card data-existing="0">
+    <div class="mm-media-preview" data-media-preview></div>
+
+    <div class="mm-media-card-footer">
+      <button type="button" class="mm-media-drag" title="Kéo để sắp xếp">
+        <i class="fa-solid fa-grip-vertical"></i>
+      </button>
+
+      <span class="mm-media-order" data-media-order>1</span>
+
+      <button type="button" class="mm-media-remove" data-media-remove title="Xóa media">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+  </div>
+</template>

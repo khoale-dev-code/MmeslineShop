@@ -1,0 +1,164 @@
+<section class="mm-card mm-seo-card">
+  <div class="mm-card-head">
+    <div>
+      <p class="mm-kicker">SEO</p>
+      <h2>Tối ưu hiển thị Google</h2>
+    </div>
+    <span class="mm-card-icon">
+      <i class="fa-solid fa-magnifying-glass-chart"></i>
+    </span>
+  </div>
+
+  <div class="mm-card-body">
+    <div class="mm-seo-intro">
+      <div class="mm-seo-intro-icon">
+        <i class="fa-solid fa-lightbulb"></i>
+      </div>
+
+      <div>
+        <strong>SEO dùng để làm gì?</strong>
+        <p>
+          Khi khách tìm sản phẩm trên Google hoặc khi chia sẻ link, SEO title và SEO description giúp sản phẩm hiển thị rõ ràng, dễ bấm hơn.
+          Nếu bạn để trống, hệ thống nên lấy theo tên và mô tả sản phẩm.
+        </p>
+      </div>
+    </div>
+
+    <div class="mm-seo-preview">
+      <div class="mm-seo-preview-top">
+        <span class="mm-seo-dot"></span>
+        <span>{{ (system_settings.get('general', {}).get('shop_name') if system_settings is defined else '') or 'MMESTLINE' }}</span>
+      </div>
+
+      <div class="mm-seo-preview-url" id="seoPreviewUrl">
+        /product/{{ p.slug if p and p.slug else 'mmestline-essential-tee' }}
+      </div>
+
+      <h3 id="seoPreviewTitle">
+        {{ p.seo_title if p and p.seo_title else (p.name if p and p.name else 'MMESTLINE Essential Tee - Áo thun tối giản') }}
+      </h3>
+
+      <p id="seoPreviewDescription">
+        {{ p.seo_description if p and p.seo_description else 'Mô tả ngắn giúp khách hàng hiểu chất liệu, form dáng và điểm nổi bật của sản phẩm.' }}
+      </p>
+    </div>
+
+    <div class="mm-seo-actions">
+      <button type="button" class="mm-seo-action-btn" id="seoGenerateBtn">
+        <i class="fa-solid fa-wand-magic-sparkles"></i>
+        Tự gợi ý SEO
+      </button>
+
+      <button type="button" class="mm-seo-action-btn is-light" id="seoCopyNameBtn">
+        <i class="fa-solid fa-copy"></i>
+        Lấy theo tên sản phẩm
+      </button>
+    </div>
+
+    <div class="mm-field-block">
+      <div class="mm-seo-label-row">
+        <label class="mm-label">SEO title</label>
+        <span class="mm-seo-counter" id="seoTitleCounterState">
+          <span id="seoTitleCount">0</span>/70
+        </span>
+      </div>
+
+      <input
+        type="text"
+        name="seo_title"
+        id="seoTitle"
+        value="{{ p.seo_title if p and p.seo_title else (p.meta_title if p and p.meta_title else '') }}"
+        maxlength="70"
+        placeholder="MMESTLINE Essential Tee - Áo thun tối giản"
+        class="mm-input"
+      >
+
+      <p class="mm-help">
+        Nên có tên sản phẩm + điểm mạnh chính. Khuyến nghị 30–70 ký tự.
+      </p>
+    </div>
+
+    <div class="mm-field-block">
+      <div class="mm-seo-label-row">
+        <label class="mm-label">SEO description</label>
+        <span class="mm-seo-counter" id="seoDescriptionCounterState">
+          <span id="seoDescriptionCount">0</span>/170
+        </span>
+      </div>
+
+      <textarea
+        name="seo_description"
+        id="seoDescription"
+        maxlength="170"
+        placeholder="Mô tả ngắn giúp Google và khách hàng hiểu sản phẩm..."
+        class="mm-textarea"
+      >{{ p.seo_description if p and p.seo_description else (p.meta_description if p and p.meta_description else '') }}</textarea>
+
+      <p class="mm-help">
+        Nên nhắc đến chất liệu, form dáng, phong cách và lý do nên mua. Khuyến nghị 80–170 ký tự.
+      </p>
+    </div>
+
+    <div class="mm-grid-2 mm-field-block">
+      <div>
+        <label class="mm-label">SEO keywords</label>
+        <input
+          type="text"
+          name="seo_keywords"
+          id="seoKeywords"
+          value="{{ p.seo_keywords if p and p.seo_keywords else '' }}"
+          placeholder="áo thun local brand, mmestline, áo basic"
+          class="mm-input"
+        >
+        <p class="mm-help">
+          Chủ yếu dùng để lưu từ khóa quản trị. Phân tách bằng dấu phẩy.
+        </p>
+      </div>
+
+      <div>
+        <label class="mm-label">Search keywords nội bộ</label>
+        <input
+          type="text"
+          name="search_keywords"
+          id="searchKeywords"
+          value="{{ p.search_keywords if p and p.search_keywords else '' }}"
+          placeholder="basic tee, áo thun, unisex, nâu"
+          class="mm-input"
+        >
+        <p class="mm-help">
+          Dùng cho tìm kiếm trong shop/POS, nên thêm cả tiếng Việt và tiếng Anh.
+        </p>
+      </div>
+    </div>
+
+    <div class="mm-seo-score">
+      <div class="mm-seo-score-head">
+        <div>
+          <strong>Điểm SEO cơ bản</strong>
+          <span>Không cần hoàn hảo, chỉ cần đủ rõ ràng và dễ hiểu.</span>
+        </div>
+
+        <div class="mm-seo-score-badge" id="seoScoreBadge">
+          0/3
+        </div>
+      </div>
+
+      <div class="mm-seo-meter">
+        <div id="seoCheckName" class="mm-seo-item">
+          <i class="fa-solid fa-circle"></i>
+          Tên sản phẩm rõ ràng
+        </div>
+
+        <div id="seoCheckTitle" class="mm-seo-item">
+          <i class="fa-solid fa-circle"></i>
+          SEO title từ 30 đến 70 ký tự
+        </div>
+
+        <div id="seoCheckDesc" class="mm-seo-item">
+          <i class="fa-solid fa-circle"></i>
+          SEO description từ 80 đến 170 ký tự
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

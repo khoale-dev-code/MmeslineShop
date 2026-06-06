@@ -1,0 +1,107 @@
+{% set page_title = 'MMESTLINE Workspace' %}
+
+{% if current_ep == 'admin.dashboard' %}
+  {% set page_title = 'Tổng quan' %}
+{% elif current_ep == 'admin.products' %}
+  {% set page_title = 'Quản lý sản phẩm' %}
+{% elif current_ep == 'admin.orders' %}
+  {% set page_title = 'Quản lý đơn hàng' %}
+{% elif current_ep == 'admin.customers' %}
+  {% set page_title = 'Khách hàng' %}
+{% elif notification_active %}
+  {% set page_title = 'Trung tâm thông báo' %}
+{% elif current_ep == 'admin.collections' %}
+  {% set page_title = 'Bộ sưu tập' %}
+{% elif current_ep == 'admin.coupons' %}
+  {% set page_title = 'Khuyến mãi' %}
+{% elif current_ep == 'admin.reports' %}
+  {% set page_title = 'Báo cáo' %}
+{% elif returns_active %}
+  {% set page_title = 'Đổi / Trả hàng' %}
+{% elif providers_active %}
+  {% set page_title = 'Vận chuyển' %}
+{% endif %}
+
+<header id="adminTopbar" class="mm-topbar">
+  <div class="mm-topbar-left">
+    <button type="button"
+            id="desktopSidebarToggle"
+            onclick="AdminShell.toggleDesktopSidebar()"
+            class="mm-icon-btn hidden lg:flex"
+            title="Thu gọn sidebar"
+            aria-label="Thu gọn sidebar">
+      <i id="desktopSidebarToggleIcon" class="fa-solid fa-bars-staggered"></i>
+    </button>
+
+    <div class="min-w-0">
+      <p class="mm-topbar-kicker">MMESTLINE Admin</p>
+      <h1 class="mm-topbar-title">{{ page_title }}</h1>
+    </div>
+  </div>
+
+  <div class="mm-topbar-actions">
+    <a href="{{ url_for('admin.notifications_index') }}"
+       data-nav
+       data-prefetch
+       title="Thông báo"
+       class="mm-icon-btn relative {{ 'is-active' if notification_active else '' }}">
+      <i class="fa-solid fa-bell"></i>
+
+      {% if admin_notification_count > 0 %}
+      <span class="mm-dot-badge">
+        {{ admin_notification_count if admin_notification_count < 100 else '99+' }}
+      </span>
+      {% endif %}
+    </a>
+
+    {% if current_ep == 'admin.reports' %}
+    <button type="button"
+            onclick="if (window.POSModal) POSModal.open()"
+            class="mm-pos-btn">
+      <i class="fa-solid fa-cash-register"></i>
+      <span>POS Quầy</span>
+    </button>
+    {% else %}
+    <a href="{{ url_for('admin.pos_terminal') }}"
+       data-nav
+       data-prefetch
+       class="mm-pos-btn">
+      <i class="fa-solid fa-cash-register"></i>
+      <span>POS Quầy</span>
+    </a>
+    {% endif %}
+
+    <button id="adminUserMenuButton"
+            type="button"
+            onclick="AdminShell.toggleUserMenu(event)"
+            class="mm-user-btn"
+            aria-haspopup="true"
+            aria-expanded="false">
+      <span class="mm-user-text">
+        <strong>
+          {% if current_user is defined and current_user and current_user.full_name %}
+            {{ current_user.full_name }}
+          {% else %}
+            {{ session.get('user_name') or 'Super Admin' }}
+          {% endif %}
+        </strong>
+        <small>
+          <span></span>
+          Online
+        </small>
+      </span>
+
+      <span class="mm-user-avatar">
+        {% if current_user is defined and current_user and current_user.full_name %}
+          {{ current_user.full_name[0].upper() }}
+        {% elif session.get('email') %}
+          {{ session.get('email')[0].upper() }}
+        {% else %}
+          A
+        {% endif %}
+      </span>
+
+      <i id="adminUserMenuChevron" class="fa-solid fa-chevron-down mm-chevron"></i>
+    </button>
+  </div>
+</header>

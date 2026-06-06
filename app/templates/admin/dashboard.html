@@ -1,469 +1,497 @@
 {% extends "admin/admin_base.html" %}
-{% block title %}Dashboard Admin | GUA Maison{% endblock %}
+{% block title %}Dashboard | MMESTLINE Admin{% endblock %}
 
 {% block extra_head %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-    
-    :root { 
-        --font-jakarta: 'Plus Jakarta Sans', sans-serif; 
-    }
-    
-    body { 
-        font-family: var(--font-jakarta); 
-        background-color: #f8fafc; /* Slate 50 - Chuẩn thiết kế SaaS tối giản */
-    }
-    
-    /* Modern SaaS Card */
-    .modern-card {
-        background: #ffffff;
-        border: 1px solid #f1f5f9;
-        border-radius: 1.5rem; /* Bo tròn lớn, mềm mại */
-        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        will-change: transform, box-shadow; /* Tối ưu hóa tăng tốc phần cứng khi hover */
-    }
-    
-    .modern-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.06);
-    }
+  :root {
+    --mm-brown-950: #2a1309;
+    --mm-brown-900: #3b1d0f;
+    --mm-brown-800: #4a2818;
+    --mm-brown-700: #65351f;
+    --mm-caramel: #b98558;
+    --mm-sand: #ead9c8;
+    --mm-cream: #fbf7f1;
+    --mm-line: #eadfd4;
+  }
 
-    .chart-container { position: relative; width: 100%; height: 320px; }
-    
-    .glass-nav { 
-        background: rgba(248, 250, 252, 0.85); 
-        backdrop-filter: blur(16px); 
-        -webkit-backdrop-filter: blur(16px); 
-    }
-    
-    .fade-up { opacity: 0; animation: fadeUpAnim 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    @keyframes fadeUpAnim { 
-        from { opacity: 0; transform: translateY(20px); } 
-        to { opacity: 1; transform: translateY(0); } 
-    }
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background:
+      radial-gradient(circle at top left, rgba(185, 133, 88, .12), transparent 34%),
+      linear-gradient(180deg, #fbf7f1 0%, #f8efe7 48%, #fbf7f1 100%);
+  }
 
-    /* Scrollbar thanh lịch */
-    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
-    
-    /* Gradient bóng đổ cho thẻ Doanh thu */
-    .bg-gradient-premium {
-        background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
-    }
+  .mm-serif {
+    font-family: 'Cormorant', serif;
+  }
+
+  .mm-card {
+    background: rgba(255, 252, 248, .92);
+    border: 1px solid var(--mm-line);
+    border-radius: 28px;
+    box-shadow: 0 18px 50px -38px rgba(42, 19, 9, .45);
+  }
+
+  .mm-card-hover {
+    transition:
+      transform .18s cubic-bezier(.16, 1, .3, 1),
+      box-shadow .18s cubic-bezier(.16, 1, .3, 1),
+      border-color .18s cubic-bezier(.16, 1, .3, 1);
+  }
+
+  .mm-card-hover:hover {
+    transform: translateY(-2px);
+    border-color: rgba(101, 53, 31, .28);
+    box-shadow: 0 24px 58px -42px rgba(42, 19, 9, .55);
+  }
+
+  .mm-hero {
+    background:
+      radial-gradient(circle at 14% 10%, rgba(234, 217, 200, .18), transparent 30%),
+      radial-gradient(circle at 95% 5%, rgba(185, 133, 88, .18), transparent 28%),
+      linear-gradient(135deg, #2a1309 0%, #3b1d0f 52%, #5a311f 100%);
+  }
+
+  .mm-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .35rem .7rem;
+    border-radius: 999px;
+    font-size: .64rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    white-space: nowrap;
+  }
+
+  .mm-progress-bar {
+    width: 0%;
+    transition: width .75s cubic-bezier(.16, 1, .3, 1);
+  }
+
+  .mm-table-row {
+    transition: background-color .16s ease;
+  }
+
+  .mm-table-row:hover {
+    background-color: rgba(234, 217, 200, .22);
+  }
+
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    -webkit-box-orient: vertical;
+  }
+
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="min-h-screen pb-16 font-sans text-slate-800 selection:bg-indigo-500 selection:text-white">
+{% set s = stats or {} %}
 
-    {# ── STICKY TOP BAR ── #}
-    <div class="glass-nav sticky top-0 z-50 border-b border-slate-200/60">
-        <div class="max-w-[1600px] mx-auto px-6 lg:px-12 py-4 flex items-center justify-between">
-            <div>
-                <h1 class="text-2xl font-bold tracking-tight text-slate-900">Tổng quan hệ thống</h1>
-                <div class="flex items-center gap-2 mt-1.5">
-                    <span class="relative flex h-2.5 w-2.5">
-                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-                    </span>
-                    <p class="text-slate-500 text-xs font-medium" id="live-clock">Đang đồng bộ...</p>
-                </div>
-            </div>
+{% set revenue = s.get('total_revenue') or s.get('revenue') or s.get('sales') or s.get('paid_revenue') or 0 %}
+{% set order_count = s.get('total_orders') or s.get('orders') or s.get('order_count') or 0 %}
+{% set pending_orders = s.get('pending_orders') or s.get('pending') or 0 %}
+{% set completed_orders = s.get('completed_orders') or s.get('completed') or 0 %}
+{% set delivery_success = s.get('delivery_success') or 0 %}
+{% set return_rate = s.get('return_rate') or 0 %}
+{% set avg_time = s.get('avg_time') or 0 %}
 
-            {# KHU VỰC CHỐNG SẬP GIAO DIỆN: Tránh bẫy dữ liệu Null khi tài khoản thiếu trường full_name #}
-            <div class="flex items-center gap-4">
-                <div class="hidden md:flex flex-col items-end">
-                    <span class="text-sm font-bold text-slate-900">
-                        {{ current_user.full_name if (current_user and current_user.full_name) else (session.get('user_name') or 'Admin User') }}
-                    </span>
-                    <span class="text-xs font-medium text-slate-500">Quản trị viên</span>
-                </div>
-                <div class="w-11 h-11 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center font-bold text-lg shadow-sm border border-indigo-100">
-                    {% if current_user and current_user.full_name %}
-                        {{ current_user.full_name[0].upper() }}
-                    {% elif session.get('email') %}
-                        {{ session.get('email')[0].upper() }}
-                    {% else %}
-                        G
-                    {% endif %}
-                </div>
-            </div>
+{% set pending_returns_value = pending_returns if pending_returns is defined else 0 %}
+{% set active_notifications = admin_notification_count if admin_notification_count is defined else 0 %}
+
+<div class="space-y-7">
+
+  <section class="mm-hero relative overflow-hidden rounded-[34px] p-6 md:p-8 xl:p-9 text-white">
+    <div class="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-white/10 blur-3xl"></div>
+    <div class="absolute right-20 bottom-0 h-40 w-40 rounded-full bg-[#b98558]/25 blur-3xl"></div>
+
+    <div class="relative z-10 grid grid-cols-1 xl:grid-cols-12 gap-8 xl:items-end">
+      <div class="xl:col-span-7">
+        <div class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3.5 py-2 text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#ead9c8]">
+          <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          MMESTLINE Admin
         </div>
+
+        <h1 class="mm-serif mt-6 text-4xl md:text-6xl font-bold leading-[0.95] tracking-tight">
+          Điều hành cửa hàng
+          <span class="block text-[#d8b99f]">MMESTLINE.</span>
+        </h1>
+
+        <p class="mt-5 max-w-2xl text-sm md:text-base leading-relaxed text-[#ead9c8]/85">
+          Tổng quan doanh thu, đơn hàng, khách hàng, logistics và các tác vụ quan trọng trong ngày cho thương hiệu MMESTLINE.
+        </p>
+
+        <div class="mt-6 flex flex-wrap gap-3">
+          <a href="{{ url_for('admin.orders') }}"
+             class="inline-flex items-center gap-2 rounded-2xl bg-[#ead9c8] px-5 py-3 text-sm font-extrabold text-[#2a1309] hover:bg-white transition-all">
+            Xử lý đơn hàng
+            <i class="fa-solid fa-arrow-right text-xs"></i>
+          </a>
+
+          <a href="{{ url_for('admin.products') }}"
+             class="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-sm font-extrabold text-white hover:bg-white/15 transition-all">
+            Quản lý sản phẩm
+            <i class="fa-solid fa-shirt text-xs"></i>
+          </a>
+        </div>
+      </div>
+
+      <div class="xl:col-span-5 grid grid-cols-2 gap-3">
+        <a href="{{ url_for('admin.orders') }}" class="rounded-3xl border border-white/10 bg-white/10 p-4 hover:bg-white/15 transition-all">
+          <p class="text-[10px] font-extrabold uppercase tracking-widest text-[#ead9c8]/70">Đơn chờ xử lý</p>
+          <p class="mt-2 text-3xl font-black">{{ "{:,.0f}".format(pending_orders|float) }}</p>
+          <p class="mt-1 text-xs text-[#ead9c8]/75">Cần xác nhận</p>
+        </a>
+
+        <a href="{{ url_for('admin.return_requests') }}" class="rounded-3xl border border-white/10 bg-white/10 p-4 hover:bg-white/15 transition-all">
+          <p class="text-[10px] font-extrabold uppercase tracking-widest text-[#ead9c8]/70">Đổi / trả</p>
+          <p class="mt-2 text-3xl font-black">{{ "{:,.0f}".format(pending_returns_value|float) }}</p>
+          <p class="mt-1 text-xs text-[#ead9c8]/75">Đang pending</p>
+        </a>
+
+        <a href="{{ url_for('admin.notifications_index') }}" class="rounded-3xl border border-white/10 bg-white/10 p-4 hover:bg-white/15 transition-all">
+          <p class="text-[10px] font-extrabold uppercase tracking-widest text-[#ead9c8]/70">Thông báo</p>
+          <p class="mt-2 text-3xl font-black">{{ "{:,.0f}".format(active_notifications|float) }}</p>
+          <p class="mt-1 text-xs text-[#ead9c8]/75">Đang bật</p>
+        </a>
+
+        <a href="{{ url_for('admin.products') }}" class="rounded-3xl border border-white/10 bg-white/10 p-4 hover:bg-white/15 transition-all">
+          <p class="text-[10px] font-extrabold uppercase tracking-widest text-[#ead9c8]/70">Catalog</p>
+          <p class="mt-2 text-3xl font-black">{{ "{:,.0f}".format((prod_count or 0)|float) }}</p>
+          <p class="mt-1 text-xs text-[#ead9c8]/75">Sản phẩm</p>
+        </a>
+      </div>
     </div>
+  </section>
 
-    <div class="max-w-[1600px] mx-auto px-6 lg:px-12 mt-8">
+  <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+    <article class="mm-card mm-card-hover p-5">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <p class="text-[10px] font-extrabold uppercase tracking-widest text-[#9a7a62]">Doanh thu</p>
+          <h2 class="mt-2 text-2xl md:text-3xl font-black text-[#2a1309]">
+            {{ "{:,.0f}".format(revenue|float) }}đ
+          </h2>
+          <p class="mt-2 text-xs font-semibold text-[#9a7a62]">Tổng doanh thu ghi nhận</p>
+        </div>
+        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#ead9c8] text-[#65351f]">
+          <i class="fa-solid fa-sack-dollar"></i>
+        </div>
+      </div>
+    </article>
 
-        {# ── 1. CHỈ SỐ KINH DOANH LÕI (CORE METRICS) ── #}
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            
-            {# Card 1: Doanh thu (Premium Dark Mode) #}
-            <div class="modern-card bg-gradient-premium text-white p-7 relative overflow-hidden group fade-up border-none shadow-lg shadow-slate-900/20">
-                <div class="absolute top-0 right-0 p-6 opacity-20 transform group-hover:scale-110 transition-transform duration-500">
-                    <i class="fa-solid fa-wallet text-6xl"></i>
-                </div>
-                <div class="relative z-10">
-                    <div class="flex items-center gap-3 mb-3">
-                        <div class="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center text-white">
-                            <i class="fa-solid fa-chart-line"></i>
-                        </div>
-                        <p class="text-slate-300 text-sm font-medium">Doanh thu ròng</p>
-                    </div>
-                    <h3 class="text-3xl font-bold tracking-tight mt-2">{{ '{:,.0f}'.format(stats.total_revenue | default(0)) }} ₫</h3>
-                    <div class="flex items-center gap-2 mt-4">
-                        <span class="px-2.5 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-semibold rounded-lg flex items-center gap-1.5">
-                            <i class="fa-solid fa-arrow-up text-[10px]"></i> Tiền đã về
-                        </span>
-                    </div>
-                </div>
-            </div>
+    <article class="mm-card mm-card-hover p-5">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <p class="text-[10px] font-extrabold uppercase tracking-widest text-[#9a7a62]">Đơn hàng</p>
+          <h2 class="mt-2 text-2xl md:text-3xl font-black text-[#2a1309]">
+            {{ "{:,.0f}".format(order_count|float) }}
+          </h2>
+          <p class="mt-2 text-xs font-semibold text-[#9a7a62]">
+            {{ "{:,.0f}".format(completed_orders|float) }} đã hoàn tất
+          </p>
+        </div>
+        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f1e2d4] text-[#65351f]">
+          <i class="fa-solid fa-box"></i>
+        </div>
+      </div>
+    </article>
 
-            {# Card 2: Chờ xuất kho #}
-            <a href="{{ url_for('admin.orders', status='pending') }}" class="modern-card block p-7 fade-up" style="animation-delay: 100ms;">
-                <div class="flex justify-between items-start mb-3">
-                    <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center text-lg">
-                        <i class="fa-solid fa-box-open"></i>
-                    </div>
-                </div>
-                <p class="text-slate-500 text-sm font-medium mb-1">Đơn chờ xuất kho</p>
-                <h3 class="text-3xl font-bold text-slate-900 tracking-tight">{{ stats.pending | default(0) }}</h3>
-                <div class="mt-4 flex items-center gap-2 text-xs font-medium text-amber-600">
-                    <span class="w-2 h-2 rounded-full bg-amber-500"></span> Cần xử lý ngay
-                </div>
-            </a>
+    <article class="mm-card mm-card-hover p-5">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <p class="text-[10px] font-extrabold uppercase tracking-widest text-[#9a7a62]">Khách hàng</p>
+          <h2 class="mt-2 text-2xl md:text-3xl font-black text-[#2a1309]">
+            {{ "{:,.0f}".format((user_count or 0)|float) }}
+          </h2>
+          <p class="mt-2 text-xs font-semibold text-[#9a7a62]">Tài khoản customer</p>
+        </div>
+        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#efe5dc] text-[#65351f]">
+          <i class="fa-solid fa-users"></i>
+        </div>
+      </div>
+    </article>
 
-            {# Card 3: Phân bổ thanh toán #}
-            <div class="modern-card p-7 fade-up" style="animation-delay: 200ms;">
-                <div class="flex justify-between items-start mb-3">
-                    <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center text-lg">
-                        <i class="fa-solid fa-credit-card"></i>
-                    </div>
-                </div>
-                <p class="text-slate-500 text-sm font-medium mb-1">Tỷ lệ CK / VNPay</p>
-                <h3 class="text-3xl font-bold text-slate-900 tracking-tight">{{ stats.vnpay_ratio | default(0) }}%</h3>
-                <div class="w-full bg-slate-100 h-2 rounded-full mt-5 overflow-hidden">
-                    <div class="bg-blue-500 h-full rounded-full transition-all duration-1000" data-width="{{ stats.vnpay_ratio | default(0) }}" style="width: 0%;"></div>
-                </div>
-                <script>
-                    document.addEventListener('DOMContentLoaded', function () {
-                        var bar = document.querySelector('[data-width]');
-                        if (bar) {
-                            bar.style.width = bar.dataset.width + '%';
-                        }
-                    });
-                </script>
-            </div>
+    <article class="mm-card mm-card-hover p-5">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <p class="text-[10px] font-extrabold uppercase tracking-widest text-[#9a7a62]">Giao thành công</p>
+          <h2 class="mt-2 text-2xl md:text-3xl font-black text-[#2a1309]">
+            {{ delivery_success }}%
+          </h2>
+          <p class="mt-2 text-xs font-semibold text-[#9a7a62]">Hiệu suất logistics</p>
+        </div>
+        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#ead9c8] text-[#65351f]">
+          <i class="fa-solid fa-truck-fast"></i>
+        </div>
+      </div>
+    </article>
+  </section>
 
-            {# Card 4: Khách hàng #}
-            <a href="#" class="modern-card block p-7 fade-up" style="animation-delay: 300ms;">
-                <div class="flex justify-between items-start mb-3">
-                    <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center text-lg">
-                        <i class="fa-solid fa-users"></i>
-                    </div>
-                </div>
-                <p class="text-slate-500 text-sm font-medium mb-1">Tổng tài khoản đăng ký</p>
-                <h3 class="text-3xl font-bold text-slate-900 tracking-tight">{{ user_count | default(0) }}</h3>
-                <div class="mt-4 flex items-center gap-1.5 text-xs font-medium text-indigo-600">
-                    Xem danh sách khách hàng <i class="fa-solid fa-arrow-right ml-1"></i>
-                </div>
-            </a>
+  <section class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+
+    <div class="xl:col-span-2 mm-card overflow-hidden">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border-b border-[#eadfd4] px-6 py-5">
+        <div>
+          <p class="text-[10px] font-extrabold uppercase tracking-[0.22em] text-[#9a7a62]">Recent orders</p>
+          <h2 class="mt-1 text-xl font-black text-[#2a1309]">Đơn hàng gần đây</h2>
         </div>
 
-        {# ── 2. KPI KHO VẬN & VẬN CHUYỂN ── #}
-        <div class="mb-8 fade-up" style="animation-delay: 400ms;">
-            <h2 class="text-lg font-bold text-slate-900 mb-4 px-1">Hiệu suất vận hành</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <div class="modern-card p-6 flex items-center gap-5">
-                    <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-xl">
-                        <i class="fa-solid fa-truck-fast"></i>
-                    </div>
-                    <div>
-                        <p class="text-sm font-medium text-slate-500 mb-1">Giao thành công</p>
-                        <h4 class="text-2xl font-bold text-slate-900">{{ stats.delivery_success | default(0) }} <span class="text-sm text-slate-400 font-medium">%</span></h4>
-                    </div>
-                </div>
+        <a href="{{ url_for('admin.orders') }}"
+           class="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#3b1d0f] px-4 py-2.5 text-xs font-extrabold uppercase tracking-widest text-white hover:bg-[#2a1309] transition-all">
+          Xem tất cả
+          <i class="fa-solid fa-arrow-right text-[10px]"></i>
+        </a>
+      </div>
 
-                <div class="modern-card p-6 flex items-center gap-5">
-                    <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center text-xl">
-                        <i class="fa-solid fa-rotate-left"></i>
-                    </div>
-                    <div>
-                        <p class="text-sm font-medium text-slate-500 mb-1">Tỷ lệ hoàn / Boom hàng</p>
-                        <h4 class="text-2xl font-bold text-slate-900">{{ stats.return_rate | default(0) }} <span class="text-sm text-slate-400 font-medium">%</span></h4>
-                    </div>
-                </div>
+      {% if recent_orders %}
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[780px]">
+          <thead>
+            <tr class="border-b border-[#eadfd4] bg-[#fbf7f1]">
+              <th class="px-6 py-3 text-left text-[10px] font-extrabold uppercase tracking-widest text-[#9a7a62]">Mã đơn</th>
+              <th class="px-6 py-3 text-left text-[10px] font-extrabold uppercase tracking-widest text-[#9a7a62]">Khách hàng</th>
+              <th class="px-6 py-3 text-left text-[10px] font-extrabold uppercase tracking-widest text-[#9a7a62]">Trạng thái</th>
+              <th class="px-6 py-3 text-right text-[10px] font-extrabold uppercase tracking-widest text-[#9a7a62]">Tổng tiền</th>
+              <th class="px-6 py-3 text-right text-[10px] font-extrabold uppercase tracking-widest text-[#9a7a62]">Thao tác</th>
+            </tr>
+          </thead>
 
-                <div class="modern-card p-6 flex items-center gap-5">
-                    <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-600 flex items-center justify-center text-xl">
-                        <i class="fa-solid fa-stopwatch"></i>
-                    </div>
-                    <div>
-                        <p class="text-sm font-medium text-slate-500 mb-1">Thời gian giao TB</p>
-                        <h4 class="text-2xl font-bold text-slate-900">{{ stats.avg_time | default(0) }} <span class="text-sm text-slate-400 font-medium">Ngày</span></h4>
-                    </div>
-                </div>
-            </div>
-        </div>
+          <tbody class="divide-y divide-[#eadfd4]">
+            {% for order in recent_orders %}
+            {% set order_id = order.get('id') %}
+            {% set status = order.get('status') or 'pending' %}
+            {% set total = order.get('total_amount') or 0 %}
+            {% set created = order.get('created_at') or '' %}
+            {% set user_obj = order.get('users') or {} %}
+            {% set customer_name = user_obj.get('full_name') or 'Khách hàng' %}
+            {% set customer_email = user_obj.get('email') or 'Không có email' %}
 
-        {# ── 3. KHU VỰC BIỂU ĐỒ ── #}
-        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8 fade-up" style="animation-delay: 500ms;">
-            
-            {# Biểu đồ Doanh thu (Chiếm 2/3) #}
-            <div class="xl:col-span-2 modern-card p-7 md:p-8 flex flex-col">
-                <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
-                    <div>
-                        <h2 class="text-lg font-bold text-slate-900">Biến động Dòng tiền</h2>
-                        <p class="text-sm font-medium text-slate-500 mt-1">Dữ liệu 6 tháng gần nhất</p>
-                    </div>
-                    <div class="px-4 py-2 bg-slate-50 border border-slate-100 rounded-lg flex items-center gap-2">
-                        <span class="w-3 h-3 bg-indigo-500 rounded-full shadow-sm shadow-indigo-200"></span>
-                        <span class="text-sm font-semibold text-slate-700">Thực thu</span>
-                    </div>
-                </div>
-                <div class="chart-container flex-1">
-                    <canvas id="revenueChart"></canvas>
-                </div>
-            </div>
+            <tr class="mm-table-row">
+              <td class="px-6 py-4">
+                <p class="text-sm font-black text-[#2a1309]">
+                  #{{ order_id|string|truncate(8, True, '') }}
+                </p>
+                <p class="mt-1 text-xs font-semibold text-[#9a7a62]">
+                  {{ created[:10] if created else 'Không rõ' }}
+                </p>
+              </td>
 
-            {# Biểu đồ Trạng thái (Chiếm 1/3) #}
-            <div class="xl:col-span-1 modern-card p-7 md:p-8 flex flex-col">
-                <div class="mb-6 text-center">
-                    <h2 class="text-lg font-bold text-slate-900">Cơ cấu Trạng thái Đơn</h2>
-                </div>
-                <div class="flex-1 flex items-center justify-center min-h-[250px]">
-                    <canvas id="statusChart"></canvas>
-                </div>
-            </div>
-        </div>
+              <td class="px-6 py-4">
+                <p class="line-clamp-1 text-sm font-extrabold text-[#3b1d0f]">
+                  {{ customer_name }}
+                </p>
+                <p class="line-clamp-1 mt-1 text-xs font-semibold text-[#9a7a62]">
+                  {{ customer_email }}
+                </p>
+              </td>
 
-        {# ── 4. GIAO DỊCH MỚI NHẤT ── #}
-        <div class="modern-card overflow-hidden fade-up mb-8" style="animation-delay: 600ms;">
-            <div class="px-7 py-6 border-b border-slate-100 flex flex-wrap justify-between items-center gap-4">
-                <div>
-                    <h2 class="text-lg font-bold text-slate-900">Giao dịch mới nhất</h2>
-                    <p class="text-sm text-slate-500 mt-1">5 đơn hàng vừa được cập nhật vào hệ thống</p>
-                </div>
-                <a href="{{ url_for('admin.orders') }}" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 rounded-xl text-sm font-semibold transition-all shadow-sm">
-                    Xem toàn bộ <i class="fa-solid fa-arrow-right ml-1"></i>
+              <td class="px-6 py-4">
+                {% if status in ['completed', 'delivered', 'paid'] %}
+                  <span class="mm-badge border border-emerald-100 bg-emerald-50 text-emerald-700">
+                    <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                    {{ status }}
+                  </span>
+                {% elif status in ['cancelled', 'failed', 'refunded'] %}
+                  <span class="mm-badge border border-rose-100 bg-rose-50 text-rose-700">
+                    <span class="h-1.5 w-1.5 rounded-full bg-rose-500"></span>
+                    {{ status }}
+                  </span>
+                {% else %}
+                  <span class="mm-badge border border-[#ead9c8] bg-[#fbf7f1] text-[#65351f]">
+                    <span class="h-1.5 w-1.5 rounded-full bg-[#b98558]"></span>
+                    {{ status }}
+                  </span>
+                {% endif %}
+              </td>
+
+              <td class="px-6 py-4 text-right">
+                <p class="text-sm font-black text-[#2a1309]">
+                  {{ "{:,.0f}".format(total|float) }}đ
+                </p>
+              </td>
+
+              <td class="px-6 py-4 text-right">
+                <a href="{{ url_for('admin.orders') }}"
+                   class="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[#eadfd4] bg-white text-[#65351f] hover:bg-[#3b1d0f] hover:text-white transition-all">
+                  <i class="fa-solid fa-arrow-right text-xs"></i>
                 </a>
-            </div>
-            
-            <div class="overflow-x-auto custom-scrollbar">
-                <table class="w-full text-left border-collapse min-w-[900px]">
-                    <thead>
-                        <tr class="bg-slate-50 text-slate-500 text-xs font-semibold uppercase tracking-wider border-b border-slate-100">
-                            <th class="px-7 py-4 w-32 rounded-tl-xl">Mã đơn</th>
-                            <th class="px-7 py-4">Khách hàng</th>
-                            <th class="px-7 py-4">Thanh toán</th>
-                            <th class="px-7 py-4">Trạng thái</th>
-                            <th class="px-7 py-4 text-right rounded-tr-xl">Tổng tiền</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        {% if not recent_orders %}
-                        <tr>
-                            <td colspan="5" class="px-7 py-16 text-center text-slate-400">
-                                <i class="fa-solid fa-receipt text-3xl mb-3 block"></i>
-                                <p class="text-sm font-medium">Chưa có giao dịch nào</p>
-                            </td>
-                        </tr>
-                        {% endif %}
-                        
-                        {% for order in recent_orders[:5] %}
-                        <tr class="hover:bg-slate-50/80 transition-colors group">
-                            <td class="px-7 py-5">
-                                <a href="{{ url_for('admin.order_detail', order_id=order.id) }}" class="font-mono text-sm font-bold text-indigo-600 hover:text-indigo-800 transition">
-                                    #{{ order.id[:8].upper() }}
-                                </a>
-                            </td>
-                            <td class="px-7 py-5">
-                                <p class="font-bold text-slate-900 text-sm">{{ order.users.full_name if order.users else 'Khách vãng lai' }}</p>
-                                <p class="text-xs text-slate-500 font-medium mt-1">{{ order.created_at[:16].replace('T', ' ') }}</p>
-                            </td>
-                            <td class="px-7 py-5">
-                                {% if order.payment_status == 'paid' %}
-                                    <span class="inline-flex items-center px-3 py-1 bg-emerald-50 text-emerald-600 border border-emerald-100 text-xs font-semibold rounded-full">Đã thanh toán</span>
-                                {% elif order.status == 'cancelled' %}
-                                    <span class="inline-flex items-center px-3 py-1 bg-slate-100 text-slate-500 border border-slate-200 text-xs font-semibold rounded-full">Đã hủy</span>
-                                {% else %}
-                                    <span class="inline-flex items-center px-3 py-1 bg-amber-50 text-amber-600 border border-amber-100 text-xs font-semibold rounded-full">Chờ thu tiền</span>
-                                {% endif %}
-                            </td>
-                            <td class="px-7 py-5">
-                                {% set s_map = {
-                                    'pending': ('Chờ xác nhận', 'bg-amber-50 text-amber-600 border-amber-100'),
-                                    'confirmed': ('Đã chốt', 'bg-blue-50 text-blue-600 border-blue-100'),
-                                    'packed': ('Đã đóng gói', 'bg-indigo-50 text-indigo-600 border-indigo-100'),
-                                    'shipped': ('Đang giao', 'bg-purple-50 text-purple-600 border-purple-100'),
-                                    'delivered': ('Hoàn tất', 'bg-emerald-50 text-emerald-600 border-emerald-100'),
-                                    'cancelled': ('Đã hủy', 'bg-slate-100 text-slate-500 border-slate-200'),
-                                    'failed': ('Giao thất bại', 'bg-rose-50 text-rose-600 border-rose-100'),
-                                    'returned': ('Hoàn hàng', 'bg-orange-50 text-orange-600 border-orange-100')
-                                } %}
-                                {% set s_info = s_map.get(order.status, (order.status, 'bg-slate-100 text-slate-600 border-slate-200')) %}
-                                <span class="inline-flex items-center px-3 py-1 text-xs font-semibold border rounded-full {{ s_info[1] }}">{{ s_info[0] }}</span>
-                            </td>
-                            <td class="px-7 py-5 text-right">
-                                <p class="font-bold text-slate-900 text-base">{{ '{:,.0f}'.format(order.total_amount) }} ₫</p>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="p-12 text-center">
+        <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl border border-[#eadfd4] bg-[#fbf7f1] text-[#b98558]">
+          <i class="fa-solid fa-box-open text-2xl"></i>
+        </div>
+        <h3 class="text-lg font-black text-[#2a1309]">Chưa có đơn hàng gần đây</h3>
+        <p class="mt-2 text-sm font-semibold text-[#9a7a62]">Khi khách đặt hàng, đơn mới sẽ hiển thị tại đây.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="space-y-6">
+      <div class="mm-card p-6">
+        <div class="mb-5 flex items-start justify-between gap-4">
+          <div>
+            <p class="text-[10px] font-extrabold uppercase tracking-[0.22em] text-[#9a7a62]">Today focus</p>
+            <h2 class="mt-1 text-xl font-black text-[#2a1309]">Việc cần xử lý</h2>
+          </div>
+          <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#3b1d0f] text-white">
+            <i class="fa-solid fa-list-check"></i>
+          </div>
         </div>
 
+        <div class="space-y-3">
+          <a href="{{ url_for('admin.orders') }}"
+             class="flex items-center justify-between gap-4 rounded-3xl border border-[#eadfd4] bg-[#fbf7f1] p-4 hover:bg-white transition-all">
+            <div class="flex items-center gap-3">
+              <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#ead9c8] text-[#65351f]">
+                <i class="fa-solid fa-clock"></i>
+              </span>
+              <div>
+                <p class="text-sm font-black text-[#2a1309]">Đơn chờ xử lý</p>
+                <p class="mt-0.5 text-xs font-semibold text-[#9a7a62]">Xác nhận / đóng gói</p>
+              </div>
+            </div>
+            <span class="text-lg font-black text-[#2a1309]">{{ pending_orders }}</span>
+          </a>
+
+          <a href="{{ url_for('admin.return_requests') }}"
+             class="flex items-center justify-between gap-4 rounded-3xl border border-[#eadfd4] bg-[#fbf7f1] p-4 hover:bg-white transition-all">
+            <div class="flex items-center gap-3">
+              <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
+                <i class="fa-solid fa-arrow-right-arrow-left"></i>
+              </span>
+              <div>
+                <p class="text-sm font-black text-[#2a1309]">Yêu cầu đổi / trả</p>
+                <p class="mt-0.5 text-xs font-semibold text-[#9a7a62]">Cần phản hồi</p>
+              </div>
+            </div>
+            <span class="text-lg font-black text-[#2a1309]">{{ pending_returns_value }}</span>
+          </a>
+
+          <a href="{{ url_for('admin.notifications_index') }}"
+             class="flex items-center justify-between gap-4 rounded-3xl border border-[#eadfd4] bg-[#fbf7f1] p-4 hover:bg-white transition-all">
+            <div class="flex items-center gap-3">
+              <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#efe5dc] text-[#65351f]">
+                <i class="fa-solid fa-bell"></i>
+              </span>
+              <div>
+                <p class="text-sm font-black text-[#2a1309]">Thông báo đang bật</p>
+                <p class="mt-0.5 text-xs font-semibold text-[#9a7a62]">Quản lý truyền thông</p>
+              </div>
+            </div>
+            <span class="text-lg font-black text-[#2a1309]">{{ active_notifications }}</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="mm-card p-6">
+        <div class="mb-5">
+          <p class="text-[10px] font-extrabold uppercase tracking-[0.22em] text-[#9a7a62]">Logistics</p>
+          <h2 class="mt-1 text-xl font-black text-[#2a1309]">Chất lượng giao hàng</h2>
+        </div>
+
+        <div class="space-y-5">
+          <div>
+            <div class="mb-2 flex items-center justify-between text-sm font-bold">
+              <span class="text-[#65351f]">Giao thành công</span>
+              <span class="text-[#2a1309]">{{ delivery_success }}%</span>
+            </div>
+            <div class="h-3 overflow-hidden rounded-full bg-[#eadfd4]">
+              <div class="mm-progress-bar h-full rounded-full bg-emerald-500" data-progress="{{ delivery_success if delivery_success <= 100 else 100 }}"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="mb-2 flex items-center justify-between text-sm font-bold">
+              <span class="text-[#65351f]">Tỉ lệ hoàn / hủy</span>
+              <span class="text-[#2a1309]">{{ return_rate }}%</span>
+            </div>
+            <div class="h-3 overflow-hidden rounded-full bg-[#eadfd4]">
+              <div class="mm-progress-bar h-full rounded-full bg-rose-500" data-progress="{{ return_rate if return_rate <= 100 else 100 }}"></div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between rounded-3xl border border-[#eadfd4] bg-[#fbf7f1] p-4">
+            <div>
+              <p class="text-[10px] font-extrabold uppercase tracking-widest text-[#9a7a62]">Thời gian giao TB</p>
+              <p class="mt-1 text-2xl font-black text-[#2a1309]">{{ avg_time }} ngày</p>
+            </div>
+            <div class="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#eadfd4] bg-white text-[#b98558]">
+              <i class="fa-solid fa-truck-ramp-box"></i>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
+  </section>
+
+  <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+    <a href="{{ url_for('admin.products') }}" class="mm-card mm-card-hover p-5 group">
+      <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#3b1d0f] text-white transition-transform group-hover:scale-105">
+        <i class="fa-solid fa-plus"></i>
+      </div>
+      <h3 class="font-black text-[#2a1309]">Sản phẩm</h3>
+      <p class="line-clamp-2 mt-2 text-sm font-semibold text-[#9a7a62]">Cập nhật catalog, tồn kho, biến thể size/màu.</p>
+    </a>
+
+    <a href="{{ url_for('admin.collections') }}" class="mm-card mm-card-hover p-5 group">
+      <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#ead9c8] text-[#65351f] transition-transform group-hover:scale-105">
+        <i class="fa-solid fa-images"></i>
+      </div>
+      <h3 class="font-black text-[#2a1309]">Bộ sưu tập</h3>
+      <p class="line-clamp-2 mt-2 text-sm font-semibold text-[#9a7a62]">Quản lý campaign, lookbook và banner trang chủ.</p>
+    </a>
+
+    <a href="{{ url_for('admin.coupons') }}" class="mm-card mm-card-hover p-5 group">
+      <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#efe5dc] text-[#65351f] transition-transform group-hover:scale-105">
+        <i class="fa-solid fa-ticket"></i>
+      </div>
+      <h3 class="font-black text-[#2a1309]">Khuyến mãi</h3>
+      <p class="line-clamp-2 mt-2 text-sm font-semibold text-[#9a7a62]">Tạo coupon, giảm giá và chương trình bán hàng.</p>
+    </a>
+
+    <a href="{{ url_for('admin.notifications_index') }}" class="mm-card mm-card-hover p-5 group">
+      <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 transition-transform group-hover:scale-105">
+        <i class="fa-solid fa-bell"></i>
+      </div>
+      <h3 class="font-black text-[#2a1309]">Thông báo</h3>
+      <p class="line-clamp-2 mt-2 text-sm font-semibold text-[#9a7a62]">Gửi thông báo khuyến mãi hoặc cập nhật hệ thống.</p>
+    </a>
+  </section>
+
 </div>
+{% endblock %}
 
-<script id="monthly-data" type="application/json">{{ stats.monthly | tojson | safe }}</script>
-<script id="status-data" type="application/json">{{ stats.status_chart | tojson | safe }}</script>
-
+{% block extra_scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    // 1. Đồng hồ
-    const updateClock = () => {
-        const now = new Date();
-        document.getElementById('live-clock').innerText = now.toLocaleDateString('vi-VN', { 
-            weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric', 
-            hour: '2-digit', minute: '2-digit' 
-        });
-    }
-    setInterval(updateClock, 1000); updateClock();
+document.addEventListener("DOMContentLoaded", function () {
+  document.querySelectorAll(".mm-progress-bar").forEach(function (bar) {
+    var rawValue = Number(bar.dataset.progress || 0);
+    var value = Math.max(0, Math.min(100, rawValue));
 
-    const monthlyData = JSON.parse(document.getElementById('monthly-data').textContent || '[]');
-    const statusData = JSON.parse(document.getElementById('status-data').textContent || '[]');
-
-    Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
-
-    // 2. REVENUE CHART (Mượt mà, hiệu ứng Gradient Fill chuẩn SaaS)
-    const ctxRev = document.getElementById('revenueChart').getContext('2d');
-    
-    // Tạo gradient dưới đường line
-    let gradient = ctxRev.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, 'rgba(99, 102, 241, 0.2)'); // Indigo-500 mờ
-    gradient.addColorStop(1, 'rgba(99, 102, 241, 0)');
-
-    new Chart(ctxRev, {
-        type: 'line',
-        data: {
-            labels: monthlyData.map(item => item.month),
-            datasets: [{
-                label: 'Thực thu',
-                data: monthlyData.map(item => item.revenue),
-                borderColor: '#6366f1', // Indigo-500
-                backgroundColor: gradient,
-                borderWidth: 3,
-                tension: 0.4, // ĐƯỜNG CONG MƯỢT MÀ
-                fill: true,
-                pointRadius: 4,
-                pointBackgroundColor: '#ffffff',
-                pointBorderColor: '#6366f1',
-                pointBorderWidth: 2,
-                pointHoverRadius: 6,
-                pointHoverBackgroundColor: '#6366f1'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
-            plugins: { 
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: '#ffffff',
-                    titleColor: '#64748b',
-                    bodyColor: '#0f172a',
-                    borderColor: '#e2e8f0',
-                    borderWidth: 1,
-                    titleFont: { size: 12, weight: 'medium' },
-                    bodyFont: { size: 14, weight: 'bold' },
-                    padding: 12,
-                    cornerRadius: 12, // Bo tròn tooltip
-                    displayColors: false,
-                    callbacks: {
-                        label: function(context) { return context.parsed.y.toLocaleString('vi-VN') + ' ₫'; }
-                    },
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                }
-            },
-            scales: {
-                y: { 
-                    border: { display: false },
-                    grid: { color: '#f1f5f9', drawTicks: false }, // Grid xám cực nhạt
-                    ticks: { 
-                        font: { weight: 'medium', size: 11 },
-                        color: '#94a3b8',
-                        padding: 12,
-                        callback: v => (v/1000000).toLocaleString('vi-VN') + ' Tr'
-                    } 
-                },
-                x: { 
-                    border: { display: false },
-                    grid: { display: false },
-                    ticks: { 
-                        font: { weight: 'medium', size: 11 },
-                        color: '#94a3b8',
-                        padding: 12
-                    }
-                }
-            }
-        }
+    requestAnimationFrame(function () {
+      bar.style.width = value + "%";
     });
-
-    // 3. STATUS CHART (Màu pastel/vibrant hiện đại, bo viền cutout)
-    new Chart(document.getElementById('statusChart'), {
-        type: 'doughnut',
-        data: {
-            labels: statusData.map(s => {
-                const map = {'pending':'Chờ XN','confirmed':'Đã Chốt','packed':'Đóng Gói','shipped':'Đang Giao','delivered':'Hoàn Tất','cancelled':'Đã Hủy', 'failed': 'Thất Bại', 'returned':'Hoàn Hàng'};
-                return map[s.status] || s.status;
-            }),
-            datasets: [{
-                data: statusData.map(s => s.count),
-                backgroundColor: [
-                    '#f59e0b', // amber-500
-                    '#3b82f6', // blue-500
-                    '#6366f1', // indigo-500
-                    '#10b981', // emerald-500
-                    '#8b5cf6', // violet-500
-                    '#94a3b8', // slate-400
-                    '#f43f5e', // rose-500
-                    '#f97316'  // orange-500
-                ],
-                borderWidth: 4,
-                borderColor: '#ffffff',
-                borderRadius: 4, // Bo tròn các đoạn cắt của bánh
-                hoverOffset: 6
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '75%', // Vòng khuyết thanh thoát
-            plugins: {
-                legend: { 
-                    position: 'bottom', 
-                    labels: { 
-                        padding: 20, 
-                        usePointStyle: true, 
-                        pointStyle: 'circle', // Dùng hình tròn mềm mại
-                        font: { weight: 'medium', size: 11 },
-                        color: '#64748b' 
-                    } 
-                },
-                tooltip: {
-                    backgroundColor: '#0f172a',
-                    bodyFont: { size: 13, weight: 'bold' },
-                    cornerRadius: 8,
-                    padding: 12
-                }
-            }
-        }
-    });
+  });
 });
 </script>
 {% endblock %}

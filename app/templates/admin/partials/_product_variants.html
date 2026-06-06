@@ -1,0 +1,421 @@
+{# ─────────────────────────────────────────────────────────────
+   app/templates/admin/partials/_product_variants.html
+   Partial: Biến thể linh hoạt (màu × kích cỡ)
+   - Định dạng giá VNĐ (toLocaleString vi-VN)
+   - SKU/Barcode/Cost/Compare per variant (optional, collapsible)
+   - Size linh hoạt: preset chips + nhập tay
+   Include: {% include 'admin/partials/_product_variants.html' %}
+───────────────────────────────────────────────────────────── #}
+
+<div class="bg-white border border-stone-200/80 rounded-[24px] p-6 md:p-8 shadow-sm">
+
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div>
+      <h2 class="text-xs font-bold uppercase tracking-widest text-stone-400 flex items-center gap-2">
+        <i class="fa-solid fa-layer-group text-stone-300 text-base"></i> Phân loại biến thể
+      </h2>
+      <p class="text-[11px] text-stone-400 mt-1 font-medium">Màu × Kích cỡ — Tồn kho theo từng phân loại</p>
+    </div>
+    <div class="flex gap-2">
+      <button
+        type="button"
+        onclick="addVariantGroup()"
+        class="inline-flex items-center gap-2 bg-stone-900 text-white border border-stone-800 px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-black transition-colors shadow-sm"
+      >
+        <i class="fa-solid fa-plus"></i> Thêm màu sắc
+      </button>
+    </div>
+  </div>
+
+  {# Size preset chips — chọn để thêm nhanh #}
+  <div class="mb-5 bg-stone-50 border border-stone-100 rounded-2xl p-4">
+    <p class="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-3">Size preset — nhấn để dùng</p>
+    <div class="flex flex-wrap gap-1.5">
+      {% set size_groups = [
+        ('Thời trang', ['XS','S','M','L','XL','XXL','XXXL']),
+        ('Giày', ['35','36','37','38','39','40','41','42','43','44']),
+        ('Số', ['1','2','3','4','5','6','7','8','9','10']),
+        ('Free', ['Free Size']),
+      ] %}
+      {% for group_name, sizes in size_groups %}
+        <span class="text-[10px] font-bold text-stone-400 uppercase tracking-wider self-center mr-1">{{ group_name }}:</span>
+        {% for sz in sizes %}
+        <button
+          type="button"
+          onclick="addSizeToActive('{{ sz }}')"
+          class="h-7 px-2.5 rounded-lg border border-stone-200 text-[11px] font-bold text-stone-600 bg-white hover:bg-stone-900 hover:text-white hover:border-stone-900 transition-all"
+        >{{ sz }}</button>
+        {% endfor %}
+        <span class="text-stone-200 self-center ml-1 mr-2 hidden sm:inline">|</span>
+      {% endfor %}
+    </div>
+    {# Nhập size tuỳ chỉnh #}
+    <div class="flex gap-2 mt-3">
+      <input
+        type="text"
+        id="custom_size_input"
+        placeholder="Nhập size tùy chỉnh (vd: 2XL, EU38...)"
+        class="flex-1 bg-white border border-stone-200 rounded-xl px-4 py-2 text-xs font-medium focus:outline-none focus:border-stone-400 transition-all"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomSize();}"
+      >
+      <button
+        type="button"
+        onclick="addCustomSize()"
+        class="shrink-0 px-4 py-2 bg-stone-100 rounded-xl text-xs font-bold text-stone-700 hover:bg-stone-200 transition-colors"
+      >Thêm</button>
+    </div>
+  </div>
+
+  {# Container render variants #}
+  <div id="variant_groups_container" class="space-y-5"></div>
+
+  {# Summary tồn kho tổng #}
+  <div class="mt-5 bg-stone-50 border border-stone-100 rounded-2xl px-5 py-3.5 flex items-center justify-between">
+    <span class="text-[11px] font-bold uppercase tracking-widest text-stone-500">Tổng tồn kho dự kiến</span>
+    <span id="total_stock_display" class="text-lg font-black text-stone-900">0 <span class="text-xs font-medium text-stone-400">sản phẩm</span></span>
+  </div>
+
+</div>
+
+{# Dữ liệu variant cũ để khởi tạo khi edit #}
+<script id="pdata" type="application/json">
+  {{ product.product_variants|tojson|safe if product and product.product_variants else '[]' }}
+</script>
+
+<script>
+(function() {
+  if (window.__variantsLoaded) return;
+  window.__variantsLoaded = true;
+
+  /* ══ CONFIG ══ */
+  const PRESET_SIZES = ['XS','S','M','L','XL','XXL','XXXL','35','36','37','38','39','40','41','42','43','44','Free Size'];
+  const PRESET_COLORS = [
+    {n:'Đen',   h:'#1c1917'},
+    {n:'Trắng', h:'#fafaf9'},
+    {n:'Xám',   h:'#78716c'},
+    {n:'Đỏ',    h:'#ef4444'},
+    {n:'Xanh navy', h:'#1e3a8a'},
+    {n:'Be',    h:'#d4b896'},
+    {n:'Hồng',  h:'#f9a8d4'},
+    {n:'Xanh rêu', h:'#4d7c0f'},
+  ];
+
+  /* ══ STATE ══ */
+  let groups = [];        // [{cn, ch, sz: [{s, k, p, cost, cap, sku, bc}], activeGroup: false}]
+  let activeGroupIdx = 0; // Group được focus khi dùng preset chip
+
+  /* ══ LOAD DỮ LIỆU CŨ (edit mode) ══ */
+  const rawData = JSON.parse(document.getElementById('pdata').textContent || '[]');
+  if (rawData.length) {
+    rawData.forEach(v => {
+      let g = groups.find(g => g.cn === v.color_name && g.ch === v.color_hex);
+      if (!g) {
+        g = {cn: v.color_name, ch: v.color_hex || '#1c1917', sz: [], open: false};
+        groups.push(g);
+      }
+      g.sz.push({
+        s:    v.size,
+        k:    v.stock || 0,
+        p:    v.price_override  || '',
+        cost: v.cost_price      || '',
+        cap:  v.compare_at_price || '',
+        sku:  v.sku             || '',
+        bc:   v.barcode         || '',
+      });
+    });
+  } else {
+    groups.push({cn: '', ch: '#1c1917', sz: [], open: false});
+  }
+
+  /* ══ RENDER ══ */
+  function render() {
+    const container = document.getElementById('variant_groups_container');
+    if (!container) return;
+
+    const basePrice = window.parseVndRaw
+      ? window.parseVndRaw(document.getElementById('input_price')?.value || '')
+      : parseFloat((document.getElementById('input_price')?.value || '0').replace(/[^\d.]/g, '')) || 0;
+
+    const phText = basePrice > 0
+      ? `Mặc định: ${basePrice.toLocaleString('vi-VN')} ₫`
+      : 'Bằng giá niêm yết';
+
+    container.innerHTML = groups.map((g, gi) => {
+      const isActive = gi === activeGroupIdx;
+
+      /* Size chips */
+      const chipRows = PRESET_SIZES.map(s => {
+        const on  = g.sz.some(z => z.s === s);
+        const cls = on
+          ? 'h-8 px-3 rounded-lg border text-xs font-bold transition-all bg-black text-white border-black shadow-sm'
+          : 'h-8 px-3 rounded-lg border text-xs font-bold transition-all bg-white text-stone-500 border-stone-200 hover:border-stone-400';
+        return `<button type="button" class="${cls}" onclick="toggleVariantSize(${gi},'${s}')">${s}</button>`;
+      }).join('');
+
+      /* Rows bảng tồn kho */
+      const rows = g.sz.length ? `
+        <div class="mt-4 space-y-2">
+          <div class="grid grid-cols-12 gap-2 px-1">
+            <div class="col-span-2 text-[10px] font-bold uppercase tracking-widest text-stone-400">Size</div>
+            <div class="col-span-3 text-[10px] font-bold uppercase tracking-widest text-stone-400">Tồn kho</div>
+            <div class="col-span-3 text-[10px] font-bold uppercase tracking-widest text-stone-400">Giá riêng (₫)</div>
+            <div class="col-span-3 text-[10px] font-bold uppercase tracking-widest text-stone-400">Thao tác</div>
+          </div>
+          ${g.sz.map((z, zi) => `
+          <div class="group/row grid grid-cols-12 gap-2 bg-stone-50/60 border border-stone-100 rounded-xl px-3 py-2.5 hover:bg-white hover:border-stone-200 transition-all">
+            <div class="col-span-2 flex items-center">
+              <span class="bg-white border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs font-black text-stone-800">${z.s}</span>
+            </div>
+            <div class="col-span-3">
+              <input type="number" name="v_stock[]" value="${z.k}" min="0"
+                class="w-full h-9 bg-white border border-stone-200 rounded-xl px-3 text-xs font-bold focus:outline-none focus:border-stone-400 transition-all"
+                placeholder="0"
+                onchange="updateVariantField(${gi},${zi},'k',this.value);updateTotalStock()">
+            </div>
+            <div class="col-span-3">
+              <input type="text" name="v_price_override[]" value="${z.p ? Number(z.p).toLocaleString('vi-VN') : ''}"
+                data-raw="${z.p || ''}"
+                class="w-full h-9 bg-white border border-stone-200 rounded-xl px-3 text-xs font-medium focus:outline-none focus:border-stone-400 transition-all"
+                placeholder="${phText}"
+                inputmode="numeric"
+                onfocus="this.value=this.dataset.raw||''"
+                onblur="formatVariantPrice(this,${gi},${zi})"
+                oninput="this.dataset.raw=this.value.replace(/[^\\d.]/g,'')">
+            </div>
+            <div class="col-span-3 flex items-center gap-1">
+              <button type="button"
+                class="flex items-center gap-1 text-[10px] font-semibold text-stone-400 hover:text-indigo-600 transition-colors"
+                onclick="toggleVariantAdvanced(${gi},${zi})"
+                title="SKU/Barcode/Giá vốn">
+                <i class="fa-solid fa-ellipsis-vertical"></i>
+              </button>
+              <button type="button" onclick="toggleVariantSize(${gi},'${z.s}')"
+                class="ml-auto text-stone-300 hover:text-rose-500 transition-colors">
+                <i class="fa-solid fa-xmark text-xs"></i>
+              </button>
+            </div>
+            ${/* Hidden fields cho backend */`
+              <input type="hidden" name="v_size[]"            value="${z.s}">
+              <input type="hidden" name="v_color[]"           value="${g.cn}">
+              <input type="hidden" name="v_color_hex[]"       value="${g.ch}">
+              <input type="hidden" name="v_cost_price[]"      value="${z.cost || ''}">
+              <input type="hidden" name="v_compare_at_price[]" value="${z.cap || ''}">
+              <input type="hidden" name="v_sku[]"             value="${z.sku || ''}">
+              <input type="hidden" name="v_barcode[]"         value="${z.bc  || ''}">
+            `}
+          </div>
+          <div id="adv_${gi}_${zi}" class="hidden grid grid-cols-2 md:grid-cols-4 gap-2 px-3 pb-3 bg-stone-50 border border-stone-100 rounded-xl -mt-1">
+            <div>
+              <p class="text-[9px] font-bold uppercase tracking-widest text-stone-400 mb-1">Giá vốn</p>
+              <div class="relative">
+                <span class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-stone-400">₫</span>
+                <input type="text" data-adv-field="cost" data-gi="${gi}" data-zi="${zi}"
+                  value="${z.cost ? Number(z.cost).toLocaleString('vi-VN') : ''}"
+                  data-raw="${z.cost||''}"
+                  placeholder="Giá nhập" inputmode="numeric"
+                  class="w-full pl-5 pr-2 py-2 bg-white border border-stone-200 rounded-lg text-xs font-medium focus:outline-none"
+                  onfocus="this.value=this.dataset.raw||''"
+                  onblur="syncAdvField(this)" oninput="this.dataset.raw=this.value.replace(/[^\\d.]/g,'')">
+              </div>
+            </div>
+            <div>
+              <p class="text-[9px] font-bold uppercase tracking-widest text-stone-400 mb-1">Giá so sánh</p>
+              <div class="relative">
+                <span class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-stone-400">₫</span>
+                <input type="text" data-adv-field="cap" data-gi="${gi}" data-zi="${zi}"
+                  value="${z.cap ? Number(z.cap).toLocaleString('vi-VN') : ''}"
+                  data-raw="${z.cap||''}"
+                  placeholder="Giá cũ" inputmode="numeric"
+                  class="w-full pl-5 pr-2 py-2 bg-white border border-stone-200 rounded-lg text-xs font-medium focus:outline-none"
+                  onfocus="this.value=this.dataset.raw||''"
+                  onblur="syncAdvField(this)" oninput="this.dataset.raw=this.value.replace(/[^\\d.]/g,'')">
+              </div>
+            </div>
+            <div>
+              <p class="text-[9px] font-bold uppercase tracking-widest text-stone-400 mb-1">SKU</p>
+              <input type="text" data-adv-field="sku" data-gi="${gi}" data-zi="${zi}"
+                value="${z.sku||''}" placeholder="GUA-001-M"
+                class="w-full px-2 py-2 bg-white border border-stone-200 rounded-lg text-xs font-mono focus:outline-none"
+                onblur="syncAdvField(this)">
+            </div>
+            <div>
+              <p class="text-[9px] font-bold uppercase tracking-widest text-stone-400 mb-1">Barcode</p>
+              <input type="text" data-adv-field="bc" data-gi="${gi}" data-zi="${zi}"
+                value="${z.bc||''}" placeholder="EAN/CODE128"
+                class="w-full px-2 py-2 bg-white border border-stone-200 rounded-lg text-xs font-mono focus:outline-none"
+                onblur="syncAdvField(this)">
+            </div>
+          </div>
+          `).join('')}
+        </div>` : '';
+
+      /* Color preset buttons */
+      const colorPresets = PRESET_COLORS.map(c =>
+        `<button type="button" class="w-6 h-6 rounded-full border-2 border-white shadow-md hover:scale-110 transition-transform" style="background:${c.h}" title="${c.n}" onclick="setGroupColor(${gi},'${c.n}','${c.h}')"></button>`
+      ).join('');
+
+      return `
+        <div class="border rounded-2xl p-4 transition-all ${isActive ? 'border-stone-400 bg-white shadow-md' : 'border-stone-200 bg-stone-50/60'}"
+             onclick="setActiveGroup(${gi})" data-group-index="${gi}">
+          
+          <div class="flex items-start justify-between gap-3 mb-3">
+            <div class="flex items-start gap-3 flex-1">
+              {/* Color picker */}
+              <label class="relative shrink-0 cursor-pointer" title="Chọn màu">
+                <div class="w-11 h-11 rounded-xl border-2 shadow-sm"
+                     style="background:${g.ch};border-color:${isActive?'#1c1917':'#e7e5e4'}">
+                </div>
+                <input type="color" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                       value="${g.ch}" onchange="setGroupColor(${gi},null,this.value)">
+              </label>
+              <div class="flex-1 space-y-2">
+                <input type="text"
+                  class="w-full bg-white border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm font-bold focus:outline-none focus:border-stone-400 transition-all"
+                  value="${g.cn}" placeholder="Tên màu sắc (Vd: Đen Carbon)"
+                  onclick="event.stopPropagation()"
+                  onchange="updateGroupName(${gi},this.value)">
+                <div class="flex flex-wrap gap-1">${colorPresets}</div>
+              </div>
+            </div>
+            ${groups.length > 1 ? `
+            <button type="button" onclick="event.stopPropagation();removeGroup(${gi})"
+              class="shrink-0 text-stone-400 hover:text-rose-500 transition-colors p-1">
+              <i class="fa-solid fa-trash-can text-sm"></i>
+            </button>` : ''}
+          </div>
+
+          {/* Size chips */}
+          <div class="flex flex-wrap gap-1.5 mb-2">
+            ${chipRows}
+          </div>
+          ${rows}
+        </div>`;
+    }).join('');
+
+    updateTotalStock();
+  }
+
+  /* ══ ACTIONS ══ */
+  window.addVariantGroup = function() {
+    groups.push({cn: '', ch: '#1c1917', sz: [], open: false});
+    activeGroupIdx = groups.length - 1;
+    render();
+    // Scroll to new group
+    setTimeout(() => {
+      const c = document.getElementById('variant_groups_container');
+      if (c) c.lastElementChild?.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+    }, 100);
+  };
+
+  window.removeGroup = function(gi) {
+    groups.splice(gi, 1);
+    activeGroupIdx = Math.max(0, Math.min(activeGroupIdx, groups.length - 1));
+    render();
+  };
+
+  window.setActiveGroup = function(gi) {
+    activeGroupIdx = gi;
+    render();
+  };
+
+  window.setGroupColor = function(gi, name, hex) {
+    if (name) groups[gi].cn = name;
+    if (hex)  groups[gi].ch = hex;
+    render();
+  };
+
+  window.updateGroupName = function(gi, val) {
+    groups[gi].cn = val;
+  };
+
+  window.toggleVariantSize = function(gi, s) {
+    const g = groups[gi];
+    const idx = g.sz.findIndex(z => z.s === s);
+    if (idx >= 0) {
+      g.sz.splice(idx, 1);
+    } else {
+      g.sz.push({s, k: 0, p: '', cost: '', cap: '', sku: '', bc: ''});
+    }
+    activeGroupIdx = gi;
+    render();
+  };
+
+  window.updateVariantField = function(gi, zi, key, val) {
+    groups[gi].sz[zi][key] = val;
+  };
+
+  window.formatVariantPrice = function(el, gi, zi) {
+    const raw = parseFloat(String(el.dataset.raw || '').replace(/[^\d.]/g, '')) || 0;
+    groups[gi].sz[zi].p = raw || '';
+    el.value = raw > 0 ? raw.toLocaleString('vi-VN') : '';
+    // Cập nhật hidden field
+    const hiddenInputs = document.querySelectorAll(`input[name="v_price_override[]"]`);
+    // Re-render để đồng bộ hidden fields
+  };
+
+  window.syncAdvField = function(el) {
+    const gi    = parseInt(el.dataset.gi);
+    const zi    = parseInt(el.dataset.zi);
+    const field = el.dataset.advField;
+    if (isNaN(gi) || isNaN(zi) || !field) return;
+
+    const raw = el.dataset.raw || el.value;
+    if (['cost','cap'].includes(field)) {
+      const num = parseFloat(String(raw).replace(/[^\d.]/g, '')) || 0;
+      groups[gi].sz[zi][field] = num || '';
+      el.value = num > 0 ? num.toLocaleString('vi-VN') : '';
+    } else {
+      groups[gi].sz[zi][field] = el.value.trim();
+    }
+    // Sync hidden field
+    const wrap = document.getElementById(`adv_${gi}_${zi}`);
+    if (wrap) {
+      ['cost','cap','sku','bc'].forEach(f => {
+        const hid = document.querySelector(`input[name="v_${f==='cost'?'cost_price':f==='cap'?'compare_at_price':f}[]"]`);
+        // hidden fields refreshed on next render
+      });
+    }
+  };
+
+  window.toggleVariantAdvanced = function(gi, zi) {
+    const el = document.getElementById(`adv_${gi}_${zi}`);
+    if (el) el.classList.toggle('hidden');
+  };
+
+  window.updateTotalStock = function() {
+    const total = groups.reduce((s, g) => s + g.sz.reduce((ss, z) => ss + (parseInt(z.k) || 0), 0), 0);
+    const el = document.getElementById('total_stock_display');
+    if (el) el.innerHTML = `${total.toLocaleString('vi-VN')} <span class="text-xs font-medium text-stone-400">sản phẩm</span>`;
+  };
+
+  /* Preset chip → thêm vào group đang active */
+  window.addSizeToActive = function(s) {
+    if (!groups.length) groups.push({cn:'',ch:'#1c1917',sz:[],open:false});
+    const g = groups[activeGroupIdx] || groups[0];
+    if (!g.sz.some(z => z.s === s)) {
+      g.sz.push({s, k: 0, p: '', cost: '', cap: '', sku: '', bc: ''});
+      render();
+    }
+  };
+
+  window.addCustomSize = function() {
+    const inp = document.getElementById('custom_size_input');
+    if (!inp || !inp.value.trim()) return;
+    window.addSizeToActive(inp.value.trim());
+    inp.value = '';
+  };
+
+  /* Sync giá khi base_price thay đổi */
+  document.addEventListener('DOMContentLoaded', function() {
+    const priceInp = document.getElementById('input_price');
+    if (priceInp) priceInp.addEventListener('blur', render);
+    render();
+  });
+
+  /* Validate: phải có ít nhất 1 variant khi submit */
+  window.__validateVariants = function() {
+    return groups.some(g => g.sz.length > 0 && g.cn.trim());
+  };
+
+})();
+</script>

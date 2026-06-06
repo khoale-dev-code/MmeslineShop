@@ -1,76 +1,82 @@
 {# templates/chat.html #}
-<div id="gua-ai-chat" class="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[200] flex flex-col items-end gap-3 font-sans reveal" style="transition-delay: 500ms;">
+<div id="gua-ai-chat" class="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[200] flex flex-col items-end gap-3 font-sans transform translate-z-0 will-change-transform">
 
-  {# ── CỬA SỔ CHAT HIỆN ĐẠI (RESPONSIVE) ── #}
+  {# ── CỬA SỔ CHAT TẠP CHÍ PHẲNG ── #}
   <div id="chatbot-window" 
-       class="hidden w-[calc(100vw-32px)] sm:w-[380px] md:w-[400px] h-[70vh] max-h-[580px] sm:h-[550px] bg-white border border-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.1)] rounded-[2rem] flex-col overflow-hidden origin-bottom-right transition-all duration-300 transform scale-95 opacity-0">
+       class="hidden w-[calc(100vw-32px)] sm:w-[380px] md:w-[400px] h-[70vh] max-h-[540px] sm:h-[520px] bg-white border border-black shadow-lg flex-col overflow-hidden origin-bottom-right transition-all duration-300 transform scale-95 opacity-0">
     
-    {# Header: Gradient Slate #}
-    <div class="bg-gradient-to-r from-slate-900 to-slate-800 px-6 py-4 flex items-center justify-between shrink-0 border-b border-white/10">
+    {# Header: Solid Ink Flat #}
+    <div class="bg-black px-5 py-4 flex items-center justify-between shrink-0 border-b border-black">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center shadow-inner">
-          <i class="fa-solid fa-sparkles text-sm text-amber-300"></i>
+        <div class="w-8 h-8 bg-white text-black flex items-center justify-center border border-black">
+          <i class="fa-solid fa-sparkles text-xs"></i>
         </div>
         <div>
-          <h3 class="text-[14px] font-bold tracking-wide text-white leading-tight">GUA Stylist AI</h3>
-          <p class="text-[10px] text-emerald-400 font-bold mt-0.5 flex items-center gap-1.5 uppercase tracking-wider">
-            <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_8px_#34d399]"></span> Đang online
+          <h3 class="text-[12px] font-black tracking-[0.15em] text-white uppercase">GUA Stylist AI</h3>
+          <p class="text-[9px] text-neutral-400 font-bold mt-0.5 flex items-center gap-1 uppercase tracking-wider">
+            <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_6px_#10b981]"></span> Live
           </p>
         </div>
       </div>
-      <button onclick="toggleBot()" class="w-8 h-8 rounded-full bg-white/10 flex justify-center items-center text-white/70 hover:text-white transition-all">
-        <i class="fa-solid fa-chevron-down text-xs"></i>
+      <button onclick="toggleBot()" class="w-8 h-8 flex justify-center items-center text-neutral-400 hover:text-white transition-colors cursor-pointer">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
       </button>
     </div>
 
     {# Khu vực tin nhắn #}
-    <div id="chatbot-messages" class="flex-1 overflow-y-auto p-5 flex flex-col gap-5 custom-scrollbar bg-slate-50/30">
-      <div class="flex gap-2.5 w-full">
-        <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-white shrink-0 mt-auto shadow-md">
-          <i class="fa-solid fa-robot text-[10px]"></i>
+    <div id="chatbot-messages" class="flex-1 overflow-y-auto p-5 flex flex-col gap-5 custom-scrollbar bg-neutral-50/40">
+      <div class="flex gap-3 w-full">
+        <div class="w-8 h-8 bg-black text-white flex items-center justify-center shrink-0 mt-auto border border-black text-xs font-bold">
+          AI
         </div>
-        <div class="bg-white border border-slate-100 px-4 py-3 shadow-sm text-[13.5px] text-slate-700 max-w-[85%] leading-relaxed font-medium rounded-2xl rounded-bl-sm">
-          Chào bạn! Mình là <b>Stylist riêng</b> của GUA. Bạn cần mình tư vấn phối đồ, chọn size hay tìm sản phẩm nào không? ✨
+        <div class="bg-white border border-neutral-200 px-4 py-3 text-[13px] text-neutral-800 max-w-[85%] leading-relaxed font-medium">
+          Chào bạn! Mình là <b>Stylist riêng</b> của GUA Maison. Bạn cần mình tư vấn phối đồ, chọn size hay tìm sản phẩm nào không? ✨
         </div>
       </div>
     </div>
 
-    {# Input: Pill Shape #}
-    <div class="p-4 bg-white border-t border-slate-100 shrink-0">
-      <div class="flex items-center bg-slate-100/80 border border-slate-200/50 rounded-full p-1.5 focus-within:bg-white focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all">
-        <input type="text" id="chatbot-input" placeholder="Hỏi Stylist về phối đồ, size..." autocomplete="off"
-               class="flex-1 text-[13.5px] font-medium bg-transparent outline-none placeholder:text-slate-400 text-slate-800 px-4 w-full"
+    {# Input: Sharp Editorial Box #}
+    <div class="p-4 bg-white border-t border-neutral-200 shrink-0">
+      <div class="flex items-center bg-neutral-50 border border-neutral-200 p-1 focus-within:bg-white focus-within:border-black transition-all">
+        <input type="text" id="chatbot-input" placeholder="Hỏi Stylist về phối đồ, chọn size..." autocomplete="off"
+               class="flex-1 text-[13px] font-medium bg-transparent outline-none placeholder:text-neutral-400 text-black px-3 w-full"
                onkeypress="if(event.key === 'Enter') sendBotMessage()" />
-        <button onclick="sendBotMessage()" class="w-9 h-9 bg-blue-600 text-white rounded-full flex items-center justify-center hover:bg-blue-700 active:scale-90 transition-all shrink-0 shadow-lg shadow-blue-600/20 group">
-          <i class="fa-solid fa-paper-plane text-[10px] group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform"></i>
+        <button onclick="sendBotMessage()" class="w-10 h-10 bg-black text-white flex items-center justify-center hover:bg-neutral-800 transition-colors shrink-0 cursor-pointer">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/></svg>
         </button>
       </div>
     </div>
   </div>
 
-  {# ── NÚT FAB MỞ CHAT ── #}
+  {# ── NÚT FAB MỞ CHAT (SHARP GEOMETRIC) ── #}
   <button onclick="toggleBot()" id="bot-toggle-btn"
-          class="w-[56px] h-[52px] sm:w-14 sm:h-14 bg-gradient-to-tr from-slate-900 to-slate-800 text-white rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.2)] hover:shadow-[0_15px_35px_rgba(0,0,0,0.3)] hover:-translate-y-1 transition-all duration-300 group">
-    <i class="fa-solid fa-comment-dots text-xl group-hover:scale-110 transition-transform"></i>
+          class="w-14 h-14 bg-black text-white flex items-center justify-center border border-black shadow-md hover:bg-neutral-900 transition-colors cursor-pointer group">
+    <svg class="w-5 h-5 group-hover:scale-105 transition-transform" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v5.279z"/></svg>
   </button>
 
 </div>
 
 <style>
-  /* Scrollbar tinh tế */
-  #chatbot-messages.custom-scrollbar::-webkit-scrollbar { width: 4px; }
-  #chatbot-messages.custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+  #chatbot-messages.custom-scrollbar::-webkit-scrollbar { width: 3px; }
+  #chatbot-messages.custom-scrollbar::-webkit-scrollbar-thumb { background-color: #000000; }
   
-  /* Hiệu ứng bong bóng chat pop-up */
-  .chat-bubble-anim { animation: bubblePop 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+  .chat-bubble-anim { animation: bubblePop 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
   @keyframes bubblePop { 
-    from { opacity: 0; transform: translateY(12px) scale(0.97); } 
-    to { opacity: 1; transform: translateY(0) scale(1); } 
+    from { opacity: 0; transform: translateY(8px); } 
+    to { opacity: 1; transform: translateY(0); } 
+  }
+
+  /* ── 🟢 KHẮC PHỤC LỖI THEO LỜI MENTOR (SIÊU THỰC CHIẾN DỰ ÁN 2026) ── */
+  /* Sử dụng bộ chọn CSS :has() cao cấp để kiểm tra xem trên trang di động có đang xuất hiện thanh ghim đáy mua hàng không.
+     Nếu phát hiện có thanh ghim đáy, tự động đẩy cụm chat lên cao 88px (vừa vặn, an toàn tuyệt đối, không lo đè nút) */
+  @media (max-width: 1023px) {
+    body:has(.fixed.bottom-0) #gua-ai-chat {
+      bottom: 88px !important;
+    }
   }
 </style>
 
 <script>
-  // Quản lý Session Trí nhớ AI
   if (!sessionStorage.getItem('chat_session_id')) {
       sessionStorage.setItem('chat_session_id', 'sess_' + Math.random().toString(36).substr(2, 9));
   }
@@ -83,7 +89,7 @@
     
     if (isHidden) {
       win.classList.remove('hidden');
-      toggleBtn.innerHTML = '<i class="fa-solid fa-xmark text-2xl group-hover:rotate-90 transition-transform"></i>';
+      toggleBtn.innerHTML = '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>';
       setTimeout(() => {
         win.classList.remove('scale-95', 'opacity-0');
         win.classList.add('flex', 'scale-100', 'opacity-100');
@@ -92,7 +98,7 @@
     } else {
       win.classList.remove('scale-100', 'opacity-100');
       win.classList.add('scale-95', 'opacity-0');
-      toggleBtn.innerHTML = '<i class="fa-solid fa-comment-dots text-xl group-hover:scale-110 transition-transform"></i>';
+      toggleBtn.innerHTML = '<svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v5.279z"/></svg>';
       setTimeout(() => { win.classList.add('hidden'); win.classList.remove('flex'); }, 300);
     }
   }
@@ -104,10 +110,9 @@
     if (!msg) return;
     const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || '';
 
-    // ── 1. RENDER TIN NHẮN USER (MÀU XANH) ──
     chatBox.insertAdjacentHTML('beforeend', `
       <div class="flex gap-2 w-full justify-end chat-bubble-anim">
-        <div class="bg-blue-600 text-white px-4 py-2.5 text-[13.5px] max-w-[80%] break-words font-medium rounded-2xl rounded-br-sm shadow-sm">
+        <div class="bg-black text-white px-4 py-2.5 text-[13px] max-w-[80%] break-words font-medium border border-black">
           ${msg}
         </div>
       </div>
@@ -115,17 +120,16 @@
     input.value = '';
     chatBox.scrollTop = chatBox.scrollHeight;
 
-    // ── 2. LOADING INDICATOR ──
     const typingId = 'typing-' + Date.now();
     chatBox.insertAdjacentHTML('beforeend', `
-      <div id="${typingId}" class="flex gap-2.5 w-full chat-bubble-anim">
-        <div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-400 shrink-0 mt-auto">
-          <i class="fa-solid fa-robot text-[10px]"></i>
+      <div id="${typingId}" class="flex gap-3 w-full chat-bubble-anim">
+        <div class="w-8 h-8 bg-neutral-100 text-neutral-400 flex items-center justify-center shrink-0 mt-auto border border-neutral-200 text-xs font-bold">
+          AI
         </div>
-        <div class="bg-white border border-slate-100 px-4 py-3 flex items-center gap-1.5 h-[42px] rounded-2xl rounded-bl-sm shadow-sm">
-          <span class="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce" style="animation-delay:0ms"></span>
-          <span class="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce" style="animation-delay:150ms"></span>
-          <span class="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce" style="animation-delay:300ms"></span>
+        <div class="bg-white border border-neutral-200 px-4 py-3 flex items-center gap-1.5 h-[40px]">
+          <span class="w-1.5 h-1.5 bg-neutral-400 rounded-full animate-bounce" style="animation-delay:0ms"></span>
+          <span class="w-1.5 h-1.5 bg-neutral-400 rounded-full animate-bounce" style="animation-delay:150ms"></span>
+          <span class="w-1.5 h-1.5 bg-neutral-400 rounded-full animate-bounce" style="animation-delay:300ms"></span>
         </div>
       </div>
     `);
@@ -138,52 +142,47 @@
         body: JSON.stringify({ session_id: sessionId, message: msg })
       });
 
-      // Xử lý lỗi Token hết hạn (403)
       if (res.status === 403) {
           document.getElementById(typingId)?.remove();
-          chatBox.insertAdjacentHTML('beforeend', `<div class="flex justify-center mt-2"><div class="bg-amber-50 text-amber-600 border border-amber-200/50 px-4 py-2 rounded-full text-[11px] font-bold shadow-sm flex items-center gap-2 animate-pulse"><i class="fa-solid fa-rotate"></i> Phiên đã hết hạn. Hãy tải lại trang (F5)</div></div>`);
+          chatBox.insertAdjacentHTML('beforeend', `<div class="flex justify-center mt-2"><div class="bg-neutral-50 text-neutral-900 border border-black px-4 py-2 text-[11px] font-bold shadow-sm flex items-center gap-2 animate-pulse">PHIÊN ĐÃ HẾT HẠN. VUI LÒNG F5 TẢI LẠI TRANG</div></div>`);
           chatBox.scrollTop = chatBox.scrollHeight; return;
       }
 
       const data = await res.json();
       document.getElementById(typingId)?.remove();
 
-      // ── 3. RENDER PHẢN HỒI AI ──
       let htmlContent = `
-        <div class="bg-white border border-slate-100 px-4 py-3 shadow-sm text-[13.5px] text-slate-700 leading-relaxed max-w-[85%] break-words font-medium rounded-2xl rounded-bl-sm">
+        <div class="bg-white border border-neutral-200 px-4 py-3 text-[13px] text-neutral-800 leading-relaxed max-w-[85%] break-words font-medium">
           ${data.reply}
       `;
 
-      // Intent: Tư vấn Size
       if (data.intent === 'size_advice' && data.action_data?.height) {
           htmlContent += `
-            <div class="mt-3 bg-slate-50 border border-slate-200/60 rounded-xl p-3 shadow-inner">
-                <div class="flex items-center gap-2 mb-2 text-blue-600">
-                  <i class="fa-solid fa-check-double text-[11px]"></i>
-                  <span class="text-[10px] font-bold uppercase tracking-wider">Phân tích Body</span>
+            <div class="mt-3 bg-neutral-50 border border-neutral-200 p-3">
+                <div class="flex items-center gap-2 mb-2 text-black font-bold text-[10px] tracking-wider">
+                  <span>P H Â N  T Í C H  B O D Y</span>
                 </div>
-                <div class="flex justify-between items-center bg-white rounded-lg p-2.5 border border-slate-100">
-                  <span class="text-xs text-slate-500 font-medium">${data.action_data.height}cm / ${data.action_data.weight}kg</span>
-                  <span class="text-xs text-blue-700 font-black bg-blue-50 px-2.5 py-1 rounded-md">Size ${data.action_data.recommended_size}</span>
+                <div class="flex justify-between items-center bg-white rounded-none p-2 border border-neutral-200">
+                  <span class="text-xs text-neutral-500 font-medium">${data.action_data.height}cm / ${data.action_data.weight}kg</span>
+                  <span class="text-xs text-white font-black bg-black px-2 py-1">Size ${data.action_data.recommended_size}</span>
                 </div>
             </div>
           `;
       }
 
-      // Intent: Tìm kiếm sản phẩm HOẶC Tư vấn phối đồ (Dùng chung card sản phẩm)
       if ((data.intent === 'search_product' || data.intent === 'outfit_suggestion') && data.products?.length > 0) {
-          htmlContent += `<div class="mt-4 flex flex-col gap-2.5">`;
+          htmlContent += `<div class="mt-4 flex flex-col gap-2">`;
           data.products.forEach(p => {
               htmlContent += `
-                <a href="/product/${p.slug}" class="group flex items-center gap-3 p-2 bg-white border border-slate-100 hover:border-blue-200 hover:shadow-[0_8px_20px_-10px_rgba(37,99,235,0.2)] rounded-2xl transition-all duration-300">
-                    <div class="w-12 h-14 bg-slate-100 rounded-xl overflow-hidden shrink-0">
-                        <img src="${p.thumbnail_url}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"/>
+                <a href="/product/${p.slug}" class="group flex items-center gap-3 p-2 bg-white border border-neutral-200 hover:border-black transition-colors">
+                    <div class="w-12 h-14 bg-neutral-50 border border-neutral-100 overflow-hidden shrink-0">
+                        <img src="${p.thumbnail_url}" class="w-full h-full object-contain p-1 mix-blend-multiply transition-transform duration-300 group-hover:scale-102"/>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <p class="text-[12px] font-bold text-slate-800 truncate leading-tight">${p.name}</p>
-                        <p class="text-[11px] font-bold text-blue-600 mt-1">${p.price} ₫</p>
+                        <p class="text-[12px] font-bold text-neutral-800 truncate leading-tight">${p.name}</p>
+                        <p class="text-[11px] font-bold text-[#ff4e00] mt-1 font-mono">${p.price} ₫</p>
                     </div>
-                    <div class="w-7 h-7 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all mr-1">
+                    <div class="w-7 h-7 bg-neutral-50 text-black border border-neutral-200 flex items-center justify-center group-hover:bg-black group-hover:text-white transition-all mr-1">
                         <i class="fa-solid fa-arrow-right -rotate-45 text-[9px]"></i>
                     </div>
                 </a>
@@ -194,11 +193,10 @@
 
       htmlContent += `</div>`;
 
-      // Chèn tin nhắn của AI vào khung chat
       chatBox.insertAdjacentHTML('beforeend', `
-        <div class="flex gap-2.5 w-full chat-bubble-anim">
-          <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-white shrink-0 mt-auto shadow-md">
-            <i class="fa-solid fa-robot text-[10px]"></i>
+        <div class="flex gap-3 w-full chat-bubble-anim">
+          <div class="w-8 h-8 bg-black text-white flex items-center justify-center shrink-0 mt-auto border border-black text-xs font-bold">
+            AI
           </div>
           ${htmlContent}
         </div>
@@ -206,7 +204,7 @@
       
     } catch (err) {
       document.getElementById(typingId)?.remove();
-      chatBox.insertAdjacentHTML('beforeend', `<div class="flex justify-center mt-2"><div class="bg-rose-50 text-rose-600 border border-rose-200/50 px-4 py-2 rounded-full text-[11px] font-bold shadow-sm flex items-center gap-2"><i class="fa-solid fa-wifi"></i> Lỗi kết nối AI</div></div>`);
+      chatBox.insertAdjacentHTML('beforeend', `<div class="flex justify-center mt-2"><div class="bg-neutral-50 text-red-600 border border-neutral-200 px-4 py-2 text-[11px] font-bold shadow-sm flex items-center gap-2"><i class="fa-solid fa-wifi"></i> MẤT KẾT NỐI MÁY CHỦ AI</div></div>`);
     }
     chatBox.scrollTop = chatBox.scrollHeight;
   }

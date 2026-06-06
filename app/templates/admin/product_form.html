@@ -1,389 +1,368 @@
 {% extends "admin/admin_base.html" %}
-{% block title %}{{ 'Chỉnh sửa' if product else 'Thêm mới' }} Sản Phẩm | GUA Admin{% endblock %}
+
+{% block title %}
+  {{ 'Chỉnh sửa sản phẩm' if product else 'Thêm sản phẩm mới' }} | MMESTLINE Admin
+{% endblock %}
+
+{% macro vnd(value) -%}
+  {%- if value is not none and value != '' -%}
+    {{ "{:,.0f}".format(value|float).replace(",", ".") }}
+  {%- endif -%}
+{%- endmacro %}
+
+{% set p = product if product is defined else none %}
+{% set images = p.product_images if p and p.product_images is defined and p.product_images else [] %}
+{% set variants = p.product_variants if p and p.product_variants is defined and p.product_variants else [] %}
+
+{% set cats = cats if cats is defined and cats else [] %}
+{% set colles = colles if colles is defined and colles else [] %}
+{% set tag_options = tag_options if tag_options is defined and tag_options else [] %}
+
+{% set selected_category_ids = p.category_ids if p and p.category_ids is defined and p.category_ids else [] %}
+{% set selected_collection_ids = p.collection_ids if p and p.collection_ids is defined and p.collection_ids else [] %}
 
 {% block extra_head %}
-<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/css/product_form.css') }}">
 
-<style>
-  .no-scrollbar::-webkit-scrollbar { display: none; }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-  
-  .sortable-ghost {
-    opacity: 0.4;
-    border: 2px dashed #a8a29e !important;
-    transform: scale(0.95);
-  }
-</style>
+  <script src="https://cdn.jsdelivr.net/npm/ckeditor4@4.25.1/ckeditor.js"></script>
+
+  <style>
+    :root {
+      --mm-admin-nav-safe-top: 92px;
+      }
+
+      .mm-product-page {
+        width: 100%;
+        max-width: 1500px;
+        margin: 0 auto;
+        padding-top: var(--mm-admin-nav-safe-top);
+        padding-bottom: 32px;
+      }
+
+      .mm-product-form {
+        position: relative;
+        min-width: 0;
+        isolation: isolate;
+      }
+
+    .mm-product-form {
+      position: relative;
+      min-width: 0;
+    }
+
+   .mm-product-head {
+      position: relative;
+      z-index: 3;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 22px;
+      margin-bottom: 24px;
+      padding: 26px;
+      border: 1px solid #eadfd4;
+      border-radius: 32px;
+      background:
+        radial-gradient(circle at top right, rgba(185, 139, 98, 0.18), transparent 34%),
+        linear-gradient(135deg, #fffaf5, #fbf7f1);
+      box-shadow: 0 24px 70px -50px rgba(36, 18, 7, 0.62);
+      overflow: visible;
+    }
+
+    .mm-product-head::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.54), transparent 55%),
+        radial-gradient(circle at bottom left, rgba(59, 36, 20, 0.06), transparent 38%);
+    }
+
+    .mm-product-head > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .mm-product-head-main {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .mm-back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      color: #75543f;
+      font-size: 11px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      text-decoration: none;
+      transition: color 0.16s ease, transform 0.16s ease;
+    }
+
+    .mm-back-link:hover {
+      color: #241207;
+      transform: translateX(-2px);
+    }
+
+    .mm-product-title {
+      margin: 6px 0 0;
+      color: #241207;
+      font-size: clamp(29px, 4vw, 48px);
+      font-weight: 950;
+      letter-spacing: -0.045em;
+      line-height: 0.96;
+    }
+
+    .mm-product-subtitle {
+      max-width: 800px;
+      margin: 13px 0 0;
+      color: #8a6a52;
+      font-size: 14px;
+      font-weight: 650;
+      line-height: 1.68;
+    }
+
+    .mm-product-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .mm-save-btn {
+      min-height: 52px;
+      border: 0;
+      border-radius: 18px;
+      background: #3b2414;
+      color: #fff;
+      padding: 0 22px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 12px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      cursor: pointer;
+      white-space: nowrap;
+      transition:
+        transform 0.16s ease,
+        background 0.16s ease,
+        box-shadow 0.16s ease,
+        opacity 0.16s ease;
+      box-shadow: 0 18px 36px -24px rgba(36, 18, 7, 0.78);
+    }
+
+    .mm-save-btn:hover {
+      background: #241207;
+      transform: translateY(-1px);
+    }
+
+    .mm-save-btn:disabled {
+      opacity: 0.72;
+      cursor: wait;
+      transform: none;
+    }
+
+    .mm-product-alert {
+      position: relative;
+      z-index: 2;
+      margin-bottom: 22px;
+      border: 1px solid #eadfd4;
+      border-radius: 22px;
+      background: #fffdf9;
+      padding: 14px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      color: #75543f;
+      font-size: 12px;
+      font-weight: 750;
+      line-height: 1.55;
+      box-shadow: 0 14px 34px -32px rgba(36, 18, 7, 0.65);
+    }
+
+    .mm-product-alert i {
+      margin-top: 2px;
+      color: #3b2414;
+      flex-shrink: 0;
+    }
+
+    .mm-product-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+      gap: 22px;
+      align-items: start;
+    }
+
+    .mm-product-main,
+    .mm-product-side {
+      position: sticky;
+      top: 112px;
+      z-index: 1;
+      align-self: start;
+    }
+
+    .mm-product-side {
+      position: sticky;
+      top: 96px;
+      z-index: 0;
+      align-self: start;
+    }
+
+    .mm-form-mobile-save {
+      display: none;
+      position: sticky;
+      bottom: 14px;
+      z-index: 80;
+      margin-top: 22px;
+      padding: 10px;
+      border: 1px solid rgba(234, 223, 212, 0.9);
+      border-radius: 24px;
+      background: rgba(255, 250, 245, 0.86);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 24px 70px -38px rgba(36, 18, 7, 0.75);
+    }
+
+    .mm-form-mobile-save .mm-save-btn {
+      width: 100%;
+      box-shadow: none;
+    }
+
+    @media (max-width: 1180px) {
+      .mm-product-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .mm-product-side {
+        position: static;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .mm-product-page {
+        padding-bottom: 96px;
+      }
+
+      .mm-product-head {
+        padding: 20px;
+        flex-direction: column;
+        border-radius: 26px;
+      }
+
+      .mm-product-actions {
+        display: none;
+      }
+
+      .mm-product-alert {
+        border-radius: 18px;
+      }
+
+      .mm-form-mobile-save {
+        display: block;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .mm-product-head {
+        padding: 18px;
+      }
+
+      .mm-product-title {
+        font-size: 30px;
+      }
+
+      .mm-product-subtitle {
+        font-size: 13px;
+      }
+    }
+  </style>
 {% endblock %}
 
 {% block content %}
-<form id="productForm" method="POST" enctype="multipart/form-data" class="relative min-h-screen pb-24 bg-[#fbfbfb]">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <input type="hidden" name="_images_synced" id="imgSync" value="">
+<div class="mm-product-page">
+  <form
+    id="productForm"
+    class="mm-product-form"
+    method="POST"
+    enctype="multipart/form-data"
+    action=""
+    novalidate
+    data-product-id="{{ p.id if p and p.id else '' }}"
+    data-product-mode="{{ 'edit' if p else 'create' }}"
+  >
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-  {# ── TOPBAR (Sticky Header) ── #}
-  <div class="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-stone-200/60 shadow-sm">
-    <div class="max-w-screen-2xl mx-auto px-4 md:px-8 h-20 flex items-center justify-between gap-4">
-      <div class="flex items-center gap-4 md:gap-6">
-        <a href="{{ url_for('admin.products') }}" class="w-10 h-10 flex items-center justify-center rounded-full border border-stone-200 text-stone-500 hover:text-black hover:border-black hover:bg-stone-50 transition-all shadow-sm">
+    <section class="mm-product-head">
+      <div class="mm-product-head-main">
+        <a href="{{ url_for('admin.products') }}" class="mm-back-link">
           <i class="fa-solid fa-arrow-left"></i>
+          Quay lại danh sách sản phẩm
         </a>
-        <div>
-          <p class="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-0.5">Kho sản phẩm</p>
-          <h1 class="text-xl md:text-2xl font-bold tracking-tight text-stone-900 font-serif">
-            {{ 'Chỉnh sửa sản phẩm' if product else 'Thêm sản phẩm mới' }}
-          </h1>
-        </div>
+
+        <p class="mm-kicker">MMESTLINE Catalog</p>
+
+        <h1 class="mm-product-title">
+          {{ 'Chỉnh sửa sản phẩm' if p else 'Thêm sản phẩm mới' }}
+        </h1>
+
+        <p class="mm-product-subtitle">
+          Quản lý thông tin sản phẩm, giá bán, giá so sánh, giá vốn, tồn kho,
+          biến thể size/màu, mô tả bán hàng, SEO và hình ảnh storefront.
+        </p>
       </div>
-      <button type="submit" id="btn-save-main" class="flex items-center gap-2 bg-black text-white px-5 md:px-7 py-2.5 rounded-full text-xs md:text-sm font-bold tracking-wide hover:bg-stone-800 transition-all shadow-md">
-        <i class="fa-solid fa-check"></i> <span>Lưu sản phẩm</span>
+
+      <div class="mm-product-actions">
+        <button type="submit" class="mm-save-btn">
+          <i class="fa-solid fa-check"></i>
+          Lưu sản phẩm
+        </button>
+      </div>
+    </section>
+
+    <div class="mm-product-alert">
+      <i class="fa-solid fa-circle-info"></i>
+      <div>
+        <strong>Lưu ý:</strong>
+        SKU và Barcode sản phẩm có thể để trống. Với biến thể, nếu Barcode để trống hệ thống sẽ tự tạo trước khi lưu.
+        Danh mục, bộ sưu tập, tag, biến thể và media nên được kiểm tra trước khi xuất hiện ngoài storefront.
+      </div>
+    </div>
+
+    <div class="mm-product-grid">
+      <main class="mm-product-main">
+        {% include "admin/products/partials/_form_basic.html" %}
+        {% include "admin/products/partials/_form_pricing_inventory.html" %}
+        {% include "admin/products/partials/_form_description.html" %}
+        {% include "admin/products/partials/_form_variants.html" %}
+        {% include "admin/products/partials/_form_seo.html" %}
+      </main>
+
+      <aside class="mm-product-side">
+        {% include "admin/products/partials/_form_status.html" %}
+        {% include "admin/products/partials/_form_relations.html" %}
+        {% include "admin/products/partials/_form_media.html" %}
+      </aside>
+    </div>
+
+    <div class="mm-form-mobile-save">
+      <button type="submit" class="mm-save-btn">
+        <i class="fa-solid fa-check"></i>
+        Lưu sản phẩm
       </button>
     </div>
-  </div>
+  </form>
+</div>
+{% endblock %}
 
-  {# ── MAIN CONTENT ── #}
-  <div class="max-w-screen-2xl mx-auto px-4 md:px-8 mt-8">
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8 items-start">
-      
-      {# ── CỘT TRÁI (2/3): THÔNG TIN CHÍNH SẢN PHẨM ── #}
-      <div class="xl:col-span-2 space-y-8">
-        
-        {# 1. Thông tin cơ bản #}
-        <div class="bg-white border border-stone-200/80 rounded-[24px] p-6 md:p-8 shadow-sm">
-          <h2 class="text-xs font-bold uppercase tracking-widest text-stone-400 mb-6 flex items-center gap-2">
-            <i class="fa-solid fa-box-open text-stone-300 text-base"></i> Thông tin cơ bản
-          </h2>
-          
-          <div class="space-y-6">
-            <div>
-              <label class="block text-[11px] font-bold uppercase tracking-widest text-stone-500 mb-2">Tên sản phẩm <span class="text-rose-500">*</span></label>
-              <input type="text" name="name" id="prod_name" value="{{ product.name or '' }}" required placeholder="Vd: Áo Sơ Mi Minimalist Cotton" 
-                     class="w-full bg-stone-50/50 border border-stone-200 rounded-2xl px-5 py-3.5 text-sm font-medium focus:outline-none focus:bg-white focus:border-stone-400 focus:ring-4 focus:ring-stone-100 transition-all">
-            </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label class="block text-[11px] font-bold uppercase tracking-widest text-stone-500 mb-2">Giá bán niêm yết (VNĐ) <span class="text-rose-500">*</span></label>
-                <div class="relative">
-                  <input type="number" name="price" id="base_price" value="{{ product.price or '' }}" required placeholder="0" oninput="syncPricePlaceholder()" 
-                         class="w-full bg-stone-50/50 border border-stone-200 rounded-2xl pl-5 pr-12 py-3.5 text-sm font-bold focus:outline-none focus:bg-white focus:border-stone-400 focus:ring-4 focus:ring-stone-100 transition-all">
-                  <span class="absolute right-5 top-1/2 -translate-y-1/2 text-stone-400 text-sm font-medium">đ</span>
-                </div>
-              </div>
-              <div>
-                <label class="block text-[11px] font-bold uppercase tracking-widest text-stone-500 mb-2">Thương hiệu</label>
-                <input type="text" name="brand" value="{{ product.brand or 'GUA Maison' }}" placeholder="GUA Maison" 
-                       class="w-full bg-stone-50/50 border border-stone-200 rounded-2xl px-5 py-3.5 text-sm font-medium focus:outline-none focus:bg-white focus:border-stone-400 focus:ring-4 focus:ring-stone-100 transition-all">
-              </div>
-            </div>
-
-            <div>
-              <label class="block text-[11px] font-bold uppercase tracking-widest text-stone-500 mb-2">Mô tả sản phẩm</label>
-              <textarea name="description" rows="4" placeholder="Chất liệu vải, thông số form dáng lookbook..." 
-                        class="w-full bg-stone-50/50 border border-stone-200 rounded-2xl px-5 py-4 text-sm focus:outline-none focus:bg-white focus:border-stone-400 transition-all resize-y">{{ product.description or '' }}</textarea>
-            </div>
-          </div>
-        </div>
-
-        {# 2. Biến thể phân loại hàng #}
-        <div class="bg-white border border-stone-200/80 rounded-[24px] p-6 md:p-8 shadow-sm">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-            <div>
-              <h2 class="text-xs font-bold uppercase tracking-widest text-stone-400 mb-1 flex items-center gap-2">
-                <i class="fa-solid fa-layer-group text-stone-300 text-base"></i> Phân loại hàng biến thể
-              </h2>
-              <p class="text-[11px] text-stone-400 font-medium">Quản lý kích cỡ và số lượng tồn kho chi tiết</p>
-            </div>
-            <button type="button" onclick="addGroup()" class="inline-flex items-center justify-center gap-2 bg-stone-100 text-stone-800 border border-stone-200 px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-stone-200 transition-colors">
-              <i class="fa-solid fa-plus"></i> Thêm màu sắc
-            </button>
-          </div>
-          
-          <div id="vgc" class="space-y-6"></div>
-        </div>
-
-      </div>
-
-      {# ── CỘT PHẢI (1/3): THAO TÁC LIÊN KẾT NHIỀU - NHIỀU, BARCODE ── #}
-      <div class="xl:col-span-1 space-y-8">
-        
-        {# 3. Trạng thái hiển thị #}
-        <div class="bg-white border border-stone-200/80 rounded-[24px] p-6 md:p-8 shadow-sm">
-          <h2 class="text-xs font-bold uppercase tracking-widest text-stone-400 mb-5">Hiển thị ứng dụng</h2>
-          <div class="space-y-4">
-            <label class="flex items-center justify-between cursor-pointer group">
-              <span class="text-sm font-semibold text-stone-700">Bật bán trên Storefront</span>
-              <div class="relative inline-flex items-center">
-                <input type="checkbox" name="is_active" class="sr-only peer" {% if not product or product.is_active %}checked{% endif %}>
-                <div class="w-11 h-6 bg-stone-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
-              </div>
-            </label>
-            <div>
-              <label class="block text-[11px] font-bold uppercase tracking-widest text-stone-500 mb-2">Giới tính mục tiêu</label>
-              <select name="gender" class="w-full bg-stone-50/50 border border-stone-200 rounded-2xl px-4 py-3 text-sm font-medium focus:outline-none focus:bg-white transition-all">
-                <option value="unisex" {% if not product or product.gender=='unisex' %}selected{% endif %}>Cả hai (Unisex)</option>
-                <option value="men"    {% if product and product.gender=='men'    %}selected{% endif %}>Nam (Men)</option>
-                <option value="women"  {% if product and product.gender=='women'  %}selected{% endif %}>Nữ (Women)</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {# 4. MỐI QUAN HỆ NHIỀU - NHIỀU: DANH MỤC CON & BỘ SƯU TẬP #}
-        <div class="bg-white border border-stone-200/80 rounded-[24px] p-6 md:p-8 shadow-sm space-y-6">
-          
-          {# Chọn nhiều danh mục con #}
-          <div>
-            <h3 class="text-xs font-bold uppercase tracking-widest text-stone-500 mb-3 flex items-center gap-1.5">
-              <i class="fa-solid fa-folder-tree text-stone-400"></i> Thuộc các danh mục con
-            </h3>
-            <div class="bg-stone-50 rounded-2xl p-4 max-h-48 overflow-y-auto space-y-2.5 border border-stone-100">
-              {% for cat in cats %}
-              <label class="flex items-center gap-3 cursor-pointer text-sm font-medium text-stone-700 hover:text-black">
-                <input type="checkbox" name="category_ids[]" value="{{ cat.id }}" 
-                       {% if product and cat.id in product.category_ids %}checked{% endif %}
-                       class="w-4 h-4 rounded border-stone-300 text-black focus:ring-black">
-                <span>{{ cat.name }}</span>
-              </label>
-              {% endfor %}
-            </div>
-          </div>
-
-          {# Chọn nhiều bộ sưu tập #}
-          <div>
-            <h3 class="text-xs font-bold uppercase tracking-widest text-stone-500 mb-3 flex items-center gap-1.5">
-              <i class="fa-solid fa-star text-amber-400"></i> Xuất hiện trong bộ sưu tập
-            </h3>
-            <div class="bg-stone-50 rounded-2xl p-4 max-h-48 overflow-y-auto space-y-2.5 border border-stone-100">
-              {% for col in colles %}
-              <label class="flex items-center gap-3 cursor-pointer text-sm font-medium text-stone-700 hover:text-black">
-                <input type="checkbox" name="collection_ids[]" value="{{ col.id }}" 
-                       {% if product and col.id in product.collection_ids %}checked{% endif %}
-                       class="w-4 h-4 rounded border-stone-300 text-black focus:ring-black">
-                <span>{{ col.name }}</span>
-              </label>
-              {% endfor %}
-            </div>
-          </div>
-        </div>
-
-        {# 5. Thư viện hình ảnh #}
-        <div class="bg-white border border-stone-200/80 rounded-[24px] p-6 md:p-8 shadow-sm">
-          <h2 class="text-xs font-bold uppercase tracking-widest text-stone-400 mb-4">Thư viện hình ảnh</h2>
-          <input type="file" id="fileInput" accept="image/*" multiple class="sr-only" onchange="handleFiles(this)">
-          
-          {# Khu vực tải File local #}
-          <div onclick="document.getElementById('fileInput').click()" class="border-2 border-dashed border-stone-200 rounded-2xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer bg-stone-50/50 hover:bg-stone-100/80 transition-all group">
-            <i class="fa-solid fa-cloud-arrow-up text-stone-400 text-xl group-hover:scale-110 transition-transform"></i>
-            <span class="text-xs font-bold text-stone-700">Tải ảnh sản phẩm lên</span>
-          </div>
-
-          {# 🆕 Khu vực dán URL ảnh trực tiếp #}
-          <div class="mt-4 flex gap-2">
-            <input type="url" id="urlInput" placeholder="Hoặc dán URL hình ảnh vào đây..." 
-                   class="flex-1 bg-stone-50/50 border border-stone-200 rounded-xl px-4 py-2.5 text-xs font-medium focus:outline-none focus:bg-white focus:border-stone-400 focus:ring-4 focus:ring-stone-100 transition-all">
-            <button type="button" onclick="addImgFromUrl()" class="bg-stone-900 text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-black transition-colors shrink-0 shadow-sm">
-              Thêm URL
-            </button>
-          </div>
-
-          <div id="imgGrid" class="grid grid-cols-3 gap-3 mt-4">
-            {% if product and product.product_images %}
-              {% for img in product.product_images %}
-              <div class="relative aspect-[3/4] rounded-xl overflow-hidden border border-stone-100 group bg-stone-50 img-card cursor-grab">
-                <img src="{{ img.url }}" class="w-full h-full object-cover">
-                <input type="hidden" name="image_urls" value="{{ img.url }}">
-                <button type="button" onclick="removeImg(this)" class="absolute top-1 right-1 w-5 h-5 bg-white/90 rounded-full flex items-center justify-center text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"><i class="fa-solid fa-xmark text-[10px]"></i></button>
-              </div>
-              {% endfor %}
-            {% endif %}
-          </div>
-        </div>
-
-        {# 6. LOGIC MÃ VẠCH (BARCODE) ĐÃ CHUẨN HÓA #}
-        <div class="bg-white border border-stone-200/80 rounded-[24px] p-6 md:p-8 shadow-sm text-center">
-          <h2 class="text-xs font-bold uppercase tracking-widest text-stone-400 mb-4">Mã vạch (Barcode EAN)</h2>
-          <div class="bg-stone-50 border border-stone-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[130px]">
-            {% if not product %}
-              {# TRẠNG THÁI THÊM MỚI CHUẨN UX #}
-              <span id="barcodeBadge" class="inline-block text-[10px] font-black uppercase tracking-wider text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg">
-                <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Mã tự động sinh khi lưu
-              </span>
-              <svg id="barcodePreview" class="w-full max-w-[180px] h-auto hidden"></svg>
-              <p class="font-mono text-xs font-bold text-stone-400 mt-3 hidden" id="barcodeText">PENDING</p>
-            {% else %}
-              {# TRẠNG THÁI CHỈNH SỬA RENDER ĐÚNG LOGIC #}
-              <svg id="barcodePreview" class="w-full max-w-[180px] h-auto"></svg>
-              <p class="font-mono text-xs font-bold text-stone-800 mt-3" id="barcodeText">{{ product.barcode }}</p>
-            {% endif %}
-          </div>
-        </div>
-
-      </div>
-
-    </div>
-  </div>
-</form>
-
-<script id="pdata" type="application/json">
-  {{ product.product_variants|tojson|safe if product and product.product_variants else '[]' }}
-</script>
-
-<script>
-(function(){
-  /* ══ Render Barcode Logic ── */
-  const barcodeValue = "{{ product.barcode if product and product.barcode else '' }}";
-  if (barcodeValue) {
-    try {
-      JsBarcode("#barcodePreview", barcodeValue, {
-        format: "CODE128", width: 1.8, height: 45, displayValue: false, 
-        background: "transparent", lineColor: "#1c1917", margin: 0
-      });
-    } catch(e) { console.error(e); }
-  }
-
-  /* ══ Variant Management Logic ── */
-  const SIZES=['XS','S','M','L','XL','XXL','38','39','40','41','42','43'];
-  const COLORS=[{n:'Đen',h:'#1c1917'},{n:'Trắng',h:'#fafaf9'},{n:'Xám',h:'#78716c'},{n:'Đỏ',h:'#ef4444'},{n:'Xanh navy',h:'#1e3a8a'},{n:'Be',h:'#f5f5dc'}];
-  
-  let groups = [];
-  const raw = JSON.parse(document.getElementById('pdata').textContent);
-
-  if (raw.length) {
-    raw.forEach(v => {
-      let g = groups.find(g => g.cn === v.color_name && g.ch === v.color_hex);
-      if (!g) { g = {cn: v.color_name, ch: v.color_hex, sz: []}; groups.push(g); }
-      g.sz.push({s: v.size, k: v.stock, p: v.price_override || ''});
-    });
-  } else {
-    groups.push({cn: '', ch: '#1c1917', sz: []});
-  }
-
-  function render() {
-    const bp = document.getElementById('base_price').value;
-    const ph = bp ? `Mặc định: ${(+bp).toLocaleString()}đ` : 'Bằng giá niêm yết';
-    const c = document.getElementById('vgc');
-    
-    c.innerHTML = groups.map((g, gi) => {
-      const chips = SIZES.map(s => {
-        const on = g.sz.some(z => z.s === s);
-        const cls = on ? 'bg-black text-white border-black shadow-sm' : 'bg-white text-stone-500 border-stone-200';
-        return `<button type="button" class="h-8 px-3 rounded-lg border text-xs font-bold transition-all ${cls}" onclick="tSz(${gi},'${s}')">${s}</button>`;
-      }).join('');
-      
-      const rows = g.sz.length ? `
-        <div class="mt-4 border-t border-stone-100 pt-4 space-y-3">
-          ${g.sz.map((z, zi) => `
-          <div class="grid grid-cols-[50px_1fr_1fr_40px] gap-3 items-center">
-            <input type="hidden" name="v_color[]" value="${g.cn}"><input type="hidden" name="v_color_hex[]" value="${g.ch}"><input type="hidden" name="v_size[]" value="${z.s}">
-            <div class="h-10 bg-stone-100 rounded-xl flex items-center justify-center font-bold text-xs">${z.s}</div>
-            <input type="number" name="v_stock[]" value="${z.k}" min="0" required class="h-10 w-full bg-stone-50 border border-stone-200 rounded-xl px-3 text-xs font-bold" onchange="upSz(${gi},${zi},'k',this.value)">
-            <input type="number" name="v_price_override[]" value="${z.p}" placeholder="${ph}" class="h-10 w-full bg-stone-50 border border-stone-200 rounded-xl px-3 text-xs font-medium" onchange="upSz(${gi},${zi},'p',this.value)">
-            <button type="button" class="h-10 text-stone-400 hover:text-rose-500" onclick="tSz(${gi},'${z.s}')"><i class="fa-solid fa-trash-can text-sm"></i></button>
-          </div>`).join('')}
-        </div>` : '';
-
-      return `
-        <div class="bg-white border border-stone-200 rounded-2xl p-4 relative group transition-all hover:shadow-sm">
-          ${groups.length > 1 ? `<button type="button" class="absolute top-3 right-3 text-xs font-bold text-rose-500" onclick="rmGrp(${gi})">Xóa</button>` : ''}
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="flex items-center gap-3">
-              <label class="w-10 h-10 rounded-xl border border-stone-200 shadow-sm shrink-0 cursor-pointer overflow-hidden" style="background:${g.ch}">
-                <input type="color" class="opacity-0 w-full h-full cursor-pointer" value="${g.ch}" onchange="upGrp(${gi},'ch',this.value)">
-              </label>
-              <input type="text" class="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-2.5 text-xs font-bold" value="${g.cn}" required placeholder="Tên màu sắc (Vd: Đen)" onchange="upGrp(${gi},'cn',this.value)">
-            </div>
-            <div class="flex flex-wrap gap-1.5">${chips}</div>
-          </div>
-          ${rows}
-        </div>`;
-    }).join('');
-  }
-
-  window.addGroup = () => { groups.push({cn:'',ch:'#1c1917',sz:[]}); render(); };
-  window.rmGrp   = i  => { groups.splice(i,1); render(); };
-  window.tSz     = (gi,s) => { const g=groups[gi],i=g.sz.findIndex(z=>z.s===s); i>=0?g.sz.splice(i,1):g.sz.push({s,k:0,p:''}); render(); };
-  window.upGrp   = (gi,k,v) => { groups[gi][k]=v; render(); };
-  window.upSz    = (gi,si,k,v) => { groups[gi].sz[si][k]=v; };
-  window.syncPricePlaceholder = () => render();
-
-  /* ══ Async Image Upload Storage ── */
-  new Sortable(document.getElementById('imgGrid'), { animation: 200, onEnd: () => { updateCoverBadge(); setSync(); } });
-
-  function updateCoverBadge() {
-    document.querySelectorAll('#imgGrid .img-cover').forEach(el => el.remove());
-    const first = document.querySelector('#imgGrid .img-card');
-    if (first) {
-      const b = document.createElement('div');
-      b.className = 'absolute bottom-0 inset-x-0 bg-black/75 text-white text-[9px] font-bold text-center py-1 uppercase img-cover';
-      b.textContent = 'Ảnh bìa'; first.appendChild(b);
-    }
-  }
-
-  window.handleFiles = inp => {
-    const token = document.querySelector('input[name="csrf_token"]').value;
-    Array.from(inp.files).forEach(f => {
-      const g = document.getElementById('imgGrid'), d = document.createElement('div');
-      d.className = 'relative aspect-[3/4] rounded-xl border border-stone-200 flex items-center justify-center bg-stone-50 animate-pulse';
-      d.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin text-stone-400"></i>`;
-      g.appendChild(d);
-
-      const fd = new FormData(); fd.append('file', f);
-      fetch("{{ url_for('admin.upload_product_image_async') }}", { method: "POST", credentials: 'same-origin', headers: { "X-CSRFToken": token }, body: fd })
-      .then(res => res.json()).then(data => {
-        if (data.url) {
-          d.className = 'relative aspect-[3/4] rounded-xl overflow-hidden border border-stone-100 group bg-stone-50 img-card cursor-grab';
-          d.innerHTML = `<img src="${data.url}" class="w-full h-full object-cover"><input type="hidden" name="image_urls" value="${data.url}"><button type="button" onclick="removeImg(this)" class="absolute top-1 right-1 w-5 h-5 bg-white/90 rounded-full flex items-center justify-center text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity"><i class="fa-solid fa-xmark text-[10px]"></i></button>`;
-          updateCoverBadge(); setSync();
-        } else { d.remove(); }
-      }).catch(() => d.remove());
-    });
-    inp.value = ''; 
-  };
-
-  /* ══ 🆕 Logic thêm ảnh từ URL ngoại vi trực tiếp ── */
-  window.addImgFromUrl = () => {
-    const urlInput = document.getElementById('urlInput');
-    const url = urlInput.value.trim();
-    
-    if (!url) return;
-    
-    // Kiểm tra định dạng url cơ bản
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      alert('Vui lòng nhập URL hình ảnh hợp lệ (bắt đầu bằng http:// hoặc https://)');
-      return;
-    }
-
-    const g = document.getElementById('imgGrid');
-    const d = document.createElement('div');
-    
-    d.className = 'relative aspect-[3/4] rounded-xl overflow-hidden border border-stone-100 group bg-stone-50 img-card cursor-grab';
-    d.innerHTML = `
-      <img src="${url}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/300x400?text=Lỗi+liên+kết+ảnh';">
-      <input type="hidden" name="image_urls" value="${url}">
-      <button type="button" onclick="removeImg(this)" class="absolute top-1 right-1 w-5 h-5 bg-white/90 rounded-full flex items-center justify-center text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
-        <i class="fa-solid fa-xmark text-[10px]"></i>
-      </button>
-    `;
-    
-    g.appendChild(d);
-    updateCoverBadge(); 
-    setSync();
-    
-    // Reset trường nhập
-    urlInput.value = '';
-  };
-
-  window.removeImg = btn => { btn.closest('.img-card').remove(); updateCoverBadge(); setSync(); };
-  function setSync() { document.getElementById('imgSync').value = '1'; }
-
-  document.getElementById('productForm').onsubmit = function(e) {
-    if (!groups.some(g => g.sz.length)) { e.preventDefault(); alert('Vui lòng tạo ít nhất 1 size/màu biến thể sản phẩm!'); return false; }
-    return true;
-  };
-
-  render();
-})();
-</script>
+{% block extra_scripts %}
+  <script src="{{ url_for('static', filename='admin/js/product_form.js') }}"></script>
+  <script src="{{ url_for('static', filename='admin/js/mm_variants_lite.js') }}"></script>
+  <script src="{{ url_for('static', filename='admin/js/mm_product_media.js') }}"></script>
 {% endblock %}

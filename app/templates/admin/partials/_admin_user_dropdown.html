@@ -1,0 +1,69 @@
+<div id="adminUserDropdownBackdrop"
+     class="hidden fixed inset-0 z-[99990] bg-transparent"
+     onclick="AdminShell.closeUserMenu()">
+</div>
+
+<div id="adminUserDropdown" class="hidden mm-user-dropdown">
+
+  <div class="mm-user-dropdown-head">
+    <span class="mm-user-dropdown-avatar">
+      {% if current_user is defined and current_user and current_user.full_name %}
+        {{ current_user.full_name[0].upper() }}
+      {% elif session.get('email') %}
+        {{ session.get('email')[0].upper() }}
+      {% else %}
+        A
+      {% endif %}
+    </span>
+
+    <div class="min-w-0">
+      <p>
+        {% if current_user is defined and current_user and current_user.full_name %}
+          {{ current_user.full_name }}
+        {% else %}
+          {{ session.get('user_name') or 'Super Admin' }}
+        {% endif %}
+      </p>
+
+      <small>{{ session.get('email') or 'Quản trị viên' }}</small>
+
+      <span class="mm-online-pill">
+        <i></i>
+        Online
+      </span>
+    </div>
+  </div>
+
+  <div class="mm-user-dropdown-body">
+    <a href="/" data-nav data-prefetch class="mm-dropdown-item">
+      <span>
+        <i class="fa-solid fa-store"></i>
+      </span>
+      <strong>Xem Storefront</strong>
+      <em class="fa-solid fa-arrow-up-right-from-square"></em>
+    </a>
+
+    <a href="{{ url_for('admin.notifications_index') }}" data-nav data-prefetch class="mm-dropdown-item">
+      <span>
+        <i class="fa-solid fa-bell"></i>
+      </span>
+      <strong>Thông báo quản trị</strong>
+
+      {% if admin_notification_count > 0 %}
+      <b>{{ admin_notification_count if admin_notification_count < 100 else '99+' }}</b>
+      {% endif %}
+    </a>
+
+    <div class="mm-dropdown-line"></div>
+
+    <form action="{{ url_for('auth.logout') }}" method="POST" data-form-nav>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="mm-dropdown-item mm-dropdown-logout">
+        <span>
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </span>
+        <strong>Đăng xuất</strong>
+      </button>
+    </form>
+  </div>
+</div>

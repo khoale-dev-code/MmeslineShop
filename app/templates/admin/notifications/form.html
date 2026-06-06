@@ -1,88 +1,441 @@
 {% extends "admin/admin_base.html" %}
-{% block title %}{{ 'Sửa' if notification else 'Thêm mới' }} thông báo | GUA Admin{% endblock %}
+{% block title %}{{ 'Chỉnh sửa' if notification else 'Tạo mới' }} thông báo | GUA Admin{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+    body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: #f8fafc;
+    }
+
+    .gm-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 1.75rem;
+        box-shadow: 0 8px 30px -18px rgba(15, 23, 42, .25);
+    }
+
+    .gm-label {
+        display: block;
+        margin-bottom: .5rem;
+        font-size: .68rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .12em;
+        color: #64748b;
+    }
+
+    .gm-input {
+        width: 100%;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 1rem;
+        padding: .85rem 1rem;
+        font-size: .875rem;
+        color: #0f172a;
+        transition: all .18s ease;
+    }
+
+    .gm-input:focus {
+        outline: none;
+        background: #ffffff;
+        border-color: #0f172a;
+        box-shadow: 0 0 0 4px rgba(15, 23, 42, .06);
+    }
+
+    .gm-switch-dot::after {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        height: 1.25rem;
+        width: 1.25rem;
+        border-radius: 999px;
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        transition: transform .18s ease;
+    }
+
+    .peer:checked + .gm-switch-dot::after {
+        transform: translateX(1.25rem);
+    }
+
+    .preview-phone {
+        width: 100%;
+        max-width: 360px;
+        border-radius: 2rem;
+        border: 1px solid #e2e8f0;
+        background: linear-gradient(180deg, #ffffff, #f8fafc);
+        box-shadow: 0 22px 60px -35px rgba(15, 23, 42, .5);
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto">
-  <div class="bg-white rounded-sm shadow-sm border border-neutral-200 p-6 md:p-8">
-    <div class="mb-6 pb-4 border-b border-neutral-200">
-      <h2 class="text-xl font-black text-black uppercase tracking-tight">
-        {{ 'Chỉnh sửa thông báo' if notification else 'Thêm thông báo mới' }}
-      </h2>
-      <p class="text-xs text-neutral-500 mt-1">Thông báo sẽ hiển thị trên thanh navbar (cạnh biểu tượng giỏ hàng).</p>
+{% set is_edit = notification is not none %}
+{% set start_value = notification.start_at[:16] if notification and notification.start_at else '' %}
+{% set end_value = notification.end_at[:16] if notification and notification.end_at else '' %}
+
+<div class="max-w-6xl mx-auto px-4 md:px-8 py-10">
+
+    <div class="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+            <p class="text-[10px] font-extrabold uppercase tracking-[0.24em] text-slate-400 mb-2">
+                Notification Editor
+            </p>
+            <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-950">
+                {{ 'Chỉnh sửa thông báo' if is_edit else 'Tạo thông báo mới' }}
+            </h1>
+            <p class="text-sm text-slate-500 mt-2">
+                Soạn thông báo gửi đến khách hàng, cấu hình lịch hiển thị và CTA điều hướng.
+            </p>
+        </div>
+
+        <a href="{{ url_for('admin.notifications_index') }}"
+           class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-white border border-slate-200 text-sm font-bold text-slate-600 hover:text-slate-950 hover:border-slate-950 transition-all">
+            <i class="fa-solid fa-arrow-left text-xs"></i>
+            Quay lại danh sách
+        </a>
     </div>
 
-    <form method="POST">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <form method="POST"
+          id="notificationForm"
+          class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-      <div class="space-y-6">
-        <div>
-          <label class="block text-[10px] font-bold uppercase tracking-widest text-black mb-2">Tiêu đề *</label>
-          <input type="text" name="title" value="{{ notification.title if notification else '' }}" required
-                 class="w-full border border-neutral-200 rounded-sm px-4 py-2.5 text-sm focus:border-black outline-none transition-colors">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="lg:col-span-2 space-y-8">
+
+            <section class="gm-card p-6 md:p-7">
+                <div class="pb-5 border-b border-slate-100 mb-6">
+                    <h2 class="text-base font-extrabold text-slate-950">Nội dung thông báo</h2>
+                    <p class="text-xs text-slate-500 mt-1">
+                        Tiêu đề nên ngắn, rõ hành động. Nội dung nên giống một thông báo Shopee: nhanh, dễ hiểu, có lợi ích.
+                    </p>
+                </div>
+
+                <div class="space-y-5">
+                    <div>
+                        <label class="gm-label" for="title">Tiêu đề *</label>
+                        <input id="title"
+                               type="text"
+                               name="title"
+                               value="{{ notification.title if notification else '' }}"
+                               required
+                               maxlength="120"
+                               placeholder="Ví dụ: Đơn hàng của bạn đã được xác nhận"
+                               class="gm-input font-bold">
+                        <div class="flex justify-between text-[11px] text-slate-400 mt-2">
+                            <span>Hiển thị nổi bật trong danh sách thông báo.</span>
+                            <span id="titleCount">0/120</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="gm-label" for="content">Nội dung *</label>
+                        <textarea id="content"
+                                  name="content"
+                                  rows="6"
+                                  required
+                                  maxlength="800"
+                                  placeholder="Nhập nội dung thông báo..."
+                                  class="gm-input resize-none leading-relaxed">{{ notification.content if notification else '' }}</textarea>
+                        <div class="flex justify-between text-[11px] text-slate-400 mt-2">
+                            <span>Nên dưới 2–3 câu để khách đọc nhanh.</span>
+                            <span id="contentCount">0/800</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="gm-card p-6 md:p-7">
+                <div class="pb-5 border-b border-slate-100 mb-6">
+                    <h2 class="text-base font-extrabold text-slate-950">CTA và điều hướng</h2>
+                    <p class="text-xs text-slate-500 mt-1">
+                        Thêm link nếu muốn khách bấm vào thông báo để đi đến đơn hàng, sản phẩm, coupon hoặc campaign.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label class="gm-label" for="link">Đường dẫn</label>
+                        <input id="link"
+                               type="text"
+                               name="link"
+                               value="{{ notification.link if notification and notification.link else '' }}"
+                               placeholder="/shop hoặc /profile/orders"
+                               class="gm-input font-mono text-xs">
+                    </div>
+
+                    <div>
+                        <label class="gm-label" for="link_text">Nút CTA</label>
+                        <input id="link_text"
+                               type="text"
+                               name="link_text"
+                               value="{{ notification.link_text if notification and notification.link_text else '' }}"
+                               maxlength="40"
+                               placeholder="Xem ngay"
+                               class="gm-input">
+                    </div>
+                </div>
+            </section>
+
+            <section class="gm-card p-6 md:p-7">
+                <div class="pb-5 border-b border-slate-100 mb-6">
+                    <h2 class="text-base font-extrabold text-slate-950">Lịch hiển thị</h2>
+                    <p class="text-xs text-slate-500 mt-1">
+                        Nếu bật vĩnh viễn, thông báo sẽ bỏ qua thời gian bắt đầu/kết thúc khi hiển thị.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label class="gm-label" for="start_at">Bắt đầu</label>
+                        <input id="start_at"
+                               type="datetime-local"
+                               name="start_at"
+                               value="{{ start_value }}"
+                               class="gm-input">
+                    </div>
+
+                    <div>
+                        <label class="gm-label" for="end_at">Kết thúc</label>
+                        <input id="end_at"
+                               type="datetime-local"
+                               name="end_at"
+                               value="{{ end_value }}"
+                               class="gm-input">
+                    </div>
+                </div>
+            </section>
+
         </div>
 
-        <div>
-          <label class="block text-[10px] font-bold uppercase tracking-widest text-black mb-2">Nội dung *</label>
-          <textarea name="content" rows="3" required
-                    class="w-full border border-neutral-200 rounded-sm px-4 py-2.5 text-sm focus:border-black outline-none transition-colors">{{ notification.content if notification else '' }}</textarea>
-          <p class="text-[9px] text-neutral-400 mt-1">Hỗ trợ emoji, tối đa 160 ký tự.</p>
-        </div>
+        <aside class="space-y-6">
+            <section class="gm-card p-6 sticky top-6">
+                <h2 class="text-sm font-extrabold uppercase tracking-widest text-slate-950 mb-5">
+                    Cấu hình
+                </h2>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label class="block text-[10px] font-bold uppercase tracking-widest text-black mb-2">Link (URL)</label>
-            <input type="url" name="link" value="{{ notification.link if notification else '' }}"
-                   class="w-full border border-neutral-200 rounded-sm px-4 py-2.5 text-sm focus:border-black outline-none transition-colors"
-                   placeholder="https://...">
-          </div>
-          <div>
-            <label class="block text-[10px] font-bold uppercase tracking-widest text-black mb-2">Text link</label>
-            <input type="text" name="link_text" value="{{ notification.link_text if notification else '' }}"
-                   class="w-full border border-neutral-200 rounded-sm px-4 py-2.5 text-sm focus:border-black outline-none transition-colors"
-                   placeholder="Xem ngay">
-          </div>
-        </div>
+                <div class="space-y-4">
+                    <label class="flex items-center justify-between gap-4 cursor-pointer p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                        <div>
+                            <p class="text-sm font-extrabold text-slate-800">Kích hoạt</p>
+                            <p class="text-[11px] text-slate-400 mt-1">Tắt sẽ ẩn khỏi khách hàng.</p>
+                        </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label class="block text-[10px] font-bold uppercase tracking-widest text-black mb-2">Bắt đầu</label>
-            <input type="datetime-local" name="start_at" value="{{ notification.start_at[:16] if notification and notification.start_at else '' }}"
-                   class="w-full border border-neutral-200 rounded-sm px-4 py-2.5 text-sm focus:border-black outline-none transition-colors">
-          </div>
-          <div>
-            <label class="block text-[10px] font-bold uppercase tracking-widest text-black mb-2">Kết thúc</label>
-            <input type="datetime-local" name="end_at" value="{{ notification.end_at[:16] if notification and notification.end_at else '' }}"
-                   class="w-full border border-neutral-200 rounded-sm px-4 py-2.5 text-sm focus:border-black outline-none transition-colors">
-          </div>
-        </div>
+                        <span class="relative inline-flex items-center">
+                            <input id="is_active"
+                                   type="checkbox"
+                                   name="is_active"
+                                   class="sr-only peer"
+                                   {% if not notification or notification.is_active %}checked{% endif %}>
+                            <span class="gm-switch-dot relative block w-11 h-6 rounded-full bg-slate-300 peer-checked:bg-emerald-500 transition-colors"></span>
+                        </span>
+                    </label>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label class="block text-[10px] font-bold uppercase tracking-widest text-black mb-2">Thứ tự hiển thị</label>
-            <input type="number" name="sort_order" value="{{ notification.sort_order if notification else 0 }}"
-                   class="w-full border border-neutral-200 rounded-sm px-4 py-2.5 text-sm focus:border-black outline-none transition-colors">
-            <p class="text-[9px] text-neutral-400 mt-1">Số càng nhỏ càng lên đầu.</p>
-          </div>
-          <div class="flex flex-col gap-2 pt-6">
-            <label class="inline-flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" name="is_active" {% if not notification or notification.is_active %}checked{% endif %} class="w-4 h-4 accent-black">
-              <span class="text-xs font-bold uppercase tracking-widest">Kích hoạt ngay</span>
-            </label>
-            <label class="inline-flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" name="is_permanent" {% if notification and notification.is_permanent %}checked{% endif %} class="w-4 h-4 accent-black">
-              <span class="text-xs font-bold uppercase tracking-widest">Hiển thị vĩnh viễn (bỏ qua thời gian)</span>
-            </label>
-          </div>
-        </div>
-      </div>
+                    <label class="flex items-center justify-between gap-4 cursor-pointer p-4 rounded-2xl bg-indigo-50/70 border border-indigo-100">
+                        <div>
+                            <p class="text-sm font-extrabold text-indigo-900">Thông báo vĩnh viễn</p>
+                            <p class="text-[11px] text-indigo-700/70 mt-1">Không phụ thuộc lịch bắt đầu/kết thúc.</p>
+                        </div>
 
-      <div class="mt-8 pt-4 border-t border-neutral-200 flex justify-end gap-3">
-        <a href="{{ url_for('admin.notifications_index') }}" class="px-6 py-2.5 border border-neutral-200 rounded-sm text-xs font-bold uppercase tracking-widest hover:bg-neutral-50 transition-colors">Hủy</a>
-        <button type="submit" class="px-6 py-2.5 bg-black text-white rounded-sm text-xs font-bold uppercase tracking-widest hover:bg-neutral-800 transition-colors">
-          {{ 'Cập nhật' if notification else 'Thêm mới' }}
-        </button>
-      </div>
+                        <span class="relative inline-flex items-center">
+                            <input id="is_permanent"
+                                   type="checkbox"
+                                   name="is_permanent"
+                                   class="sr-only peer"
+                                   {% if notification and notification.is_permanent %}checked{% endif %}>
+                            <span class="gm-switch-dot relative block w-11 h-6 rounded-full bg-indigo-200 peer-checked:bg-indigo-600 transition-colors"></span>
+                        </span>
+                    </label>
+
+                    <div>
+                        <label class="gm-label" for="sort_order">Thứ tự ưu tiên</label>
+                        <input id="sort_order"
+                               type="number"
+                               name="sort_order"
+                               min="0"
+                               step="1"
+                               value="{{ notification.sort_order if notification and notification.sort_order is not none else 0 }}"
+                               class="gm-input">
+                        <p class="text-[11px] text-slate-400 mt-2">
+                            Số nhỏ hơn sẽ được ưu tiên hiển thị trước.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-6 border-t border-slate-100 space-y-3">
+                    <button type="submit"
+                            id="submitBtn"
+                            class="w-full inline-flex items-center justify-center gap-2 bg-slate-950 hover:bg-slate-800 text-white font-extrabold py-3.5 rounded-2xl text-xs uppercase tracking-widest transition-all active:scale-[.99]">
+                        <i class="fa-solid fa-floppy-disk text-xs"></i>
+                        {{ 'Cập nhật thông báo' if is_edit else 'Tạo thông báo' }}
+                    </button>
+
+                    <a href="{{ url_for('admin.notifications_index') }}"
+                       class="w-full inline-flex items-center justify-center gap-2 bg-white border border-slate-200 hover:border-slate-950 text-slate-600 hover:text-slate-950 font-bold py-3 rounded-2xl text-xs uppercase tracking-widest transition-all">
+                        Hủy bỏ
+                    </a>
+                </div>
+            </section>
+
+            <section class="preview-phone p-5 mx-auto">
+                <div class="flex items-center justify-between mb-5">
+                    <div>
+                        <p class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+                            Preview
+                        </p>
+                        <p class="text-sm font-extrabold text-slate-950 mt-1">
+                            Khách hàng sẽ thấy
+                        </p>
+                    </div>
+
+                    <div id="previewStatus"
+                         class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                        <i class="fa-solid fa-bell"></i>
+                    </div>
+                </div>
+
+                <div class="rounded-3xl bg-slate-50 border border-slate-100 p-4">
+                    <div class="flex gap-3">
+                        <div class="w-10 h-10 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 shrink-0">
+                            <i class="fa-regular fa-bell"></i>
+                        </div>
+
+                        <div class="min-w-0 flex-1">
+                            <h3 id="previewTitle" class="text-sm font-extrabold text-slate-950 leading-snug">
+                                {{ notification.title if notification else 'Tiêu đề thông báo' }}
+                            </h3>
+
+                            <p id="previewContent" class="text-xs text-slate-500 leading-relaxed mt-1">
+                                {{ notification.content if notification else 'Nội dung thông báo sẽ hiển thị tại đây.' }}
+                            </p>
+
+                            <a id="previewLink"
+                               href="#"
+                               class="inline-flex items-center gap-1 mt-3 text-xs font-extrabold text-indigo-600">
+                                {{ notification.link_text if notification and notification.link_text else 'Xem chi tiết' }}
+                                <i class="fa-solid fa-chevron-right text-[9px]"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="text-[11px] text-slate-400 leading-relaxed mt-4">
+                    Đây chỉ là preview nội dung. Trạng thái đọc/chưa đọc sẽ được xử lý trong trang thông báo khách hàng.
+                </p>
+            </section>
+        </aside>
     </form>
-  </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+    const form = document.getElementById('notificationForm');
+    const submitBtn = document.getElementById('submitBtn');
+
+    const title = document.getElementById('title');
+    const content = document.getElementById('content');
+    const link = document.getElementById('link');
+    const linkText = document.getElementById('link_text');
+    const active = document.getElementById('is_active');
+    const permanent = document.getElementById('is_permanent');
+    const startAt = document.getElementById('start_at');
+    const endAt = document.getElementById('end_at');
+
+    const titleCount = document.getElementById('titleCount');
+    const contentCount = document.getElementById('contentCount');
+
+    const previewTitle = document.getElementById('previewTitle');
+    const previewContent = document.getElementById('previewContent');
+    const previewLink = document.getElementById('previewLink');
+    const previewStatus = document.getElementById('previewStatus');
+
+    function updateCounter(input, counter, max) {
+        if (!input || !counter) return;
+        counter.textContent = `${input.value.length}/${max}`;
+    }
+
+    function updatePreview() {
+        previewTitle.textContent = title.value.trim() || 'Tiêu đề thông báo';
+        previewContent.textContent = content.value.trim() || 'Nội dung thông báo sẽ hiển thị tại đây.';
+
+        previewLink.textContent = (linkText.value.trim() || 'Xem chi tiết') + ' ';
+        const icon = document.createElement('i');
+        icon.className = 'fa-solid fa-chevron-right text-[9px]';
+        previewLink.appendChild(icon);
+
+        if (link.value.trim()) {
+            previewLink.classList.remove('hidden');
+            previewLink.href = link.value.trim();
+        } else {
+            previewLink.classList.add('hidden');
+        }
+
+        if (active.checked) {
+            previewStatus.className = 'w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center';
+            previewStatus.innerHTML = '<i class="fa-solid fa-bell"></i>';
+        } else {
+            previewStatus.className = 'w-10 h-10 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center';
+            previewStatus.innerHTML = '<i class="fa-regular fa-bell-slash"></i>';
+        }
+    }
+
+    function syncPermanentMode() {
+        const disabled = permanent.checked;
+
+        startAt.disabled = disabled;
+        endAt.disabled = disabled;
+
+        startAt.classList.toggle('opacity-50', disabled);
+        endAt.classList.toggle('opacity-50', disabled);
+        startAt.classList.toggle('cursor-not-allowed', disabled);
+        endAt.classList.toggle('cursor-not-allowed', disabled);
+    }
+
+    [title, content, link, linkText, active, permanent].forEach(el => {
+        el?.addEventListener('input', () => {
+            updateCounter(title, titleCount, 120);
+            updateCounter(content, contentCount, 800);
+            updatePreview();
+        });
+
+        el?.addEventListener('change', () => {
+            syncPermanentMode();
+            updatePreview();
+        });
+    });
+
+    updateCounter(title, titleCount, 120);
+    updateCounter(content, contentCount, 800);
+    syncPermanentMode();
+    updatePreview();
+
+    form?.addEventListener('submit', function (e) {
+        const titleValue = title.value.trim();
+        const contentValue = content.value.trim();
+
+        if (!titleValue || !contentValue) {
+            e.preventDefault();
+            alert('Vui lòng nhập đầy đủ tiêu đề và nội dung thông báo.');
+            return;
+        }
+
+        if (!permanent.checked && startAt.value && endAt.value && startAt.value > endAt.value) {
+            e.preventDefault();
+            alert('Thời gian kết thúc phải lớn hơn thời gian bắt đầu.');
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-70', 'cursor-not-allowed');
+        submitBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-xs"></i> Đang lưu...';
+    });
+})();
+</script>
 {% endblock %}
