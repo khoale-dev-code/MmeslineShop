@@ -2,16 +2,19 @@
   app/templates/partials/navbar.html
   =================================
   MMÉSTLINE Storefront Navbar
-  - Fix lỗi global_collections undefined.
-  - Fix lỗi global_categories undefined.
-  - Menu Collection hiển thị nếu có dữ liệu.
-  - Không dùng z-index quá cao để tránh đè modal.
+  Style cảm hứng WHOSE Studio:
+  - Desktop 1 hàng, gọn, mượt.
+  - Trang chủ: trong suốt ở đầu trang, video/hero tràn đẹp.
+  - Khi scroll: chuyển nền trắng mượt.
+  - Mobile menu slide bằng transform, nhẹ.
+  - Fix global_categories/global_collections undefined.
+  - Z-index thấp hơn modal.
 #}
 
 {% set path = request.path %}
 {% set shop_name = 'MMÉSTLINE' %}
+{% set is_homepage = path == '/' or path == '/home' %}
 
-{# Fix an toàn biến global chưa được truyền #}
 {% set categories_nav = global_categories|default([], true) %}
 {% set collections_nav = global_collections|default([], true) %}
 
@@ -21,125 +24,207 @@
 {% set user_name = user_name_raw if user_name_raw and user_name_raw|string|lower not in ['none', 'null', 'undefined'] else 'Khách hàng' %}
 {% set cart_qty = cart_count|default(0, true) %}
 
+<style>
+  :root {
+    --header-h: 72px;
+  }
+
+  @media (min-width: 1024px) {
+    :root {
+      --header-h: 76px;
+    }
+  }
+
+  .mm-nav {
+    color: #241207;
+    background: rgba(255,255,255,.96);
+    border-bottom: 1px solid #eadfd4;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    box-shadow: 0 14px 38px -34px rgba(36,18,7,.55);
+    transition:
+      background-color 180ms ease,
+      border-color 180ms ease,
+      color 180ms ease,
+      box-shadow 180ms ease,
+      backdrop-filter 180ms ease;
+  }
+
+  .mm-nav[data-transparent="true"]:not(.is-scrolled):not(.is-menu-open) {
+    color: #fff;
+    background: transparent;
+    border-bottom-color: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .mm-nav[data-transparent="true"]:not(.is-scrolled):not(.is-menu-open)::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 132px;
+    pointer-events: none;
+    background: linear-gradient(
+      to bottom,
+      rgba(0,0,0,.38),
+      rgba(0,0,0,.16) 45%,
+      rgba(0,0,0,0)
+    );
+    z-index: -1;
+  }
+
+  .mm-nav.is-scrolled,
+  .mm-nav.is-menu-open {
+    color: #241207;
+    background: rgba(255,255,255,.96);
+    border-bottom-color: #eadfd4;
+    box-shadow: 0 14px 38px -34px rgba(36,18,7,.55);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+
+  .mm-nav a,
+  .mm-nav button,
+  .mm-nav svg,
+  .mm-nav span {
+    color: inherit;
+  }
+
+  .mm-nav-link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    height: 100%;
+    opacity: .82;
+    transition: opacity 150ms ease;
+  }
+
+  .mm-nav-link:hover,
+  .mm-nav-link.is-active {
+    opacity: 1;
+  }
+
+  .mm-nav-link::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 22px;
+    height: 1px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform 180ms cubic-bezier(.16,1,.3,1);
+  }
+
+  .mm-nav-link:hover::after,
+  .mm-nav-link.is-active::after {
+    transform: scaleX(1);
+  }
+
+  .mm-mega {
+    color: #241207;
+    transform: translate3d(0, 8px, 0);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity 180ms ease,
+      transform 180ms cubic-bezier(.16,1,.3,1),
+      visibility 180ms ease;
+  }
+
+  .mm-mega-trigger:hover .mm-mega,
+  .mm-mega-trigger:focus-within .mm-mega {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .mm-mobile-panel {
+    transform: translate3d(-100%, 0, 0);
+    transition: transform 260ms cubic-bezier(.16,1,.3,1);
+    will-change: transform;
+  }
+
+  .mm-mobile-panel.is-open {
+    transform: translate3d(0, 0, 0);
+  }
+
+  .mm-mobile-backdrop {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 220ms ease;
+  }
+
+  .mm-mobile-backdrop.is-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  body.mm-mobile-menu-open {
+    overflow: hidden !important;
+  }
+
+  body.mm-home-transparent-nav #main-content {
+    margin-top: calc(var(--header-h) * -1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mm-nav,
+    .mm-nav-link,
+    .mm-nav-link::after,
+    .mm-mega,
+    .mm-mobile-panel,
+    .mm-mobile-backdrop {
+      transition: none !important;
+    }
+  }
+</style>
+
 <nav
   id="mainNav"
   aria-label="Điều hướng chính"
-  class="fixed left-0 top-0 z-[120] w-full border-b border-[#eadfd4] bg-white/95 text-[#241207] backdrop-blur-xl"
+  data-transparent="{{ 'true' if is_homepage else 'false' }}"
+  class="mm-nav fixed left-0 top-0 z-[120] w-full"
 >
   {# DESKTOP #}
-  <div class="mx-auto hidden w-full max-w-[1920px] lg:block">
+  <div class="mx-auto hidden h-[76px] w-full max-w-[1920px] items-center px-8 lg:flex">
 
-    <div class="relative flex h-[68px] items-center justify-center px-8">
-      <a
-        href="/"
-        data-nav
-        aria-label="{{ shop_name }}"
-        class="font-serif text-[27px] font-black uppercase tracking-[0.18em] text-[#241207] transition-opacity duration-150 hover:opacity-70"
-        style="font-family:'Times New Roman',Times,serif;"
-      >
-        {{ shop_name }}
-      </a>
-
-      <div class="absolute right-8 flex items-center gap-5">
-        <button
-          type="button"
-          aria-label="Tìm kiếm"
-          class="text-[#241207] transition-opacity duration-150 hover:opacity-60"
-        >
-          <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M19 10.5a8.5 8.5 0 11-17 0 8.5 8.5 0 0117 0z"/>
-          </svg>
-        </button>
-
-        <div class="group relative">
-          <a
-            href="{{ '/profile/' if is_logged_in else '/auth/login' }}"
-            data-nav
-            aria-label="Tài khoản"
-            class="block text-[#241207] transition-opacity duration-150 hover:opacity-60"
-          >
-            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
-              <path fill-rule="evenodd" d="M12 2.25a5.25 5.25 0 00-5.25 5.25v.11a5.25 5.25 0 005.25 5.25h.01a5.25 5.25 0 005.25-5.25V7.5A5.25 5.25 0 0012 2.25zM6 19.5c0-2.88 3.55-4.5 6-4.5s6 1.62 6 4.5v1.5a.75.75 0 01-.75.75H6.75a.75.75 0 01-.75-.75V19.5z" clip-rule="evenodd"/>
-            </svg>
-          </a>
-
-          {% if is_logged_in %}
-            <div
-              class="invisible absolute right-0 top-[28px] z-[130] w-56 translate-y-2 rounded-[22px] border border-[#eadfd4] bg-[#fffaf5] p-2 opacity-0 shadow-[0_24px_70px_-45px_rgba(36,18,7,.55)] transition-[opacity,transform,visibility] duration-150 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100"
-            >
-              <p class="px-3 py-2 text-[10px] font-black uppercase tracking-[.2em] text-[#b98b62]">
-                {{ user_name }}
-              </p>
-
-              {% if user_role in ('admin', 'staff', 'super_admin') %}
-                <a href="/admin/" data-nav class="block rounded-2xl px-3 py-2 text-[11px] font-black uppercase tracking-[.12em] text-[#241207] transition-colors hover:bg-[#f4ece5]">
-                  Admin Panel
-                </a>
-              {% endif %}
-
-              <a href="/profile/" data-nav class="block rounded-2xl px-3 py-2 text-[11px] font-black uppercase tracking-[.12em] text-[#241207] transition-colors hover:bg-[#f4ece5]">
-                Tài khoản
-              </a>
-
-              <a href="/profile/orders" data-nav class="block rounded-2xl px-3 py-2 text-[11px] font-black uppercase tracking-[.12em] text-[#241207] transition-colors hover:bg-[#f4ece5]">
-                Đơn hàng
-              </a>
-
-              <a href="/profile/favorites" data-nav class="block rounded-2xl px-3 py-2 text-[11px] font-black uppercase tracking-[.12em] text-[#241207] transition-colors hover:bg-[#f4ece5]">
-                Yêu thích
-              </a>
-
-              <form action="/auth/logout" method="POST" class="mt-2 border-t border-[#eadfd4] pt-2">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button
-                  type="submit"
-                  class="block w-full rounded-2xl px-3 py-2 text-left text-[11px] font-black uppercase tracking-[.12em] text-red-600 transition-colors hover:bg-red-50"
-                >
-                  Đăng xuất
-                </button>
-              </form>
-            </div>
-          {% endif %}
-        </div>
-
-        <a
-          href="/cart/"
-          data-nav
-          aria-label="Giỏ hàng"
-          class="relative flex items-center justify-center text-[#241207] transition-opacity duration-150 hover:opacity-60"
-        >
-          <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z"/>
-          </svg>
-
-          <span class="absolute inset-0 mt-[5px] flex items-center justify-center text-[10px] font-black">
-            {{ cart_qty }}
-          </span>
-        </a>
-      </div>
-    </div>
-
-    <div class="relative flex h-[48px] items-center justify-center gap-10 border-t border-[#eadfd4] text-[12px] font-black uppercase tracking-[.14em] text-[#75543f]">
-
-      {# SHOP #}
-      <div class="group flex h-full items-center">
+    {# Left menu #}
+    <div class="flex h-full flex-1 items-center gap-8 text-[11px] font-black uppercase tracking-[.2em]">
+      <div class="mm-mega-trigger flex h-full items-center">
         <a
           href="/shop"
           data-nav
-          class="transition-colors duration-150 {{ 'text-[#241207]' if path.startswith('/shop') else 'hover:text-[#241207]' }}"
+          class="mm-nav-link {{ 'is-active' if path.startswith('/shop') else '' }}"
         >
           Shop
         </a>
 
-        <div class="invisible absolute left-0 top-[48px] z-[125] w-full translate-y-2 border-b border-[#eadfd4] border-t border-[#eadfd4] bg-[#fffaf5] opacity-0 shadow-[0_24px_70px_-55px_rgba(36,18,7,.55)] transition-[opacity,transform,visibility] duration-150 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
-          <div class="mx-auto grid max-w-[1400px] grid-cols-4 gap-0">
+        <div class="mm-mega absolute left-0 top-[76px] z-[125] w-full border-y border-[#eadfd4] bg-[#fffaf5] shadow-[0_24px_70px_-55px_rgba(36,18,7,.6)]">
+          <div class="mx-auto grid max-w-[1360px] grid-cols-4">
             <div class="border-r border-[#eadfd4] px-8 py-7">
-              <p class="mb-5 text-[10px] font-black uppercase tracking-[.24em] text-[#b98b62]">
-                Danh mục
+              <p class="mb-5 text-[10px] font-black uppercase tracking-[.26em] text-[#b98b62]">
+                Shop
               </p>
 
-              <a href="/shop?sort=new" data-nav class="mb-4 block text-[12px] font-black uppercase tracking-[.16em] text-[#241207] transition-colors hover:text-[#b98b62]">
+              <a
+                href="/shop?sort=new"
+                data-nav
+                class="block text-[12px] font-black uppercase tracking-[.18em] text-[#241207] transition-colors hover:text-[#b98b62]"
+              >
                 New Arrival
+              </a>
+
+              <a
+                href="/shop"
+                data-nav
+                class="mt-4 block text-[12px] font-black uppercase tracking-[.18em] text-[#75543f] transition-colors hover:text-[#241207]"
+              >
+                All Products
               </a>
             </div>
 
@@ -148,7 +233,11 @@
                 <div class="border-r border-[#eadfd4] px-8 py-7 last:border-r-0">
                   <div class="flex flex-col gap-4">
                     {% for cat in group %}
-                      <a href="/shop?category={{ cat.slug }}" data-nav class="text-[12px] font-black uppercase tracking-[.16em] text-[#75543f] transition-colors hover:text-[#241207]">
+                      <a
+                        href="/shop?category={{ cat.slug }}"
+                        data-nav
+                        class="text-[12px] font-black uppercase tracking-[.17em] text-[#75543f] transition-colors hover:text-[#241207]"
+                      >
                         {{ cat.name }}
                       </a>
                     {% endfor %}
@@ -166,24 +255,27 @@
         </div>
       </div>
 
-      {# COLLECTION #}
-      <div class="group flex h-full items-center">
+      <div class="mm-mega-trigger flex h-full items-center">
         <a
           href="/collections"
           data-nav
-          class="transition-colors duration-150 {{ 'text-[#241207]' if path.startswith('/collections') else 'hover:text-[#241207]' }}"
+          class="mm-nav-link {{ 'is-active' if path.startswith('/collections') else '' }}"
         >
           Collection
         </a>
 
-        <div class="invisible absolute left-0 top-[48px] z-[125] w-full translate-y-2 border-b border-[#eadfd4] border-t border-[#eadfd4] bg-[#fffaf5] opacity-0 shadow-[0_24px_70px_-55px_rgba(36,18,7,.55)] transition-[opacity,transform,visibility] duration-150 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
-          <div class="mx-auto grid max-w-[1400px] grid-cols-4">
+        <div class="mm-mega absolute left-0 top-[76px] z-[125] w-full border-y border-[#eadfd4] bg-[#fffaf5] shadow-[0_24px_70px_-55px_rgba(36,18,7,.6)]">
+          <div class="mx-auto grid max-w-[1360px] grid-cols-4">
             <div class="border-r border-[#eadfd4] px-8 py-7">
-              <a href="/collections" data-nav class="mb-3 block text-[12px] font-black uppercase tracking-[.18em] text-[#241207] transition-colors hover:text-[#b98b62]">
+              <a
+                href="/collections"
+                data-nav
+                class="mb-3 block text-[12px] font-black uppercase tracking-[.18em] text-[#241207] transition-colors hover:text-[#b98b62]"
+              >
                 View All
               </a>
 
-              <p class="text-xs font-semibold leading-6 normal-case tracking-normal text-[#8a6a52]">
+              <p class="max-w-[220px] text-xs font-semibold leading-6 normal-case tracking-normal text-[#8a6a52]">
                 Khám phá lookbook và chiến dịch mới nhất từ MMÉSTLINE.
               </p>
             </div>
@@ -193,7 +285,11 @@
                 <div class="border-r border-[#eadfd4] px-8 py-7 last:border-r-0">
                   <div class="flex flex-col gap-4">
                     {% for coll in group %}
-                      <a href="/shop?collection={{ coll.slug }}" data-nav class="text-[12px] font-black uppercase tracking-[.16em] text-[#75543f] transition-colors hover:text-[#241207]">
+                      <a
+                        href="/shop?collection={{ coll.slug }}"
+                        data-nav
+                        class="text-[12px] font-black uppercase tracking-[.17em] text-[#75543f] transition-colors hover:text-[#241207]"
+                      >
                         {{ coll.name }}
                       </a>
                     {% endfor %}
@@ -211,27 +307,129 @@
         </div>
       </div>
 
-      <a href="/contact" data-nav class="transition-colors duration-150 {{ 'text-[#241207]' if path.startswith('/contact') else 'hover:text-[#241207]' }}">
+      <a
+        href="/contact"
+        data-nav
+        class="mm-nav-link {{ 'is-active' if path.startswith('/contact') else '' }}"
+      >
         Contact
       </a>
 
-      <a href="/about" data-nav class="transition-colors duration-150 {{ 'text-[#241207]' if path.startswith('/about') else 'hover:text-[#241207]' }}">
-        About Us
+      <a
+        href="/about"
+        data-nav
+        class="mm-nav-link {{ 'is-active' if path.startswith('/about') else '' }}"
+      >
+        About
+      </a>
+    </div>
+
+    {# Center logo #}
+    <div class="flex flex-1 justify-center">
+      <a
+        href="/"
+        data-nav
+        aria-label="{{ shop_name }}"
+        class="font-serif text-[29px] font-black uppercase tracking-[.22em] transition-opacity duration-150 hover:opacity-75"
+        style="font-family:'Times New Roman',Times,serif;"
+      >
+        {{ shop_name }}
+      </a>
+    </div>
+
+    {# Right actions #}
+    <div class="flex flex-1 items-center justify-end gap-5">
+      <button
+        type="button"
+        aria-label="Tìm kiếm"
+        class="transition-opacity duration-150 hover:opacity-65"
+      >
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M19 10.5a8.5 8.5 0 11-17 0 8.5 8.5 0 0117 0z"/>
+        </svg>
+      </button>
+
+      <div class="relative">
+        <a
+          href="{{ '/profile/' if is_logged_in else '/auth/login' }}"
+          data-nav
+          aria-label="Tài khoản"
+          class="block transition-opacity duration-150 hover:opacity-65"
+          id="desktopAccountLink"
+        >
+          <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
+            <path fill-rule="evenodd" d="M12 2.25a5.25 5.25 0 00-5.25 5.25v.11a5.25 5.25 0 005.25 5.25h.01a5.25 5.25 0 005.25-5.25V7.5A5.25 5.25 0 0012 2.25zM6 19.5c0-2.88 3.55-4.5 6-4.5s6 1.62 6 4.5v1.5a.75.75 0 01-.75.75H6.75a.75.75 0 01-.75-.75V19.5z" clip-rule="evenodd"/>
+          </svg>
+        </a>
+
+        {% if is_logged_in %}
+          <div
+            id="desktopAccountMenu"
+            class="invisible absolute right-0 top-[34px] z-[130] w-56 translate-y-2 rounded-[22px] border border-[#eadfd4] bg-[#fffaf5] p-2 text-[#241207] opacity-0 shadow-[0_24px_70px_-45px_rgba(36,18,7,.55)] transition-[opacity,transform,visibility] duration-150"
+          >
+            <p class="px-3 py-2 text-[10px] font-black uppercase tracking-[.2em] text-[#b98b62]">
+              {{ user_name }}
+            </p>
+
+            {% if user_role in ('admin', 'staff', 'super_admin') %}
+              <a href="/admin/" data-nav class="block rounded-2xl px-3 py-2 text-[11px] font-black uppercase tracking-[.12em] text-[#241207] transition-colors hover:bg-[#f4ece5]">
+                Admin Panel
+              </a>
+            {% endif %}
+
+            <a href="/profile/" data-nav class="block rounded-2xl px-3 py-2 text-[11px] font-black uppercase tracking-[.12em] text-[#241207] transition-colors hover:bg-[#f4ece5]">
+              Tài khoản
+            </a>
+
+            <a href="/profile/orders" data-nav class="block rounded-2xl px-3 py-2 text-[11px] font-black uppercase tracking-[.12em] text-[#241207] transition-colors hover:bg-[#f4ece5]">
+              Đơn hàng
+            </a>
+
+            <a href="/profile/favorites" data-nav class="block rounded-2xl px-3 py-2 text-[11px] font-black uppercase tracking-[.12em] text-[#241207] transition-colors hover:bg-[#f4ece5]">
+              Yêu thích
+            </a>
+
+            <form action="/auth/logout" method="POST" class="mt-2 border-t border-[#eadfd4] pt-2">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button
+                type="submit"
+                class="block w-full rounded-2xl px-3 py-2 text-left text-[11px] font-black uppercase tracking-[.12em] text-red-600 transition-colors hover:bg-red-50"
+              >
+                Đăng xuất
+              </button>
+            </form>
+          </div>
+        {% endif %}
+      </div>
+
+      <a
+        href="/cart/"
+        data-nav
+        aria-label="Giỏ hàng"
+        class="relative flex items-center justify-center transition-opacity duration-150 hover:opacity-65"
+      >
+        <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z"/>
+        </svg>
+
+        <span class="absolute inset-0 mt-[5px] flex items-center justify-center text-[10px] font-black">
+          {{ cart_qty }}
+        </span>
       </a>
     </div>
   </div>
 
   {# MOBILE BAR #}
-  <div class="flex h-[64px] items-center justify-between px-5 lg:hidden">
+  <div class="flex h-[72px] items-center justify-between px-5 lg:hidden">
     <div class="flex flex-1 items-center">
       <button
         id="openMenu"
         type="button"
         aria-label="Mở menu"
-        class="flex flex-col gap-[5px] py-2 transition-opacity duration-150 hover:opacity-60"
+        class="flex flex-col gap-[5px] py-2 transition-opacity duration-150 hover:opacity-65"
       >
-        <span class="block h-[1.5px] w-5 bg-[#241207]"></span>
-        <span class="block h-[1.5px] w-3.5 bg-[#241207]"></span>
+        <span class="block h-[1.5px] w-5 bg-current"></span>
+        <span class="block h-[1.5px] w-3.5 bg-current"></span>
       </button>
     </div>
 
@@ -240,10 +438,10 @@
         href="/"
         data-nav
         aria-label="{{ shop_name }}"
-        class="font-serif text-[18px] font-black uppercase tracking-[0.16em] text-[#241207]"
+        class="font-serif text-[18px] font-black uppercase tracking-[.16em]"
         style="font-family:'Times New Roman',Times,serif;"
       >
-        MMÉSTLINE
+        {{ shop_name }}
       </a>
     </div>
 
@@ -252,7 +450,7 @@
         href="{{ '/profile/' if is_logged_in else '/auth/login' }}"
         data-nav
         aria-label="Tài khoản"
-        class="transition-opacity duration-150 hover:opacity-60"
+        class="transition-opacity duration-150 hover:opacity-65"
       >
         <svg class="h-[22px] w-[22px]" viewBox="0 0 24 24" fill="currentColor">
           <path fill-rule="evenodd" d="M12 2.25a5.25 5.25 0 00-5.25 5.25v.11a5.25 5.25 0 005.25 5.25h.01a5.25 5.25 0 005.25-5.25V7.5A5.25 5.25 0 0012 2.25zM6 19.5c0-2.88 3.55-4.5 6-4.5s6 1.62 6 4.5v1.5a.75.75 0 01-.75.75H6.75a.75.75 0 01-.75-.75V19.5z" clip-rule="evenodd"/>
@@ -263,7 +461,7 @@
         href="/cart/"
         data-nav
         aria-label="Giỏ hàng"
-        class="relative flex items-center justify-center transition-opacity duration-150 hover:opacity-60"
+        class="relative flex items-center justify-center transition-opacity duration-150 hover:opacity-65"
       >
         <svg class="h-[22px] w-[22px]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z"/>
@@ -277,21 +475,20 @@
   </div>
 </nav>
 
-{# MOBILE MENU #}
 <div
   id="mobileMenuBackdrop"
-  class="fixed inset-0 z-[180] bg-[#241207]/55 opacity-0 pointer-events-none transition-opacity duration-200 lg:hidden"
+  class="mm-mobile-backdrop fixed inset-0 z-[180] bg-[#241207]/55 lg:hidden"
 ></div>
 
 <aside
   id="mobileMenu"
   aria-label="Menu di động"
   aria-hidden="true"
-  class="fixed inset-y-0 left-0 z-[190] flex w-[min(88vw,390px)] -translate-x-full flex-col border-r border-[#eadfd4] bg-[#fffaf5] text-[#241207] shadow-[0_28px_80px_-55px_rgba(36,18,7,.75)] transition-transform duration-200 ease-out will-change-transform lg:hidden"
+  class="mm-mobile-panel fixed inset-y-0 left-0 z-[190] flex w-[min(88vw,390px)] flex-col border-r border-[#eadfd4] bg-[#fffaf5] text-[#241207] shadow-[0_28px_80px_-55px_rgba(36,18,7,.75)] lg:hidden"
 >
-  <div class="flex h-[64px] shrink-0 items-center justify-between border-b border-[#eadfd4] px-5">
-    <span class="font-serif text-[18px] font-black uppercase tracking-[0.16em]" style="font-family:'Times New Roman',Times,serif;">
-      MMÉSTLINE
+  <div class="flex h-[72px] shrink-0 items-center justify-between border-b border-[#eadfd4] px-5">
+    <span class="font-serif text-[18px] font-black uppercase tracking-[.16em]" style="font-family:'Times New Roman',Times,serif;">
+      {{ shop_name }}
     </span>
 
     <button
@@ -304,7 +501,7 @@
     </button>
   </div>
 
-  <div class="min-h-0 flex-1 overflow-y-auto px-5 py-6">
+  <div class="min-h-0 flex-1 overflow-y-auto px-5 py-6 no-scrollbar">
     <nav class="space-y-5">
       <div>
         <a href="/shop" data-nav class="block text-sm font-black uppercase tracking-[.18em] {{ 'text-[#241207]' if path.startswith('/shop') else 'text-[#75543f]' }}">
@@ -347,7 +544,7 @@
       </a>
 
       <a href="/about" data-nav class="block text-sm font-black uppercase tracking-[.18em] {{ 'text-[#241207]' if path.startswith('/about') else 'text-[#75543f]' }}">
-        About Us
+        About
       </a>
     </nav>
   </div>
@@ -391,52 +588,128 @@
   "use strict";
 
   function initNavbar() {
+    const nav = document.getElementById("mainNav");
     const menu = document.getElementById("mobileMenu");
     const backdrop = document.getElementById("mobileMenuBackdrop");
     const openBtn = document.getElementById("openMenu");
     const closeBtn = document.getElementById("closeMenu");
+    const accountLink = document.getElementById("desktopAccountLink");
+    const accountMenu = document.getElementById("desktopAccountMenu");
 
-    if (!menu || !backdrop || !openBtn || !closeBtn) return;
+    if (!nav) return;
 
-    function openMenu(event) {
+    const transparent = nav.dataset.transparent === "true";
+    let ticking = false;
+    let accountTimer = null;
+
+    function syncNavState() {
+      ticking = false;
+
+      if (!transparent) {
+        nav.classList.add("is-scrolled");
+        document.body.classList.remove("mm-home-transparent-nav");
+        return;
+      }
+
+      const scrolled = window.scrollY > 12;
+
+      nav.classList.toggle("is-scrolled", scrolled);
+      document.body.classList.toggle("mm-home-transparent-nav", !scrolled);
+    }
+
+    function requestSync() {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(syncNavState);
+    }
+
+    function openMobileMenu(event) {
       if (event) event.preventDefault();
+      if (!menu || !backdrop) return;
 
-      menu.classList.remove("-translate-x-full");
+      menu.classList.add("is-open");
       menu.setAttribute("aria-hidden", "false");
 
-      backdrop.classList.remove("opacity-0", "pointer-events-none");
-      backdrop.classList.add("opacity-100");
+      backdrop.classList.add("is-open");
+      nav.classList.add("is-menu-open");
 
       document.body.classList.add("mm-mobile-menu-open");
       document.body.style.overflow = "hidden";
     }
 
-    function closeMenu() {
-      menu.classList.add("-translate-x-full");
+    function closeMobileMenu() {
+      if (!menu || !backdrop) return;
+
+      menu.classList.remove("is-open");
       menu.setAttribute("aria-hidden", "true");
 
-      backdrop.classList.remove("opacity-100");
-      backdrop.classList.add("opacity-0", "pointer-events-none");
+      backdrop.classList.remove("is-open");
+      nav.classList.remove("is-menu-open");
 
       document.body.classList.remove("mm-mobile-menu-open");
       document.body.style.overflow = "";
+
+      requestSync();
     }
 
-    openBtn.addEventListener("click", openMenu, { passive: false });
-    closeBtn.addEventListener("click", closeMenu);
-    backdrop.addEventListener("click", closeMenu);
+    function openAccountMenu() {
+      if (!accountMenu) return;
 
-    menu.querySelectorAll("a[data-nav]").forEach((link) => {
-      link.addEventListener("click", closeMenu);
+      clearTimeout(accountTimer);
+      accountMenu.classList.remove("invisible", "opacity-0", "translate-y-2");
+      accountMenu.classList.add("visible", "opacity-100", "translate-y-0");
+    }
+
+    function closeAccountMenu() {
+      if (!accountMenu) return;
+
+      clearTimeout(accountTimer);
+      accountTimer = setTimeout(function () {
+        accountMenu.classList.add("invisible", "opacity-0", "translate-y-2");
+        accountMenu.classList.remove("visible", "opacity-100", "translate-y-0");
+      }, 80);
+    }
+
+    syncNavState();
+
+    window.addEventListener("scroll", requestSync, { passive: true });
+    window.addEventListener("resize", requestSync, { passive: true });
+
+    openBtn?.addEventListener("click", openMobileMenu, { passive: false });
+    closeBtn?.addEventListener("click", closeMobileMenu);
+    backdrop?.addEventListener("click", closeMobileMenu);
+
+    menu?.querySelectorAll("a[data-nav]").forEach(function (link) {
+      link.addEventListener("click", closeMobileMenu);
     });
 
+    if (accountLink && accountMenu) {
+      const wrap = accountLink.parentElement;
+
+      wrap?.addEventListener("mouseenter", openAccountMenu);
+      wrap?.addEventListener("mouseleave", closeAccountMenu);
+
+      accountLink.addEventListener("focus", openAccountMenu);
+      accountMenu.addEventListener("focusin", openAccountMenu);
+      accountMenu.addEventListener("focusout", function () {
+        setTimeout(function () {
+          if (!accountMenu.contains(document.activeElement) && document.activeElement !== accountLink) {
+            closeAccountMenu();
+          }
+        }, 0);
+      });
+    }
+
     document.addEventListener("keydown", function (event) {
-      if (event.key === "Escape") closeMenu();
+      if (event.key === "Escape") {
+        closeMobileMenu();
+        closeAccountMenu();
+      }
     });
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initNavbar);
+    document.addEventListener("DOMContentLoaded", initNavbar, { once: true });
   } else {
     initNavbar();
   }

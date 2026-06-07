@@ -1,267 +1,513 @@
 {% extends "base.html" %}
-{% block title %}Đơn hàng #{{ order.id[:8].upper() }} | GUA Maison{% endblock %}
+{% block title %}Đơn hàng #{{ order.id[:8].upper() }} | MMESTLINE{% endblock %}
 
 {% block content %}
-{# ── 1. CẤU HÌNH MÀU SẮC & TRẠNG THÁI ── #}
 {% set status_map = {
-    'pending':   ('Chờ xác nhận',    'bg-amber-50 text-amber-600 border-amber-200', 'bg-amber-500'),
-    'confirmed': ('Đã xác nhận',     'bg-blue-50 text-blue-600 border-blue-200', 'bg-blue-500'),
-    'packed':    ('Đã đóng gói',     'bg-indigo-50 text-indigo-600 border-indigo-200', 'bg-indigo-500'),
-    'shipped':   ('Đang giao hàng',  'bg-purple-50 text-purple-600 border-purple-200', 'bg-purple-500'),
-    'delivered': ('Đã giao hàng',    'bg-emerald-50 text-emerald-600 border-emerald-200', 'bg-emerald-500'),
-    'completed': ('Hoàn tất',        'bg-emerald-50 text-emerald-600 border-emerald-200', 'bg-emerald-500'),
-    'cancelled': ('Đã hủy đơn',      'bg-neutral-100 text-neutral-500 border-neutral-300', 'bg-neutral-400'),
-    'failed':    ('Giao thất bại',   'bg-red-50 text-red-600 border-red-200', 'bg-red-500'),
-    'returned':  ('Đã hoàn hàng',    'bg-orange-50 text-orange-600 border-orange-200', 'bg-orange-500')
+  'pending':   ('Chờ xác nhận',    'bg-amber-50 text-amber-700 border-amber-200', 'bg-amber-500'),
+  'confirmed': ('Đã xác nhận',     'bg-blue-50 text-blue-700 border-blue-200', 'bg-blue-500'),
+  'packed':    ('Đã đóng gói',     'bg-indigo-50 text-indigo-700 border-indigo-200', 'bg-indigo-500'),
+  'shipped':   ('Đang giao hàng',  'bg-purple-50 text-purple-700 border-purple-200', 'bg-purple-500'),
+  'shipping':  ('Đang vận chuyển', 'bg-purple-50 text-purple-700 border-purple-200', 'bg-purple-500'),
+  'delivered': ('Đã giao hàng',    'bg-emerald-50 text-emerald-700 border-emerald-200', 'bg-emerald-500'),
+  'completed': ('Hoàn tất',        'bg-emerald-50 text-emerald-700 border-emerald-200', 'bg-emerald-500'),
+  'cancelled': ('Đã hủy đơn',      'bg-neutral-100 text-neutral-500 border-neutral-300', 'bg-neutral-400'),
+  'failed':    ('Giao thất bại',   'bg-red-50 text-red-700 border-red-200', 'bg-red-500'),
+  'returned':  ('Đã hoàn hàng',    'bg-orange-50 text-orange-700 border-orange-200', 'bg-orange-500')
 } %}
-{% set current_status = status_map.get(order.status, ('Hệ thống', 'bg-neutral-50 text-neutral-500 border-neutral-200', 'bg-neutral-500')) %}
 
-<div class="bg-[#f8f8f8] min-h-screen pb-24 pt-6 md:pt-10 font-sans selection:bg-black selection:text-white">
-  <div class="max-w-[1000px] mx-auto px-4 sm:px-6 md:px-8">
+{% set payment_map = {
+  'pending':  ('Chưa thanh toán', 'bg-amber-50 text-amber-700 border-amber-200'),
+  'paid':     ('Đã thanh toán',   'bg-emerald-50 text-emerald-700 border-emerald-200'),
+  'failed':   ('Thanh toán lỗi',  'bg-red-50 text-red-700 border-red-200'),
+  'refunded': ('Đã hoàn tiền',    'bg-blue-50 text-blue-700 border-blue-200')
+} %}
 
-    <a href="/profile/orders" class="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 hover:text-black transition-colors mb-6 group reveal">
-      <svg class="w-4 h-4 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+{% set order_status = order.status if order.status is defined else order.get('status', 'pending') %}
+{% set payment_status = order.payment_status if order.payment_status is defined else order.get('payment_status', 'pending') %}
+{% set payment_method = order.payment_method if order.payment_method is defined else order.get('payment_method', 'COD') %}
+{% set current_status = status_map.get(order_status, ('Hệ thống', 'bg-neutral-50 text-neutral-500 border-neutral-200', 'bg-neutral-500')) %}
+{% set current_payment = payment_map.get(payment_status, ('Chưa thanh toán', 'bg-amber-50 text-amber-700 border-amber-200')) %}
+{% set order_items = order.order_items if order.order_items is defined else order.get('order_items', []) %}
+{% set shipping_address = order.shipping_address if order.shipping_address is defined else order.get('shipping_address') %}
+{% set return_request = order.return_request if order.return_request is defined else order.get('return_request') %}
+{% set is_return_requested = order.is_return_requested if order.is_return_requested is defined else (return_request is not none) %}
+{% set subtotal = (order.total_amount or 0) - (order.shipping_fee or 0) + (order.discount_amount or 0) %}
+
+<div class="min-h-screen bg-[#fffaf5] pb-24 pt-[calc(var(--header-h,72px)+2rem)] font-sans selection:bg-[#241207] selection:text-white">
+  <div class="mx-auto max-w-[1120px] px-4 sm:px-6 lg:px-8">
+
+    <a
+      href="{{ url_for('profile.my_orders') }}"
+      class="mb-6 inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[.22em] text-[#b98b62] transition hover:text-[#241207]"
+    >
+      <i class="fa-solid fa-arrow-left text-[11px]"></i>
       Trở về danh sách
     </a>
 
-    <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-10 reveal">
-      <div class="space-y-3">
-        <div class="flex flex-wrap items-center gap-2 md:gap-3">
-          <span class="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest border rounded-sm {{ current_status[1] }}">
-            {{ current_status[0] }}
-          </span>
-          <span class="text-[10px] font-bold text-neutral-400 uppercase tracking-widest flex items-center gap-1.5">
-            <i class="fa-regular fa-calendar"></i> {{ order.created_at[:16].replace('T', ' ') if order.created_at else '' }}
-          </span>
-          {# Tag Debug #}
-          <span class="px-2 py-1 text-[8px] font-mono font-bold bg-red-50 text-red-500 border border-red-100 rounded-sm">DB: {{ order.status }}</span>
-        </div>
-        <h1 class="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter text-black uppercase leading-none">
-          Mã đơn <span class="text-neutral-300">#{{ order.id[:8].upper() }}</span>
-        </h1>
-      </div>
-      
-      <div class="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
-        <button onclick="window.print()" class="w-full sm:w-auto px-6 py-3.5 bg-white border border-neutral-200 text-[10px] font-bold uppercase tracking-widest text-black hover:bg-neutral-50 hover:border-black transition-all rounded-sm flex items-center justify-center gap-2">
-          <i class="fa-solid fa-print"></i> In hóa đơn
-        </button>
-        
-        {# LOGIC NÚT HOÀN TRẢ #}
-        {% if order.status in ['delivered', 'completed'] %}
-            {% if order.is_return_requested %}
-                <button disabled class="w-full sm:w-auto px-6 py-3.5 bg-neutral-100 border border-neutral-200 text-[10px] font-bold uppercase tracking-widest text-neutral-400 rounded-sm flex items-center justify-center gap-2 cursor-not-allowed">
-                  <i class="fa-solid fa-clock-rotate-left"></i> Đang xử lý hoàn trả
-                </button>
-            {% else %}
-                <button onclick="openReturnModal()" class="w-full sm:w-auto px-6 py-3.5 bg-black border border-black text-[10px] font-bold uppercase tracking-widest text-white hover:bg-neutral-800 transition-all rounded-sm flex items-center justify-center gap-2 active:scale-95">
-                  <i class="fa-solid fa-rotate-left"></i> Hoàn trả hàng
-                </button>
-            {% endif %}
-        {% endif %}
-      </div>
-    </div>
+    {# HERO #}
+    <section class="mb-6 overflow-hidden rounded-[34px] border border-[#eadfd4] bg-white shadow-[0_24px_80px_-62px_rgba(36,18,7,.7)]">
+      <div class="relative p-6 sm:p-8 lg:p-10">
+        <div class="pointer-events-none absolute right-0 top-0 h-44 w-44 rounded-full bg-[#b98b62]/10 blur-3xl"></div>
 
-    <div class="bg-white border border-neutral-200 p-6 md:p-10 mb-6 reveal rounded-sm relative overflow-hidden" style="animation-delay: 100ms;">
-      <div class="overflow-x-auto no-scrollbar pb-2 md:pb-0">
-        <div class="min-w-[600px] relative flex justify-between items-center">
-          {% set status_step = {'pending':0,'confirmed':1,'packed':2,'shipped':3,'delivered':4,'completed':4} %}
-          {% set cur_idx = status_step.get(order.status, 0) %}
-          
-          <div class="absolute top-5 left-5 w-[calc(100%-2.5rem)] h-0.5 bg-neutral-100 z-0">
-            <div class="h-full {{ current_status[2] }} transition-all duration-1000" style="width: {{ (cur_idx / 4 * 100) }}%;"></div>
-          </div>
-          
-          {% set steps = [('pending','Đặt hàng'),('confirmed','Xác nhận'),('packed','Đóng gói'),('shipped','Đang giao'),('delivered','Hoàn tất')] %}
-          {% for slug, label in steps %}
-            {% set i = loop.index0 %}
-            <div class="relative z-10 flex flex-col items-center gap-3 w-20">
-              <div class="w-10 h-10 rounded-sm flex items-center justify-center transition-all duration-500 border-2 bg-white
-                {% if i < cur_idx %} {{ current_status[2] }} border-transparent text-white
-                {% elif i == cur_idx %} {{ current_status[2].replace('bg-','border-') }} {{ current_status[2].replace('bg-','text-') }} shadow-[0_0_0_4px_rgba(0,0,0,0.03)]
-                {% else %} border-neutral-100 text-neutral-300 {% endif %}">
-                {% if i < cur_idx %}<i class="fa-solid fa-check text-xs"></i>{% else %}<span class="text-[10px] font-black">{{ i+1 }}</span>{% endif %}
-              </div>
-              <span class="text-[9px] font-bold uppercase tracking-widest text-center leading-tight {% if i <= cur_idx %} text-black {% else %} text-neutral-400 {% endif %}">
-                {{ label }}
+        <div class="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div class="min-w-0">
+            <div class="mb-4 flex flex-wrap items-center gap-2">
+              <span class="inline-flex rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-[.14em] {{ current_status[1] }}">
+                {{ current_status[0] }}
+              </span>
+
+              <span class="inline-flex rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-[.14em] {{ current_payment[1] }}">
+                {{ current_payment[0] }}
+              </span>
+
+              <span class="inline-flex rounded-full border border-[#eadfd4] bg-[#fffaf5] px-3 py-1 text-[9px] font-black uppercase tracking-[.14em] text-[#8a6a52]">
+                {{ payment_method or 'COD' }}
               </span>
             </div>
-          {% endfor %}
+
+            <p class="mb-3 text-[10px] font-black uppercase tracking-[.28em] text-[#b98b62]">
+              MMESTLINE Order
+            </p>
+
+            <h1 class="text-3xl font-black uppercase tracking-[-.05em] text-[#241207] sm:text-4xl lg:text-5xl">
+              Đơn hàng
+              <span class="text-[#b98b62]">#{{ order.id[:8].upper() }}</span>
+            </h1>
+
+            <p class="mt-3 flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-[.16em] text-[#8a6a52]">
+              <i class="fa-regular fa-calendar"></i>
+              {{ order.created_at[:16].replace('T', ' ') if order.created_at else 'Đang cập nhật' }}
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-3 sm:flex-row lg:shrink-0">
+            {% if payment_method == 'SEPAY' and payment_status != 'paid' %}
+              <a
+                href="{{ url_for('cart.sepay_qr', order_id=order.id) }}"
+                class="inline-flex h-12 items-center justify-center rounded-2xl border border-[#eadfd4] bg-[#fffaf5] px-5 text-[10px] font-black uppercase tracking-[.16em] text-[#75543f] transition hover:border-[#241207] hover:text-[#241207]"
+              >
+                <i class="fa-solid fa-qrcode mr-2"></i>
+                Xem QR SePay
+              </a>
+            {% endif %}
+
+            <button
+              type="button"
+              onclick="window.print()"
+              class="inline-flex h-12 items-center justify-center rounded-2xl border border-[#eadfd4] bg-white px-5 text-[10px] font-black uppercase tracking-[.16em] text-[#75543f] transition hover:border-[#241207] hover:text-[#241207]"
+            >
+              <i class="fa-solid fa-print mr-2"></i>
+              In hóa đơn
+            </button>
+
+            {% if order_status in ['delivered', 'completed'] %}
+              {% if is_return_requested %}
+                <button
+                  type="button"
+                  disabled
+                  class="inline-flex h-12 items-center justify-center rounded-2xl bg-[#f4ece5] px-5 text-[10px] font-black uppercase tracking-[.16em] text-[#b7a191] cursor-not-allowed"
+                >
+                  <i class="fa-solid fa-clock-rotate-left mr-2"></i>
+                  Đang xử lý hoàn trả
+                </button>
+              {% else %}
+                <button
+                  type="button"
+                  onclick="openReturnModal()"
+                  class="inline-flex h-12 items-center justify-center rounded-2xl bg-[#241207] px-5 text-[10px] font-black uppercase tracking-[.16em] text-white transition hover:bg-[#3b2414] active:scale-[.98]"
+                >
+                  <i class="fa-solid fa-rotate-left mr-2"></i>
+                  Hoàn trả hàng
+                </button>
+              {% endif %}
+            {% endif %}
+          </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 reveal" style="animation-delay: 200ms;">
-      
-      <div class="bg-white border border-neutral-200 p-6 md:p-8 rounded-sm flex flex-col h-full">
-        <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-6 flex items-center gap-2">
-          <i class="fa-solid fa-map-pin"></i> Địa chỉ giao hàng
-        </h3>
-        {% if order.shipping_address %}
-        <div class="space-y-1 mt-auto">
-          <p class="text-sm font-black text-black uppercase">{{ order.shipping_address.get('full_name','') }}</p>
-          <p class="text-[11px] font-bold text-neutral-500 tracking-widest">{{ order.shipping_address.get('phone','') }}</p>
-          <div class="h-px w-full bg-neutral-100 my-4"></div>
-          <p class="text-xs font-medium text-neutral-600 leading-relaxed uppercase tracking-tight">
-            {{ order.shipping_address.get('address','') }}<br>
-            {{ order.shipping_address.get('district','') }}, {{ order.shipping_address.get('city','') }}
+    {# STATUS TIMELINE #}
+    <section class="mb-6 rounded-[30px] border border-[#eadfd4] bg-white p-5 shadow-[0_18px_60px_-54px_rgba(36,18,7,.55)] sm:p-7">
+      <div class="mb-5 flex items-center justify-between gap-4">
+        <div>
+          <p class="text-[10px] font-black uppercase tracking-[.22em] text-[#b98b62]">
+            Tiến độ xử lý
+          </p>
+          <p class="mt-1 text-xs font-semibold text-[#8a6a52]">
+            Trạng thái sẽ được cập nhật khi đơn hàng chuyển bước.
           </p>
         </div>
-        {% else %}
-        <div class="mt-auto py-4">
-          <p class="text-xs font-black text-neutral-400 italic">GIAO DỊCH TẠI QUẦY (POS)</p>
-        </div>
-        {% endif %}
       </div>
 
-      <div class="bg-white border border-neutral-200 p-6 md:p-8 rounded-sm flex flex-col h-full">
-        <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-6 flex items-center gap-2">
-          <i class="fa-solid fa-credit-card"></i> Thanh toán
-        </h3>
-        <div class="space-y-3 mt-auto">
-          <div class="flex justify-between items-center pb-3 border-b border-neutral-50">
-            <span class="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Phương thức</span>
-            <span class="text-[10px] font-black text-black uppercase tracking-widest">{{ order.payment_method }}</span>
+      <div class="no-scrollbar overflow-x-auto pb-2">
+        <div class="relative min-w-[680px]">
+          {% set status_step = {'pending':0,'confirmed':1,'packed':2,'shipped':3,'shipping':3,'delivered':4,'completed':4} %}
+          {% set cur_idx = status_step.get(order_status, 0) %}
+          {% set steps = [('pending','Đặt hàng'),('confirmed','Xác nhận'),('packed','Đóng gói'),('shipped','Đang giao'),('delivered','Hoàn tất')] %}
+
+          <div class="absolute left-8 right-8 top-5 h-1 rounded-full bg-[#f4ece5]">
+            <div
+              class="h-full rounded-full {{ current_status[2] }} transition-all duration-700"
+              style="width: {{ (cur_idx / 4 * 100) }}%;"
+            ></div>
           </div>
-          <div class="flex justify-between items-center pb-3 border-b border-neutral-50">
-            <span class="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Trạng thái</span>
-            <span class="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-sm border {% if order.payment_status == 'paid' %}bg-emerald-50 text-emerald-600 border-emerald-200{% else %}bg-amber-50 text-amber-600 border-amber-200{% endif %}">
-              {{ 'Đã thanh toán' if order.payment_status == 'paid' else 'Chờ thanh toán' }}
+
+          <div class="relative z-10 flex justify-between">
+            {% for slug, label in steps %}
+              {% set i = loop.index0 %}
+              <div class="flex w-24 flex-col items-center gap-3 text-center">
+                <div class="flex h-11 w-11 items-center justify-center rounded-2xl border-2 bg-white transition-all
+                  {% if i < cur_idx %}
+                    {{ current_status[2] }} border-transparent text-white
+                  {% elif i == cur_idx %}
+                    border-[#241207] text-[#241207] shadow-[0_0_0_6px_rgba(185,139,98,.12)]
+                  {% else %}
+                    border-[#eadfd4] text-[#b7a191]
+                  {% endif %}
+                ">
+                  {% if i < cur_idx %}
+                    <i class="fa-solid fa-check text-xs"></i>
+                  {% else %}
+                    <span class="text-[11px] font-black">{{ i + 1 }}</span>
+                  {% endif %}
+                </div>
+
+                <span class="text-[9px] font-black uppercase tracking-[.14em] leading-tight {% if i <= cur_idx %}text-[#241207]{% else %}text-[#b7a191]{% endif %}">
+                  {{ label }}
+                </span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {# INFO GRID #}
+    <div class="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <section class="rounded-[30px] border border-[#eadfd4] bg-white p-6 shadow-[0_18px_60px_-54px_rgba(36,18,7,.55)] sm:p-7">
+        <h2 class="mb-6 flex items-center gap-3 text-[10px] font-black uppercase tracking-[.22em] text-[#b98b62]">
+          <span class="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#fffaf5] text-[#5f3b1e]">
+            <i class="fa-solid fa-map-location-dot"></i>
+          </span>
+          Địa chỉ giao hàng
+        </h2>
+
+        {% if shipping_address %}
+          <div class="space-y-3">
+            <p class="text-base font-black uppercase text-[#241207]">
+              {{ shipping_address.get('full_name', '') }}
+            </p>
+
+            <p class="text-xs font-black uppercase tracking-[.16em] text-[#8a6a52]">
+              {{ shipping_address.get('phone', '') }}
+            </p>
+
+            <div class="h-px bg-[#eadfd4]"></div>
+
+            <p class="text-sm font-semibold leading-7 text-[#75543f]">
+              {{ shipping_address.get('address', '') }}<br>
+              {{ shipping_address.get('ward', '') }}{% if shipping_address.get('ward') %}, {% endif %}
+              {{ shipping_address.get('district', '') }}{% if shipping_address.get('district') %}, {% endif %}
+              {{ shipping_address.get('city', '') }}
+            </p>
+          </div>
+        {% else %}
+          <div class="rounded-[24px] border border-dashed border-[#eadfd4] bg-[#fffaf5] p-5">
+            <p class="text-xs font-black uppercase tracking-[.16em] text-[#8a6a52]">
+              Giao dịch tại quầy / POS
+            </p>
+          </div>
+        {% endif %}
+      </section>
+
+      <section class="rounded-[30px] border border-[#eadfd4] bg-white p-6 shadow-[0_18px_60px_-54px_rgba(36,18,7,.55)] sm:p-7">
+        <h2 class="mb-6 flex items-center gap-3 text-[10px] font-black uppercase tracking-[.22em] text-[#b98b62]">
+          <span class="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#fffaf5] text-[#5f3b1e]">
+            <i class="fa-solid fa-credit-card"></i>
+          </span>
+          Thanh toán
+        </h2>
+
+        <div class="space-y-4">
+          <div class="flex items-center justify-between gap-4 border-b border-[#eadfd4] pb-4">
+            <span class="text-[10px] font-black uppercase tracking-[.18em] text-[#8a6a52]">Phương thức</span>
+            <span class="text-[10px] font-black uppercase tracking-[.18em] text-[#241207]">{{ payment_method }}</span>
+          </div>
+
+          <div class="flex items-center justify-between gap-4 border-b border-[#eadfd4] pb-4">
+            <span class="text-[10px] font-black uppercase tracking-[.18em] text-[#8a6a52]">Trạng thái</span>
+            <span class="rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-[.14em] {{ current_payment[1] }}">
+              {{ current_payment[0] }}
             </span>
           </div>
-          <div class="flex justify-between items-end pt-3">
-            <span class="text-[10px] font-black text-black uppercase tracking-widest">Tổng cộng</span>
-            <span class="text-2xl font-black tracking-tighter text-black tabular-nums">{{ '{:,.0f}'.format(order.total_amount) }} ₫</span>
+
+          {% if order.transaction_id %}
+            <div class="flex items-center justify-between gap-4 border-b border-[#eadfd4] pb-4">
+              <span class="text-[10px] font-black uppercase tracking-[.18em] text-[#8a6a52]">Mã giao dịch</span>
+              <span class="max-w-[180px] truncate text-right text-[10px] font-black text-[#241207]">
+                {{ order.transaction_id }}
+              </span>
+            </div>
+          {% endif %}
+
+          <div class="flex items-end justify-between gap-4 pt-1">
+            <span class="text-[10px] font-black uppercase tracking-[.18em] text-[#241207]">Tổng cộng</span>
+            <span class="text-2xl font-black tracking-[-.04em] text-[#241207]">
+              {{ "{:,.0f}".format(order.total_amount or 0) }} ₫
+            </span>
           </div>
         </div>
-      </div>
+      </section>
     </div>
 
-    <div class="bg-white border border-neutral-200 overflow-hidden reveal rounded-sm mb-6" style="animation-delay: 300ms;">
-      <div class="px-5 md:px-8 py-4 border-b border-neutral-100 flex justify-between items-center bg-[#fafafa]">
-        <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-black">Sản phẩm đã đặt ({{ order.order_items|length }})</h3>
+    {# PRODUCTS #}
+    <section class="mb-6 overflow-hidden rounded-[30px] border border-[#eadfd4] bg-white shadow-[0_18px_60px_-54px_rgba(36,18,7,.55)]">
+      <div class="flex items-center justify-between border-b border-[#eadfd4] bg-[#fffaf5] px-5 py-4 sm:px-7">
+        <h2 class="text-[10px] font-black uppercase tracking-[.22em] text-[#241207]">
+          Sản phẩm đã đặt
+          <span class="text-[#b98b62]">({{ order_items|length }})</span>
+        </h2>
       </div>
-      
-      <div class="divide-y divide-neutral-100">
-        {% for item in order.order_items %}
-        <div class="p-5 md:p-8 flex flex-col sm:flex-row sm:items-center gap-4 md:gap-6 hover:bg-[#fafafa] transition-colors group">
-          
-          <div class="flex gap-4 flex-1 min-w-0">
-            <div class="w-16 h-20 sm:w-20 sm:h-24 bg-[#f8f8f8] border border-neutral-200 overflow-hidden flex-shrink-0 rounded-sm">
-              <img src="{{ item.products.thumbnail_url or 'https://placehold.co/300x400' }}" class="w-full h-full object-cover object-top mix-blend-multiply group-hover:scale-105 transition-transform duration-700" loading="lazy"/>
-            </div>
-            
-            <div class="flex-1 min-w-0 flex flex-col justify-center">
-              <a href="/product/{{ item.products.slug or item.products.id }}" class="text-xs sm:text-sm font-black text-black uppercase hover:text-neutral-500 transition-colors block mb-2 line-clamp-2">
-                {{ item.products.name }}
-              </a>
-              <div class="flex flex-wrap items-center gap-3">
-                {% if item.size %}
-                  <span class="text-[9px] font-bold text-black border border-neutral-200 px-2 py-0.5 rounded-sm bg-white uppercase">Size {{ item.size }}</span>
-                {% endif %}
-                <span class="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">SL: {{ item.quantity }}</span>
+
+      <div class="divide-y divide-[#eadfd4]">
+        {% for item in order_items %}
+          {% set product = item.products if item.products is defined else item.get('products', {}) %}
+          {% set product_name = product.name if product.name is defined else product.get('name', item.get('product_name', 'Sản phẩm')) %}
+          {% set product_slug = product.slug if product.slug is defined else product.get('slug') %}
+          {% set product_id = product.id if product.id is defined else product.get('id') %}
+          {% set thumbnail = product.thumbnail_url if product.thumbnail_url is defined else product.get('thumbnail_url') %}
+          {% set quantity = item.quantity if item.quantity is defined else item.get('quantity', 1) %}
+          {% set unit_price = item.unit_price if item.unit_price is defined else item.get('unit_price', 0) %}
+          {% set variant_label = item.variant_label if item.variant_label is defined else item.get('variant_label') %}
+
+          <article class="group flex flex-col gap-4 p-5 transition hover:bg-[#fffaf5] sm:flex-row sm:items-center sm:p-7">
+            <div class="flex min-w-0 flex-1 gap-4">
+              <div class="h-24 w-20 shrink-0 overflow-hidden rounded-[22px] border border-[#eadfd4] bg-[#fffaf5] sm:h-28 sm:w-24">
+                <img
+                  src="{{ thumbnail or 'https://placehold.co/300x400/fbf7f1/8a6a52?text=MM' }}"
+                  alt="{{ product_name }}"
+                  class="h-full w-full object-cover object-top transition duration-700 group-hover:scale-105"
+                  loading="lazy"
+                  onerror="this.src='https://placehold.co/300x400/fbf7f1/8a6a52?text=MM'"
+                >
+              </div>
+
+              <div class="flex min-w-0 flex-col justify-center">
+                <a
+                  href="/product/{{ product_slug or product_id }}"
+                  class="line-clamp-2 text-sm font-black uppercase leading-snug text-[#241207] transition hover:text-[#b98b62]"
+                >
+                  {{ product_name }}
+                </a>
+
+                <div class="mt-3 flex flex-wrap gap-2">
+                  {% if variant_label %}
+                    <span class="rounded-full border border-[#eadfd4] bg-white px-3 py-1 text-[9px] font-black uppercase tracking-[.14em] text-[#8a6a52]">
+                      {{ variant_label }}
+                    </span>
+                  {% endif %}
+
+                  <span class="rounded-full border border-[#eadfd4] bg-white px-3 py-1 text-[9px] font-black uppercase tracking-[.14em] text-[#8a6a52]">
+                    SL: {{ quantity }}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-          
-          <div class="text-left sm:text-right flex-shrink-0 pt-2 sm:pt-0 border-t border-neutral-100 sm:border-0 w-full sm:w-auto">
-            <p class="text-sm sm:text-base font-black text-black tabular-nums">{{ '{:,.0f}'.format(item.unit_price * item.quantity) }} ₫</p>
-            <p class="text-[9px] font-bold text-neutral-400 mt-1 uppercase tracking-widest">{{ '{:,.0f}'.format(item.unit_price) }} ₫ / SP</p>
-          </div>
-        </div>
+
+            <div class="border-t border-[#eadfd4] pt-4 text-left sm:w-44 sm:border-t-0 sm:pt-0 sm:text-right">
+              <p class="text-base font-black text-[#241207]">
+                {{ "{:,.0f}".format((unit_price or 0) * (quantity or 1)) }} ₫
+              </p>
+              <p class="mt-1 text-[9px] font-black uppercase tracking-[.16em] text-[#b7a191]">
+                {{ "{:,.0f}".format(unit_price or 0) }} ₫ / SP
+              </p>
+            </div>
+          </article>
         {% endfor %}
       </div>
-    </div>
+    </section>
 
-    {% if order.is_return_requested and order.return_request %}
-    <div class="bg-black text-white p-6 md:p-8 rounded-sm reveal" style="animation-delay: 400ms;">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-white/10 pb-6">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 bg-white/10 flex items-center justify-center rounded-sm"><i class="fa-solid fa-clock-rotate-left"></i></div>
-          <div>
-            <h3 class="text-[11px] font-black uppercase tracking-[0.25em]">Tiến độ đổi/trả hàng</h3>
-            <p class="text-[9px] text-neutral-400 mt-1 uppercase tracking-widest">{{ order.return_request.requested_at[:16].replace('T',' ') }}</p>
+    {# TOTAL SUMMARY #}
+    <section class="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div class="rounded-[30px] border border-[#eadfd4] bg-white p-6 shadow-[0_18px_60px_-54px_rgba(36,18,7,.55)] sm:p-7">
+        <h2 class="mb-5 text-[10px] font-black uppercase tracking-[.22em] text-[#b98b62]">
+          Ghi chú đơn hàng
+        </h2>
+
+        <p class="rounded-[24px] bg-[#fffaf5] p-5 text-sm font-semibold leading-7 text-[#75543f]">
+          {{ order.order_notes or 'Không có ghi chú.' }}
+        </p>
+      </div>
+
+      <div class="rounded-[30px] border border-[#eadfd4] bg-[#241207] p-6 text-white shadow-[0_18px_60px_-54px_rgba(36,18,7,.75)] sm:p-7">
+        <h2 class="mb-5 text-[10px] font-black uppercase tracking-[.22em] text-[#b98b62]">
+          Tổng kết thanh toán
+        </h2>
+
+        <div class="space-y-4">
+          <div class="flex justify-between text-xs font-semibold text-white/65">
+            <span>Tạm tính</span>
+            <span>{{ "{:,.0f}".format(subtotal if subtotal > 0 else 0) }} ₫</span>
+          </div>
+
+          {% if order.discount_amount and order.discount_amount > 0 %}
+            <div class="flex justify-between text-xs font-semibold text-emerald-300">
+              <span>Giảm giá</span>
+              <span>-{{ "{:,.0f}".format(order.discount_amount) }} ₫</span>
+            </div>
+          {% endif %}
+
+          <div class="flex justify-between text-xs font-semibold text-white/65">
+            <span>Phí vận chuyển</span>
+            <span>{{ "{:,.0f}".format(order.shipping_fee or 0) }} ₫</span>
+          </div>
+
+          <div class="flex items-end justify-between border-t border-white/10 pt-5">
+            <span class="text-[10px] font-black uppercase tracking-[.18em]">Tổng cộng</span>
+            <span class="text-3xl font-black tracking-[-.05em]">
+              {{ "{:,.0f}".format(order.total_amount or 0) }} ₫
+            </span>
           </div>
         </div>
-        {% set rr_st = order.return_request.status %}
-        <span class="px-3 py-1.5 rounded-sm text-[9px] font-black uppercase tracking-widest border w-max
-          {% if rr_st == 'pending' %} border-amber-500 text-amber-500
-          {% elif rr_st == 'approved' %} border-blue-500 text-blue-500
-          {% elif rr_st == 'refunded' %} border-emerald-500 text-emerald-500
-          {% else %} border-neutral-600 text-neutral-400 {% endif %}">
-          {{ {'pending':'Đang chờ duyệt','approved':'Đã duyệt - Chờ nhận hàng','refunded':'Đã hoàn tiền','rejected':'Bị từ chối'}.get(rr_st, rr_st) }}
-        </span>
       </div>
-      
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div class="md:col-span-1">
-           <p class="text-[9px] font-black uppercase text-neutral-500 mb-2 tracking-widest">Minh chứng</p>
-           <div class="w-full aspect-square bg-white/5 border border-white/10 rounded-sm overflow-hidden">
-              <img src="{{ order.return_request.image_url }}" class="w-full h-full object-cover">
-           </div>
+    </section>
+
+    {# RETURN REQUEST #}
+    {% if is_return_requested and return_request %}
+      <section class="rounded-[30px] border border-[#eadfd4] bg-white p-6 shadow-[0_18px_60px_-54px_rgba(36,18,7,.55)] sm:p-7">
+        <div class="mb-6 flex flex-col gap-4 border-b border-[#eadfd4] pb-6 sm:flex-row sm:items-center sm:justify-between">
+          <div class="flex items-center gap-3">
+            <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#241207] text-white">
+              <i class="fa-solid fa-clock-rotate-left"></i>
+            </span>
+
+            <div>
+              <h2 class="text-[11px] font-black uppercase tracking-[.22em] text-[#241207]">
+                Tiến độ đổi/trả hàng
+              </h2>
+              <p class="mt-1 text-[9px] font-black uppercase tracking-[.18em] text-[#b98b62]">
+                {{ return_request.requested_at[:16].replace('T',' ') if return_request.requested_at else '' }}
+              </p>
+            </div>
+          </div>
+
+          {% set rr_st = return_request.status %}
+          <span class="w-max rounded-full border px-3 py-1.5 text-[9px] font-black uppercase tracking-[.14em]
+            {% if rr_st == 'pending' %} border-amber-200 bg-amber-50 text-amber-700
+            {% elif rr_st == 'approved' %} border-blue-200 bg-blue-50 text-blue-700
+            {% elif rr_st == 'refunded' %} border-emerald-200 bg-emerald-50 text-emerald-700
+            {% elif rr_st == 'rejected' %} border-red-200 bg-red-50 text-red-700
+            {% else %} border-[#eadfd4] bg-[#fffaf5] text-[#8a6a52] {% endif %}">
+            {{ {'pending':'Đang chờ duyệt','approved':'Đã duyệt','refunded':'Đã hoàn tiền','rejected':'Bị từ chối'}.get(rr_st, rr_st) }}
+          </span>
         </div>
-        <div class="md:col-span-3 flex flex-col justify-center">
-           <p class="text-[9px] font-black uppercase text-neutral-500 mb-2 tracking-widest">Lý do từ bạn</p>
-           <div class="p-4 md:p-5 bg-white/5 border border-white/10 rounded-sm italic text-xs leading-relaxed text-neutral-300">
-             "{{ order.return_request.reason }}"
-           </div>
-           {% if order.return_request.admin_note %}
-           <p class="text-[9px] font-black uppercase text-emerald-500 mt-4 mb-2 tracking-widest">Phản hồi từ GUA</p>
-           <div class="p-4 md:p-5 bg-emerald-500/10 border border-emerald-500/20 rounded-sm text-emerald-400 text-xs leading-relaxed">
-             {{ order.return_request.admin_note }}
-           </div>
-           {% endif %}
+
+        <div class="grid grid-cols-1 gap-6 md:grid-cols-4">
+          <div class="md:col-span-1">
+            <p class="mb-2 text-[9px] font-black uppercase tracking-[.18em] text-[#b98b62]">Minh chứng</p>
+            <div class="aspect-square overflow-hidden rounded-[24px] border border-[#eadfd4] bg-[#fffaf5]">
+              <img src="{{ return_request.image_url }}" alt="Ảnh minh chứng" class="h-full w-full object-cover">
+            </div>
+          </div>
+
+          <div class="md:col-span-3">
+            <p class="mb-2 text-[9px] font-black uppercase tracking-[.18em] text-[#b98b62]">Lý do từ bạn</p>
+            <div class="rounded-[24px] border border-[#eadfd4] bg-[#fffaf5] p-5 text-sm font-semibold italic leading-7 text-[#75543f]">
+              “{{ return_request.reason }}”
+            </div>
+
+            {% if return_request.admin_note %}
+              <p class="mb-2 mt-5 text-[9px] font-black uppercase tracking-[.18em] text-emerald-700">Phản hồi từ MMESTLINE</p>
+              <div class="rounded-[24px] border border-emerald-200 bg-emerald-50 p-5 text-sm font-semibold leading-7 text-emerald-800">
+                {{ return_request.admin_note }}
+              </div>
+            {% endif %}
+          </div>
         </div>
-      </div>
-    </div>
+      </section>
     {% endif %}
 
   </div>
 </div>
 
-<div id="returnModal" class="fixed inset-0 z-[300] hidden items-end sm:items-center justify-center p-0 sm:p-4">
-  <div class="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity" onclick="closeReturnModal()"></div>
-  <div class="relative bg-white w-full max-w-lg p-6 sm:p-10 rounded-t-2xl sm:rounded-sm shadow-2xl transform translate-y-full sm:translate-y-0 sm:scale-95 transition-transform duration-300 overflow-y-auto max-h-[90vh]">
-    
-    <button onclick="closeReturnModal()" class="absolute top-4 right-4 sm:top-6 sm:right-6 text-neutral-400 hover:text-black transition-colors w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center bg-neutral-100 hover:bg-neutral-200 rounded-sm"><i class="fa-solid fa-xmark text-lg"></i></button>
-    
-    <div class="flex items-center gap-3 mb-2 mt-2 sm:mt-0">
-      <div class="w-8 h-8 sm:w-10 sm:h-10 bg-black text-white flex items-center justify-center rounded-sm shadow-md"><i class="fa-solid fa-box-open"></i></div>
-      <h2 class="text-xl sm:text-2xl font-black uppercase tracking-tighter text-black">Yêu cầu hoàn trả</h2>
-    </div>
-    <p class="text-[9px] sm:text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-6 sm:mb-8 border-b border-neutral-100 pb-4">GUA sẽ phản hồi trong vòng 24h làm việc</p>
+{# RETURN MODAL #}
+<div id="returnModal" class="fixed inset-0 z-[9990] hidden items-end justify-center p-0 sm:items-center sm:p-4">
+  <div class="absolute inset-0 bg-[#241207]/70 backdrop-blur-md" onclick="closeReturnModal()"></div>
 
-    <form action="{{ url_for('profile.request_return', order_id=order.id) }}" method="POST" enctype="multipart/form-data" class="space-y-6 sm:space-y-8">
+  <div
+    id="returnPanel"
+    class="relative z-[9991] max-h-[92dvh] w-full max-w-xl translate-y-full overflow-y-auto rounded-t-[30px] border border-[#eadfd4] bg-[#fffaf5] p-6 shadow-[0_34px_100px_-58px_rgba(36,18,7,.9)] transition-transform duration-300 sm:translate-y-0 sm:scale-95 sm:rounded-[30px] sm:p-8"
+  >
+    <button
+      type="button"
+      onclick="closeReturnModal()"
+      class="absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-2xl border border-[#eadfd4] bg-white text-[#8a6a52] transition hover:bg-[#241207] hover:text-white"
+      aria-label="Đóng"
+    >
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+
+    <div class="mb-7 pr-12">
+      <p class="mb-3 text-[10px] font-black uppercase tracking-[.26em] text-[#b98b62]">
+        Return Request
+      </p>
+      <h2 class="text-2xl font-black uppercase tracking-[-.04em] text-[#241207]">
+        Yêu cầu hoàn trả
+      </h2>
+      <p class="mt-3 text-xs font-semibold leading-6 text-[#8a6a52]">
+        MMESTLINE sẽ phản hồi yêu cầu của bạn trong vòng 24 giờ làm việc.
+      </p>
+    </div>
+
+    <form action="{{ url_for('profile.request_return', order_id=order.id) }}" method="POST" enctype="multipart/form-data" class="space-y-6">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      
+
       <div>
-        <label class="text-[10px] font-black uppercase tracking-widest text-black block mb-3">1. Lý do hoàn trả <span class="text-red-500">*</span></label>
-        <textarea name="reason" required rows="3" placeholder="Sản phẩm bị lỗi, sai màu, không vừa kích thước..."
-          class="w-full bg-[#f8f8f8] border border-neutral-200 rounded-sm p-4 text-xs font-medium focus:border-black outline-none transition-all resize-none"></textarea>
+        <label class="mb-2 block text-[10px] font-black uppercase tracking-[.18em] text-[#5f3b1e]">
+          Lý do hoàn trả <span class="text-red-500">*</span>
+        </label>
+        <textarea
+          name="reason"
+          required
+          rows="4"
+          placeholder="Sản phẩm bị lỗi, sai màu, không vừa kích thước..."
+          class="w-full resize-none rounded-[22px] border border-[#eadfd4] bg-white p-4 text-sm font-semibold text-[#241207] outline-none transition placeholder:text-[#b7a191] focus:border-[#241207] focus:ring-4 focus:ring-[#b98b62]/10"
+        ></textarea>
       </div>
 
       <div>
-        <label class="text-[10px] font-black uppercase tracking-widest text-black block mb-3">2. Hình ảnh minh chứng <span class="text-red-500">*</span></label>
-        <div class="relative border-2 border-dashed border-neutral-200 rounded-sm p-6 sm:p-10 text-center hover:bg-neutral-50 hover:border-black transition-all cursor-pointer group bg-white">
-          <input type="file" name="image" required accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer z-20" onchange="previewImg(this)">
-          
-          <div id="upload-placeholder" class="transition-transform duration-300 group-hover:scale-105">
-            <div class="w-12 h-12 sm:w-14 sm:h-14 bg-neutral-100 rounded-sm flex items-center justify-center mx-auto mb-3 text-neutral-400 group-hover:bg-black group-hover:text-white transition-colors">
+        <label class="mb-2 block text-[10px] font-black uppercase tracking-[.18em] text-[#5f3b1e]">
+          Hình ảnh minh chứng <span class="text-red-500">*</span>
+        </label>
+
+        <div class="group relative cursor-pointer rounded-[24px] border-2 border-dashed border-[#eadfd4] bg-white p-6 text-center transition hover:border-[#241207] hover:bg-[#fffaf5]">
+          <input
+            type="file"
+            name="image"
+            required
+            accept="image/*"
+            class="absolute inset-0 z-20 cursor-pointer opacity-0"
+            onchange="previewImg(this)"
+          >
+
+          <div id="upload-placeholder">
+            <div class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-[22px] bg-[#fffaf5] text-[#b98b62] transition group-hover:bg-[#241207] group-hover:text-white">
               <i class="fa-solid fa-camera text-xl"></i>
             </div>
-            <p class="text-[10px] font-black text-black uppercase tracking-widest mb-1">Tải ảnh lên</p>
-            <p class="text-[8px] sm:text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Hỗ trợ JPG, PNG (Max 5MB)</p>
+            <p class="text-[10px] font-black uppercase tracking-[.18em] text-[#241207]">Tải ảnh lên</p>
+            <p class="mt-1 text-[9px] font-bold uppercase tracking-[.16em] text-[#b7a191]">JPG, PNG, WEBP</p>
           </div>
-          
-          <div id="preview-container" class="hidden relative z-10">
-            <img id="preview" class="w-full h-40 sm:h-48 object-cover rounded-sm border border-neutral-200">
-            <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-sm">
-               <span class="text-white text-[9px] font-black uppercase tracking-widest border border-white px-3 py-1.5">Đổi ảnh khác</span>
-            </div>
+
+          <div id="preview-container" class="hidden">
+            <img id="preview" class="h-48 w-full rounded-[20px] border border-[#eadfd4] object-cover">
           </div>
         </div>
       </div>
 
-      <button type="submit" class="w-full bg-black text-white py-4 sm:py-5 text-[11px] font-black uppercase tracking-[0.2em] hover:bg-neutral-800 transition-all rounded-sm shadow-xl active:scale-[0.98]">
+      <button
+        type="submit"
+        class="flex h-13 w-full items-center justify-center rounded-2xl bg-[#241207] px-6 py-4 text-[11px] font-black uppercase tracking-[.18em] text-white transition hover:bg-[#3b2414] active:scale-[.98]"
+      >
         Xác nhận gửi yêu cầu
       </button>
     </form>
@@ -269,65 +515,77 @@
 </div>
 
 <style>
-  @media print {
-    body { background-color: white !important; }
-    nav, footer, button, .reveal > a, .no-print { display: none !important; }
-    .reveal { animation: none !important; opacity: 1 !important; transform: none !important; }
-  }
-  .reveal { opacity: 0; animation: revealUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-  @keyframes revealUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
   .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  @media print {
+    nav, footer, button, #returnModal, .no-print { display: none !important; }
+    body { background: white !important; }
+    * { box-shadow: none !important; }
+  }
 </style>
 
 <script>
-  function openReturnModal() {
-    const m = document.getElementById('returnModal');
-    const inner = m.querySelector('.relative');
-    m.classList.remove('hidden'); m.classList.add('flex');
-    document.body.style.overflow = 'hidden';
-    
-    // Animation trượt lên cho Mobile, Phóng to cho Desktop
-    setTimeout(() => {
-      if(window.innerWidth < 640) {
-        inner.classList.remove('translate-y-full');
+(function () {
+  const modal = document.getElementById("returnModal");
+  const panel = document.getElementById("returnPanel");
+
+  window.openReturnModal = function () {
+    if (!modal || !panel) return;
+
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+    document.body.style.overflow = "hidden";
+
+    requestAnimationFrame(() => {
+      if (window.innerWidth < 640) {
+        panel.classList.remove("translate-y-full");
       } else {
-        inner.classList.remove('scale-95');
+        panel.classList.remove("scale-95");
       }
-    }, 10);
-  }
+    });
+  };
 
-  function closeReturnModal() {
-    const m = document.getElementById('returnModal');
-    const inner = m.querySelector('.relative');
-    
-    if(window.innerWidth < 640) {
-      inner.classList.add('translate-y-full');
+  window.closeReturnModal = function () {
+    if (!modal || !panel) return;
+
+    if (window.innerWidth < 640) {
+      panel.classList.add("translate-y-full");
     } else {
-      inner.classList.add('scale-95');
+      panel.classList.add("scale-95");
     }
-    
-    setTimeout(() => { 
-      m.classList.add('hidden'); m.classList.remove('flex'); 
-      document.body.style.overflow = ''; 
-    }, 300);
-  }
 
-  function previewImg(input) {
-    if (input.files && input.files[0]) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        document.getElementById('upload-placeholder').classList.add('hidden');
-        const container = document.getElementById('preview-container');
-        const preview = document.getElementById('preview');
-        preview.src = e.target.result;
-        container.classList.remove('hidden');
-      };
-      reader.readAsDataURL(input.files[0]);
+    setTimeout(() => {
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+      document.body.style.overflow = "";
+    }, 260);
+  };
+
+  window.previewImg = function (input) {
+    if (!input.files || !input.files[0]) return;
+
+    const file = input.files[0];
+    const reader = new FileReader();
+
+    reader.onload = function (event) {
+      const placeholder = document.getElementById("upload-placeholder");
+      const container = document.getElementById("preview-container");
+      const preview = document.getElementById("preview");
+
+      if (placeholder) placeholder.classList.add("hidden");
+      if (container) container.classList.remove("hidden");
+      if (preview) preview.src = event.target.result;
+    };
+
+    reader.readAsDataURL(file);
+  };
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") {
+      window.closeReturnModal();
     }
-  }
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeReturnModal();
   });
+})();
 </script>
 {% endblock %}

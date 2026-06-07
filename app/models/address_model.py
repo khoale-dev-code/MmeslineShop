@@ -1,151 +1,393 @@
 """
 app/models/address_model.py
 ============================
-Quản lý sổ địa chỉ của khách hàng và đồng bộ số điện thoại cá nhân.
+Quản lý sổ địa chỉ khách hàng.
 
-CHANGELOG (Tối ưu hóa Lazy Initialization & Khắc phục RLS đồng bộ SĐT):
-- Giữ nguyên cấu trúc Lazy Initialization sạch sẽ bên trong từng hàm.
-- Tích hợp thêm _db_admin() (get_supabase_admin) để bảo đảm việc đồng bộ SĐT sang bảng `users` 
-  luôn thành công 100%, bypass bẫy chặn ghi dữ liệu RLS của Supabase.
-- Thêm bảo vệ kiểm tra dữ liệu trả về trước khi xử lý mảng.
+Fix:
+- Dùng Supabase Admin client để tránh RLS.
+- Insert đúng schema tối thiểu của bảng user_addresses.
+- Không gửi các cột *_name / *_code nếu DB không có.
+- Không clear default trước khi insert thất bại.
+- Có create() alias cho controller mới.
 """
 
 import logging
-from app.utils.supabase_client import get_supabase, get_supabase_admin
+from typing import Any, Dict, List, Optional
+
+from app.utils.supabase_client import get_supabase_admin
 
 logger = logging.getLogger(__name__)
 
 
 class AddressModel:
+    TABLE = "user_addresses"
+    USER_TABLE = "users"
 
-    # ═══════════════════════════════════════════════════════════════
-    #  LAZY INITIALIZATION HELPERS
-    # ═══════════════════════════════════════════════════════════════
+    # Đây là schema an toàn nhất theo DB hiện tại của bạn.
+    SAFE_COLUMNS = {
+        "user_id",
+        "full_name",
+        "phone",
+        "province",
+        "district",
+        "ward",
+        "address_line",
+        "note",
+        "is_default",
+    }
+
+    EXTRA_COLUMNS = {
+        "province_name",
+        "district_name",
+        "ward_name",
+        "province_code",
+        "district_code",
+        "ward_code",
+    }
 
     @staticmethod
     def _db():
-        """Khởi tạo lười kết nối Client công khai (Đọc địa chỉ)"""
-        return get_supabase()
-
-    @staticmethod
-    def _db_admin():
-        """Khởi tạo lười kết nối Client Admin (Đồng bộ SĐT xuyên bảng users)"""
         return get_supabase_admin()
 
+    @staticmethod
+    def _safe_rows(result: Any) -> List[Dict[str, Any]]:
+        data = getattr(result, "data", None)
+        return data if isinstance(data, list) else []
+
+    @staticmethod
+    def _clean_value(value: Any) -> Any:
+        if isinstance(value, str):
+            value = value.strip()
+            if value.lower() in ("none", "null", "undefined", "nan"):
+                return ""
+        return value
+
+    @staticmethod
+    def _normalize_input(data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Nhận form/controller có thể gửi cả province_name hoặc province.
+        Nhưng output cuối cùng chỉ dùng cột thật trong DB: province/district/ward.
+        """
+        data = data or {}
+
+        province = (
+            data.get("province")
+            or data.get("province_name")
+            or data.get("hid-prov")
+            or ""
+        )
+
+        district = (
+            data.get("district")
+            or data.get("district_name")
+            or data.get("hid-dist")
+            or ""
+        )
+
+        ward = (
+            data.get("ward")
+            or data.get("ward_name")
+            or data.get("hid-ward")
+            or ""
+        )
+
+        payload = {
+            "user_id": AddressModel._clean_value(data.get("user_id")),
+            "full_name": AddressModel._clean_value(data.get("full_name")),
+            "phone": AddressModel._clean_value(data.get("phone")),
+            "province": AddressModel._clean_value(province),
+            "district": AddressModel._clean_value(district),
+            "ward": AddressModel._clean_value(ward),
+            "address_line": AddressModel._clean_value(data.get("address_line")),
+            "note": AddressModel._clean_value(data.get("note")) or "",
+            "is_default": bool(data.get("is_default")),
+        }
+
+        return {
+            key: value
+            for key, value in payload.items()
+            if key in AddressModel.SAFE_COLUMNS
+        }
+
+    @staticmethod
+    def _sync_user_phone(user_id: str, phone: Optional[str]) -> None:
+        phone = (phone or "").strip()
+        if not user_id or not phone:
+            return
+
+        try:
+            (
+                AddressModel._db()
+                .table(AddressModel.USER_TABLE)
+                .update({"phone": phone})
+                .eq("id", user_id)
+                .execute()
+            )
+        except Exception as e:
+            logger.warning("[AddressModel._sync_user_phone] Không đồng bộ được phone: %s", e)
+
     # ═══════════════════════════════════════════════════════════════
-    #  THAO TÁC ĐỌC DỮ LIỆU (READ)
+    # READ
     # ═══════════════════════════════════════════════════════════════
 
     @staticmethod
-    def get_user_addresses(user_id: str) -> list:
-        """Lấy danh sách địa chỉ của user, đưa địa chỉ mặc định lên đầu."""
-        db = AddressModel._db()
+    def get_user_addresses(user_id: str) -> List[Dict[str, Any]]:
+        if not user_id:
+            return []
+
         try:
-            result = db.table("user_addresses") \
-                       .select("*") \
-                       .eq("user_id", user_id) \
-                       .order("is_default", desc=True) \
-                       .execute()
-            return result.data if result.data else []
+            result = (
+                AddressModel._db()
+                .table(AddressModel.TABLE)
+                .select("*")
+                .eq("user_id", user_id)
+                .order("is_default", desc=True)
+                .order("created_at", desc=True)
+                .execute()
+            )
+            return AddressModel._safe_rows(result)
+
         except Exception as e:
-            logger.error(f"[AddressModel.get_user_addresses] Lỗi: {e}")
+            logger.error("[AddressModel.get_user_addresses] Lỗi: %s", e)
             return []
 
     @staticmethod
-    def get_default_address(user_id: str) -> dict | None:
-        """Lấy địa chỉ mặc định duy nhất của người dùng."""
-        db = AddressModel._db()
+    def get_default_address(user_id: str) -> Optional[Dict[str, Any]]:
+        if not user_id:
+            return None
+
         try:
-            result = db.table("user_addresses") \
-                       .select("*") \
-                       .eq("user_id", user_id) \
-                       .eq("is_default", True) \
-                       .limit(1) \
-                       .execute()
-            return result.data[0] if result.data else None
+            result = (
+                AddressModel._db()
+                .table(AddressModel.TABLE)
+                .select("*")
+                .eq("user_id", user_id)
+                .eq("is_default", True)
+                .limit(1)
+                .execute()
+            )
+            rows = AddressModel._safe_rows(result)
+            return rows[0] if rows else None
+
         except Exception as e:
-            logger.error(f"[AddressModel.get_default_address] Lỗi: {e}")
+            logger.error("[AddressModel.get_default_address] Lỗi: %s", e)
+            return None
+
+    @staticmethod
+    def get_by_id(user_id: str, address_id: str) -> Optional[Dict[str, Any]]:
+        if not user_id or not address_id:
+            return None
+
+        try:
+            result = (
+                AddressModel._db()
+                .table(AddressModel.TABLE)
+                .select("*")
+                .eq("user_id", user_id)
+                .eq("id", address_id)
+                .limit(1)
+                .execute()
+            )
+            rows = AddressModel._safe_rows(result)
+            return rows[0] if rows else None
+
+        except Exception as e:
+            logger.error("[AddressModel.get_by_id] Lỗi: %s", e)
             return None
 
     # ═══════════════════════════════════════════════════════════════
-    #  THAO TÁC GHI DỮ LIỆU (WRITE & SYNC XUYÊN BẢNG)
+    # CREATE
     # ═══════════════════════════════════════════════════════════════
 
     @staticmethod
-    def add_address(user_id: str, data: dict) -> dict:
-        """Thêm địa chỉ mới. Nếu là địa chỉ đầu tiên -> set làm mặc định và đồng bộ SĐT bằng Admin Quyền."""
-        db = AddressModel._db()
-        db_admin = AddressModel._db_admin()
+    def create(data: Dict[str, Any]) -> Dict[str, Any]:
+        user_id = (data or {}).get("user_id")
+        return AddressModel.add_address(user_id, data)
+
+    @staticmethod
+    def add_address(user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        if not user_id:
+            logger.error("[AddressModel.add_address] Thiếu user_id.")
+            return {}
+
         try:
-            current_addresses = AddressModel.get_user_addresses(user_id)
-            is_first = not current_addresses
-            
-            if is_first:
-                data["is_default"] = True
-                
-            data["user_id"] = user_id
-            result = db.table("user_addresses").insert(data).execute()
-            
-            if result.data:
-                new_address = result.data[0]
-                # ✅ ĐÃ SỬA: Đồng bộ SĐT an toàn qua bảng users bằng kênh admin nếu đây là địa chỉ đầu tiên
-                if is_first and new_address.get("phone"):
-                    db_admin.table("users").update({"phone": new_address["phone"]}).eq("id", user_id).execute()
-                return new_address
-            return {}
+            current = AddressModel.get_user_addresses(user_id)
+            is_first = len(current) == 0
+
+            payload = AddressModel._normalize_input(data)
+            payload["user_id"] = user_id
+            payload["is_default"] = bool(payload.get("is_default") or is_first)
+
+            logger.info("[AddressModel.add_address] Insert payload keys: %s", list(payload.keys()))
+
+            result = (
+                AddressModel._db()
+                .table(AddressModel.TABLE)
+                .insert(payload)
+                .execute()
+            )
+
+            rows = AddressModel._safe_rows(result)
+            if not rows:
+                logger.error("[AddressModel.add_address] Insert không trả data.")
+                return {}
+
+            new_address = rows[0]
+
+            # Chỉ sau khi insert thành công mới clear default cũ.
+            if new_address.get("is_default"):
+                AddressModel._clear_other_defaults(user_id, new_address.get("id"))
+                AddressModel._sync_user_phone(user_id, new_address.get("phone"))
+
+            return new_address
+
         except Exception as e:
-            logger.error(f"[AddressModel.add_address] Lỗi: {e}")
+            logger.error("[AddressModel.add_address] Lỗi: %s", e)
             return {}
+
+    # ═══════════════════════════════════════════════════════════════
+    # UPDATE / DEFAULT
+    # ═══════════════════════════════════════════════════════════════
+
+    @staticmethod
+    def _clear_other_defaults(user_id: str, keep_address_id: Optional[str] = None) -> bool:
+        if not user_id:
+            return False
+
+        try:
+            query = (
+                AddressModel._db()
+                .table(AddressModel.TABLE)
+                .update({"is_default": False})
+                .eq("user_id", user_id)
+            )
+
+            if keep_address_id:
+                query = query.neq("id", keep_address_id)
+
+            query.execute()
+            return True
+
+        except Exception as e:
+            logger.error("[AddressModel._clear_other_defaults] Lỗi: %s", e)
+            return False
 
     @staticmethod
     def set_default(user_id: str, address_id: str) -> bool:
-        """Đổi địa chỉ mặc định và cập nhật cứng số điện thoại mới vào thông tin tài khoản."""
-        db = AddressModel._db()
-        db_admin = AddressModel._db_admin()
+        if not user_id or not address_id:
+            return False
+
         try:
-            # 1. Hủy trạng thái mặc định cũ của toàn bộ địa chỉ thuộc user này
-            db.table("user_addresses").update({"is_default": False}).eq("user_id", user_id).execute()
-            
-            # 2. Cài trạng thái mặc định mới cho địa chỉ được lựa chọn
-            res = db.table("user_addresses").update({"is_default": True}).eq("id", address_id).execute()
-            
-            # 3. ✅ ĐÃ SỬA: Đồng bộ SĐT chuẩn xác qua bảng users bằng quyền Service Role để tránh lỗi bảo mật RLS
-            if res.data:
-                new_phone = res.data[0].get("phone")
-                if new_phone:
-                    db_admin.table("users").update({"phone": new_phone}).eq("id", user_id).execute()
+            address = AddressModel.get_by_id(user_id, address_id)
+            if not address:
+                return False
+
+            AddressModel._clear_other_defaults(user_id, address_id)
+
+            result = (
+                AddressModel._db()
+                .table(AddressModel.TABLE)
+                .update({"is_default": True})
+                .eq("user_id", user_id)
+                .eq("id", address_id)
+                .execute()
+            )
+
+            rows = AddressModel._safe_rows(result)
+            if not rows:
+                return False
+
+            AddressModel._sync_user_phone(user_id, rows[0].get("phone") or address.get("phone"))
             return True
+
         except Exception as e:
-            logger.error(f"[AddressModel.set_default] Lỗi: {e}")
+            logger.error("[AddressModel.set_default] Lỗi: %s", e)
             return False
 
     @staticmethod
-    def update_address(user_id: str, address_id: str, data: dict) -> bool:
-        """Cập nhật địa chỉ. Nếu đang là địa chỉ mặc định -> Đồng bộ lại số điện thoại cá nhân mới."""
-        db = AddressModel._db()
-        db_admin = AddressModel._db_admin()
+    def update_address(user_id: str, address_id: str, data: Dict[str, Any]) -> bool:
+        if not user_id or not address_id:
+            return False
+
         try:
-            # Bảo đảm quy chế an toàn: Chỉ cập nhật chính xác địa chỉ thuộc sở hữu của user này
-            res = db.table("user_addresses").update(data).eq("user_id", user_id).eq("id", address_id).execute()
-            
-            if res.data:
-                updated_address = res.data[0]
-                # ✅ ĐÃ SỬA: Nếu địa chỉ chỉnh sửa là mặc định, ép nạp lại SĐT mới sang hồ sơ để tránh rác thông tin
-                if updated_address.get("is_default") and updated_address.get("phone"):
-                    db_admin.table("users").update({"phone": updated_address["phone"]}).eq("id", user_id).execute()
-                return True
-            return False
+            old_address = AddressModel.get_by_id(user_id, address_id)
+            if not old_address:
+                return False
+
+            payload = AddressModel._normalize_input(data)
+            payload.pop("user_id", None)
+
+            wants_default = bool(payload.pop("is_default", False))
+            if wants_default:
+                payload["is_default"] = True
+
+            result = (
+                AddressModel._db()
+                .table(AddressModel.TABLE)
+                .update(payload)
+                .eq("user_id", user_id)
+                .eq("id", address_id)
+                .execute()
+            )
+
+            rows = AddressModel._safe_rows(result)
+            if not rows:
+                return False
+
+            updated = rows[0]
+
+            if wants_default or updated.get("is_default"):
+                AddressModel._clear_other_defaults(user_id, address_id)
+                AddressModel._sync_user_phone(user_id, updated.get("phone"))
+
+            return True
+
         except Exception as e:
-            logger.error(f"[AddressModel.update_address] Lỗi: {e}")
+            logger.error("[AddressModel.update_address] Lỗi: %s", e)
             return False
+
+    @staticmethod
+    def update(address_id: str, data: Dict[str, Any], user_id: Optional[str] = None) -> bool:
+        user_id = user_id or (data or {}).get("user_id")
+        return AddressModel.update_address(user_id, address_id, data)
+
+    # ═══════════════════════════════════════════════════════════════
+    # DELETE
+    # ═══════════════════════════════════════════════════════════════
 
     @staticmethod
     def delete_address(user_id: str, address_id: str) -> bool:
-        """Xóa vĩnh viễn địa chỉ ra khỏi danh bạ."""
-        db = AddressModel._db()
+        if not user_id or not address_id:
+            return False
+
         try:
-            db.table("user_addresses").delete().eq("user_id", user_id).eq("id", address_id).execute()
-            return True
+            address = AddressModel.get_by_id(user_id, address_id)
+            if not address:
+                return False
+
+            was_default = bool(address.get("is_default"))
+
+            result = (
+                AddressModel._db()
+                .table(AddressModel.TABLE)
+                .delete()
+                .eq("user_id", user_id)
+                .eq("id", address_id)
+                .execute()
+            )
+
+            rows = AddressModel._safe_rows(result)
+            deleted = bool(rows)
+
+            if deleted and was_default:
+                remaining = AddressModel.get_user_addresses(user_id)
+                if remaining:
+                    next_id = remaining[0].get("id")
+                    if next_id:
+                        AddressModel.set_default(user_id, next_id)
+
+            return deleted
+
         except Exception as e:
-            logger.error(f"[AddressModel.delete_address] Lỗi: {e}")
+            logger.error("[AddressModel.delete_address] Lỗi: %s", e)
             return False

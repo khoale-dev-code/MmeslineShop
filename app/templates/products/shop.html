@@ -8,678 +8,116 @@
 <meta name="csrf-token" content="{{ csrf_token() }}">
 
 <style>
-  :root {
-    --shop-ink: #111;
-    --shop-muted: #737373;
-    --shop-line: #e7e2dc;
-    --shop-soft: #faf8f5;
-    --shop-card: #fff;
-    --shop-brown: #3b2414;
-    --shop-red: #b91c1c;
-    --shop-ease: cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .shop-page {
-    background: #fff;
-    color: var(--shop-ink);
-    overflow-x: hidden;
-  }
-
-  .shop-hero {
-    position: relative;
-    min-height: 420px;
-    height: clamp(420px, 48vh, 620px);
-    display: flex;
-    align-items: flex-end;
-    overflow: hidden;
-    background: #111;
-    border-bottom: 1px solid var(--shop-line);
-  }
-
-  .shop-hero-media {
-    position: absolute;
-    inset: 0;
-    background: #111;
-  }
-
-  .shop-hero-media img,
-  .shop-hero-media video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center;
-    display: block;
-    filter: brightness(.78) saturate(1.05);
-    transform: translate3d(0, 0, 0) scale(1.01);
-  }
-
-  .shop-hero-overlay {
-    position: absolute;
-    inset: 0;
-    background:
-      linear-gradient(to top, rgba(0,0,0,.78), rgba(0,0,0,.18) 58%, rgba(0,0,0,.08)),
-      linear-gradient(to right, rgba(0,0,0,.32), transparent 62%);
-  }
-
-  .shop-hero-inner {
-    position: relative;
-    z-index: 2;
-    width: 100%;
-    max-width: 1520px;
-    margin: 0 auto;
-    padding: 0 24px 42px;
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 24px;
-  }
-
-  .shop-kicker {
-    margin: 0 0 12px;
-    color: rgba(255,255,255,.72);
-    font-size: 10px;
-    font-weight: 900;
-    letter-spacing: .32em;
-    text-transform: uppercase;
-  }
-
-  .shop-title {
-    margin: 0;
-    color: #fff;
-    font-size: clamp(48px, 8vw, 112px);
-    line-height: .88;
-    font-weight: 950;
-    letter-spacing: -.065em;
-    text-transform: uppercase;
-  }
-
-  .shop-title em {
-    font-style: normal;
-    color: rgba(255,255,255,.72);
-  }
-
-  .shop-hero-stat {
-    text-align: right;
-    color: #fff;
-  }
-
-  .shop-hero-count {
-    display: block;
-    font-size: clamp(38px, 5vw, 72px);
-    line-height: .9;
-    font-weight: 950;
-    letter-spacing: -.05em;
-  }
-
-  .shop-hero-label {
-    display: block;
-    margin-top: 8px;
-    color: rgba(255,255,255,.68);
-    font-size: 10px;
-    font-weight: 900;
-    letter-spacing: .28em;
-    text-transform: uppercase;
-  }
-
-  .shop-toolbar {
-    position: sticky;
-    top: calc(var(--header-h, 115px) + var(--topbar-h, 0px));
-    z-index: 60;
-    background: rgba(255,255,255,.92);
-    backdrop-filter: blur(16px);
-    border-bottom: 1px solid var(--shop-line);
-  }
-
-  .shop-toolbar-inner {
-    max-width: 1520px;
-    margin: 0 auto;
-    min-height: 62px;
-    padding: 0 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 18px;
-  }
-
-  .shop-toolbar-left,
-  .shop-toolbar-right {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    min-width: 0;
-  }
-
-  .shop-filter-btn,
-  .shop-soft-btn {
-    min-height: 40px;
-    border: 1px solid var(--shop-line);
-    background: #fff;
-    color: var(--shop-ink);
-    padding: 0 14px;
-    display: inline-flex;
-    align-items: center;
-    gap: 9px;
-    font-size: 10px;
-    font-weight: 950;
-    letter-spacing: .16em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: background .18s ease, color .18s ease, border-color .18s ease;
-  }
-
-  .shop-filter-btn:hover,
-  .shop-soft-btn:hover {
-    background: var(--shop-ink);
-    border-color: var(--shop-ink);
-    color: #fff;
-  }
-
-  .shop-search {
-    width: min(340px, 34vw);
-    min-height: 40px;
-    border: 1px solid var(--shop-line);
-    background: #fff;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 0 13px;
-  }
-
-  .shop-search input {
-    width: 100%;
-    border: 0;
-    outline: 0;
-    background: transparent;
-    color: var(--shop-ink);
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-  }
-
-  .shop-count {
-    color: var(--shop-muted);
-    font-size: 10px;
-    font-weight: 900;
-    letter-spacing: .16em;
-    text-transform: uppercase;
-    white-space: nowrap;
-  }
-
-  .shop-grid-wrap {
-    max-width: 1520px;
-    margin: 0 auto;
-    padding: 28px 24px 90px;
-  }
-
-  .shop-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1px;
-    background: var(--shop-line);
-    border: 1px solid var(--shop-line);
-  }
-
-  @media (min-width: 720px) {
-    .shop-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-  }
-
-  @media (min-width: 1100px) {
-    .shop-grid {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-
-    .shop-grid.is-compact {
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-    }
-
-    .shop-grid.is-large {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-  }
-
-  .shop-card {
-    position: relative;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    background: var(--shop-card);
-    overflow: hidden;
-  }
-
-  .shop-card-media {
-    position: relative;
-    aspect-ratio: 3 / 4;
-    background: #f4f4f4;
-    overflow: hidden;
-  }
-
-  .shop-card-media a {
-    position: absolute;
-    inset: 0;
-    z-index: 4;
-  }
-
-  .shop-img {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: top center;
-    transition: opacity .32s ease, transform .72s var(--shop-ease);
-    transform: translate3d(0,0,0) scale(1.01);
-  }
-
-  .shop-img-alt {
-    opacity: 0;
-    transform: translate3d(0,0,0) scale(1.035);
-  }
-
-  .shop-card:hover .shop-img-main {
-    opacity: 0;
-    transform: translate3d(0,0,0) scale(1.035);
-  }
-
-  .shop-card:hover .shop-img-alt {
-    opacity: 1;
-    transform: translate3d(0,0,0) scale(1.01);
-  }
-
-  .shop-fav {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    z-index: 8;
-    width: 36px;
-    height: 36px;
-    border: 1px solid rgba(0,0,0,.08);
-    border-radius: 999px;
-    background: rgba(255,255,255,.9);
-    backdrop-filter: blur(10px);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: #111;
-    cursor: pointer;
-    transition: transform .18s ease, background .18s ease;
-  }
-
-  .shop-fav:hover {
-    transform: scale(1.08);
-  }
-
-  .shop-fav.is-on {
-    color: var(--shop-red);
-  }
-
-  .shop-badge {
-    position: absolute;
-    left: 12px;
-    top: 12px;
-    z-index: 8;
-    min-height: 26px;
-    background: #fff;
-    border: 1px solid rgba(0,0,0,.08);
-    padding: 0 9px;
-    display: inline-flex;
-    align-items: center;
-    color: #111;
-    font-size: 9px;
-    font-weight: 950;
-    letter-spacing: .18em;
-    text-transform: uppercase;
-  }
-
-  .shop-badge.is-sold {
-    top: auto;
-    bottom: 12px;
-    background: #111;
-    color: #fff;
-  }
-
-  .shop-card-info {
-    min-height: 150px;
-    padding: 18px;
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
-  }
-
-  .shop-card-cat {
-    color: var(--shop-muted);
-    font-size: 9px;
-    font-weight: 950;
-    letter-spacing: .22em;
-    text-transform: uppercase;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .shop-card-name {
-    color: #111;
-    font-size: 12px;
-    font-weight: 850;
-    line-height: 1.45;
-    letter-spacing: .05em;
-    text-transform: uppercase;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .shop-card-name:hover {
-    color: var(--shop-brown);
-  }
-
-  .shop-price-row {
-    margin-top: auto;
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-
-  .shop-price {
-    color: #111;
-    font-size: 15px;
-    font-weight: 950;
-    letter-spacing: -.02em;
-  }
-
-  .shop-compare {
-    color: #aaa;
-    font-size: 12px;
-    font-weight: 800;
-    text-decoration: line-through;
-  }
-
-  .shop-discount {
-    color: var(--shop-red);
-    font-size: 10px;
-    font-weight: 950;
-    letter-spacing: .08em;
-  }
-
-  .shop-empty {
-    display: none;
-    min-height: 380px;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 48px 20px;
-    border: 1px solid var(--shop-line);
-    background: #fff;
-  }
-
-  .shop-empty.is-visible {
-    display: flex;
-  }
-
-  .shop-empty h2 {
-    margin: 0 0 10px;
-    font-size: clamp(34px, 6vw, 72px);
-    font-weight: 950;
-    line-height: .9;
-    letter-spacing: -.06em;
-    text-transform: uppercase;
-  }
-
-  .shop-empty p {
-    margin: 0 0 22px;
-    color: var(--shop-muted);
-    font-size: 13px;
-    font-weight: 650;
-  }
-
-  .shop-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 1100;
-    background: rgba(0,0,0,.42);
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity .25s ease, visibility .25s ease;
-  }
-
-  .shop-overlay.is-open {
-    opacity: 1;
-    visibility: visible;
-  }
-
-  .shop-drawer {
-    position: fixed;
-    top: 0;
-    right: 0;
-    z-index: 1101;
-    width: min(420px, 92vw);
-    height: 100dvh;
-    background: #fff;
-    border-left: 1px solid var(--shop-line);
-    transform: translateX(101%);
-    transition: transform .38s var(--shop-ease);
-    display: flex;
-    flex-direction: column;
-  }
-
-  .shop-drawer.is-open {
-    transform: translateX(0);
-  }
-
-  .shop-drawer-head {
-    min-height: 74px;
-    padding: 0 22px;
-    border-bottom: 1px solid var(--shop-line);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .shop-drawer-title {
-    font-size: 20px;
-    font-weight: 950;
-    letter-spacing: -.03em;
-    text-transform: uppercase;
-  }
-
-  .shop-close {
-    width: 38px;
-    height: 38px;
-    border: 1px solid var(--shop-line);
-    background: #fff;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-  }
-
-  .shop-drawer-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 22px;
-    display: flex;
-    flex-direction: column;
-    gap: 28px;
-  }
-
-  .shop-filter-group {
-    display: flex;
-    flex-direction: column;
-    gap: 13px;
-  }
-
-  .shop-filter-title {
-    padding-bottom: 9px;
-    border-bottom: 1px solid var(--shop-line);
-    color: var(--shop-muted);
-    font-size: 10px;
-    font-weight: 950;
-    letter-spacing: .24em;
-    text-transform: uppercase;
-  }
-
-  .shop-choice {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    cursor: pointer;
-    color: var(--shop-muted);
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: .11em;
-    text-transform: uppercase;
-  }
-
-  .shop-choice input {
-    width: 17px;
-    height: 17px;
-    accent-color: #111;
-  }
-
-  .shop-choice:hover,
-  .shop-choice:has(input:checked) {
-    color: #111;
-  }
-
-  .shop-chip-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .shop-chip input {
-    display: none;
-  }
-
-  .shop-chip span {
-    min-height: 36px;
-    border: 1px solid var(--shop-line);
-    background: #fff;
-    padding: 0 13px;
-    display: inline-flex;
-    align-items: center;
-    color: var(--shop-muted);
-    font-size: 10px;
-    font-weight: 950;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-    cursor: pointer;
-  }
-
-  .shop-chip input:checked + span {
-    background: #111;
-    border-color: #111;
-    color: #fff;
-  }
-
-  .shop-drawer-foot {
-    padding: 16px 22px;
-    border-top: 1px solid var(--shop-line);
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-
-  .shop-apply,
-  .shop-clear {
-    min-height: 48px;
-    border: 1px solid #111;
-    font-size: 11px;
-    font-weight: 950;
-    letter-spacing: .18em;
-    text-transform: uppercase;
-    cursor: pointer;
-  }
-
-  .shop-apply {
-    background: #111;
-    color: #fff;
-  }
-
-  .shop-clear {
-    background: #fff;
-    color: #111;
-  }
-
-  .shop-toast {
-    position: fixed;
-    left: 50%;
-    bottom: 26px;
-    z-index: 9999;
-    transform: translateX(-50%) translateY(18px);
-    opacity: 0;
-    pointer-events: none;
-    background: #111;
-    color: #fff;
-    padding: 13px 18px;
-    font-size: 10px;
-    font-weight: 950;
-    letter-spacing: .18em;
-    text-transform: uppercase;
-    transition: opacity .25s ease, transform .25s ease;
-    white-space: nowrap;
-  }
-
-  .shop-toast.is-visible {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-
-  @media (max-width: 780px) {
-    .shop-hero {
-      min-height: 360px;
-      height: 44vh;
-    }
-
-    .shop-hero-inner {
-      align-items: flex-start;
-      flex-direction: column;
-      justify-content: flex-end;
-      padding: 0 18px 32px;
-    }
-
-    .shop-hero-stat {
-      text-align: left;
-    }
-
-    .shop-toolbar-inner {
-      padding: 0 18px;
-    }
-
-    .shop-search {
-      display: none;
-    }
-
-    .shop-grid-wrap {
-      padding: 20px 12px 70px;
-    }
-
-    .shop-card-info {
-      min-height: 138px;
-      padding: 14px;
-    }
-
-    .shop-card-name {
-      font-size: 11px;
-    }
-
-    .shop-price {
-      font-size: 14px;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-      transition: none !important;
-      animation: none !important;
-      scroll-behavior: auto !important;
-    }
+  :root{
+    --mm-ink:#241207;
+    --mm-soft:#fffaf5;
+    --mm-line:#eadfd4;
+    --mm-muted:#8a6a52;
+    --mm-gold:#b98b62;
+    --mm-red:#b91c1c;
+    --mm-ease:cubic-bezier(.16,1,.3,1);
+  }
+
+  .mm-shop{background:#fffaf5;color:var(--mm-ink)}
+  .mm-hero{height:clamp(360px,48vh,620px);position:relative;display:flex;align-items:end;overflow:hidden;background:#111}
+  .mm-hero img,.mm-hero video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(.72);transform:scale(1.01)}
+  .mm-hero:after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(36,18,7,.82),rgba(36,18,7,.16) 58%,rgba(36,18,7,.04))}
+  .mm-hero-inner{position:relative;z-index:2;width:100%;max-width:1520px;margin:auto;padding:0 20px 38px;display:flex;align-items:end;justify-content:space-between;gap:20px}
+  .mm-kicker{font-size:10px;font-weight:950;letter-spacing:.28em;text-transform:uppercase;color:rgba(255,255,255,.72)}
+  .mm-title{margin-top:12px;font-size:clamp(46px,8vw,112px);line-height:.88;font-weight:950;letter-spacing:-.07em;text-transform:uppercase;color:white}
+  .mm-title em{font-style:normal;color:rgba(255,255,255,.7)}
+  .mm-count{font-size:clamp(38px,5vw,72px);line-height:.9;font-weight:950;color:white;text-align:right}
+
+  .mm-toolbar{position:sticky;top:var(--header-h,72px);z-index:50;border-bottom:1px solid var(--mm-line);background:rgba(255,250,245,.92);backdrop-filter:blur(18px)}
+  .mm-toolbar-inner{max-width:1520px;margin:auto;min-height:66px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;gap:14px}
+  .mm-btn{height:42px;border:1px solid var(--mm-line);background:white;color:var(--mm-ink);border-radius:16px;padding:0 15px;display:inline-flex;align-items:center;justify-content:center;gap:9px;font-size:10px;font-weight:950;letter-spacing:.16em;text-transform:uppercase;transition:.18s ease;cursor:pointer}
+  .mm-btn:hover{border-color:var(--mm-ink);background:var(--mm-ink);color:white}
+  .mm-search{height:42px;width:min(360px,36vw);border:1px solid var(--mm-line);border-radius:16px;background:white;padding:0 14px;display:flex;align-items:center;gap:10px}
+  .mm-search input{width:100%;border:0;outline:0;background:transparent;font-size:11px;font-weight:850;letter-spacing:.12em;text-transform:uppercase;color:var(--mm-ink)}
+  .mm-meta{font-size:10px;font-weight:950;letter-spacing:.16em;text-transform:uppercase;color:var(--mm-muted);white-space:nowrap}
+
+  .mm-wrap{max-width:1520px;margin:auto;padding:26px 20px 90px}
+  .mm-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  @media(min-width:760px){.mm-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}}
+  @media(min-width:1160px){.mm-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}.mm-grid.compact{grid-template-columns:repeat(5,minmax(0,1fr))}.mm-grid.large{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+  .mm-card{position:relative;overflow:hidden;border:1px solid var(--mm-line);border-radius:28px;background:white;transition:transform .24s var(--mm-ease),box-shadow .24s var(--mm-ease)}
+  .mm-card:hover{transform:translateY(-3px);box-shadow:0 28px 75px -58px rgba(36,18,7,.8)}
+  .mm-media{position:relative;aspect-ratio:3/4;overflow:hidden;background:#f4ece5}
+  .mm-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center;transition:opacity .32s ease,transform .72s var(--mm-ease)}
+  .mm-img.alt{opacity:0;transform:scale(1.035)}
+  .mm-card:hover .mm-img.main{opacity:0;transform:scale(1.035)}
+  .mm-card:hover .mm-img.alt{opacity:1;transform:scale(1.01)}
+
+  .mm-badge{position:absolute;top:12px;left:12px;z-index:6;border:1px solid rgba(255,255,255,.65);border-radius:999px;background:rgba(255,255,255,.88);backdrop-filter:blur(12px);padding:7px 10px;font-size:9px;font-weight:950;letter-spacing:.16em;text-transform:uppercase;color:var(--mm-ink)}
+  .mm-badge.sold{top:auto;bottom:12px;background:var(--mm-ink);color:white;border-color:var(--mm-ink)}
+
+  .mm-actions{position:absolute;right:12px;top:12px;z-index:7;display:flex;flex-direction:column;gap:8px}
+  .mm-icon{width:38px;height:38px;border:1px solid rgba(255,255,255,.65);border-radius:999px;background:rgba(255,255,255,.9);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;color:var(--mm-ink);transition:.18s ease;cursor:pointer}
+  .mm-icon:hover{transform:scale(1.08);background:var(--mm-ink);color:white}
+  .mm-icon.is-on{color:var(--mm-red)}
+  .mm-icon.is-on:hover{background:white;color:var(--mm-red)}
+
+  .mm-addbar{position:absolute;left:12px;right:12px;bottom:12px;z-index:7;display:grid;grid-template-columns:1fr 44px;gap:8px;opacity:0;transform:translateY(12px);transition:.24s var(--mm-ease)}
+  .mm-card:hover .mm-addbar{opacity:1;transform:translateY(0)}
+  .mm-add{height:44px;border:0;border-radius:16px;background:var(--mm-ink);color:white;font-size:10px;font-weight:950;letter-spacing:.16em;text-transform:uppercase;cursor:pointer}
+  .mm-quick{height:44px;border:0;border-radius:16px;background:white;color:var(--mm-ink);cursor:pointer}
+
+  .mm-info{padding:16px;min-height:142px;display:flex;flex-direction:column;gap:7px}
+  .mm-cat{font-size:9px;font-weight:950;letter-spacing:.22em;text-transform:uppercase;color:var(--mm-gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mm-name{font-size:12px;font-weight:950;letter-spacing:.05em;line-height:1.45;text-transform:uppercase;color:var(--mm-ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .mm-name:hover{color:var(--mm-gold)}
+  .mm-price{margin-top:auto;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+  .mm-price strong{font-size:15px;font-weight:950;color:var(--mm-ink)}
+  .mm-price del{font-size:12px;font-weight:800;color:#b7a191}
+  .mm-price span{font-size:10px;font-weight:950;color:var(--mm-red)}
+
+  .mm-drawer,.mm-modal{position:fixed;inset:0;z-index:1200;display:none}
+  .mm-drawer.open,.mm-modal.open{display:block}
+  .mm-backdrop{position:absolute;inset:0;background:rgba(36,18,7,.55);backdrop-filter:blur(6px)}
+  .mm-panel{position:absolute;right:0;top:0;width:min(430px,92vw);height:100%;background:white;border-left:1px solid var(--mm-line);display:flex;flex-direction:column;animation:slideIn .32s var(--mm-ease)}
+  @keyframes slideIn{from{transform:translateX(100%)}to{transform:none}}
+  .mm-panel-head{height:74px;border-bottom:1px solid var(--mm-line);padding:0 22px;display:flex;align-items:center;justify-content:space-between}
+  .mm-panel-body{flex:1;overflow:auto;padding:22px;display:flex;flex-direction:column;gap:25px}
+  .mm-panel-foot{border-top:1px solid var(--mm-line);padding:16px 22px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+  .mm-filter-title{font-size:10px;font-weight:950;letter-spacing:.24em;text-transform:uppercase;color:var(--mm-gold);border-bottom:1px solid var(--mm-line);padding-bottom:10px}
+  .mm-choice{display:flex;align-items:center;gap:12px;font-size:12px;font-weight:850;letter-spacing:.1em;text-transform:uppercase;color:var(--mm-muted);cursor:pointer}
+  .mm-choice input{width:17px;height:17px;accent-color:var(--mm-ink)}
+  .mm-chips{display:flex;flex-wrap:wrap;gap:8px}
+  .mm-chip input{display:none}
+  .mm-chip span{height:36px;border:1px solid var(--mm-line);border-radius:999px;background:white;padding:0 13px;display:inline-flex;align-items:center;font-size:10px;font-weight:950;letter-spacing:.12em;text-transform:uppercase;color:var(--mm-muted);cursor:pointer}
+  .mm-chip input:checked+span{background:var(--mm-ink);border-color:var(--mm-ink);color:white}
+
+  .mm-qv-panel{position:absolute;left:50%;top:50%;width:min(920px,94vw);max-height:90dvh;overflow:hidden;transform:translate(-50%,-50%);border:1px solid var(--mm-line);border-radius:32px;background:white;display:grid;grid-template-columns:1fr 1fr;animation:qvIn .24s var(--mm-ease)}
+  @keyframes qvIn{from{opacity:0;transform:translate(-50%,-47%) scale(.98)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+  .mm-qv-img{aspect-ratio:3/4;background:#f4ece5}
+  .mm-qv-img img{width:100%;height:100%;object-fit:cover;object-position:top center}
+  .mm-qv-info{padding:28px;display:flex;flex-direction:column;gap:16px;overflow:auto}
+  .mm-select{height:48px;border:1px solid var(--mm-line);border-radius:16px;background:#fffaf5;padding:0 14px;font-size:12px;font-weight:800;color:var(--mm-ink);outline:none}
+  .mm-toast{position:fixed;left:50%;bottom:26px;z-index:3000;transform:translateX(-50%) translateY(16px);opacity:0;background:var(--mm-ink);color:white;border-radius:999px;padding:13px 18px;font-size:10px;font-weight:950;letter-spacing:.16em;text-transform:uppercase;pointer-events:none;transition:.22s ease}
+  .mm-toast.show{opacity:1;transform:translateX(-50%)}
+
+  .mm-empty{display:none;min-height:360px;align-items:center;justify-content:center;text-align:center;border:1px dashed var(--mm-line);border-radius:32px;background:white;padding:48px 20px}
+  .mm-empty.show{display:flex}
+
+  @media(max-width:760px){
+    .mm-hero-inner{flex-direction:column;align-items:flex-start}
+    .mm-count{text-align:left}
+    .mm-search{display:none}
+    .mm-wrap{padding:18px 12px 70px}
+    .mm-grid{gap:10px}
+    .mm-info{padding:13px;min-height:132px}
+    .mm-name{font-size:11px}
+    .mm-addbar{opacity:1;transform:none;grid-template-columns:1fr 40px}
+    .mm-actions{top:10px;right:10px}
+    .mm-icon{width:36px;height:36px}
+    .mm-qv-panel{grid-template-columns:1fr;width:94vw;max-height:92dvh;overflow:auto}
+    .mm-qv-img{max-height:48vh}
+  }
+
+  @media(prefers-reduced-motion:reduce){
+    *{transition:none!important;animation:none!important}
   }
 </style>
 {% endblock %}
@@ -687,31 +125,18 @@
 {% block content %}
 {% set shop_banner = storefront.shop_banner_url if storefront is defined and storefront and storefront.shop_banner_url else 'https://d2w9rnfcy7mm78.cloudfront.net/29334430/original_f3ab732e0aeafd6b8cd6002334dcc905.gif?1720621365?bc=0' %}
 
-<div class="shop-page">
-  <section class="shop-hero">
-    <div class="shop-hero-media">
-      {% if '.mp4' in shop_banner|lower or '.webm' in shop_banner|lower %}
-        <video src="{{ shop_banner }}" autoplay muted loop playsinline preload="auto"></video>
-      {% else %}
-        <img
-          src="{{ shop_banner }}"
-          alt="MMESTLINE Campaign"
-          width="1920"
-          height="1080"
-          fetchpriority="high"
-          loading="eager"
-          decoding="async"
-        >
-      {% endif %}
-    </div>
+<div class="mm-shop">
+  <section class="mm-hero">
+    {% if '.mp4' in shop_banner|lower or '.webm' in shop_banner|lower %}
+      <video src="{{ shop_banner }}" autoplay muted loop playsinline preload="auto"></video>
+    {% else %}
+      <img src="{{ shop_banner }}" alt="MMESTLINE Campaign" width="1920" height="1080" loading="eager" fetchpriority="high" decoding="async">
+    {% endif %}
 
-    <div class="shop-hero-overlay"></div>
-
-    <div class="shop-hero-inner">
+    <div class="mm-hero-inner">
       <div>
-        <p class="shop-kicker">MMESTLINE — Official Store</p>
-
-        <h1 class="shop-title">
+        <p class="mm-kicker">MMESTLINE — Official Store</p>
+        <h1 class="mm-title">
           {% if keyword %}
             “<em>{{ keyword }}</em>”
           {% elif category %}
@@ -724,46 +149,45 @@
         </h1>
       </div>
 
-      <div class="shop-hero-stat">
-        <span class="shop-hero-count" id="shopHeroCount">{{ total if total else products|length }}</span>
-        <span class="shop-hero-label">Products</span>
+      <div>
+        <div class="mm-count" id="shopHeroCount">{{ total if total else products|length }}</div>
+        <p class="mm-kicker text-right">Products</p>
       </div>
     </div>
   </section>
 
-  <div class="shop-toolbar">
-    <div class="shop-toolbar-inner">
-      <div class="shop-toolbar-left">
-        <button type="button" class="shop-filter-btn" data-open-filter>
+  <div class="mm-toolbar">
+    <div class="mm-toolbar-inner">
+      <div class="flex items-center gap-3 min-w-0">
+        <button type="button" class="mm-btn" data-open-filter>
           <i class="fa-solid fa-sliders"></i>
           Filter
         </button>
 
-        <form class="shop-search" method="GET" action="{{ url_for('products.shop') }}">
+        <form class="mm-search" method="GET" action="{{ url_for('products.shop') }}">
           {% if category %}<input type="hidden" name="category" value="{{ category }}">{% endif %}
           {% if collection %}<input type="hidden" name="collection" value="{{ collection }}">{% endif %}
           {% if current_gender %}<input type="hidden" name="gender" value="{{ current_gender }}">{% endif %}
-          <i class="fa-solid fa-magnifying-glass" style="color:#aaa;font-size:12px"></i>
+          <i class="fa-solid fa-magnifying-glass text-[#b7a191] text-xs"></i>
           <input type="search" name="q" id="shopLiveSearch" value="{{ keyword or '' }}" placeholder="Tìm sản phẩm...">
         </form>
       </div>
 
-      <div class="shop-toolbar-right">
-        <span class="shop-count"><span id="shopCount">{{ total if total else products|length }}</span> Items</span>
-
-        <button type="button" class="shop-soft-btn hidden lg:inline-flex" data-grid-mode="large">3</button>
-        <button type="button" class="shop-soft-btn hidden lg:inline-flex" data-grid-mode="normal">4</button>
-        <button type="button" class="shop-soft-btn hidden lg:inline-flex" data-grid-mode="compact">5</button>
+      <div class="flex items-center gap-3">
+        <span class="mm-meta"><span id="shopCount">{{ total if total else products|length }}</span> Items</span>
+        <button type="button" class="mm-btn hidden lg:inline-flex" data-grid="large">3</button>
+        <button type="button" class="mm-btn hidden lg:inline-flex" data-grid="normal">4</button>
+        <button type="button" class="mm-btn hidden lg:inline-flex" data-grid="compact">5</button>
       </div>
     </div>
   </div>
 
-  <main class="shop-grid-wrap">
-    <div class="shop-empty" id="shopEmpty">
+  <main class="mm-wrap">
+    <div class="mm-empty" id="shopEmpty">
       <div>
-        <h2>Không tìm thấy</h2>
-        <p>Thử xóa bộ lọc hoặc tìm kiếm bằng từ khóa khác.</p>
-        <button type="button" class="shop-clear" data-clear-filter>Xóa bộ lọc</button>
+        <h2 class="text-4xl md:text-6xl font-black uppercase tracking-[-.06em] text-[#241207]">Không tìm thấy</h2>
+        <p class="mt-3 mb-6 text-sm font-semibold text-[#8a6a52]">Thử xóa bộ lọc hoặc tìm kiếm bằng từ khóa khác.</p>
+        <button type="button" class="mm-btn" data-clear-filter>Xóa bộ lọc</button>
       </div>
     </div>
 
@@ -777,7 +201,7 @@
         {% endfor %}
       {% endfor %}
 
-      <div class="shop-grid" id="shopGrid">
+      <div class="mm-grid" id="shopGrid">
         {% for product in products %}
           {% set variants = product.product_variants or [] %}
           {% set images = product.product_images or [] %}
@@ -787,7 +211,7 @@
             {% set _ = imgs.insert(0, product.thumbnail_url) %}
           {% endif %}
 
-          {% set img1 = imgs[0] if imgs else 'https://placehold.co/800x1067/f4f4f4/111?text=MMESTLINE' %}
+          {% set img1 = imgs[0] if imgs else 'https://placehold.co/800x1067/f4ece5/241207?text=MMESTLINE' %}
           {% set img2 = imgs[1] if imgs|length > 1 else img1 %}
 
           {% set category_names = [] %}
@@ -819,418 +243,461 @@
           {% set stock = variants|sum(attribute='stock') if variants else (product.stock or 0) %}
           {% set price = product.price or 0 %}
           {% set compare_price = product.compare_at_price or 0 %}
+          {% set first_variant = namespace(id='') %}
+
+          {% for v in variants %}
+            {% if not first_variant.id and (v.stock or 0) > 0 %}
+              {% set first_variant.id = v.id %}
+            {% endif %}
+          {% endfor %}
 
           <article
-            class="shop-card"
+            class="mm-card"
             data-id="{{ product.id }}"
             data-name="{{ product.name|lower }}"
+            data-title="{{ product.name }}"
+            data-url="/product/{{ product.slug or product.id }}"
+            data-img="{{ img1 }}"
+            data-price="{{ price }}"
+            data-price-text="{{ '{:,.0f}'.format(price|float).replace(',', '.') }}₫"
+            data-category="{{ display_cat }}"
+            data-stock="{{ stock }}"
+            data-first-variant="{{ first_variant.id }}"
             data-category-slugs='{{ category_slugs|tojson }}'
             data-category-names='{{ category_names|map("lower")|list|tojson }}'
-            data-price="{{ price }}"
             data-created="{{ product.created_at or '' }}"
             data-sold="{{ product.sold_count|default(0) }}"
             data-sizes='{{ size_list|tojson }}'
             data-colors='{{ color_list|tojson }}'
           >
-            <div class="shop-card-media">
-              <a href="/product/{{ product.slug or product.id }}" aria-label="{{ product.name }}"></a>
+            <div class="mm-media">
+              <a href="/product/{{ product.slug or product.id }}" class="absolute inset-0 z-[3]" aria-label="{{ product.name }}"></a>
 
-              <img
-                class="shop-img shop-img-main"
-                src="{{ img1 }}"
-                alt="{{ product.name }}"
-                width="800"
-                height="1067"
-                decoding="async"
-                {% if loop.index <= 8 %}loading="eager" fetchpriority="high"{% else %}loading="lazy"{% endif %}
-              >
+              <img class="mm-img main" src="{{ img1 }}" alt="{{ product.name }}" width="800" height="1067" loading="eager" decoding="async">
+              <img class="mm-img alt" src="{{ img2 }}" alt="{{ product.name }}" width="800" height="1067" loading="eager" decoding="async">
 
-              <img
-                class="shop-img shop-img-alt"
-                src="{{ img2 }}"
-                alt="{{ product.name }}"
-                width="800"
-                height="1067"
-                loading="lazy"
-                decoding="async"
-              >
+              <div class="mm-actions">
+                <button type="button" class="mm-icon" data-fav aria-label="Yêu thích sản phẩm">
+                  <i class="fa-regular fa-heart"></i>
+                </button>
 
-              <button type="button" class="shop-fav" data-pid="{{ product.id }}" data-fav-btn aria-label="Yêu thích">
-                <i class="fa-regular fa-heart"></i>
-              </button>
+                <button type="button" class="mm-icon" data-quick aria-label="Xem nhanh sản phẩm">
+                  <i class="fa-regular fa-eye"></i>
+                </button>
+              </div>
+
+              <div class="mm-addbar">
+                <button type="button" class="mm-add" data-add {% if stock <= 0 %}disabled{% endif %}>
+                  {% if stock <= 0 %}Hết hàng{% else %}Thêm vào giỏ{% endif %}
+                </button>
+
+                <button type="button" class="mm-quick" data-quick aria-label="Xem nhanh">
+                  <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                </button>
+              </div>
 
               {% if stock <= 0 %}
-                <span class="shop-badge is-sold">Sold Out</span>
-              {% elif loop.index <= 6 %}
-                <span class="shop-badge">New</span>
+                <span class="mm-badge sold">Sold Out</span>
+              {% elif loop.index <= 8 %}
+                <span class="mm-badge">New</span>
               {% endif %}
             </div>
 
-            <div class="shop-card-info">
-              <p class="shop-card-cat">{{ display_cat }}</p>
+            <div class="mm-info">
+              <p class="mm-cat">{{ display_cat }}</p>
 
-              <a href="/product/{{ product.slug or product.id }}" class="shop-card-name">
+              <a href="/product/{{ product.slug or product.id }}" class="mm-name">
                 {{ product.name }}
               </a>
 
-              <div class="shop-price-row">
-                <span class="shop-price">{{ "{:,.0f}".format(price|float).replace(",", ".") }}₫</span>
+              <div class="mm-price">
+                <strong>{{ "{:,.0f}".format(price|float).replace(",", ".") }}₫</strong>
 
                 {% if compare_price and compare_price > price %}
-                  <span class="shop-compare">{{ "{:,.0f}".format(compare_price|float).replace(",", ".") }}₫</span>
-                  <span class="shop-discount">
-                    -{{ (((compare_price - price) / compare_price) * 100)|round|int }}%
-                  </span>
+                  <del>{{ "{:,.0f}".format(compare_price|float).replace(",", ".") }}₫</del>
+                  <span>-{{ (((compare_price - price) / compare_price) * 100)|round|int }}%</span>
                 {% endif %}
               </div>
+
+              <select class="hidden" data-variant-select-source>
+                {% for v in variants %}
+                  <option value="{{ v.id }}" {% if (v.stock or 0) <= 0 %}disabled{% endif %}>
+                    {% if v.color_name %}{{ v.color_name }}{% endif %}
+                    {% if v.size %}{% if v.color_name %} / {% endif %}Size {{ v.size }}{% endif %}
+                    {% if (v.stock or 0) <= 0 %} — Hết hàng{% endif %}
+                  </option>
+                {% endfor %}
+              </select>
             </div>
           </article>
         {% endfor %}
       </div>
 
       <script id="shopFilterMeta" type="application/json">
-        {
-          "sizes": {{ ns.sizes|sort|tojson }},
-          "colors": {{ ns.colors|sort|tojson }}
-        }
+        {"sizes":{{ ns.sizes|sort|tojson }},"colors":{{ ns.colors|sort|tojson }}}
       </script>
     {% endif %}
   </main>
 </div>
 
-<div class="shop-overlay" id="shopOverlay" data-close-filter></div>
+<div class="mm-drawer" id="filterDrawer">
+  <div class="mm-backdrop" data-close-filter></div>
 
-<aside class="shop-drawer" id="shopDrawer" aria-label="Bộ lọc sản phẩm">
-  <div class="shop-drawer-head">
-    <span class="shop-drawer-title">Filter</span>
-    <button type="button" class="shop-close" data-close-filter aria-label="Đóng">
-      <i class="fa-solid fa-xmark"></i>
-    </button>
-  </div>
-
-  <div class="shop-drawer-body">
-    <div class="shop-filter-group md:hidden">
-      <div class="shop-filter-title">Tìm kiếm</div>
-      <form class="shop-search" style="display:flex;width:100%;max-width:100%" method="GET" action="{{ url_for('products.shop') }}">
-        <i class="fa-solid fa-magnifying-glass" style="color:#aaa;font-size:12px"></i>
-        <input type="search" name="q" id="shopMobileSearch" value="{{ keyword or '' }}" placeholder="Tìm sản phẩm...">
-      </form>
+  <aside class="mm-panel">
+    <div class="mm-panel-head">
+      <h2 class="text-xl font-black uppercase tracking-[-.03em]">Filter</h2>
+      <button type="button" class="mm-btn !w-10 !px-0" data-close-filter>
+        <i class="fa-solid fa-xmark"></i>
+      </button>
     </div>
 
-    <div class="shop-filter-group">
-      <div class="shop-filter-title">Sắp xếp</div>
+    <div class="mm-panel-body">
+      <div class="md:hidden">
+        <div class="mm-filter-title mb-3">Tìm kiếm</div>
+        <form class="mm-search !flex !w-full" method="GET" action="{{ url_for('products.shop') }}">
+          <i class="fa-solid fa-magnifying-glass text-[#b7a191] text-xs"></i>
+          <input type="search" name="q" id="shopMobileSearch" value="{{ keyword or '' }}" placeholder="Tìm sản phẩm...">
+        </form>
+      </div>
 
-      <label class="shop-choice">
-        <input type="radio" name="shopSort" value="newest" checked>
-        <span>Mới nhất</span>
-      </label>
+      <div class="space-y-3">
+        <div class="mm-filter-title">Sắp xếp</div>
+        <label class="mm-choice"><input type="radio" name="shopSort" value="newest" checked><span>Mới nhất</span></label>
+        <label class="mm-choice"><input type="radio" name="shopSort" value="best"><span>Bán chạy</span></label>
+        <label class="mm-choice"><input type="radio" name="shopSort" value="price_asc"><span>Giá thấp đến cao</span></label>
+        <label class="mm-choice"><input type="radio" name="shopSort" value="price_desc"><span>Giá cao đến thấp</span></label>
+      </div>
 
-      <label class="shop-choice">
-        <input type="radio" name="shopSort" value="best">
-        <span>Bán chạy</span>
-      </label>
+      <div class="space-y-3">
+        <div class="mm-filter-title">Danh mục</div>
+        {% for cat in global_categories or [] %}
+          <label class="mm-choice">
+            <input type="checkbox" class="filter-category" value="{{ cat.slug }}" {% if category == cat.slug %}checked{% endif %}>
+            <span>{{ cat.name }}</span>
+          </label>
+        {% endfor %}
+      </div>
 
-      <label class="shop-choice">
-        <input type="radio" name="shopSort" value="price_asc">
-        <span>Giá thấp đến cao</span>
-      </label>
+      <div class="space-y-3 hidden" id="sizeGroup">
+        <div class="mm-filter-title">Kích cỡ</div>
+        <div class="mm-chips" id="sizeChips"></div>
+      </div>
 
-      <label class="shop-choice">
-        <input type="radio" name="shopSort" value="price_desc">
-        <span>Giá cao đến thấp</span>
-      </label>
+      <div class="space-y-3 hidden" id="colorGroup">
+        <div class="mm-filter-title">Màu sắc</div>
+        <div class="mm-chips" id="colorChips"></div>
+      </div>
     </div>
 
-    <div class="shop-filter-group">
-      <div class="shop-filter-title">Danh mục</div>
+    <div class="mm-panel-foot">
+      <button type="button" class="mm-btn" data-clear-filter>Bỏ lọc</button>
+      <button type="button" class="mm-btn !bg-[#241207] !text-white" data-close-filter>Áp dụng</button>
+    </div>
+  </aside>
+</div>
 
-      {% for cat in global_categories or [] %}
-        <label class="shop-choice">
-          <input
-            type="checkbox"
-            class="filter-category"
-            value="{{ cat.slug }}"
-            {% if category == cat.slug %}checked{% endif %}
-          >
-          <span>{{ cat.name }}</span>
+<div class="mm-modal" id="quickModal">
+  <div class="mm-backdrop" data-close-quick></div>
+
+  <section class="mm-qv-panel">
+    <div class="mm-qv-img">
+      <img id="qvImg" src="" alt="">
+    </div>
+
+    <div class="mm-qv-info">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <p id="qvCat" class="mm-cat"></p>
+          <h2 id="qvTitle" class="mt-2 text-2xl md:text-3xl font-black uppercase tracking-[-.04em] text-[#241207]"></h2>
+        </div>
+
+        <button type="button" class="mm-btn !w-10 !px-0 shrink-0" data-close-quick>
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <p id="qvPrice" class="text-2xl font-black text-[#241207]"></p>
+
+      <div>
+        <label class="mb-2 block text-[10px] font-black uppercase tracking-[.18em] text-[#b98b62]">
+          Phân loại
         </label>
-      {% endfor %}
+        <select id="qvVariant" class="mm-select"></select>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-auto">
+        <button type="button" id="qvAdd" class="mm-btn !h-12 !bg-[#241207] !text-white">
+          Thêm vào giỏ
+        </button>
+
+        <a id="qvLink" href="#" class="mm-btn !h-12">
+          Xem chi tiết
+        </a>
+      </div>
     </div>
+  </section>
+</div>
 
-    <div class="shop-filter-group" id="shopSizeGroup" style="display:none">
-      <div class="shop-filter-title">Kích cỡ</div>
-      <div class="shop-chip-list" id="shopSizeChips"></div>
-    </div>
-
-    <div class="shop-filter-group" id="shopColorGroup" style="display:none">
-      <div class="shop-filter-title">Màu sắc</div>
-      <div class="shop-chip-list" id="shopColorChips"></div>
-    </div>
-  </div>
-
-  <div class="shop-drawer-foot">
-    <button type="button" class="shop-clear" data-clear-filter>Bỏ lọc</button>
-    <button type="button" class="shop-apply" data-close-filter>Áp dụng</button>
-  </div>
-</aside>
-
-<div class="shop-toast" id="shopToast"></div>
+<div class="mm-toast" id="shopToast"></div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-(function () {
+(function(){
   "use strict";
 
+  const csrf = document.querySelector('meta[name="csrf-token"]')?.content || "";
   const grid = document.getElementById("shopGrid");
   const empty = document.getElementById("shopEmpty");
-  const countEls = [document.getElementById("shopCount"), document.getElementById("shopHeroCount")].filter(Boolean);
-  const drawer = document.getElementById("shopDrawer");
-  const overlay = document.getElementById("shopOverlay");
+  const toast = document.getElementById("shopToast");
+  const drawer = document.getElementById("filterDrawer");
+  const quick = document.getElementById("quickModal");
   const search = document.getElementById("shopLiveSearch");
   const mobileSearch = document.getElementById("shopMobileSearch");
-  const toast = document.getElementById("shopToast");
+  const countEls = [document.getElementById("shopCount"), document.getElementById("shopHeroCount")].filter(Boolean);
 
-  function parseJSON(value, fallback) {
-    try {
-      return JSON.parse(value || "");
-    } catch (_) {
-      return fallback;
-    }
+  const $ = (s,r=document) => r.querySelector(s);
+  const $$ = (s,r=document) => Array.from(r.querySelectorAll(s));
+
+  function json(v,f=[]){try{return JSON.parse(v || "")}catch(_){return f}}
+  function cards(){return grid ? $$(".mm-card", grid) : []}
+  function checked(s){return $$(s + ":checked").map(i => i.value)}
+  function money(v){return (Number(v)||0).toLocaleString("vi-VN") + "₫"}
+
+  function notify(msg){
+    if(!toast) return;
+    toast.textContent = msg;
+    toast.classList.add("show");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => toast.classList.remove("show"), 2200);
   }
 
-  function getCards() {
-    return grid ? Array.from(grid.querySelectorAll(".shop-card")) : [];
-  }
+  function openDrawer(){drawer?.classList.add("open");document.body.style.overflow="hidden"}
+  function closeDrawer(){drawer?.classList.remove("open");document.body.style.overflow=""}
+  function openQuick(){quick?.classList.add("open");document.body.style.overflow="hidden"}
+  function closeQuick(){quick?.classList.remove("open");document.body.style.overflow=""}
 
-  function getChecked(selector) {
-    return Array.from(document.querySelectorAll(selector + ":checked")).map((input) => input.value);
-  }
-
-  function showToast(message) {
-    if (!toast) return;
-    toast.textContent = message;
-    toast.classList.add("is-visible");
-    clearTimeout(toast._timer);
-    toast._timer = setTimeout(() => toast.classList.remove("is-visible"), 2200);
-  }
-
-  function openDrawer() {
-    drawer?.classList.add("is-open");
-    overlay?.classList.add("is-open");
-    document.body.style.overflow = "hidden";
-  }
-
-  function closeDrawer() {
-    drawer?.classList.remove("is-open");
-    overlay?.classList.remove("is-open");
-    document.body.style.overflow = "";
-  }
-
-  function updateCount(count) {
-    countEls.forEach((el) => {
-      el.textContent = count;
-    });
-  }
-
-  function applyFilters() {
-    if (!grid) return;
+  function applyFilters(){
+    if(!grid) return;
 
     const term = (search?.value || mobileSearch?.value || "").trim().toLowerCase();
-    const selectedCategories = getChecked(".filter-category");
-    const selectedSizes = getChecked(".filter-size");
-    const selectedColors = getChecked(".filter-color");
-    const sort = document.querySelector('input[name="shopSort"]:checked')?.value || "newest";
-
+    const cats = checked(".filter-category");
+    const sizes = checked(".filter-size");
+    const colors = checked(".filter-color");
+    const sort = $('input[name="shopSort"]:checked')?.value || "newest";
     const visible = [];
 
-    getCards().forEach((card) => {
+    cards().forEach(card => {
       const name = card.dataset.name || "";
-      const categorySlugs = parseJSON(card.dataset.categorySlugs, []);
-      const categoryNames = parseJSON(card.dataset.categoryNames, []);
-      const sizes = parseJSON(card.dataset.sizes, []);
-      const colors = parseJSON(card.dataset.colors, []);
+      const catSlugs = json(card.dataset.categorySlugs);
+      const catNames = json(card.dataset.categoryNames);
+      const cardSizes = json(card.dataset.sizes);
+      const cardColors = json(card.dataset.colors);
 
       let ok = true;
+      if(term && !name.includes(term) && !catNames.some(c => String(c).includes(term))) ok = false;
+      if(ok && cats.length && !cats.some(c => catSlugs.includes(c))) ok = false;
+      if(ok && sizes.length && !sizes.some(s => cardSizes.includes(s))) ok = false;
+      if(ok && colors.length && !colors.some(c => cardColors.includes(c))) ok = false;
 
-      if (term && !name.includes(term) && !categoryNames.some((cat) => String(cat).includes(term))) {
-        ok = false;
-      }
-
-      if (ok && selectedCategories.length && !selectedCategories.some((slug) => categorySlugs.includes(slug))) {
-        ok = false;
-      }
-
-      if (ok && selectedSizes.length && !selectedSizes.some((size) => sizes.includes(size))) {
-        ok = false;
-      }
-
-      if (ok && selectedColors.length && !selectedColors.some((color) => colors.includes(color))) {
-        ok = false;
-      }
-
-      card.style.display = ok ? "flex" : "none";
-      if (ok) visible.push(card);
+      card.style.display = ok ? "" : "none";
+      if(ok) visible.push(card);
     });
 
-    visible.sort((a, b) => {
-      if (sort === "price_asc") return Number(a.dataset.price || 0) - Number(b.dataset.price || 0);
-      if (sort === "price_desc") return Number(b.dataset.price || 0) - Number(a.dataset.price || 0);
-      if (sort === "best") return Number(b.dataset.sold || 0) - Number(a.dataset.sold || 0);
-      return new Date(b.dataset.created || 0) - new Date(a.dataset.created || 0);
+    visible.sort((a,b)=>{
+      if(sort==="price_asc") return Number(a.dataset.price)-Number(b.dataset.price);
+      if(sort==="price_desc") return Number(b.dataset.price)-Number(a.dataset.price);
+      if(sort==="best") return Number(b.dataset.sold)-Number(a.dataset.sold);
+      return new Date(b.dataset.created||0) - new Date(a.dataset.created||0);
     });
 
-    visible.forEach((card) => grid.appendChild(card));
-
-    updateCount(visible.length);
+    visible.forEach(card => grid.appendChild(card));
+    countEls.forEach(el => el.textContent = visible.length);
     grid.style.display = visible.length ? "grid" : "none";
-    empty?.classList.toggle("is-visible", visible.length === 0);
+    empty?.classList.toggle("show", visible.length === 0);
   }
 
-  function clearFilters() {
-    document.querySelectorAll(".filter-category,.filter-size,.filter-color").forEach((input) => {
-      input.checked = false;
-    });
-
-    const newest = document.querySelector('input[name="shopSort"][value="newest"]');
-    if (newest) newest.checked = true;
-
-    if (search) search.value = "";
-    if (mobileSearch) mobileSearch.value = "";
-
+  function clearFilters(){
+    $$(".filter-category,.filter-size,.filter-color").forEach(i => i.checked = false);
+    const newest = $('input[name="shopSort"][value="newest"]');
+    if(newest) newest.checked = true;
+    if(search) search.value = "";
+    if(mobileSearch) mobileSearch.value = "";
     applyFilters();
   }
 
-  function initFilterChips() {
+  function initChips(){
     const meta = document.getElementById("shopFilterMeta");
-    if (!meta) return;
+    if(!meta) return;
 
-    const data = parseJSON(meta.textContent, { sizes: [], colors: [] });
-    const sizeGroup = document.getElementById("shopSizeGroup");
-    const colorGroup = document.getElementById("shopColorGroup");
-    const sizeChips = document.getElementById("shopSizeChips");
-    const colorChips = document.getElementById("shopColorChips");
+    const data = json(meta.textContent,{sizes:[],colors:[]});
 
-    if (data.sizes && data.sizes.length && sizeGroup && sizeChips) {
-      sizeGroup.style.display = "";
-      sizeChips.innerHTML = data.sizes.map((size) => (
-        `<label class="shop-chip"><input type="checkbox" class="filter-size" value="${String(size).replace(/"/g, "&quot;")}"><span>${size}</span></label>`
-      )).join("");
+    function render(list, box, group, cls){
+      const b = document.getElementById(box);
+      const g = document.getElementById(group);
+      if(!list?.length || !b || !g) return;
+
+      g.classList.remove("hidden");
+      b.innerHTML = list.map(v => {
+        const safe = String(v).replace(/"/g,"&quot;");
+        return `<label class="mm-chip"><input type="checkbox" class="${cls}" value="${safe}"><span>${safe}</span></label>`;
+      }).join("");
     }
 
-    if (data.colors && data.colors.length && colorGroup && colorChips) {
-      colorGroup.style.display = "";
-      colorChips.innerHTML = data.colors.map((color) => (
-        `<label class="shop-chip"><input type="checkbox" class="filter-color" value="${String(color).replace(/"/g, "&quot;")}"><span>${color}</span></label>`
-      )).join("");
+    render(data.sizes, "sizeChips", "sizeGroup", "filter-size");
+    render(data.colors, "colorChips", "colorGroup", "filter-color");
+  }
+
+  async function addToCart(card, variantId){
+    const pid = card?.dataset.id;
+    const vid = variantId || card?.dataset.firstVariant;
+
+    if(!pid || !vid){
+      notify("Vui lòng chọn phân loại");
+      openQuickFromCard(card);
+      return;
+    }
+
+    try{
+      const res = await fetch("/cart/add",{
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          "X-CSRFToken": csrf,
+          "X-Requested-With":"XMLHttpRequest"
+        },
+        body:JSON.stringify({product_id:pid, variant_id:vid, quantity:1})
+      });
+
+      if(res.status === 401){
+        notify("Vui lòng đăng nhập");
+        setTimeout(()=>location.href="/auth/login",700);
+        return;
+      }
+
+      const data = await res.json().catch(()=>({}));
+      if(!res.ok || data.success === false){
+        notify(data.message || "Không thể thêm giỏ hàng");
+        return;
+      }
+
+      notify("Đã thêm vào giỏ hàng");
+    }catch(_){
+      notify("Lỗi kết nối");
     }
   }
 
-  function initFavorites() {
-    let favs = [];
+  function openQuickFromCard(card){
+    if(!card) return;
 
-    try {
-      favs = JSON.parse(localStorage.getItem("mm_favs") || "[]");
-    } catch (_) {
-      favs = [];
-    }
+    $("#qvImg").src = card.dataset.img || "";
+    $("#qvTitle").textContent = card.dataset.title || "";
+    $("#qvCat").textContent = card.dataset.category || "MMESTLINE";
+    $("#qvPrice").textContent = card.dataset.priceText || money(card.dataset.price);
+    $("#qvLink").href = card.dataset.url || "#";
 
-    document.querySelectorAll("[data-fav-btn]").forEach((button) => {
-      const pid = String(button.dataset.pid || "");
-      if (favs.includes(pid)) {
-        button.classList.add("is-on");
-        const icon = button.querySelector("i");
-        if (icon) icon.className = "fa-solid fa-heart";
+    const select = $("#qvVariant");
+    const source = $("[data-variant-select-source]", card);
+    select.innerHTML = source ? source.innerHTML : "";
+
+    $("#qvAdd").onclick = () => addToCart(card, select.value);
+    openQuick();
+  }
+
+  function initFavorites(){
+    let favs = json(localStorage.getItem("mm_favs"),[]);
+
+    cards().forEach(card => {
+      const btn = $("[data-fav]", card);
+      const pid = String(card.dataset.id || "");
+      if(!btn || !pid) return;
+
+      if(favs.includes(pid)){
+        btn.classList.add("is-on");
+        $("i", btn).className = "fa-solid fa-heart";
       }
 
-      button.addEventListener("click", async (event) => {
-        event.preventDefault();
-        event.stopPropagation();
+      btn.addEventListener("click", async e => {
+        e.preventDefault();
+        e.stopPropagation();
 
-        const wasOn = button.classList.contains("is-on");
-        button.classList.toggle("is-on", !wasOn);
+        const was = btn.classList.contains("is-on");
+        btn.classList.toggle("is-on", !was);
+        $("i", btn).className = was ? "fa-regular fa-heart" : "fa-solid fa-heart";
 
-        const icon = button.querySelector("i");
-        if (icon) icon.className = wasOn ? "fa-regular fa-heart" : "fa-solid fa-heart";
-
-        try {
-          const res = await fetch("/api/favorites/toggle", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-CSRFToken": document.querySelector('meta[name="csrf-token"]')?.content || ""
-            },
-            body: JSON.stringify({ product_id: pid })
+        try{
+          const res = await fetch("/api/favorites/toggle",{
+            method:"POST",
+            headers:{"Content-Type":"application/json","X-CSRFToken":csrf},
+            body:JSON.stringify({product_id:pid})
           });
 
-          if (res.status === 401) {
-            button.classList.toggle("is-on", wasOn);
-            if (icon) icon.className = wasOn ? "fa-solid fa-heart" : "fa-regular fa-heart";
-            showToast("Vui lòng đăng nhập");
+          if(res.status === 401){
+            btn.classList.toggle("is-on", was);
+            $("i", btn).className = was ? "fa-solid fa-heart" : "fa-regular fa-heart";
+            notify("Vui lòng đăng nhập");
             return;
           }
 
-          favs = favs.filter((id) => id !== pid);
-          if (!wasOn) favs.push(pid);
+          favs = favs.filter(id => id !== pid);
+          if(!was) favs.push(pid);
           localStorage.setItem("mm_favs", JSON.stringify(favs));
-
-          showToast(!wasOn ? "Đã thêm vào yêu thích" : "Đã bỏ yêu thích");
-        } catch (_) {
-          button.classList.toggle("is-on", wasOn);
-          if (icon) icon.className = wasOn ? "fa-solid fa-heart" : "fa-regular fa-heart";
-          showToast("Lỗi kết nối");
+          notify(!was ? "Đã thêm yêu thích" : "Đã bỏ yêu thích");
+        }catch(_){
+          btn.classList.toggle("is-on", was);
+          $("i", btn).className = was ? "fa-solid fa-heart" : "fa-regular fa-heart";
+          notify("Lỗi kết nối");
         }
       });
     });
   }
 
-  function initEvents() {
-    document.querySelectorAll("[data-open-filter]").forEach((btn) => btn.addEventListener("click", openDrawer));
-    document.querySelectorAll("[data-close-filter]").forEach((btn) => btn.addEventListener("click", closeDrawer));
-    document.querySelectorAll("[data-clear-filter]").forEach((btn) => btn.addEventListener("click", clearFilters));
+  function initEvents(){
+    document.addEventListener("click", e => {
+      const card = e.target.closest(".mm-card");
 
-    document.addEventListener("change", (event) => {
-      if (
-        event.target.matches(".filter-category") ||
-        event.target.matches(".filter-size") ||
-        event.target.matches(".filter-color") ||
-        event.target.matches('input[name="shopSort"]')
-      ) {
-        applyFilters();
+      if(e.target.closest("[data-open-filter]")) openDrawer();
+      if(e.target.closest("[data-close-filter]")) closeDrawer();
+      if(e.target.closest("[data-clear-filter]")) clearFilters();
+      if(e.target.closest("[data-close-quick]")) closeQuick();
+
+      if(e.target.closest("[data-quick]") && card){
+        e.preventDefault();
+        e.stopPropagation();
+        openQuickFromCard(card);
+      }
+
+      if(e.target.closest("[data-add]") && card){
+        e.preventDefault();
+        e.stopPropagation();
+        addToCart(card);
       }
     });
 
-    let timer = null;
-
-    search?.addEventListener("input", () => {
-      clearTimeout(timer);
-      timer = setTimeout(applyFilters, 180);
+    document.addEventListener("change", e => {
+      if(e.target.matches(".filter-category,.filter-size,.filter-color,input[name='shopSort']")) applyFilters();
     });
 
-    mobileSearch?.addEventListener("input", () => {
-      if (search) search.value = mobileSearch.value;
-      clearTimeout(timer);
-      timer = setTimeout(applyFilters, 180);
-    });
+    let t;
+    [search,mobileSearch].forEach(input => input?.addEventListener("input", () => {
+      if(input === mobileSearch && search) search.value = mobileSearch.value;
+      clearTimeout(t);
+      t = setTimeout(applyFilters,160);
+    }));
 
-    document.querySelectorAll("[data-grid-mode]").forEach((button) => {
-      button.addEventListener("click", () => {
-        if (!grid) return;
+    $$("[data-grid]").forEach(btn => btn.addEventListener("click", () => {
+      grid?.classList.remove("large","compact");
+      if(btn.dataset.grid === "large") grid?.classList.add("large");
+      if(btn.dataset.grid === "compact") grid?.classList.add("compact");
+    }));
 
-        grid.classList.remove("is-large", "is-compact");
-
-        if (button.dataset.gridMode === "large") grid.classList.add("is-large");
-        if (button.dataset.gridMode === "compact") grid.classList.add("is-compact");
-      });
-    });
-
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") closeDrawer();
+    document.addEventListener("keydown", e => {
+      if(e.key === "Escape"){closeDrawer();closeQuick()}
     });
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    initFilterChips();
+    initChips();
     initFavorites();
     initEvents();
     applyFilters();

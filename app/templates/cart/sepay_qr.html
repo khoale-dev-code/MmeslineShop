@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Thanh toán chuyển khoản | MMESTLINE{% endblock %}
+
+{% block content %}
+<section class="min-h-screen bg-white px-4 py-24">
+  <div class="mx-auto max-w-xl rounded-[28px] border border-[#eadfd4] bg-[#fffaf5] p-6 text-center">
+    <p class="mb-3 text-[10px] font-black uppercase tracking-[.24em] text-[#b98b62]">
+      SePay Bank Transfer
+    </p>
+
+    <h1 class="text-2xl font-black text-[#241207]">
+      Chuyển khoản để hoàn tất đơn hàng
+    </h1>
+
+    {% if qr_image_url %}
+      <img src="{{ qr_image_url }}" alt="QR chuyển khoản" class="mx-auto my-6 w-72 max-w-full rounded-3xl bg-white p-3">
+    {% endif %}
+
+    <div class="my-6 rounded-3xl bg-white p-5 text-left">
+      <p class="text-xs font-bold text-[#8a6a52]">Ngân hàng</p>
+      <p class="mt-1 font-black text-[#241207]">{{ bank_name }} {{ bank_code }}</p>
+
+      <p class="mt-4 text-xs font-bold text-[#8a6a52]">Số tài khoản</p>
+      <p class="mt-1 font-black text-[#241207]">{{ bank_account }}</p>
+
+      <p class="mt-4 text-xs font-bold text-[#8a6a52]">Chủ tài khoản</p>
+      <p class="mt-1 font-black text-[#241207]">{{ account_name }}</p>
+
+      <p class="mt-4 text-xs font-bold text-[#8a6a52]">Số tiền</p>
+      <p class="mt-1 text-xl font-black text-[#241207]">{{ "{:,.0f}".format(amount) }} ₫</p>
+
+      <p class="mt-4 text-xs font-bold text-[#8a6a52]">Nội dung chuyển khoản</p>
+      <p class="mt-1 break-all rounded-2xl bg-[#fbf7f1] px-4 py-3 text-sm font-black text-[#241207]">
+        {{ transfer_content }}
+      </p>
+    </div>
+
+    <p id="paymentStatusText" class="text-xs font-semibold leading-6 text-[#8a6a52]">
+      Hệ thống đang chờ SePay xác nhận giao dịch. Vui lòng chuyển đúng số tiền và nội dung.
+    </p>
+
+    <a href="{{ url_for('cart.order_success', order_id=order.id) }}"
+       class="mt-6 inline-flex h-12 items-center justify-center rounded-2xl bg-[#241207] px-6 text-[11px] font-black uppercase tracking-[.18em] text-white">
+      Xem đơn hàng
+    </a>
+  </div>
+</section>
+
+<script>
+(function () {
+  const text = document.getElementById("paymentStatusText");
+  const url = "{{ url_for('cart.payment_status', order_id=order.id) }}";
+
+  async function checkStatus() {
+    try {
+      const res = await fetch(url, { headers: { "Accept": "application/json" } });
+      const data = await res.json();
+
+      if (data.is_paid) {
+        if (text) text.textContent = "Thanh toán đã được xác nhận. Đang chuyển đến trang đơn hàng...";
+        setTimeout(() => window.location.href = data.redirect_url, 700);
+      }
+    } catch (_) {}
+  }
+
+  setInterval(checkStatus, 4000);
+})();
+</script>
+{% endblock %}

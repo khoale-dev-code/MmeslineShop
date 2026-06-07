@@ -1,380 +1,697 @@
 {% extends "base.html" %}
-{% block title %}Thanh Toán | GUA Maison{% endblock %}
+{% block title %}Thanh Toán | MMESTLINE{% endblock %}
 
 {% block content %}
-{# Thêm pt-28 (padding-top) để nội dung không bị Navbar đè lên #}
-<div class="min-h-screen bg-[#f8f8f8] pt-28 pb-24 font-sans selection:bg-stone-900 selection:text-white">
-  <div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+<div class="min-h-screen bg-[#fbfaf8] pt-[calc(var(--header-h,72px)+2rem)] pb-24 font-sans selection:bg-[#241207] selection:text-white">
+  <div class="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8">
 
-    {# ── HEADER ── #}
     <header class="mb-8 md:mb-12">
-      <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-stone-400 mb-2">Bước 02 / 03</p>
-      <h1 class="font-display text-3xl md:text-5xl font-black uppercase tracking-tight text-stone-900">Thanh toán</h1>
+      <p class="mb-2 text-[10px] font-black uppercase tracking-[0.24em] text-[#b98b62]">
+        Bước 02 / 03
+      </p>
+
+      <h1 class="text-3xl font-black uppercase tracking-[-0.04em] text-[#241207] md:text-5xl">
+        Thanh toán
+      </h1>
+
+      <p class="mt-3 max-w-2xl text-sm font-semibold leading-6 text-[#8a6a52]">
+        Kiểm tra địa chỉ, chọn hình thức thanh toán và hoàn tất đơn hàng của bạn.
+      </p>
     </header>
 
-    <form action="{{ url_for('cart.checkout') }}" method="POST" id="checkout-form" onsubmit="Checkout.handleSubmit(event)" 
-          class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+    <form
+      action="{{ url_for('cart.checkout') }}"
+      method="POST"
+      id="checkout-form"
+      class="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-12"
+      novalidate
+    >
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="coupon_code" id="hidden-coupon-code">
 
-      {# ══ CỘT TRÁI: THÔNG TIN GIAO HÀNG & THANH TOÁN (7 Cột) ══ #}
-      <div class="lg:col-span-7 space-y-8">
+      <div class="space-y-8 lg:col-span-7">
 
         {# 1. ĐỊA CHỈ #}
-        <section class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-stone-200">
-          <h2 class="text-sm font-black uppercase tracking-widest text-stone-900 mb-6 flex items-center gap-3">
-            <span class="w-8 h-8 rounded-full bg-stone-900 text-white flex items-center justify-center text-xs">1</span>
-            Địa chỉ nhận hàng
-          </h2>
+        <section class="rounded-[28px] border border-[#eadfd4] bg-white p-5 shadow-[0_18px_60px_-50px_rgba(36,18,7,.45)] sm:p-6 md:p-8">
+          <div class="mb-6 flex items-center justify-between gap-4">
+            <h2 class="flex items-center gap-3 text-sm font-black uppercase tracking-[0.18em] text-[#241207]">
+              <span class="flex h-8 w-8 items-center justify-center rounded-2xl bg-[#241207] text-xs text-white">
+                1
+              </span>
+              Địa chỉ nhận hàng
+            </h2>
 
-          {% if addresses %}
-          <div class="space-y-4">
-            {% for addr in addresses %}
-            <label class="address-item relative flex items-start gap-4 p-5 rounded-2xl border-2 bg-white cursor-pointer transition-all hover:border-stone-300 {% if addr.is_default %}is-active{% else %}border-stone-100{% endif %}" 
-                   id="label-{{ addr.id }}"
-                   onclick="Checkout.selectAddress('{{ addr.id }}', '{{ addr.province }}')">
-              <input type="radio" name="address_id" value="{{ addr.id }}" data-province="{{ addr.province }}" class="sr-only" {% if addr.is_default %}checked{% endif %}>
-              
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-3 mb-1">
-                  <span class="font-bold text-stone-900">{{ addr.full_name }}</span>
-                  {% if addr.is_default %}
-                    <span class="text-[9px] font-black bg-stone-900 text-white px-2 py-0.5 rounded-full uppercase tracking-wider">Mặc định</span>
-                  {% endif %}
-                </div>
-                <p class="text-xs font-medium text-stone-500 leading-relaxed">
-                  {{ addr.phone }} <br>
-                  {{ addr.address_line }}, {{ addr.ward }}, {{ addr.district }}, {{ addr.province }}
-                </p>
-              </div>
-
-              {# Custom Radio Dot #}
-              <div class="w-5 h-5 rounded-full border-2 border-stone-200 flex items-center justify-center shrink-0 mt-0.5 radio-ring transition-colors">
-                <div class="w-2.5 h-2.5 bg-stone-900 rounded-full scale-0 transition-transform radio-dot"></div>
-              </div>
-            </label>
-            {% endfor %}
-          </div>
-          {% else %}
-          <div class="text-center py-10 px-4 bg-stone-50 rounded-2xl border-2 border-dashed border-stone-200">
-            <i class="fa-solid fa-location-dot text-3xl text-stone-300 mb-4"></i>
-            <p class="text-sm font-bold text-stone-500 mb-6">Bạn chưa có địa chỉ giao hàng nào.</p>
-            <a href="{{ url_for('profile.addresses') }}" class="inline-block bg-stone-900 text-white px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-stone-800 transition-colors">
-              Thêm địa chỉ ngay
+            <a
+              href="{{ url_for('profile.addresses') }}"
+              class="hidden text-[10px] font-black uppercase tracking-[0.16em] text-[#b98b62] transition hover:text-[#241207] sm:inline-flex"
+            >
+              Quản lý địa chỉ
             </a>
           </div>
+
+          {% if addresses %}
+            <div class="space-y-4">
+              {% for addr in addresses %}
+                <label
+                  class="address-item relative flex cursor-pointer items-start gap-4 rounded-[24px] border-2 bg-white p-5 transition-all hover:border-[#d8c6b6] {% if addr.is_default %}is-active{% else %}border-[#f0e6dc]{% endif %}"
+                  data-address-id="{{ addr.id }}"
+                  data-province="{{ addr.province or addr.province_name or '' }}"
+                >
+                  <input
+                    type="radio"
+                    name="address_id"
+                    value="{{ addr.id }}"
+                    data-province="{{ addr.province or addr.province_name or '' }}"
+                    class="sr-only"
+                    {% if addr.is_default %}checked{% endif %}
+                  >
+
+                  <div class="min-w-0 flex-1">
+                    <div class="mb-1 flex flex-wrap items-center gap-3">
+                      <span class="font-black text-[#241207]">
+                        {{ addr.full_name }}
+                      </span>
+
+                      {% if addr.is_default %}
+                        <span class="rounded-full bg-[#241207] px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-white">
+                          Mặc định
+                        </span>
+                      {% endif %}
+                    </div>
+
+                    <p class="text-xs font-semibold leading-relaxed text-[#8a6a52]">
+                      {{ addr.phone }}<br>
+                      {{ addr.address_line }},
+                      {{ addr.ward or addr.ward_name }},
+                      {{ addr.district or addr.district_name }},
+                      {{ addr.province or addr.province_name }}
+                    </p>
+                  </div>
+
+                  <div class="radio-ring mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-[#d8c6b6] transition-colors">
+                    <div class="radio-dot h-2.5 w-2.5 scale-0 rounded-full bg-[#241207] transition-transform"></div>
+                  </div>
+                </label>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="rounded-[24px] border-2 border-dashed border-[#eadfd4] bg-[#fffaf5] px-4 py-10 text-center">
+              <i class="fa-solid fa-location-dot mb-4 text-3xl text-[#d8c6b6]"></i>
+
+              <p class="mb-6 text-sm font-black text-[#8a6a52]">
+                Bạn chưa có địa chỉ giao hàng nào.
+              </p>
+
+              <a
+                href="{{ url_for('profile.addresses') }}"
+                class="inline-flex h-12 items-center justify-center rounded-2xl bg-[#241207] px-6 text-[11px] font-black uppercase tracking-[0.18em] text-white transition hover:bg-[#3b2414]"
+              >
+                Thêm địa chỉ ngay
+              </a>
+            </div>
           {% endif %}
         </section>
 
-        {# 2. PHƯƠNG THỨC THANH TOÁN #}
-        <section class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-stone-200">
-          <h2 class="text-sm font-black uppercase tracking-widest text-stone-900 mb-6 flex items-center gap-3">
-            <span class="w-8 h-8 rounded-full bg-stone-900 text-white flex items-center justify-center text-xs">2</span>
+        {# 2. THANH TOÁN #}
+        <section class="rounded-[28px] border border-[#eadfd4] bg-white p-5 shadow-[0_18px_60px_-50px_rgba(36,18,7,.45)] sm:p-6 md:p-8">
+          <h2 class="mb-6 flex items-center gap-3 text-sm font-black uppercase tracking-[0.18em] text-[#241207]">
+            <span class="flex h-8 w-8 items-center justify-center rounded-2xl bg-[#241207] text-xs text-white">
+              2
+            </span>
             Hình thức thanh toán
           </h2>
-          
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <label class="payment-item is-active relative flex items-center justify-between gap-4 p-5 rounded-2xl border-2 bg-white cursor-pointer transition-all hover:border-stone-300" 
-                   id="pay-cod" onclick="Checkout.selectPayment('COD')">
+
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+
+            <label
+              class="payment-item is-active relative flex min-h-[132px] cursor-pointer flex-col justify-between gap-4 rounded-[24px] border-2 bg-white p-5 transition-all hover:border-[#d8c6b6]"
+              data-payment-method="COD"
+            >
               <input type="radio" name="payment_method" value="COD" checked class="sr-only">
+
               <div>
-                <p class="text-sm font-bold text-stone-900">Tiền mặt (COD)</p>
-                <p class="text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-1">Thanh toán khi nhận</p>
+                <div class="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fffaf5] text-[#b98b62]">
+                  <i class="fa-solid fa-money-bill-wave text-lg icon-pay"></i>
+                </div>
+
+                <p class="text-sm font-black text-[#241207]">
+                  Tiền mặt
+                </p>
+
+                <p class="mt-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#9b7b63]">
+                  Thanh toán khi nhận
+                </p>
               </div>
-              <i class="fa-solid fa-money-bill-wave text-xl text-stone-400 icon-pay"></i>
             </label>
 
-            <label class="payment-item relative flex items-center justify-between gap-4 p-5 rounded-2xl border-2 border-stone-100 bg-white cursor-pointer transition-all hover:border-stone-300" 
-                   id="pay-vnpay" onclick="Checkout.selectPayment('VNPAY')">
+            <label
+              class="payment-item relative flex min-h-[132px] cursor-pointer flex-col justify-between gap-4 rounded-[24px] border-2 border-[#f0e6dc] bg-white p-5 transition-all hover:border-[#d8c6b6]"
+              data-payment-method="VNPAY"
+            >
               <input type="radio" name="payment_method" value="VNPAY" class="sr-only">
+
               <div>
-                <p class="text-sm font-bold text-stone-900">VNPay Online</p>
-                <p class="text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-1">Quét QR & Thẻ ATM</p>
+                <div class="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fffaf5]">
+                  <img
+                    src="https://vnpay.vn/s1/statics.vnpay.vn/2023/6/0oxhzjmxbksr1686814746087.png"
+                    class="h-5 object-contain grayscale transition-all img-pay"
+                    alt="VNPay"
+                  >
+                </div>
+
+                <p class="text-sm font-black text-[#241207]">
+                  VNPay
+                </p>
+
+                <p class="mt-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#9b7b63]">
+                  QR / ATM / Ví điện tử
+                </p>
               </div>
-              <img src="https://vnpay.vn/s1/statics.vnpay.vn/2023/6/0oxhzjmxbksr1686814746087.png" class="h-6 object-contain grayscale transition-all img-pay" alt="VNPay">
             </label>
+
+            <label
+              class="payment-item relative flex min-h-[132px] cursor-pointer flex-col justify-between gap-4 rounded-[24px] border-2 border-[#f0e6dc] bg-white p-5 transition-all hover:border-[#d8c6b6]"
+              data-payment-method="SEPAY"
+            >
+              <input type="radio" name="payment_method" value="SEPAY" class="sr-only">
+
+              <div>
+                <div class="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fffaf5] text-[#b98b62]">
+                  <i class="fa-solid fa-qrcode text-lg icon-pay"></i>
+                </div>
+
+                <p class="text-sm font-black text-[#241207]">
+                  SePay QR
+                </p>
+
+                <p class="mt-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#9b7b63]">
+                  Chuyển khoản tự động
+                </p>
+              </div>
+            </label>
+
+          </div>
+
+          <div id="payment-hint" class="mt-5 rounded-[20px] border border-[#eadfd4] bg-[#fffaf5] p-4 text-xs font-semibold leading-6 text-[#8a6a52]">
+            Với COD, bạn thanh toán trực tiếp cho đơn vị vận chuyển khi nhận hàng.
           </div>
         </section>
 
         {# 3. GHI CHÚ #}
-        <section class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-stone-200">
-          <h2 class="text-sm font-black uppercase tracking-widest text-stone-900 mb-4">Ghi chú đơn hàng</h2>
-          <textarea name="order_notes" rows="3" 
-                    class="w-full bg-stone-50 border-2 border-stone-100 rounded-2xl p-4 text-sm font-medium outline-none focus:border-stone-900 focus:bg-white transition-all resize-none placeholder-stone-400"
-                    placeholder="Giao hàng giờ hành chính, gọi trước khi đến..."></textarea>
+        <section class="rounded-[28px] border border-[#eadfd4] bg-white p-5 shadow-[0_18px_60px_-50px_rgba(36,18,7,.45)] sm:p-6 md:p-8">
+          <h2 class="mb-4 text-sm font-black uppercase tracking-[0.18em] text-[#241207]">
+            Ghi chú đơn hàng
+          </h2>
+
+          <textarea
+            name="order_notes"
+            rows="3"
+            class="w-full resize-none rounded-[22px] border-2 border-[#f0e6dc] bg-[#fffaf5] p-4 text-sm font-semibold text-[#241207] outline-none transition-all placeholder:text-[#b7a191] focus:border-[#241207] focus:bg-white"
+            placeholder="Giao hàng giờ hành chính, gọi trước khi đến..."
+          ></textarea>
         </section>
 
       </div>
 
-      {# ══ CỘT PHẢI: TÓM TẮT ĐƠN HÀNG (5 Cột) ══ #}
+      {# CỘT PHẢI #}
       <div class="lg:col-span-5">
-        <div class="sticky top-28 space-y-6">
-          
-          <div class="bg-stone-900 text-white rounded-[2rem] p-6 md:p-8 shadow-xl">
-            <h3 class="text-xs font-black uppercase tracking-widest mb-6 pb-4 border-b border-white/10 flex items-center gap-2">
-              <i class="fa-solid fa-bag-shopping"></i> Tóm tắt đơn hàng
+        <div class="sticky top-[calc(var(--header-h,72px)+2rem)] space-y-6">
+
+          <div class="rounded-[2rem] bg-[#241207] p-5 text-white shadow-[0_28px_80px_-55px_rgba(36,18,7,.85)] sm:p-6 md:p-8">
+            <h3 class="mb-6 flex items-center gap-2 border-b border-white/10 pb-4 text-xs font-black uppercase tracking-[0.18em]">
+              <i class="fa-solid fa-bag-shopping"></i>
+              Tóm tắt đơn hàng
             </h3>
 
-            {# Danh sách sản phẩm #}
-            <div class="max-h-[320px] overflow-y-auto no-scrollbar space-y-5 mb-6 pr-2">
+            <div class="no-scrollbar mb-6 max-h-[320px] space-y-5 overflow-y-auto pr-2">
               {% for item in items %}
-              <div class="flex items-center gap-4">
-                <div class="w-16 h-16 bg-white/5 rounded-xl overflow-hidden shrink-0 border border-white/10">
-                  <img src="{{ item.products.thumbnail_url }}" alt="{{ item.products.name }}" class="w-full h-full object-cover mix-blend-screen">
-                </div>
-                <div class="flex-1 min-w-0">
-                  <p class="text-xs font-bold truncate">{{ item.products.name }}</p>
-                  <p class="text-[10px] text-white/50 font-bold uppercase tracking-widest mt-1">
-                    {% if item.product_variants and item.product_variants.color_name %}
-                      {{ item.product_variants.color_name }} • 
-                    {% endif %}
-                    Size {{ item.size or item.product_variants.size or 'Free' }} • SL {{ item.quantity }}
+                {% set product = item.products if item.products is defined else item.get('products') %}
+                {% set variant = item.product_variants if item.product_variants is defined else item.get('product_variants') %}
+                {% set p_price = variant.price_override if (variant and variant.price_override) else product.price %}
+
+                <div class="flex items-center gap-4">
+                  <div class="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+                    <img
+                      src="{{ product.thumbnail_url }}"
+                      alt="{{ product.name }}"
+                      class="h-full w-full object-cover"
+                      loading="lazy"
+                    >
+                  </div>
+
+                  <div class="min-w-0 flex-1">
+                    <p class="truncate text-xs font-black">
+                      {{ product.name }}
+                    </p>
+
+                    <p class="mt-1 text-[10px] font-black uppercase tracking-widest text-white/50">
+                      {% if variant and variant.color_name %}
+                        {{ variant.color_name }} •
+                      {% endif %}
+                      Size {{ item.size or (variant.size if variant else '') or 'Free' }} • SL {{ item.quantity }}
+                    </p>
+                  </div>
+
+                  <p class="shrink-0 text-sm font-black text-emerald-400">
+                    {{ "{:,.0f}".format(p_price * item.quantity) }}đ
                   </p>
                 </div>
-                {% set p_price = item.product_variants.price_override if (item.product_variants and item.product_variants.price_override) else item.products.price %}
-                <p class="text-sm font-black text-emerald-400 shrink-0">{{ '{:,.0f}'.format(p_price * item.quantity) }}đ</p>
-              </div>
               {% endfor %}
             </div>
 
-            {# Mã giảm giá #}
-            <div class="pt-6 border-t border-white/10 mb-6">
-              <p class="text-[10px] font-bold uppercase tracking-widest text-white/50 mb-3">Mã khuyến mãi</p>
+            <div class="mb-6 border-t border-white/10 pt-6">
+              <p class="mb-3 text-[10px] font-black uppercase tracking-widest text-white/50">
+                Mã khuyến mãi
+              </p>
+
               <div class="flex gap-2">
-                <input type="text" id="coupon-input" placeholder="NHẬP MÃ" 
-                       class="flex-1 bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-xs font-bold text-white uppercase outline-none focus:border-white/50 transition-colors placeholder-white/30"
-                       oninput="this.value = this.value.toUpperCase()">
-                <button type="button" id="btn-coupon" onclick="Coupon.apply()" 
-                        class="bg-white text-stone-900 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-stone-200 transition-colors">
+                <input
+                  type="text"
+                  id="coupon-input"
+                  placeholder="NHẬP MÃ"
+                  class="min-w-0 flex-1 rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-xs font-black uppercase text-white outline-none transition-colors placeholder:text-white/30 focus:border-white/50"
+                  autocomplete="off"
+                >
+
+                <button
+                  type="button"
+                  id="btn-coupon"
+                  class="rounded-2xl bg-white px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[#241207] transition hover:bg-[#f0e6dc] disabled:cursor-not-allowed disabled:opacity-60"
+                >
                   Áp dụng
                 </button>
               </div>
-              <p id="coupon-msg" class="text-[10px] font-bold mt-2 hidden"></p>
+
+              <p id="coupon-msg" class="mt-2 hidden text-[10px] font-bold"></p>
             </div>
 
-            {# 👉 CẢNH BÁO BÃO LŨ (JS) 👈 #}
-            <div id="shipping-warning" class="hidden mb-6 bg-amber-500/10 border border-amber-500/30 text-amber-400 p-4 rounded-xl flex items-start gap-3">
-              </div>
+            <div id="shipping-warning" class="mb-6 hidden rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-amber-300"></div>
 
-            {# Tổng tiền #}
-            <div class="pt-6 border-t border-white/10 space-y-3">
+            <div class="space-y-3 border-t border-white/10 pt-6">
               <div class="flex justify-between text-xs font-bold text-white/60">
                 <span>Tạm tính</span>
-                <span>{{ '{:,.0f}'.format(total) }}đ</span>
+                <span>{{ "{:,.0f}".format(total) }}đ</span>
               </div>
-              <div class="flex justify-between text-xs font-bold text-emerald-400 hidden" id="discount-row">
+
+              <div class="hidden justify-between text-xs font-bold text-emerald-400" id="discount-row">
                 <span>Giảm giá (<span id="coupon-label"></span>)</span>
                 <span>−<span id="discount-amount">0</span>đ</span>
               </div>
+
               <div class="flex justify-between text-xs font-bold text-white/60">
                 <span>Phí vận chuyển</span>
                 <span id="shipping-fee" class="text-emerald-400">Đang tính...</span>
               </div>
-              
-              <div class="flex justify-between items-center pt-4 mt-2 border-t border-white/10">
-                <span class="text-xs font-black uppercase tracking-widest">Tổng cộng</span>
-                <span id="final-total" class="text-2xl font-black">{{ '{:,.0f}'.format(total) }} ₫</span>
+
+              <div class="mt-2 flex items-center justify-between border-t border-white/10 pt-4">
+                <span class="text-xs font-black uppercase tracking-widest">
+                  Tổng cộng
+                </span>
+
+                <span id="final-total" class="text-2xl font-black">
+                  {{ "{:,.0f}".format(total) }} ₫
+                </span>
               </div>
             </div>
 
-            <button type="submit" id="btn-submit" class="w-full mt-8 bg-white text-stone-900 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-stone-200 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+            <button
+              type="submit"
+              id="btn-submit"
+              class="mt-8 flex w-full items-center justify-center gap-3 rounded-[22px] bg-white py-4 text-[11px] font-black uppercase tracking-widest text-[#241207] shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all hover:bg-[#f0e6dc] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
+              {% if not addresses %}disabled{% endif %}
+            >
               <span id="btn-text">Hoàn tất đặt hàng (COD)</span>
               <i class="fa-solid fa-arrow-right-long" id="btn-icon"></i>
             </button>
           </div>
 
-          {# Trust badge #}
-          <div class="flex items-center gap-4 bg-emerald-50 border border-emerald-100 p-5 rounded-3xl">
-            <div class="w-10 h-10 bg-emerald-500 text-white rounded-full flex items-center justify-center shrink-0">
+          <div class="flex items-center gap-4 rounded-[28px] border border-emerald-100 bg-emerald-50 p-5">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
               <i class="fa-solid fa-shield-halved"></i>
             </div>
+
             <div>
-              <p class="text-[10px] font-black uppercase tracking-widest text-emerald-900 mb-0.5">Thanh toán bảo mật</p>
-              <p class="text-xs font-medium text-emerald-700/80">Dữ liệu được mã hóa an toàn 256-bit.</p>
+              <p class="mb-0.5 text-[10px] font-black uppercase tracking-widest text-emerald-900">
+                Thanh toán bảo mật
+              </p>
+
+              <p class="text-xs font-semibold text-emerald-700/80">
+                Dữ liệu được mã hóa và xử lý an toàn.
+              </p>
             </div>
           </div>
 
         </div>
       </div>
-
     </form>
   </div>
 </div>
 
-{# ── STYLE BỔ TRỢ (Chỉ giữ lại các class toggle logic) ── #}
 <style>
-  /* Ẩn thanh cuộn của danh sách sản phẩm */
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-  /* Style cho thẻ được chọn (Active) */
-  .address-item.is-active { border-color: #1c1917 !important; background-color: #f5f5f4 !important; }
-  .address-item.is-active .radio-ring { border-color: #1c1917 !important; }
+  .address-item.is-active {
+    border-color: #241207 !important;
+    background: #fffaf5 !important;
+    box-shadow: 0 18px 55px -45px rgba(36,18,7,.6);
+  }
+
+  .address-item.is-active .radio-ring { border-color: #241207 !important; }
   .address-item.is-active .radio-dot { transform: scale(1) !important; }
 
-  .payment-item.is-active { border-color: #1c1917 !important; background-color: #f5f5f4 !important; }
-  .payment-item.is-active .icon-pay { color: #1c1917 !important; }
+  .payment-item.is-active {
+    border-color: #241207 !important;
+    background: #fffaf5 !important;
+    box-shadow: 0 18px 55px -45px rgba(36,18,7,.6);
+  }
+
+  .payment-item.is-active .icon-pay { color: #241207 !important; }
   .payment-item.is-active .img-pay { filter: grayscale(0) !important; }
 </style>
 
-{# ── SCRIPTS ── #}
 <script>
-const Checkout = (() => {
+(function () {
+  "use strict";
+
+  const csrfToken = "{{ csrf_token() }}";
+  const subtotalAmount = Number("{{ total|int }}") || 0;
+
   let currentShippingFee = 0;
-  const subtotalAmount = parseInt("{{ total }}") || 0;
+  let currentDiscount = 0;
+  let currentPaymentMethod = "COD";
 
-  async function calculateShipping(addressId, provinceName) {
-    const shipSpan = document.getElementById('shipping-fee');
-    shipSpan.innerText = 'Đang tính...';
-    shipSpan.className = 'text-white/60';
+  const paymentHints = {
+    COD: "Với COD, bạn thanh toán trực tiếp cho đơn vị vận chuyển khi nhận hàng.",
+    VNPAY: "Bạn sẽ được chuyển sang cổng VNPay để thanh toán bằng QR, ATM nội địa hoặc ví điện tử.",
+    SEPAY: "Bạn sẽ nhận mã QR chuyển khoản. SePay sẽ tự động xác nhận đơn sau khi tiền vào tài khoản."
+  };
 
-    try {
-      const res = await fetch('/cart/calculate-shipping', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
-        body: JSON.stringify({ province: provinceName, subtotal: subtotalAmount })
-      });
-      const data = await res.json();
+  const submitTexts = {
+    COD: "Hoàn tất đặt hàng (COD)",
+    VNPAY: "Thanh toán qua VNPay",
+    SEPAY: "Tạo mã QR SePay"
+  };
 
-      if(data.success) {
-        currentShippingFee = data.shipping_fee;
-        updateTotalUI();
+  const $ = (selector, root = document) => root.querySelector(selector);
+  const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
 
-        const warningBox = document.getElementById('shipping-warning');
-        if (data.warning && data.warning.trim() !== '') {
-          warningBox.innerHTML = `
-            <i class="fa-solid fa-cloud-bolt text-lg mt-0.5 shrink-0"></i>
-            <div>
-              <p class="text-[9px] font-black uppercase tracking-widest mb-1 text-amber-300">Cảnh báo vận chuyển</p>
-              <p class="text-xs font-medium leading-relaxed">${data.warning}</p>
-            </div>
-          `;
-          warningBox.classList.remove('hidden');
-        } else {
-          warningBox.classList.add('hidden');
-        }
-      }
-    } catch(e) { console.error("Lỗi lấy phí ship", e); }
+  function formatMoney(value) {
+    return (Number(value) || 0).toLocaleString("en-US") + " ₫";
   }
 
-  function selectAddress(id, provinceName) {
-    document.querySelectorAll('.address-item').forEach(el => el.classList.remove('is-active', 'border-stone-900', 'bg-stone-50'));
-    document.querySelectorAll('.address-item').forEach(el => el.classList.add('border-stone-100'));
-    
-    const activeEl = document.getElementById('label-' + id);
-    if(activeEl) {
-      activeEl.classList.remove('border-stone-100');
-      activeEl.classList.add('is-active');
-    }
-    document.querySelector(`input[value="${id}"]`).checked = true;
-    calculateShipping(id, provinceName);
+  function setShippingLoading() {
+    const shipSpan = $("#shipping-fee");
+    if (!shipSpan) return;
+
+    shipSpan.textContent = "Đang tính...";
+    shipSpan.className = "text-white/60";
   }
 
-  function selectPayment(method) {
-    document.querySelectorAll('.payment-item').forEach(el => {
-      el.classList.remove('is-active');
-      el.classList.add('border-stone-100');
-    });
-    
-    const activeEl = document.getElementById('pay-' + method.toLowerCase());
-    if(activeEl) {
-      activeEl.classList.remove('border-stone-100');
-      activeEl.classList.add('is-active');
+  function renderShippingWarning(message) {
+    const box = $("#shipping-warning");
+    if (!box) return;
+
+    if (message && message.trim()) {
+      box.innerHTML = `
+        <div class="flex items-start gap-3">
+          <i class="fa-solid fa-cloud-bolt mt-0.5 shrink-0 text-lg"></i>
+          <div>
+            <p class="mb-1 text-[9px] font-black uppercase tracking-widest text-amber-300">Cảnh báo vận chuyển</p>
+            <p class="text-xs font-semibold leading-relaxed">${message}</p>
+          </div>
+        </div>
+      `;
+      box.classList.remove("hidden");
+    } else {
+      box.classList.add("hidden");
+      box.innerHTML = "";
     }
-    
-    document.querySelector(`input[value="${method}"]`).checked = true;
-    document.getElementById('btn-text').innerText = method === 'VNPAY' ? 'Thanh toán qua VNPay' : 'Hoàn tất đặt hàng (COD)';
   }
 
   function updateTotalUI() {
-    const discountText = document.getElementById('discount-amount')?.innerText.replace(/,/g, '') || "0";
-    const discount = parseInt(discountText) || 0;
+    const shipSpan = $("#shipping-fee");
 
-    const shipSpan = document.getElementById('shipping-fee');
-    if(currentShippingFee === 0) {
-      shipSpan.innerHTML = 'Miễn phí';
-      shipSpan.className = 'text-emerald-400 font-bold';
-    } else {
-      shipSpan.innerHTML = currentShippingFee.toLocaleString('en-US') + ' đ';
-      shipSpan.className = 'text-white font-bold'; 
+    if (shipSpan) {
+      if (currentShippingFee === 0) {
+        shipSpan.textContent = "Miễn phí";
+        shipSpan.className = "font-bold text-emerald-400";
+      } else {
+        shipSpan.textContent = formatMoney(currentShippingFee);
+        shipSpan.className = "font-bold text-white";
+      }
     }
 
-    const final = subtotalAmount - discount + currentShippingFee;
-    document.getElementById('final-total').innerText = final.toLocaleString('en-US') + " ₫";
-  }
+    const finalTotal = Math.max(0, subtotalAmount - currentDiscount + currentShippingFee);
+    const finalEl = $("#final-total");
 
-  function handleSubmit(e) {
-    const btn  = document.getElementById('btn-submit');
-    const text = document.getElementById('btn-text');
-    const icon = document.getElementById('btn-icon');
-    if (btn.disabled) { e.preventDefault(); return; }
-    
-    btn.disabled = true;
-    btn.classList.add('opacity-70', 'cursor-not-allowed');
-    text.innerText = 'Đang xử lý...';
-    icon.className = 'fa-solid fa-circle-notch fa-spin';
-  }
-
-  document.addEventListener("DOMContentLoaded", () => {
-    const defaultAddressInput = document.querySelector('input[name="address_id"]:checked');
-    if (defaultAddressInput) {
-      const province = defaultAddressInput.getAttribute('data-province') || "";
-      calculateShipping(defaultAddressInput.value, province);
+    if (finalEl) {
+      finalEl.textContent = formatMoney(finalTotal);
     }
-  });
-
-  return { selectAddress, selectPayment, handleSubmit, updateTotalUI };
-})();
-
-const Coupon = (() => {
-  const $ = id => document.getElementById(id);
-
-  function setMsg(text, isOk) {
-    const el = $('coupon-msg');
-    el.innerText = text;
-    el.className = `text-[10px] font-bold mt-2 ${isOk ? 'text-emerald-400' : 'text-red-400'}`;
-    el.classList.remove('hidden');
   }
 
-  async function apply() {
-    const code = $('coupon-input').value.trim().toUpperCase();
-    if (!code) { setMsg('⚠ Vui lòng nhập mã để áp dụng.', false); return; }
-
-    const btn = $('btn-coupon');
-    btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+  async function calculateShipping(provinceName) {
+    setShippingLoading();
 
     try {
-      const res  = await fetch('/cart/apply-coupon', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
-        body: JSON.stringify({ code }),
+      const res = await fetch("{{ url_for('cart.calculate_shipping') }}", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrfToken
+        },
+        body: JSON.stringify({
+          province: provinceName || "",
+          subtotal: subtotalAmount
+        })
       });
+
+      const data = await res.json();
+
+      if (data.success) {
+        currentShippingFee = Number(data.shipping_fee) || 0;
+        renderShippingWarning(data.warning || "");
+      } else {
+        currentShippingFee = 0;
+        renderShippingWarning("");
+      }
+
+      updateTotalUI();
+    } catch (error) {
+      console.error("Shipping error:", error);
+      currentShippingFee = 0;
+      renderShippingWarning("");
+      updateTotalUI();
+    }
+  }
+
+  function selectAddress(label) {
+    if (!label) return;
+
+    const input = $("input[name='address_id']", label);
+    if (!input) return;
+
+    $$(".address-item").forEach((el) => {
+      el.classList.remove("is-active");
+      el.classList.add("border-[#f0e6dc]");
+    });
+
+    label.classList.add("is-active");
+    label.classList.remove("border-[#f0e6dc]");
+
+    input.checked = true;
+    calculateShipping(input.dataset.province || label.dataset.province || "");
+  }
+
+  function selectPayment(label) {
+    if (!label) return;
+
+    const method = label.dataset.paymentMethod || "COD";
+    const input = $("input[name='payment_method']", label);
+    if (!input) return;
+
+    currentPaymentMethod = method;
+
+    $$(".payment-item").forEach((el) => {
+      el.classList.remove("is-active");
+      el.classList.add("border-[#f0e6dc]");
+    });
+
+    label.classList.add("is-active");
+    label.classList.remove("border-[#f0e6dc]");
+
+    input.checked = true;
+
+    const btnText = $("#btn-text");
+    if (btnText) {
+      btnText.textContent = submitTexts[method] || submitTexts.COD;
+    }
+
+    const hint = $("#payment-hint");
+    if (hint) {
+      hint.textContent = paymentHints[method] || paymentHints.COD;
+    }
+  }
+
+  function lockSubmit() {
+    const btn = $("#btn-submit");
+    const text = $("#btn-text");
+    const icon = $("#btn-icon");
+
+    if (!btn || btn.disabled) return false;
+
+    btn.disabled = true;
+    btn.classList.add("opacity-70", "cursor-not-allowed");
+
+    if (text) {
+      text.textContent = currentPaymentMethod === "SEPAY"
+        ? "Đang tạo QR..."
+        : currentPaymentMethod === "VNPAY"
+          ? "Đang chuyển sang VNPay..."
+          : "Đang xử lý...";
+    }
+
+    if (icon) {
+      icon.className = "fa-solid fa-circle-notch fa-spin";
+    }
+
+    return true;
+  }
+
+  async function applyCoupon() {
+    const input = $("#coupon-input");
+    const btn = $("#btn-coupon");
+    const msg = $("#coupon-msg");
+    const hidden = $("#hidden-coupon-code");
+
+    if (!input || !btn || !msg || !hidden) return;
+
+    const code = input.value.trim().toUpperCase();
+
+    if (!code) {
+      msg.textContent = "⚠ Vui lòng nhập mã để áp dụng.";
+      msg.className = "mt-2 text-[10px] font-bold text-red-400";
+      msg.classList.remove("hidden");
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+
+    try {
+      const res = await fetch("{{ url_for('cart.apply_coupon') }}", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrfToken
+        },
+        body: JSON.stringify({ code })
+      });
+
       const data = await res.json();
 
       if (data.valid) {
-        setMsg(`✓ Áp dụng thành công! Giảm ${data.discount.toLocaleString('en-US')}₫`, true);
-        $('discount-row').classList.remove('hidden');
-        $('coupon-label').innerText = data.code;
-        $('discount-amount').innerText = data.discount.toLocaleString('en-US');
-        
-        Checkout.updateTotalUI();
-        
-        $('hidden-coupon-code').value = data.code;
-        $('coupon-input').disabled = true;
-        btn.style.display = 'none';
+        currentDiscount = Number(data.discount) || 0;
+
+        msg.textContent = `✓ Áp dụng thành công! Giảm ${formatMoney(currentDiscount)}`;
+        msg.className = "mt-2 text-[10px] font-bold text-emerald-400";
+        msg.classList.remove("hidden");
+
+        $("#discount-row")?.classList.remove("hidden");
+        $("#discount-row")?.classList.add("flex");
+
+        const label = $("#coupon-label");
+        const amount = $("#discount-amount");
+
+        if (label) label.textContent = data.code;
+        if (amount) amount.textContent = currentDiscount.toLocaleString("en-US");
+
+        hidden.value = data.code;
+        input.disabled = true;
+        btn.classList.add("hidden");
+
+        updateTotalUI();
       } else {
-        setMsg(`✕ ${data.error}`, false);
-        $('discount-row').classList.add('hidden');
-        $('hidden-coupon-code').value = '';
-        btn.disabled = false; btn.innerText = 'Áp dụng';
+        currentDiscount = 0;
+        hidden.value = "";
+
+        msg.textContent = `✕ ${data.error || "Mã giảm giá không hợp lệ."}`;
+        msg.className = "mt-2 text-[10px] font-bold text-red-400";
+        msg.classList.remove("hidden");
+
+        $("#discount-row")?.classList.add("hidden");
+        $("#discount-row")?.classList.remove("flex");
+
+        btn.disabled = false;
+        btn.textContent = "Áp dụng";
+
+        updateTotalUI();
       }
-    } catch {
-      setMsg('Lỗi kết nối. Vui lòng thử lại.', false);
-      btn.disabled = false; btn.innerText = 'Áp dụng';
+    } catch (error) {
+      msg.textContent = "Lỗi kết nối. Vui lòng thử lại.";
+      msg.className = "mt-2 text-[10px] font-bold text-red-400";
+      msg.classList.remove("hidden");
+
+      btn.disabled = false;
+      btn.textContent = "Áp dụng";
     }
   }
 
-  return { apply };
+  function init() {
+    $$(".address-item").forEach((label) => {
+      label.addEventListener("click", () => selectAddress(label));
+    });
+
+    $$(".payment-item").forEach((label) => {
+      label.addEventListener("click", () => selectPayment(label));
+    });
+
+    $("#btn-coupon")?.addEventListener("click", applyCoupon);
+
+    $("#coupon-input")?.addEventListener("input", function () {
+      this.value = this.value.toUpperCase();
+    });
+
+    $("#coupon-input")?.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        applyCoupon();
+      }
+    });
+
+    $("#checkout-form")?.addEventListener("submit", function (event) {
+      const selectedAddress = $("input[name='address_id']:checked");
+      if (!selectedAddress) {
+        event.preventDefault();
+        alert("Vui lòng chọn hoặc thêm địa chỉ giao hàng.");
+        return;
+      }
+
+      if (!lockSubmit()) {
+        event.preventDefault();
+      }
+    });
+
+    const defaultAddressInput = $("input[name='address_id']:checked");
+    if (defaultAddressInput) {
+      const defaultLabel = defaultAddressInput.closest(".address-item");
+      if (defaultLabel) {
+        selectAddress(defaultLabel);
+      } else {
+        calculateShipping(defaultAddressInput.dataset.province || "");
+      }
+    } else {
+      updateTotalUI();
+    }
+
+    const defaultPaymentInput = $("input[name='payment_method']:checked");
+    if (defaultPaymentInput) {
+      const paymentLabel = defaultPaymentInput.closest(".payment-item");
+      if (paymentLabel) selectPayment(paymentLabel);
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", init, { once: true });
 })();
 </script>
 {% endblock %}

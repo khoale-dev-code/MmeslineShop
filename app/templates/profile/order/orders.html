@@ -1,127 +1,289 @@
 {% extends "base.html" %}
 {% from 'profile/_layout.html' import profile_shell %}
-{% block title %}Lịch sử đơn hàng | GUA Maison{% endblock %}
+{% block title %}Lịch sử đơn hàng | MMESTLINE{% endblock %}
 
 {% block content %}
 {% set status_map = {
-  'pending':   ('Chờ xác nhận',    'bg-amber-50 text-amber-600 border-amber-200'),
-  'confirmed': ('Đã xác nhận',     'bg-blue-50 text-blue-600 border-blue-200'),
-  'packed':    ('Đã đóng gói',     'bg-indigo-50 text-indigo-600 border-indigo-200'),
-  'shipped':   ('Đang giao hàng',  'bg-purple-50 text-purple-600 border-purple-200'),
-  'shipping':  ('Đang vận chuyển', 'bg-purple-50 text-purple-600 border-purple-200'),
-  'delivered': ('Đã giao hàng',    'bg-emerald-50 text-emerald-600 border-emerald-200'),
-  'completed': ('Hoàn tất',        'bg-emerald-50 text-emerald-600 border-emerald-200'),
+  'pending':   ('Chờ xác nhận',    'bg-amber-50 text-amber-700 border-amber-200'),
+  'confirmed': ('Đã xác nhận',     'bg-blue-50 text-blue-700 border-blue-200'),
+  'packed':    ('Đã đóng gói',     'bg-indigo-50 text-indigo-700 border-indigo-200'),
+  'shipped':   ('Đang giao hàng',  'bg-purple-50 text-purple-700 border-purple-200'),
+  'shipping':  ('Đang vận chuyển', 'bg-purple-50 text-purple-700 border-purple-200'),
+  'delivered': ('Đã giao hàng',    'bg-emerald-50 text-emerald-700 border-emerald-200'),
+  'completed': ('Hoàn tất',        'bg-emerald-50 text-emerald-700 border-emerald-200'),
   'cancelled': ('Đã hủy đơn',      'bg-neutral-100 text-neutral-500 border-neutral-300'),
-  'failed':    ('Giao thất bại',   'bg-red-50 text-red-600 border-red-200'),
-  'returned':  ('Đã hoàn hàng',    'bg-orange-50 text-orange-600 border-orange-200')
+  'failed':    ('Giao thất bại',   'bg-red-50 text-red-700 border-red-200'),
+  'returned':  ('Đã hoàn hàng',    'bg-orange-50 text-orange-700 border-orange-200')
 } %}
 
-<div class="min-h-screen pb-24 font-sans selection:bg-black selection:text-white" style="background:var(--gua-paper,#fafaf9); padding-top: calc(var(--header-h, 72px) + 2rem);">
-  <div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+{% set payment_map = {
+  'pending': ('Chưa thanh toán', 'bg-amber-50 text-amber-700 border-amber-200'),
+  'paid':    ('Đã thanh toán',   'bg-emerald-50 text-emerald-700 border-emerald-200'),
+  'failed':  ('Thanh toán lỗi',  'bg-red-50 text-red-700 border-red-200'),
+  'refunded':('Đã hoàn tiền',    'bg-blue-50 text-blue-700 border-blue-200')
+} %}
 
-    {# ── HEADER ── #}
-    <div class="gua-reveal mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-5">
-      <div>
-        <a href="{{ url_for('profile.index') }}" class="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[.2em] text-[#9e9890] hover:text-[#0a0a0a] transition-colors mb-4 group">
-          <svg class="w-4 h-4 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-          Hồ sơ
-        </a>
-        <h1 class="text-3xl md:text-4xl font-black tracking-tighter text-[#0a0a0a] uppercase leading-none mb-2">Lịch sử mua hàng</h1>
-        <p class="text-[10px] font-bold text-[#9e9890] uppercase tracking-widest">
-          <span class="text-[#0a0a0a]">{{ pagination.total if pagination else orders|length }}</span> đơn hàng
-        </p>
-      </div>
-      <a href="{{ url_for('products.index') }}" class="gua-btn gua-btn-ghost text-[10px]">Tiếp tục mua sắm</a>
-    </div>
+<div class="min-h-screen bg-[#fffaf5] pb-24 pt-[calc(var(--header-h,72px)+2rem)] font-sans selection:bg-[#241207] selection:text-white">
+  <div class="mx-auto max-w-[1220px] px-4 sm:px-6 lg:px-8">
 
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+    {# Header #}
+    <section class="mb-8 overflow-hidden rounded-[32px] border border-[#eadfd4] bg-white shadow-[0_24px_70px_-58px_rgba(36,18,7,.65)]">
+      <div class="relative p-6 sm:p-8 lg:p-10">
+        <div class="pointer-events-none absolute right-0 top-0 h-40 w-40 rounded-full bg-[#b98b62]/10 blur-3xl"></div>
 
-      <div class="lg:col-span-3 gua-reveal gua-d1">
-        <p class="hidden lg:block text-[9px] font-black text-[#b5b0a8] uppercase tracking-[.25em] mb-4">Quản lý tài khoản</p>
-        {{ profile_shell('bag') }}
-      </div>
-
-      <div class="lg:col-span-9 gua-reveal gua-d2">
-        {% if orders and orders|length > 0 %}
-        <div class="space-y-4">
-          {% for order in orders %}
-          {% set cs = status_map.get(order.status, ('Hệ thống', 'bg-neutral-50 text-neutral-500 border-neutral-200')) %}
-          <div class="gua-card p-5 md:p-7">
-            {# Header thẻ #}
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-5" style="border-bottom:1px solid var(--gua-muted);">
-              <div>
-                <p class="text-[9px] font-bold uppercase tracking-[.2em] text-[#9e9890] mb-1">Mã đơn hàng</p>
-                <a href="{{ url_for('profile.order_detail', order_id=order.id) }}" class="text-base font-black text-[#0a0a0a] uppercase hover:text-[#9e9890] transition-colors">
-                  #{{ order.id[:8].upper() }}
-                </a>
-              </div>
-              <div class="flex flex-col sm:items-end gap-1.5">
-                <span class="text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-sm border {{ cs[1] }} w-max">{{ cs[0] }}</span>
-                <p class="text-[9px] font-bold text-[#9e9890] uppercase tracking-widest">{{ order.created_at[:16].replace('T',' ') if order.created_at else '' }}</p>
-              </div>
-            </div>
-
-            {# Sản phẩm đại diện #}
-            <a href="{{ url_for('profile.order_detail', order_id=order.id) }}" class="flex items-start gap-5 mb-5 group block">
-              {% if order.order_items and order.order_items|length > 0 %}
-              {% set fi = order.order_items[0] %}
-              <div class="w-16 md:w-20 shrink-0 overflow-hidden rounded-sm border" style="aspect-ratio:3/4;background:var(--gua-ghost);border-color:var(--gua-muted);">
-                <img src="{{ fi.get('products',{}).get('thumbnail_url') or 'https://placehold.co/300x400' }}" class="w-full h-full object-cover object-top mix-blend-multiply group-hover:scale-105 transition-transform duration-700" alt="">
-              </div>
-              <div class="flex-1 min-w-0 pt-1">
-                <p class="text-sm font-black text-[#0a0a0a] uppercase truncate group-hover:text-[#9e9890] transition-colors">{{ fi.get('products',{}).get('name','Sản phẩm đã xóa') }}</p>
-                <div class="mt-2 flex flex-wrap gap-2">
-                  {% if order.order_items|length > 1 %}
-                  <span class="text-[9px] font-black text-[#0a0a0a] border px-2 py-1 rounded-sm uppercase tracking-widest" style="border-color:var(--gua-muted);background:var(--gua-ghost);">+ {{ order.order_items|length - 1 }} mặt hàng</span>
-                  {% else %}
-                  <span class="text-[9px] font-bold text-[#9e9890] uppercase tracking-widest">SL: {{ fi.quantity }}</span>
-                  {% if fi.size %}<span class="text-[9px] font-bold text-[#9e9890] uppercase tracking-widest">Size {{ fi.size }}</span>{% endif %}
-                  {% endif %}
-                </div>
-              </div>
-              {% else %}
-              <p class="text-xs font-medium text-[#9e9890] italic py-4">Không có dữ liệu sản phẩm</p>
-              {% endif %}
+        <div class="relative z-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <div>
+            <a
+              href="{{ url_for('profile.index') }}"
+              class="mb-5 inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[.22em] text-[#b98b62] transition hover:text-[#241207]"
+            >
+              <i class="fa-solid fa-arrow-left text-[11px]"></i>
+              Hồ sơ
             </a>
 
-            {# Tổng kết + CTA #}
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-5" style="border-top:1px solid var(--gua-muted);">
-              <div>
-                <p class="text-[9px] font-bold uppercase tracking-[.2em] text-[#9e9890] mb-1">Tổng thanh toán</p>
-                <p class="text-xl font-black text-[#0a0a0a] tabular-nums">{{ '{:,.0f}'.format(order.total_amount) }} ₫</p>
-              </div>
-              <a href="{{ url_for('profile.order_detail', order_id=order.id) }}" class="gua-btn w-full sm:w-auto">Xem chi tiết</a>
-            </div>
-          </div>
-          {% endfor %}
-        </div>
+            <p class="mb-3 text-[10px] font-black uppercase tracking-[.28em] text-[#b98b62]">
+              MMESTLINE Account
+            </p>
 
-        {# Pagination #}
-        {% if pagination and pagination.total_pages > 1 %}
-        <div class="flex justify-center items-center gap-2 mt-10">
-          {% if pagination.has_prev %}
-          <a href="{{ url_for('profile.my_orders', page=pagination.page - 1) }}" class="gua-btn gua-btn-ghost" style="padding:.625rem .75rem">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
-          </a>
-          {% endif %}
-          <div class="gua-btn" style="cursor:default;pointer-events:none">Trang {{ pagination.page }} / {{ pagination.total_pages }}</div>
-          {% if pagination.has_next %}
-          <a href="{{ url_for('profile.my_orders', page=pagination.page + 1) }}" class="gua-btn gua-btn-ghost" style="padding:.625rem .75rem">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
-          </a>
-          {% endif %}
+            <h1 class="text-3xl font-black uppercase tracking-[-.05em] text-[#241207] sm:text-4xl lg:text-5xl">
+              Lịch sử mua hàng
+            </h1>
+
+            <p class="mt-3 text-sm font-semibold leading-6 text-[#8a6a52]">
+              Theo dõi trạng thái đơn hàng, thanh toán và các sản phẩm bạn đã mua tại MMESTLINE.
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-3 sm:flex-row md:items-center">
+            <div class="rounded-[22px] border border-[#eadfd4] bg-[#fffaf5] px-5 py-4">
+              <p class="text-[9px] font-black uppercase tracking-[.22em] text-[#b98b62]">
+                Tổng đơn
+              </p>
+              <p class="mt-1 text-2xl font-black text-[#241207]">
+                {{ pagination.total if pagination else (orders|length if orders else 0) }}
+              </p>
+            </div>
+
+            <a
+              href="{{ url_for('products.index') }}"
+              class="inline-flex h-12 items-center justify-center rounded-2xl bg-[#241207] px-6 text-[10px] font-black uppercase tracking-[.18em] text-white transition hover:bg-[#3b2414] active:scale-[.98]"
+            >
+              Tiếp tục mua sắm
+            </a>
+          </div>
         </div>
-        {% endif %}
+      </div>
+    </section>
+
+    <div class="grid grid-cols-1 gap-8 lg:grid-cols-12">
+      <aside class="lg:col-span-3">
+        <p class="mb-4 hidden text-[9px] font-black uppercase tracking-[.28em] text-[#b98b62] lg:block">
+          Quản lý tài khoản
+        </p>
+        {{ profile_shell('bag') }}
+      </aside>
+
+      <main class="lg:col-span-9">
+        {% if orders and orders|length > 0 %}
+          <div class="space-y-4">
+            {% for order in orders %}
+              {% set order_status = order.status if order.status is defined else order.get('status', 'pending') %}
+              {% set payment_status = order.payment_status if order.payment_status is defined else order.get('payment_status', 'pending') %}
+              {% set payment_method = order.payment_method if order.payment_method is defined else order.get('payment_method', 'COD') %}
+              {% set order_id = order.id if order.id is defined else order.get('id') %}
+              {% set created_at = order.created_at if order.created_at is defined else order.get('created_at') %}
+              {% set total_amount = order.total_amount if order.total_amount is defined else order.get('total_amount', 0) %}
+              {% set order_items = order.order_items if order.order_items is defined else order.get('order_items', []) %}
+              {% set cs = status_map.get(order_status, ('Hệ thống', 'bg-neutral-50 text-neutral-500 border-neutral-200')) %}
+              {% set ps = payment_map.get(payment_status, ('Chưa thanh toán', 'bg-amber-50 text-amber-700 border-amber-200')) %}
+
+              <article class="group overflow-hidden rounded-[30px] border border-[#eadfd4] bg-white shadow-[0_18px_60px_-52px_rgba(36,18,7,.55)] transition hover:-translate-y-0.5 hover:shadow-[0_28px_75px_-58px_rgba(36,18,7,.75)]">
+                <div class="p-5 sm:p-6 lg:p-7">
+
+                  {# Top #}
+                  <div class="flex flex-col gap-4 border-b border-[#eadfd4] pb-5 sm:flex-row sm:items-start sm:justify-between">
+                    <div class="min-w-0">
+                      <p class="mb-1 text-[9px] font-black uppercase tracking-[.24em] text-[#b98b62]">
+                        Mã đơn hàng
+                      </p>
+
+                      <a
+                        href="{{ url_for('profile.order_detail', order_id=order_id) }}"
+                        class="inline-flex max-w-full items-center gap-2 text-lg font-black uppercase tracking-[-.02em] text-[#241207] transition hover:text-[#b98b62]"
+                      >
+                        <span class="truncate">#{{ order_id[:8].upper() if order_id else 'ORDER' }}</span>
+                        <i class="fa-solid fa-arrow-up-right-from-square text-[11px] opacity-40 transition group-hover:opacity-100"></i>
+                      </a>
+
+                      <div class="mt-3 flex flex-wrap items-center gap-2">
+                        <span class="inline-flex rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-[.14em] {{ cs[1] }}">
+                          {{ cs[0] }}
+                        </span>
+
+                        <span class="inline-flex rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-[.14em] {{ ps[1] }}">
+                          {{ ps[0] }}
+                        </span>
+
+                        <span class="inline-flex rounded-full border border-[#eadfd4] bg-[#fffaf5] px-3 py-1 text-[9px] font-black uppercase tracking-[.14em] text-[#8a6a52]">
+                          {{ payment_method or 'COD' }}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div class="shrink-0 text-left sm:text-right">
+                      <p class="mb-1 text-[9px] font-black uppercase tracking-[.22em] text-[#b98b62]">
+                        Ngày đặt
+                      </p>
+                      <p class="text-xs font-black text-[#8a6a52]">
+                        {{ created_at[:16].replace('T',' ') if created_at else 'Đang cập nhật' }}
+                      </p>
+                    </div>
+                  </div>
+
+                  {# Item preview #}
+                  <a
+                    href="{{ url_for('profile.order_detail', order_id=order_id) }}"
+                    class="mt-5 flex gap-4 sm:gap-5"
+                  >
+                    {% if order_items and order_items|length > 0 %}
+                      {% set fi = order_items[0] %}
+                      {% set product = fi.get('products', {}) if fi is mapping else fi.products %}
+                      {% set product_name = product.get('name') if product is mapping else product.name %}
+                      {% set thumbnail = product.get('thumbnail_url') if product is mapping else product.thumbnail_url %}
+                      {% set quantity = fi.get('quantity', 1) if fi is mapping else fi.quantity %}
+                      {% set variant_label = fi.get('variant_label') if fi is mapping else fi.variant_label %}
+
+                      <div class="h-24 w-20 shrink-0 overflow-hidden rounded-[22px] border border-[#eadfd4] bg-[#fffaf5] sm:h-28 sm:w-24">
+                        <img
+                          src="{{ thumbnail or 'https://placehold.co/300x400/fbf7f1/8a6a52?text=MM' }}"
+                          alt="{{ product_name or 'Sản phẩm' }}"
+                          class="h-full w-full object-cover object-top transition duration-700 group-hover:scale-105"
+                          loading="lazy"
+                          onerror="this.src='https://placehold.co/300x400/fbf7f1/8a6a52?text=MM'"
+                        >
+                      </div>
+
+                      <div class="min-w-0 flex-1 py-1">
+                        <p class="line-clamp-2 text-sm font-black uppercase leading-snug text-[#241207] transition group-hover:text-[#b98b62] sm:text-base">
+                          {{ product_name or fi.get('product_name', 'Sản phẩm đã xóa') }}
+                        </p>
+
+                        <div class="mt-3 flex flex-wrap gap-2">
+                          <span class="rounded-full border border-[#eadfd4] bg-[#fffaf5] px-3 py-1 text-[9px] font-black uppercase tracking-[.14em] text-[#8a6a52]">
+                            SL: {{ quantity }}
+                          </span>
+
+                          {% if variant_label %}
+                            <span class="rounded-full border border-[#eadfd4] bg-[#fffaf5] px-3 py-1 text-[9px] font-black uppercase tracking-[.14em] text-[#8a6a52]">
+                              {{ variant_label }}
+                            </span>
+                          {% endif %}
+
+                          {% if order_items|length > 1 %}
+                            <span class="rounded-full border border-[#241207]/10 bg-[#241207] px-3 py-1 text-[9px] font-black uppercase tracking-[.14em] text-white">
+                              +{{ order_items|length - 1 }} sản phẩm
+                            </span>
+                          {% endif %}
+                        </div>
+
+                        <p class="mt-3 text-xs font-semibold leading-5 text-[#8a6a52]">
+                          Nhấn để xem chi tiết sản phẩm, địa chỉ nhận hàng và trạng thái xử lý.
+                        </p>
+                      </div>
+                    {% else %}
+                      <div class="flex min-h-[96px] flex-1 items-center rounded-[24px] border border-dashed border-[#eadfd4] bg-[#fffaf5] p-5">
+                        <p class="text-xs font-semibold italic text-[#8a6a52]">
+                          Không có dữ liệu sản phẩm trong đơn hàng này.
+                        </p>
+                      </div>
+                    {% endif %}
+                  </a>
+
+                  {# Bottom #}
+                  <div class="mt-5 flex flex-col gap-4 border-t border-[#eadfd4] pt-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p class="mb-1 text-[9px] font-black uppercase tracking-[.22em] text-[#b98b62]">
+                        Tổng thanh toán
+                      </p>
+                      <p class="text-2xl font-black tracking-[-.03em] text-[#241207]">
+                        {{ "{:,.0f}".format(total_amount or 0) }} ₫
+                      </p>
+                    </div>
+
+                    <div class="flex flex-col gap-2 sm:flex-row">
+                      {% if payment_method == 'SEPAY' and payment_status != 'paid' %}
+                        <a
+                          href="{{ url_for('cart.sepay_qr', order_id=order_id) }}"
+                          class="inline-flex h-12 items-center justify-center rounded-2xl border border-[#eadfd4] bg-[#fffaf5] px-5 text-[10px] font-black uppercase tracking-[.16em] text-[#75543f] transition hover:border-[#241207] hover:text-[#241207]"
+                        >
+                          Xem QR
+                        </a>
+                      {% endif %}
+
+                      <a
+                        href="{{ url_for('profile.order_detail', order_id=order_id) }}"
+                        class="inline-flex h-12 items-center justify-center rounded-2xl bg-[#241207] px-6 text-[10px] font-black uppercase tracking-[.16em] text-white transition hover:bg-[#3b2414] active:scale-[.98]"
+                      >
+                        Xem chi tiết
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+
+          {% if pagination and pagination.total_pages > 1 %}
+            <nav class="mt-10 flex flex-wrap items-center justify-center gap-2" aria-label="Phân trang đơn hàng">
+              {% if pagination.has_prev %}
+                <a
+                  href="{{ url_for('profile.my_orders', page=pagination.page - 1) }}"
+                  class="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[#eadfd4] bg-white text-[#75543f] transition hover:border-[#241207] hover:text-[#241207]"
+                  aria-label="Trang trước"
+                >
+                  <i class="fa-solid fa-chevron-left text-xs"></i>
+                </a>
+              {% endif %}
+
+              <span class="inline-flex h-11 items-center justify-center rounded-2xl bg-[#241207] px-5 text-[10px] font-black uppercase tracking-[.16em] text-white">
+                Trang {{ pagination.page }} / {{ pagination.total_pages }}
+              </span>
+
+              {% if pagination.has_next %}
+                <a
+                  href="{{ url_for('profile.my_orders', page=pagination.page + 1) }}"
+                  class="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[#eadfd4] bg-white text-[#75543f] transition hover:border-[#241207] hover:text-[#241207]"
+                  aria-label="Trang sau"
+                >
+                  <i class="fa-solid fa-chevron-right text-xs"></i>
+                </a>
+              {% endif %}
+            </nav>
+          {% endif %}
 
         {% else %}
-        <div class="gua-card p-12 md:p-20 text-center flex flex-col items-center">
-          <svg class="w-10 h-10 text-[#d4cfc8] mb-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"/></svg>
-          <p class="text-[11px] font-black text-[#0a0a0a] uppercase tracking-widest mb-2">Chưa có đơn hàng nào</p>
-          <p class="text-[10px] text-[#9e9890] mb-6">Khám phá các bộ sưu tập mới nhất và chọn cho mình sản phẩm ưng ý.</p>
-          <a href="{{ url_for('products.index') }}" class="gua-btn">Mua sắm ngay</a>
-        </div>
+          <section class="rounded-[32px] border border-dashed border-[#eadfd4] bg-white p-10 text-center shadow-[0_18px_60px_-52px_rgba(36,18,7,.55)] sm:p-14 lg:p-20">
+            <div class="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-[26px] bg-[#fffaf5] text-[#b98b62]">
+              <i class="fa-solid fa-bag-shopping text-2xl"></i>
+            </div>
+
+            <p class="mb-2 text-sm font-black uppercase tracking-[.18em] text-[#241207]">
+              Chưa có đơn hàng nào
+            </p>
+
+            <p class="mx-auto mb-7 max-w-md text-xs font-semibold leading-6 text-[#8a6a52]">
+              Khám phá các bộ sưu tập mới nhất và chọn cho mình sản phẩm phù hợp với phong cách của bạn.
+            </p>
+
+            <a
+              href="{{ url_for('products.index') }}"
+              class="inline-flex h-12 items-center justify-center rounded-2xl bg-[#241207] px-7 text-[10px] font-black uppercase tracking-[.18em] text-white transition hover:bg-[#3b2414] active:scale-[.98]"
+            >
+              Mua sắm ngay
+            </a>
+          </section>
         {% endif %}
-      </div>
+      </main>
     </div>
   </div>
 </div>
