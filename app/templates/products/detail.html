@@ -3,133 +3,233 @@
 
 {% block extra_head %}
 <meta name="description" content="{{ product.seo_description or product.name }}">
+<meta name="csrf-token" content="{{ csrf_token() }}">
+
 <style>
-  :root {
-    --mm-ink: #241207;
-    --mm-brown: #3b2414;
-    --mm-brown-2: #5f3b1e;
-    --mm-caramel: #b98b62;
-    --mm-cream: #fbf7f1;
-    --mm-soft: #fffaf5;
-    --mm-line: #eadfd4;
-    --mm-muted: #9b7b63;
-    --mm-danger: #dc2626;
+  :root{
+    --pd-ink:#111;
+    --pd-muted:#666;
+    --pd-soft:#f6f6f6;
+    --pd-line:#e5e5e5;
+    --pd-danger:#dc2626;
+    --pd-radius:5px;
+    --pd-ease:cubic-bezier(.16,1,.3,1);
   }
 
-  body {
-    background: #fffaf5;
-    color: var(--mm-ink);
-    -webkit-font-smoothing: antialiased;
+  body{background:#fff;color:var(--pd-ink);-webkit-font-smoothing:antialiased}
+  *{-webkit-tap-highlight-color:transparent}
+  .no-scrollbar::-webkit-scrollbar{display:none}
+  .no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  input[type=number]{-moz-appearance:textfield}
+
+  .pd-page{background:#fff;min-height:100vh;padding:calc(var(--header-h,72px) + 20px) 0 110px}
+  .pd-wrap{max-width:1440px;margin:0 auto;padding:0 14px}
+  @media(min-width:768px){.pd-wrap{padding:0 28px}}
+  @media(min-width:1280px){.pd-wrap{padding:0 44px}}
+
+  .pd-breadcrumb{
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    padding:0 0 16px;margin-bottom:18px;border-bottom:1px solid var(--pd-line);
+    font-size:10px;font-weight:900;letter-spacing:.22em;text-transform:uppercase;color:#777
+  }
+  .pd-breadcrumb a{transition:color .16s ease}
+  .pd-breadcrumb a:hover{color:#111}
+
+  .pd-layout{display:grid;grid-template-columns:1fr;gap:28px}
+  @media(min-width:1024px){.pd-layout{grid-template-columns:minmax(0,1.08fr) minmax(380px,.92fr);gap:48px;align-items:start}}
+  @media(min-width:1280px){.pd-layout{gap:68px}}
+
+  .pd-gallery{display:grid;grid-template-columns:1fr;gap:10px}
+  @media(min-width:900px){.pd-gallery.has-thumbs{grid-template-columns:74px 1fr;gap:12px}}
+
+  .pd-thumbs{display:flex;gap:8px;order:2;overflow-x:auto;padding-bottom:2px}
+  @media(min-width:900px){.pd-thumbs{order:0;display:grid;grid-auto-rows:92px;overflow:visible;padding:0}}
+
+  .pd-thumb{
+    width:74px;height:92px;flex:0 0 auto;border:1px solid var(--pd-line);
+    border-radius:var(--pd-radius);background:#f5f5f5;overflow:hidden;opacity:.58;
+    transition:opacity .18s ease,border-color .18s ease
+  }
+  .pd-thumb.is-active,.pd-thumb:hover{opacity:1;border-color:#111}
+  .pd-thumb img{width:100%;height:100%;object-fit:cover;object-position:top center}
+
+  .pd-main{
+    position:relative;aspect-ratio:3/4;max-height:760px;min-height:420px;
+    border:1px solid var(--pd-line);border-radius:var(--pd-radius);
+    background:#f6f6f6;overflow:hidden;display:flex;align-items:center;justify-content:center
+  }
+  .pd-main img{
+    width:100%;height:100%;object-fit:cover;object-position:top center;
+    transition:opacity .22s ease,transform .5s var(--pd-ease)
+  }
+  .pd-main:hover img{transform:scale(1.018)}
+
+  .pd-discount{
+    position:absolute;left:12px;top:12px;z-index:4;background:#111;color:#fff;
+    border-radius:var(--pd-radius);padding:8px 10px;
+    font-size:10px;font-weight:900;letter-spacing:.16em;text-transform:uppercase
   }
 
-  * {
-    -webkit-tap-highlight-color: transparent;
+  .pd-wishlist{
+    position:absolute;right:12px;top:12px;z-index:5;width:40px;height:40px;
+    border:1px solid rgba(0,0,0,.1);border-radius:var(--pd-radius);
+    background:rgba(255,255,255,.92);display:flex;align-items:center;justify-content:center;
+    transition:background .18s ease,color .18s ease,transform .18s ease
   }
+  .pd-wishlist:hover{background:#111;color:#fff;transform:translateY(-1px)}
+  .pd-wishlist.is-on{color:var(--pd-danger)}
 
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
+  .pd-info{position:relative}
+  @media(min-width:1024px){.pd-info{position:sticky;top:calc(var(--header-h,72px) + 24px)}}
 
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
+  .pd-kicker{font-size:10px;font-weight:900;letter-spacing:.24em;text-transform:uppercase;color:#777}
+ .pd-title{
+  margin-top:10px;
+  max-width:680px;
+  font-size:clamp(26px,3.2vw,42px);
+  line-height:1.08;
+  font-weight:750;
+  letter-spacing:-.025em;
+  color:#111;
+  text-wrap:balance;
+}
+  .pd-price-row{margin-top:20px;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+  .pd-price{font-size:clamp(26px,3.2vw,42px);font-weight:950;letter-spacing:-.04em;color:#111}
+  .pd-compare{font-size:15px;font-weight:800;color:#999;text-decoration:line-through}
+  .pd-sale-pill{border:1px solid #fecaca;background:#fef2f2;color:#dc2626;border-radius:var(--pd-radius);padding:6px 9px;font-size:10px;font-weight:900;letter-spacing:.15em;text-transform:uppercase}
 
-  input[type="number"]::-webkit-outer-spin-button,
-  input[type="number"]::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    appearance: none;
-    margin: 0;
-  }
+  .pd-status-row{margin-top:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .pd-pill{border:1px solid var(--pd-line);border-radius:var(--pd-radius);padding:7px 9px;font-size:10px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:#333;background:#fff}
+  .pd-pill.ok{border-color:#bbf7d0;background:#f0fdf4;color:#15803d}
+  .pd-pill.low{border-color:#fde68a;background:#fffbeb;color:#b45309}
+  .pd-pill.out{border-color:#fecaca;background:#fef2f2;color:#dc2626}
+  .pd-stock-msg{font-size:11px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:#777}
 
-  input[type="number"] {
-    -moz-appearance: textfield;
-    appearance: textfield;
-  }
+  .pd-block{margin-top:26px;padding-top:24px;border-top:1px solid var(--pd-line)}
+  .pd-label{margin-bottom:10px;font-size:11px;font-weight:950;letter-spacing:.18em;text-transform:uppercase;color:#444}
+  .pd-label span{color:#111}
 
-  .mm-main-image {
-    width: 100%;
-    max-height: 46vh;
-    aspect-ratio: 3 / 4;
+  .pd-colors{display:flex;gap:10px;flex-wrap:wrap}
+  .pd-color-option{position:relative;cursor:pointer}
+  .pd-color-option input{position:absolute;opacity:0;pointer-events:none}
+  .pd-color-swatch{
+    width:42px;height:42px;border:1px solid var(--pd-line);border-radius:var(--pd-radius);
+    display:block;transition:border-color .16s ease,box-shadow .16s ease,transform .16s ease
   }
+  .pd-color-option input:checked + .pd-color-swatch{border-color:#111;box-shadow:0 0 0 2px #111 inset}
+  .pd-color-option:hover .pd-color-swatch{transform:translateY(-1px)}
 
-  @media (min-width: 1024px) {
-    .mm-main-image {
-      max-height: 620px;
-    }
+  .pd-size-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .pd-size-guide{font-size:10px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;text-decoration:underline;text-underline-offset:4px;color:#111}
+  .pd-sizes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+  .pd-size{position:relative;cursor:pointer}
+  .pd-size input{position:absolute;opacity:0;pointer-events:none}
+  .pd-size span{
+    height:46px;border:1px solid var(--pd-line);border-radius:var(--pd-radius);background:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-size:12px;font-weight:950;letter-spacing:.14em;text-transform:uppercase;
+    transition:background .16s ease,color .16s ease,border-color .16s ease
   }
+  .pd-size input:checked + span{background:#111;border-color:#111;color:#fff}
+  .pd-size input:disabled + span{background:#f5f5f5;color:#aaa;text-decoration:line-through;cursor:not-allowed}
+  .pd-size:hover input:not(:disabled) + span{border-color:#111}
 
-  .acc-content {
-    display: grid;
-    grid-template-rows: 0fr;
-    transition: grid-template-rows 0.32s cubic-bezier(0.16, 1, 0.3, 1);
-  }
+  .pd-buy-row{display:grid;grid-template-columns:128px 1fr;gap:10px}
+  .pd-qty{height:50px;border:1px solid #111;border-radius:var(--pd-radius);display:grid;grid-template-columns:38px 1fr 38px;background:#fff;overflow:hidden}
+  .pd-qty button{font-size:18px;font-weight:900;color:#555;transition:background .16s ease,color .16s ease}
+  .pd-qty button:hover{background:#f5f5f5;color:#111}
+  .pd-qty input{width:100%;border:0;outline:0;text-align:center;font-size:13px;font-weight:950;background:transparent}
 
-  .acc-content.open {
-    grid-template-rows: 1fr;
+  .pd-submit{
+    height:50px;border:1px solid #111;border-radius:var(--pd-radius);background:#111;color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:950;letter-spacing:.22em;text-transform:uppercase;
+    transition:background .18s ease,color .18s ease,transform .12s ease
   }
+  .pd-submit:hover{background:#333}
+  .pd-submit:active{transform:scale(.99)}
+  .pd-submit:disabled{border-color:#ddd;background:#eee;color:#999;cursor:not-allowed}
 
-  .acc-inner {
-    overflow: hidden;
-  }
+  .pd-quick-notes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:16px}
+  .pd-note{border:1px solid var(--pd-line);border-radius:var(--pd-radius);padding:12px;background:#fff}
+  .pd-note strong{display:block;font-size:10px;font-weight:950;letter-spacing:.14em;text-transform:uppercase;color:#111}
+  .pd-note span{display:block;margin-top:5px;font-size:11px;font-weight:700;line-height:1.45;color:#777}
+  @media(max-width:640px){.pd-quick-notes{grid-template-columns:1fr}}
 
-  .acc-icon {
-    transition: transform 0.24s ease;
-  }
+  .pd-accordion{margin-top:26px;border-top:1px solid var(--pd-line)}
+  .pd-acc-item{border-bottom:1px solid var(--pd-line)}
+  .pd-acc-btn{width:100%;height:54px;display:flex;align-items:center;justify-content:space-between;text-align:left;font-size:11px;font-weight:950;letter-spacing:.16em;text-transform:uppercase}
+  .pd-acc-icon{transition:transform .2s ease}
+  .pd-acc-icon.open{transform:rotate(180deg)}
+  .pd-acc-content{display:grid;grid-template-rows:0fr;transition:grid-template-rows .25s var(--pd-ease)}
+  .pd-acc-content.open{grid-template-rows:1fr}
+  .pd-acc-inner{overflow:hidden;padding-bottom:0}
+  .pd-acc-content.open .pd-acc-inner{padding-bottom:18px}
+  .pd-rich{font-size:13px;font-weight:600;line-height:1.72;color:#555}
+  .pd-rich p{margin:0 0 10px}
+  .pd-rich ul,.pd-rich ol{padding-left:18px;margin:8px 0}
+  .pd-rich li{margin:4px 0}
 
-  .acc-icon.open {
-    transform: rotate(180deg);
-  }
+  .pd-related{margin-top:80px;padding-top:34px;border-top:1px solid var(--pd-line)}
+  .pd-related-head{display:flex;align-items:end;justify-content:space-between;gap:16px;margin-bottom:18px}
+  .pd-related-title{font-size:22px;font-weight:950;letter-spacing:-.03em;text-transform:uppercase}
+  .pd-related-link{font-size:10px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:#555}
+  .pd-related-link:hover{color:#111}
+  .pd-related-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  @media(min-width:768px){.pd-related-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}}
+  .pd-rp{border:1px solid var(--pd-line);border-radius:var(--pd-radius);overflow:hidden;background:#fff;transition:border-color .16s ease,transform .18s ease}
+  .pd-rp:hover{border-color:#111;transform:translateY(-2px)}
+  .pd-rp-img{aspect-ratio:3/4;background:#f5f5f5;overflow:hidden}
+  .pd-rp-img img{width:100%;height:100%;object-fit:cover;object-position:top center;transition:transform .55s var(--pd-ease)}
+  .pd-rp:hover img{transform:scale(1.025)}
+  .pd-rp-info{padding:12px}
+  .pd-rp-name{font-size:11px;font-weight:950;letter-spacing:.08em;text-transform:uppercase;line-height:1.4;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+  .pd-rp-price{margin-top:7px;font-size:12px;font-weight:950}
 
-  .mm-rich-description h1,
-  .mm-rich-description h2,
-  .mm-rich-description h3 {
-    color: var(--mm-ink);
-    font-weight: 900;
-    margin: 18px 0 10px;
+  .pd-mobile-bar{
+    position:fixed;left:0;right:0;bottom:0;z-index:140;
+    display:none;grid-template-columns:116px 1fr;gap:8px;
+    padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+    border-top:1px solid var(--pd-line);background:rgba(255,255,255,.96);backdrop-filter:blur(16px)
   }
+  @media(max-width:1023px){.pd-mobile-bar{display:grid}.pd-page{padding-bottom:128px}}
 
-  .mm-rich-description p {
-    margin: 0 0 12px;
-  }
+  .pd-modal{position:fixed;inset:0;z-index:220;display:none;align-items:center;justify-content:center;padding:14px}
+  .pd-modal.open{display:flex}
+  .pd-modal-bg{position:absolute;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(4px)}
+  .pd-modal-card{position:relative;width:min(760px,100%);max-height:86dvh;overflow:auto;background:#fff;border:1px solid var(--pd-line);border-radius:var(--pd-radius)}
+  .pd-modal-head{height:58px;border-bottom:1px solid var(--pd-line);display:flex;align-items:center;justify-content:space-between;padding:0 18px}
+  .pd-modal-title{font-size:11px;font-weight:950;letter-spacing:.18em;text-transform:uppercase}
+  .pd-modal-body{padding:18px}
+  .pd-table{width:100%;border-collapse:collapse;font-size:12px;text-align:center}
+  .pd-table th,.pd-table td{border:1px solid var(--pd-line);padding:11px}
+  .pd-table th{background:#f7f7f7;font-size:10px;letter-spacing:.13em;text-transform:uppercase}
 
-  .mm-rich-description ul,
-  .mm-rich-description ol {
-    padding-left: 18px;
-    margin: 10px 0;
+  .pd-toast{
+    position:fixed;left:50%;bottom:88px;z-index:300;transform:translateX(-50%) translateY(12px);
+    opacity:0;background:#111;color:#fff;border-radius:var(--pd-radius);
+    padding:12px 16px;font-size:10px;font-weight:950;letter-spacing:.16em;text-transform:uppercase;
+    transition:.2s ease;pointer-events:none
   }
+  .pd-toast.show{opacity:1;transform:translateX(-50%)}
 
-  .mm-rich-description li {
-    margin: 5px 0;
+@media(max-width:640px){
+  .pd-main{min-height:360px}
+  .pd-buy-row{grid-template-columns:1fr}
+  .pd-title{
+    font-size:28px;
+    line-height:1.12;
+    letter-spacing:-.018em;
   }
-
-  .mm-price-flash {
-    animation: mmPriceFlash 0.26s ease;
+  .pd-price{font-size:28px}
+}
+  @media(prefers-reduced-motion:reduce){
+    *{transition:none!important;animation:none!important;scroll-behavior:auto!important}
   }
-
-  @keyframes mmPriceFlash {
-    from {
-      transform: translateY(4px);
-      opacity: 0.35;
-    }
-    to {
-      transform: translateY(0);
-      opacity: 1;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-      transition-duration: 0.01ms !important;
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      scroll-behavior: auto !important;
-    }
-  }
+  
 </style>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
@@ -149,377 +249,259 @@
   data-base-discount="{{ product.discount_percent or '' }}"
   data-product-stock="{{ product.stock or 0 }}"
   data-product-can-buy="{{ '1' if can_buy_product else '0' }}"
-  style="display:none;"
+  hidden
 ></div>
 
-<div class="min-h-screen bg-[#fffaf5] pb-32 lg:pb-20 pt-[80px]">
-  <main class="max-w-[1440px] mx-auto px-4 sm:px-6 md:px-10 pt-6">
+<div class="pd-page">
+  <main class="pd-wrap">
 
-    <nav class="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-[0.25em] text-[#9b7b63] mb-6 border-b border-[#eadfd4] pb-4">
-      <a href="{{ url_for('products.shop') }}" class="hover:text-[#241207] transition-colors">Shop All</a>
-
+    <nav class="pd-breadcrumb">
+      <a href="{{ url_for('products.shop') }}">Shop All</a>
       {% if product.product_categories and product.product_categories[0] and product.product_categories[0].categories %}
-        <span class="text-[#d8c5b5]">/</span>
-        <span class="text-[#241207]">{{ product.product_categories[0].categories.name }}</span>
+        <span>/</span>
+        <span>{{ product.product_categories[0].categories.name }}</span>
       {% endif %}
     </nav>
 
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 xl:gap-16 items-start">
+    <div class="pd-layout">
 
-      <section class="lg:col-span-6 flex flex-col gap-4 select-none">
-        <div class="relative mm-main-image bg-[#fbf7f1] border border-[#eadfd4] overflow-hidden flex items-center justify-center rounded-[1.75rem]">
-          {% if product.has_discount %}
-          <div id="main-discount-badge" class="absolute left-5 top-5 z-20 rounded-full bg-[#3b2414] px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white">
-            -{{ product.discount_percent }}%
+      <section class="pd-gallery {% if images|length > 1 %}has-thumbs{% endif %}">
+        {% if images|length > 1 %}
+          <div class="pd-thumbs no-scrollbar" id="pdThumbs">
+            {% for img in images %}
+              <button type="button" class="pd-thumb {% if loop.first %}is-active{% endif %}" data-url="{{ img.url }}" data-index="{{ loop.index0 }}">
+                <img src="{{ img.url }}" alt="{{ product.name }} {{ loop.index }}" decoding="async">
+              </button>
+            {% endfor %}
           </div>
+        {% endif %}
+
+        <div class="pd-main">
+          {% if product.has_discount %}
+            <div id="main-discount-badge" class="pd-discount">-{{ product.discount_percent }}%</div>
           {% else %}
-          <div id="main-discount-badge" class="absolute left-5 top-5 z-20 rounded-full bg-[#3b2414] px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white hidden"></div>
+            <div id="main-discount-badge" class="pd-discount hidden"></div>
           {% endif %}
 
           <img
             id="main-focus-image"
-            src="{{ images[0].url if images else 'https://placehold.co/900x1200/fbf7f1/5f3b1e?text=MMESTLINE' }}"
+            src="{{ images[0].url if images else 'https://placehold.co/900x1200/f6f6f6/111111?text=MMESTLINE' }}"
             alt="{{ product.name }}"
             fetchpriority="high"
             loading="eager"
-            class="gallery-main-img max-h-full max-w-full object-contain transition-opacity duration-300 ease-out p-4"
+            decoding="async"
           >
 
-          <button
-            type="button"
-            id="btn-wishlist"
-            class="absolute top-5 right-5 z-20 h-11 w-11 rounded-full bg-white/85 border border-[#eadfd4] flex items-center justify-center text-[#9b7b63] hover:text-[#241207] hover:bg-white transition-colors"
-            aria-label="Thêm vào yêu thích"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+          <button type="button" id="btn-wishlist" class="pd-wishlist" aria-label="Thêm vào yêu thích">
+            <svg width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/>
             </svg>
           </button>
         </div>
-
-        {% if images|length > 1 %}
-        <div class="grid grid-cols-5 gap-2 mt-1" id="editorial-matrix">
-          {% for img in images %}
-          <button
-            type="button"
-            data-url="{{ img.url }}"
-            data-index="{{ loop.index0 }}"
-            class="matrix-cell relative aspect-square bg-[#fbf7f1] border cursor-pointer overflow-hidden rounded-2xl transition-all duration-300 {% if loop.first %}border-[#241207] opacity-100{% else %}border-[#eadfd4] opacity-60 hover:opacity-100{% endif %}"
-          >
-            <img src="{{ img.url }}" alt="{{ product.name }} image {{ loop.index }}" class="w-full h-full object-contain p-1" loading="lazy">
-          </button>
-          {% endfor %}
-        </div>
-        {% endif %}
       </section>
 
-      <section class="lg:col-span-6 flex flex-col">
-        <div class="space-y-8">
+      <section class="pd-info">
+        <p class="pd-kicker">MMESTLINE Product</p>
 
-          <div class="space-y-4 pb-6 border-b border-[#eadfd4]">
-            <div class="flex flex-wrap items-center gap-2">
-              {% if product.is_featured %}
-              <span class="rounded-full bg-[#ead8c8] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.2em] text-[#3b2414]">
-                Featured
-              </span>
-              {% endif %}
+        <h1 class="pd-title">
+          {{ product.name }}
+        </h1>
 
-              <span
-                id="stock-pill"
-                class="rounded-full px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.2em]
-                {% if can_buy_product %}
-                  bg-emerald-50 text-emerald-700
-                {% else %}
-                  bg-red-50 text-red-700
-                {% endif %}"
-              >
-                {{ product.stock_status.label if product.stock_status is defined else ('Còn hàng' if can_buy_product else 'Hết hàng') }}
-              </span>
-            </div>
+        <div class="pd-price-row">
+          <p id="price-display" class="pd-price">{{ product.price_formatted }}</p>
 
-            <h1 class="text-2xl md:text-4xl font-black uppercase tracking-tight text-[#241207] leading-tight">
-              {{ product.name }}
-            </h1>
+          <p id="price-original" class="pd-compare {% if not product.compare_at_price_formatted %}hidden{% endif %}">
+            {{ product.compare_at_price_formatted or '' }}
+          </p>
 
-            <div class="flex flex-wrap items-baseline gap-3 font-mono tracking-wider" id="price-container">
-              <p
-                id="price-display"
-                class="text-3xl md:text-5xl font-black text-[#5f3b1e] mm-price-flash"
-              >
-                {{ product.price_formatted }}
-              </p>
+          <span id="price-discount" class="pd-sale-pill {% if not product.has_discount %}hidden{% endif %}">
+            -{{ product.discount_percent }}%
+          </span>
+        </div>
 
-              <p
-                id="price-original"
-                class="text-[#b7a191] line-through text-sm md:text-base font-bold {% if not product.compare_at_price_formatted %}hidden{% endif %}"
-              >
-                {{ product.compare_at_price_formatted or '' }}
-              </p>
+        <div class="pd-status-row">
+          <span id="stock-pill" class="pd-pill {% if can_buy_product %}ok{% else %}out{% endif %}">
+            {{ product.stock_status.label if product.stock_status is defined else ('Còn hàng' if can_buy_product else 'Hết hàng') }}
+          </span>
 
-              <span
-                id="price-discount"
-                class="rounded-full bg-red-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-red-600 {% if not product.has_discount %}hidden{% endif %}"
-              >
-                -{{ product.discount_percent }}%
-              </span>
-            </div>
+          <span id="stock-status" class="pd-stock-msg">
+            {{ product.stock_status.message if product.stock_status is defined else '' }}
+          </span>
+        </div>
 
-            <p id="stock-status" class="text-[11px] font-black uppercase tracking-[0.18em] text-[#9b7b63]">
-              {{ product.stock_status.message if product.stock_status is defined else '' }}
-            </p>
-          </div>
+        <form id="purchase-form" action="/cart/add" method="POST" class="pd-block">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="product_id" value="{{ product.id }}">
+          <input type="hidden" name="variant_id" id="selected-variant-id" value="{{ default_variant.id if default_variant else '' }}">
+          <input type="hidden" name="quantity" id="hidden-qty" value="1">
 
-          <form id="purchase-form" action="/cart/add" method="POST" class="space-y-8">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="hidden" name="product_id" value="{{ product.id }}">
-            <input type="hidden" name="variant_id" id="selected-variant-id" value="{{ default_variant.id if default_variant else '' }}">
-            <input type="hidden" name="quantity" id="hidden-qty" value="1">
-
-            {% if has_variants %}
-            <div class="space-y-3">
-              <div class="text-[11px] font-black uppercase tracking-[0.2em] text-[#9b7b63]">
-                Màu sắc:
-                <span id="color-label" class="text-[#241207] ml-1">---</span>
+          {% if has_variants %}
+            <div class="pd-field">
+              <div class="pd-label">
+                Màu sắc: <span id="color-label">---</span>
               </div>
 
-              <div class="flex flex-wrap gap-3">
+              <div class="pd-colors">
                 {% for c_name, group in product.color_groups.items() %}
-                <label class="cursor-pointer relative">
-                  <input
-                    type="radio"
-                    name="color"
-                    value="{{ c_name }}"
-                    class="sr-only peer color-radio"
-                    {% if loop.first %}checked{% endif %}
-                  >
-                  <span
-                    class="block w-12 h-12 rounded-2xl border border-[#eadfd4] peer-checked:border-[#241207] peer-checked:ring-2 peer-checked:ring-[#241207] transition-all color-swatch"
-                    data-bg="{{ group.hex or '#ead8c8' }}"
-                    title="{{ c_name }}"
-                  ></span>
-                </label>
-                {% endfor %}
-              </div>
-            </div>
-
-            <div class="space-y-3">
-              <div class="flex items-baseline justify-between gap-4">
-                <div class="text-[11px] font-black uppercase tracking-[0.2em] text-[#9b7b63]">
-                  Kích cỡ
-                </div>
-
-                <button
-                  type="button"
-                  onclick="openSizeGuide()"
-                  class="text-[10px] font-black uppercase tracking-wider text-[#241207] underline underline-offset-4 hover:text-[#9a5a2f] transition-colors"
-                >
-                  Bảng quy chuẩn size
-                </button>
-              </div>
-
-              <div id="size-wrapper" class="w-full">
-                {% for c_name, group in product.color_groups.items() %}
-                <div
-                  class="size-group grid grid-cols-4 gap-2{% if not loop.first %} hidden{% endif %}"
-                  data-color="{{ c_name }}"
-                >
-                  {% for sz in group.sizes %}
-                  <label class="relative {% if sz.is_available %}cursor-pointer{% else %}cursor-not-allowed{% endif %}">
-                    <input
-                      type="radio"
-                      name="size_radio"
-                      class="sr-only peer size-radio"
-                      {% if not sz.is_available %}disabled{% endif %}
-                      data-vid="{{ sz.variant_id }}"
-                      data-stock="{{ sz.stock }}"
-                      data-available="{{ '1' if sz.is_available else '0' }}"
-                      data-price="{{ sz.price or product.price }}"
-                      data-price-formatted="{{ sz.price_formatted or product.price_formatted }}"
-                      data-compare="{{ sz.compare_at_price or '' }}"
-                      data-compare-formatted="{{ sz.compare_at_price_formatted or '' }}"
-                      data-discount="{{ sz.discount_percent or '' }}"
-                      data-sku="{{ sz.sku or '' }}"
-                    >
-                    <span class="flex items-center justify-center h-[52px] rounded-2xl border border-[#eadfd4] bg-white text-[12px] font-black transition-colors uppercase tracking-widest peer-checked:bg-[#3b2414] peer-checked:text-white peer-checked:border-[#3b2414] peer-disabled:bg-[#fbf7f1] peer-disabled:text-[#c7b6a7] peer-disabled:line-through hover:border-[#3b2414]">
-                      {{ sz.size }}
-                    </span>
+                  <label class="pd-color-option">
+                    <input type="radio" name="color" value="{{ c_name }}" class="color-radio" {% if loop.first %}checked{% endif %}>
+                    <span class="pd-color-swatch color-swatch" data-bg="{{ group.hex or '#ddd' }}" title="{{ c_name }}"></span>
                   </label>
-                  {% endfor %}
-                </div>
                 {% endfor %}
               </div>
             </div>
-            {% else %}
-            <div class="rounded-[1.5rem] border border-[#eadfd4] bg-white px-4 py-4">
-              <p class="text-[11px] font-black uppercase tracking-[0.2em] text-[#9b7b63]">
-                Tồn kho
-              </p>
-              <p class="mt-1 text-sm font-bold text-[#241207]">
+
+            <div class="pd-field pd-block">
+              <div class="pd-size-head">
+                <div class="pd-label mb-0">Kích cỡ</div>
+                <button type="button" onclick="openSizeGuide()" class="pd-size-guide">Bảng size</button>
+              </div>
+
+              <div id="size-wrapper" class="mt-3">
+                {% for c_name, group in product.color_groups.items() %}
+                  <div class="size-group pd-sizes {% if not loop.first %}hidden{% endif %}" data-color="{{ c_name }}">
+                    {% for sz in group.sizes %}
+                      <label class="pd-size">
+                        <input
+                          type="radio"
+                          name="size_radio"
+                          class="size-radio"
+                          {% if not sz.is_available %}disabled{% endif %}
+                          data-vid="{{ sz.variant_id }}"
+                          data-stock="{{ sz.stock }}"
+                          data-available="{{ '1' if sz.is_available else '0' }}"
+                          data-price="{{ sz.price or product.price }}"
+                          data-price-formatted="{{ sz.price_formatted or product.price_formatted }}"
+                          data-compare="{{ sz.compare_at_price or '' }}"
+                          data-compare-formatted="{{ sz.compare_at_price_formatted or '' }}"
+                          data-discount="{{ sz.discount_percent or '' }}"
+                          data-sku="{{ sz.sku or '' }}"
+                        >
+                        <span>{{ sz.size }}</span>
+                      </label>
+                    {% endfor %}
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          {% else %}
+            <div class="pd-block">
+              <div class="pd-label">Tồn kho</div>
+              <p class="text-sm font-bold text-[#555]">
                 {{ product.stock_status.message if product.stock_status is defined else ('Có sẵn hàng' if can_buy_product else 'Sản phẩm hiện đã hết hàng') }}
               </p>
             </div>
-            {% endif %}
+          {% endif %}
 
-            <div class="hidden lg:flex pt-2 flex-col sm:flex-row gap-4 w-full">
-              <div class="flex items-center border border-[#3b2414] h-14 w-full sm:w-40 bg-white shrink-0 rounded-2xl overflow-hidden">
-                <button type="button" data-qty="-1" class="btn-qty w-12 h-full flex items-center justify-center text-[#9b7b63] hover:text-[#241207] text-lg font-black">−</button>
-                <input
-                  type="number"
-                  id="qty"
-                  value="1"
-                  min="1"
-                  max="{{ product.stock if product.stock and product.stock > 0 else 1 }}"
-                  readonly
-                  class="flex-1 text-center text-[14px] font-black bg-transparent outline-none pointer-events-none font-mono"
-                >
-                <button type="button" data-qty="1" class="btn-qty w-12 h-full flex items-center justify-center text-[#9b7b63] hover:text-[#241207] text-lg font-black">+</button>
-              </div>
-
-              <button
-                type="submit"
-                id="btn-submit"
-                {% if not can_buy_product %}disabled{% endif %}
-                class="flex-1 h-14 rounded-2xl text-[12px] font-black uppercase tracking-[0.25em] transition-colors flex items-center justify-center border
-                {% if can_buy_product %}
-                  bg-[#3b2414] text-white border-[#3b2414] hover:bg-[#241207] cursor-pointer
-                {% else %}
-                  bg-[#f3e7dc] text-[#a89586] border-transparent cursor-not-allowed
-                {% endif %}"
-              >
-                {% if has_variants %}
-                  CHỌN PHÂN LOẠI
-                {% elif can_buy_product %}
-                  THÊM VÀO GIỎ
-                {% else %}
-                  HẾT HÀNG
-                {% endif %}
-              </button>
+          <div class="pd-buy-row pd-block hidden lg:grid">
+            <div class="pd-qty">
+              <button type="button" data-qty="-1" class="btn-qty">−</button>
+              <input id="qty" type="number" value="1" min="1" max="{{ product.stock if product.stock and product.stock > 0 else 1 }}" readonly>
+              <button type="button" data-qty="1" class="btn-qty">+</button>
             </div>
-          </form>
 
-          <div class="border-t border-[#eadfd4] pt-2 mt-8">
-            {% set detail_text = product.description_html or product.description or 'Thiết kế cao cấp nằm trong tinh thần tối giản của MMESTLINE. Đường may tỉ mỉ, form dáng hiện đại và dễ phối trong nhiều hoàn cảnh.' %}
+            <button type="submit" id="btn-submit" class="pd-submit" {% if not can_buy_product %}disabled{% endif %}>
+              {% if has_variants %}
+                CHỌN PHÂN LOẠI
+              {% elif can_buy_product %}
+                THÊM VÀO GIỎ
+              {% else %}
+                HẾT HÀNG
+              {% endif %}
+            </button>
+          </div>
+        </form>
 
-            {% for id, title, text in [
-              ('acc-1', 'CHI TIẾT VÀ CHẤT LIỆU', detail_text),
-              ('acc-2', 'CHÍNH SÁCH VẬN CHUYỂN', 'Giao hàng nội thành và toàn quốc. Thời gian giao hàng tùy khu vực, thông tin sẽ được xác nhận trong quá trình đặt hàng.'),
-              ('acc-3', 'ĐỔI TRẢ TRONG 7 NGÀY', 'Hỗ trợ đổi mẫu hoặc đổi size trong vòng 7 ngày kể từ khi nhận hàng nếu sản phẩm còn nguyên tag, chưa qua sử dụng và đáp ứng điều kiện đổi trả.')
-            ] %}
-            <div class="border-b border-[#eadfd4]">
-              <button
-                type="button"
-                class="w-full py-4 flex justify-between items-center text-left text-[11px] font-black uppercase tracking-wider text-[#241207]"
-                onclick="toggleAccordion('{{ id }}')"
-              >
+        <div class="pd-quick-notes">
+          <div class="pd-note">
+            <strong>Đổi size</strong>
+            <span>Hỗ trợ đổi size trong 7 ngày nếu còn tag.</span>
+          </div>
+          <div class="pd-note">
+            <strong>Giao hàng</strong>
+            <span>Giao toàn quốc, kiểm tra trạng thái trong hồ sơ.</span>
+          </div>
+          <div class="pd-note">
+            <strong>Thanh toán</strong>
+            <span>COD, VNPay hoặc SePay chuyển khoản tự động.</span>
+          </div>
+        </div>
+
+        <div class="pd-accordion">
+          {% set detail_text = product.description_html or product.description or 'Thiết kế nằm trong tinh thần tối giản của MMESTLINE. Form dáng hiện đại, dễ phối và phù hợp sử dụng hằng ngày.' %}
+
+          {% for id, title, text in [
+            ('acc-1', 'Product', detail_text),
+            ('acc-2', 'Shipping & Payment', 'Giao hàng nội thành và toàn quốc. Hỗ trợ COD, VNPay và SePay. Thời gian giao hàng phụ thuộc khu vực nhận hàng.'),
+            ('acc-3', 'Exchange Policy', 'Hỗ trợ đổi mẫu hoặc đổi size trong vòng 7 ngày kể từ khi nhận hàng nếu sản phẩm còn nguyên tag, chưa qua sử dụng và đáp ứng điều kiện đổi trả.')
+          ] %}
+            <div class="pd-acc-item">
+              <button type="button" class="pd-acc-btn" onclick="toggleAccordion('{{ id }}')">
                 <span>{{ title }}</span>
-                <svg id="icon-{{ id }}" class="w-3 h-3 text-[#241207] acc-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                <svg id="icon-{{ id }}" class="pd-acc-icon {% if loop.first %}open{% endif %}" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
                 </svg>
               </button>
 
-              <div id="{{ id }}" class="acc-content {% if loop.first %}open{% endif %}">
-                <div class="acc-inner pb-5 text-[13px] text-[#75543f] leading-relaxed mm-rich-description">
+              <div id="{{ id }}" class="pd-acc-content {% if loop.first %}open{% endif %}">
+                <div class="pd-acc-inner pd-rich">
                   {{ text|safe }}
                 </div>
               </div>
             </div>
-            {% endfor %}
-          </div>
-
+          {% endfor %}
         </div>
       </section>
     </div>
 
     {% if related_products %}
-    <section class="mt-24 pt-14 border-t border-[#eadfd4]">
-      <div class="mb-10 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-        <div>
-          <p class="text-[10px] font-black uppercase tracking-[0.28em] text-[#b98b62]">
-            Recommended
-          </p>
-          <h2 class="mt-2 text-xl md:text-2xl font-black uppercase tracking-tight text-[#241207]">
-            Sản phẩm liên quan
-          </h2>
+      <section class="pd-related">
+        <div class="pd-related-head">
+          <div>
+            <p class="pd-kicker">Recommended</p>
+            <h2 class="pd-related-title">Sản phẩm liên quan</h2>
+          </div>
+
+          <a href="{{ url_for('products.shop') }}" class="pd-related-link">Xem tất cả</a>
         </div>
 
-        <a href="{{ url_for('products.shop') }}" class="text-[10px] font-black uppercase tracking-[0.22em] text-[#75543f] hover:text-[#241207]">
-          Xem tất cả
-        </a>
-      </div>
+        <div class="pd-related-grid">
+          {% for rp in related_products %}
+            <article class="pd-rp">
+              <a href="{{ url_for('products.detail', slug=rp.slug) }}" class="pd-rp-img block">
+                <img
+                  src="{{ rp.thumbnail_url or 'https://placehold.co/600x800/f6f6f6/111111?text=MMESTLINE' }}"
+                  alt="{{ rp.name }}"
+                  loading="lazy"
+                  decoding="async"
+                >
+              </a>
 
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {% for rp in related_products %}
-        <article class="flex flex-col bg-white group border border-[#eadfd4] p-3 rounded-[1.5rem] overflow-hidden">
-          <div class="relative overflow-hidden aspect-[3/4] bg-[#fbf7f1] rounded-[1.25rem]">
-            {% if rp.has_discount %}
-            <span class="absolute left-3 top-3 z-10 rounded-full bg-[#3b2414] px-2.5 py-1.5 text-[9px] font-black text-white">
-              -{{ rp.discount_percent }}%
-            </span>
-            {% endif %}
+              <div class="pd-rp-info">
+                <a href="{{ url_for('products.detail', slug=rp.slug) }}" class="pd-rp-name">{{ rp.name }}</a>
+                <p class="pd-rp-price">{{ rp.price_formatted }}</p>
 
-            <a href="{{ url_for('products.detail', slug=rp.slug) }}" class="block w-full h-full">
-              <img
-                src="{{ rp.thumbnail_url or 'https://placehold.co/600x800/fbf7f1/5f3b1e?text=MMESTLINE' }}"
-                alt="{{ rp.name }}"
-                loading="lazy"
-                class="w-full h-full object-contain p-4 transition-transform duration-700 ease-out group-hover:scale-105"
-              >
-            </a>
-          </div>
-
-          <div class="pt-4 flex flex-col flex-1">
-            <a href="{{ url_for('products.detail', slug=rp.slug) }}" class="text-[11px] font-black uppercase tracking-wide text-[#241207] hover:text-[#9a5a2f] transition-colors line-clamp-1">
-              {{ rp.name }}
-            </a>
-
-            <div class="mt-2 flex flex-wrap items-center gap-2">
-              <span class="font-mono text-[12px] font-black text-[#5f3b1e]">
-                {{ rp.price_formatted }}
-              </span>
-
-              {% if rp.compare_at_price_formatted %}
-              <del class="font-mono text-[11px] text-[#b7a191]">
-                {{ rp.compare_at_price_formatted }}
-              </del>
-              {% endif %}
-            </div>
-          </div>
-        </article>
-        {% endfor %}
-      </div>
-    </section>
+                {% if rp.compare_at_price_formatted %}
+                  <del class="text-[11px] font-bold text-[#999]">{{ rp.compare_at_price_formatted }}</del>
+                {% endif %}
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      </section>
     {% endif %}
 
   </main>
 </div>
 
-<div class="lg:hidden fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur border-t border-[#eadfd4] p-4 z-[140] flex gap-3">
-  <div class="flex items-center border border-[#3b2414] h-14 w-32 bg-white shrink-0 rounded-2xl overflow-hidden">
-    <button type="button" data-qty="-1" class="btn-qty w-10 h-full flex items-center justify-center text-[#9b7b63] hover:text-[#241207] text-xl font-black">−</button>
-    <input
-      type="number"
-      id="mobile-qty"
-      value="1"
-      min="1"
-      max="{{ product.stock if product.stock and product.stock > 0 else 1 }}"
-      readonly
-      class="flex-1 text-center text-[14px] font-black bg-transparent outline-none pointer-events-none font-mono"
-    >
-    <button type="button" data-qty="1" class="btn-qty w-10 h-full flex items-center justify-center text-[#9b7b63] hover:text-[#241207] text-xl font-black">+</button>
+<div class="pd-mobile-bar lg:hidden">
+  <div class="pd-qty">
+    <button type="button" data-qty="-1" class="btn-qty">−</button>
+    <input id="mobile-qty" type="number" value="1" min="1" max="{{ product.stock if product.stock and product.stock > 0 else 1 }}" readonly>
+    <button type="button" data-qty="1" class="btn-qty">+</button>
   </div>
 
-  <button
-    type="button"
-    id="mobile-btn-submit"
-    onclick="MobileCTA.submitForm()"
-    {% if not can_buy_product %}disabled{% endif %}
-    class="flex-1 h-14 rounded-2xl text-[11px] font-black uppercase tracking-[0.22em] flex items-center justify-center transition-colors
-    {% if can_buy_product %}
-      bg-[#3b2414] text-white active:bg-[#241207]
-    {% else %}
-      bg-[#f3e7dc] text-[#a89586]
-    {% endif %}"
-  >
+  <button type="button" id="mobile-btn-submit" onclick="MobileCTA.submitForm()" class="pd-submit" {% if not can_buy_product %}disabled{% endif %}>
     {% if has_variants %}
       CHỌN SIZE
     {% elif can_buy_product %}
@@ -530,80 +512,42 @@
   </button>
 </div>
 
-<div id="sizeGuideModal" class="fixed inset-0 z-[200] hidden items-center justify-center p-4 opacity-0 transition-opacity duration-300">
-  <button type="button" class="absolute inset-0 bg-black/45 backdrop-blur-sm" onclick="closeSizeGuide()" aria-label="Đóng bảng size"></button>
+<div id="sizeGuideModal" class="pd-modal">
+  <button type="button" class="pd-modal-bg" onclick="closeSizeGuide()" aria-label="Đóng bảng size"></button>
 
-  <div class="relative bg-white w-full max-w-2xl max-h-[85vh] flex flex-col border border-[#eadfd4] rounded-[1.75rem] scale-95 transition-transform duration-300 overflow-hidden" id="sgContent">
-    <div class="sticky top-0 bg-white px-6 py-4 border-b border-[#eadfd4] flex justify-between items-center z-10">
-      <h2 class="text-[12px] font-black uppercase tracking-[0.2em] text-[#241207]">
-        Bảng quy định kích cỡ
-      </h2>
-
-      <button type="button" onclick="closeSizeGuide()" class="text-[#9b7b63] hover:text-[#241207] transition-colors">
-        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-          <path d="M6 18L18 6M6 6l12 12"/>
-        </svg>
+  <div class="pd-modal-card">
+    <div class="pd-modal-head">
+      <h2 class="pd-modal-title">Bảng quy định kích cỡ</h2>
+      <button type="button" onclick="closeSizeGuide()" aria-label="Đóng">
+        <i class="fa-solid fa-xmark"></i>
       </button>
     </div>
 
-    <div class="p-6 overflow-y-auto no-scrollbar">
-      <div class="flex gap-2 mb-6">
-        <button type="button" class="sg-tab-btn active flex-1 h-12 flex items-center justify-center text-[10px] font-black uppercase tracking-widest border border-[#3b2414] bg-[#3b2414] text-white rounded-2xl" data-target="sg-tops">
-          Áo
-        </button>
-
-        <button type="button" class="sg-tab-btn flex-1 h-12 flex items-center justify-center text-[10px] font-black uppercase tracking-widest border border-[#eadfd4] text-[#9b7b63] bg-white rounded-2xl" data-target="sg-bottoms">
-          Quần
-        </button>
+    <div class="pd-modal-body">
+      <div class="overflow-x-auto">
+        <table class="pd-table">
+          <thead>
+            <tr>
+              <th>Size</th>
+              <th>Chiều cao</th>
+              <th>Cân nặng</th>
+              <th>Dài áo</th>
+              <th>Rộng ngực</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><b>S</b></td><td>155 - 165</td><td>45 - 55</td><td>70</td><td>54</td></tr>
+            <tr><td><b>M</b></td><td>165 - 172</td><td>55 - 65</td><td>72</td><td>56</td></tr>
+            <tr><td><b>L</b></td><td>170 - 178</td><td>65 - 75</td><td>74</td><td>58</td></tr>
+            <tr><td><b>XL</b></td><td>175 - 185</td><td>75 - 85</td><td>76</td><td>60</td></tr>
+          </tbody>
+        </table>
       </div>
-
-      <div id="sg-tops" class="sg-tab-content block">
-        <div class="overflow-x-auto border border-[#eadfd4] rounded-2xl">
-          <table class="w-full text-center text-xs border-collapse">
-            <thead class="bg-[#fbf7f1] text-[9px] uppercase tracking-widest text-[#9b7b63] border-b border-[#eadfd4]">
-              <tr>
-                <th class="p-3 border-r border-[#eadfd4]">Size</th>
-                <th class="p-3 border-r border-[#eadfd4]">Chiều cao</th>
-                <th class="p-3 border-r border-[#eadfd4]">Cân nặng</th>
-                <th class="p-3 border-r border-[#eadfd4]">Dài áo</th>
-                <th class="p-3">Rộng ngực</th>
-              </tr>
-            </thead>
-            <tbody class="text-[#5f3b1e]">
-              <tr class="border-b border-[#eadfd4]"><td class="p-3 border-r border-[#eadfd4] font-black">S</td><td class="p-3 border-r border-[#eadfd4]">155 - 165</td><td class="p-3 border-r border-[#eadfd4]">45 - 55</td><td class="p-3 border-r border-[#eadfd4]">70</td><td class="p-3">54</td></tr>
-              <tr class="border-b border-[#eadfd4]"><td class="p-3 border-r border-[#eadfd4] font-black">M</td><td class="p-3 border-r border-[#eadfd4]">165 - 172</td><td class="p-3 border-r border-[#eadfd4]">55 - 65</td><td class="p-3 border-r border-[#eadfd4]">72</td><td class="p-3">56</td></tr>
-              <tr class="border-b border-[#eadfd4]"><td class="p-3 border-r border-[#eadfd4] font-black">L</td><td class="p-3 border-r border-[#eadfd4]">170 - 178</td><td class="p-3 border-r border-[#eadfd4]">65 - 75</td><td class="p-3 border-r border-[#eadfd4]">74</td><td class="p-3">58</td></tr>
-              <tr><td class="p-3 border-r border-[#eadfd4] font-black">XL</td><td class="p-3 border-r border-[#eadfd4]">175 - 185</td><td class="p-3 border-r border-[#eadfd4]">75 - 85</td><td class="p-3 border-r border-[#eadfd4]">76</td><td class="p-3">60</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div id="sg-bottoms" class="sg-tab-content hidden">
-        <div class="overflow-x-auto border border-[#eadfd4] rounded-2xl">
-          <table class="w-full text-center text-xs border-collapse">
-            <thead class="bg-[#fbf7f1] text-[9px] uppercase tracking-widest text-[#9b7b63] border-b border-[#eadfd4]">
-              <tr>
-                <th class="p-3 border-r border-[#eadfd4]">Size</th>
-                <th class="p-3 border-r border-[#eadfd4]">Chiều cao</th>
-                <th class="p-3 border-r border-[#eadfd4]">Cân nặng</th>
-                <th class="p-3 border-r border-[#eadfd4]">Dài quần</th>
-                <th class="p-3">Vòng eo</th>
-              </tr>
-            </thead>
-            <tbody class="text-[#5f3b1e]">
-              <tr class="border-b border-[#eadfd4]"><td class="p-3 border-r border-[#eadfd4] font-black">S / 28</td><td class="p-3 border-r border-[#eadfd4]">155 - 165</td><td class="p-3 border-r border-[#eadfd4]">45 - 55</td><td class="p-3 border-r border-[#eadfd4]">98</td><td class="p-3">74</td></tr>
-              <tr class="border-b border-[#eadfd4]"><td class="p-3 border-r border-[#eadfd4] font-black">M / 30</td><td class="p-3 border-r border-[#eadfd4]">165 - 172</td><td class="p-3 border-r border-[#eadfd4]">55 - 65</td><td class="p-3 border-r border-[#eadfd4]">100</td><td class="p-3">78</td></tr>
-              <tr class="border-b border-[#eadfd4]"><td class="p-3 border-r border-[#eadfd4] font-black">L / 32</td><td class="p-3 border-r border-[#eadfd4]">170 - 178</td><td class="p-3 border-r border-[#eadfd4]">65 - 75</td><td class="p-3 border-r border-[#eadfd4]">102</td><td class="p-3">82</td></tr>
-              <tr><td class="p-3 border-r border-[#eadfd4] font-black">XL / 34</td><td class="p-3 border-r border-[#eadfd4]">175 - 185</td><td class="p-3 border-r border-[#eadfd4]">75 - 85</td><td class="p-3 border-r border-[#eadfd4]">104</td><td class="p-3">86</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
     </div>
   </div>
 </div>
+
+<div id="pdToast" class="pd-toast"></div>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -626,51 +570,40 @@ const ProductUI = (() => {
   };
 
   function formatVnd(value) {
-    const number = Number(value || 0);
-    return new Intl.NumberFormat("vi-VN").format(number) + "đ";
+    return new Intl.NumberFormat("vi-VN").format(Number(value || 0)) + "đ";
   }
 
-  function setText(id, value) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = value || "";
-  }
-
-  function setHidden(id, hidden) {
-    const el = document.getElementById(id);
-    if (el) el.classList.toggle("hidden", Boolean(hidden));
-  }
-
-  function flashPrice() {
-    const price = document.getElementById("price-display");
-    if (!price) return;
-
-    price.classList.remove("mm-price-flash");
-    void price.offsetWidth;
-    price.classList.add("mm-price-flash");
+  function toast(message) {
+    const el = document.getElementById("pdToast");
+    if (!el) return;
+    el.textContent = message;
+    el.classList.add("show");
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.remove("show"), 2200);
   }
 
   function updatePrice(price, priceFormatted, compare, compareFormatted, discount) {
-    setText("price-display", priceFormatted || formatVnd(price));
-
+    const priceEl = document.getElementById("price-display");
     const original = document.getElementById("price-original");
+    const badge = document.getElementById("price-discount");
+    const mainBadge = document.getElementById("main-discount-badge");
+
+    if (priceEl) priceEl.textContent = priceFormatted || formatVnd(price);
+
     if (original) {
       original.textContent = compareFormatted || "";
       original.classList.toggle("hidden", !compare);
     }
 
-    const badge = document.getElementById("price-discount");
     if (badge) {
       badge.textContent = discount ? "-" + discount + "%" : "";
       badge.classList.toggle("hidden", !discount);
     }
 
-    const mainBadge = document.getElementById("main-discount-badge");
     if (mainBadge) {
       mainBadge.textContent = discount ? "-" + discount + "%" : "";
       mainBadge.classList.toggle("hidden", !discount);
     }
-
-    flashPrice();
   }
 
   function setSubmitState(canBuy, text) {
@@ -679,19 +612,8 @@ const ProductUI = (() => {
 
     [desktop, mobile].forEach((btn) => {
       if (!btn) return;
-
       btn.disabled = !canBuy;
       btn.textContent = text;
-
-      if (canBuy) {
-        btn.className = btn.id === "btn-submit"
-          ? "flex-1 h-14 rounded-2xl text-[12px] font-black uppercase tracking-[0.25em] transition-colors flex items-center justify-center border bg-[#3b2414] text-white border-[#3b2414] hover:bg-[#241207] cursor-pointer"
-          : "flex-1 h-14 rounded-2xl text-[11px] font-black uppercase tracking-[0.22em] flex items-center justify-center transition-colors bg-[#3b2414] text-white active:bg-[#241207]";
-      } else {
-        btn.className = btn.id === "btn-submit"
-          ? "flex-1 h-14 rounded-2xl text-[12px] font-black uppercase tracking-[0.25em] transition-colors flex items-center justify-center border bg-[#f3e7dc] text-[#a89586] border-transparent cursor-not-allowed"
-          : "flex-1 h-14 rounded-2xl text-[11px] font-black uppercase tracking-[0.22em] flex items-center justify-center transition-colors bg-[#f3e7dc] text-[#a89586]";
-      }
     });
   }
 
@@ -704,103 +626,74 @@ const ProductUI = (() => {
     [qty, mobileQty].forEach((input) => {
       if (!input) return;
       input.max = String(max);
-
-      let current = Number(input.value || 1);
-      if (current > max) current = max;
-      if (current < 1) current = 1;
-
-      input.value = String(current);
+      input.value = String(Math.max(1, Math.min(Number(input.value || 1), max)));
     });
 
-    if (hiddenQty && qty) {
-      hiddenQty.value = qty.value;
-    }
+    if (hiddenQty && qty) hiddenQty.value = qty.value;
   }
 
   function setStockMessage(stock, available) {
     const status = document.getElementById("stock-status");
     const pill = document.getElementById("stock-pill");
+    if (!status || !pill) return;
 
-    if (!status) return;
+    pill.className = "pd-pill";
 
     if (available && stock > 5) {
-      status.innerHTML = '<span class="text-[#9b7b63] font-black">CÓ SẴN HÀNG</span>';
-      if (pill) {
-        pill.textContent = "Còn hàng";
-        pill.className = "rounded-full px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.2em] bg-emerald-50 text-emerald-700";
-      }
+      status.textContent = "CÓ SẴN HÀNG";
+      pill.textContent = "Còn hàng";
+      pill.classList.add("ok");
       return;
     }
 
     if (available && stock > 0) {
-      status.innerHTML = '<span class="text-red-600 font-black">CHỈ CÒN ' + stock + ' SẢN PHẨM</span>';
-      if (pill) {
-        pill.textContent = "Sắp hết hàng";
-        pill.className = "rounded-full px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.2em] bg-amber-50 text-amber-700";
-      }
+      status.textContent = "CHỈ CÒN " + stock + " SẢN PHẨM";
+      pill.textContent = "Sắp hết hàng";
+      pill.classList.add("low");
       return;
     }
 
     if (available && stock <= 0) {
-      status.innerHTML = '<span class="text-[#9a5a2f] font-black">SẢN PHẨM CHO PHÉP ĐẶT TRƯỚC</span>';
-      if (pill) {
-        pill.textContent = "Đặt trước";
-        pill.className = "rounded-full px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.2em] bg-[#fbf7f1] text-[#9a5a2f]";
-      }
+      status.textContent = "SẢN PHẨM CHO PHÉP ĐẶT TRƯỚC";
+      pill.textContent = "Đặt trước";
+      pill.classList.add("low");
       return;
     }
 
-    status.innerHTML = '<span class="text-red-600 font-black">SẢN PHẨM HIỆN ĐÃ HẾT HÀNG</span>';
-    if (pill) {
-      pill.textContent = "Hết hàng";
-      pill.className = "rounded-full px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.2em] bg-red-50 text-red-700";
-    }
+    status.textContent = "SẢN PHẨM HIỆN ĐÃ HẾT HÀNG";
+    pill.textContent = "Hết hàng";
+    pill.classList.add("out");
   }
 
-  return {
-    state,
-    formatVnd,
-    updatePrice,
-    setSubmitState,
-    updateQtyMax,
-    setStockMessage
-  };
+  return { state, formatVnd, toast, updatePrice, setSubmitState, updateQtyMax, setStockMessage };
 })();
 
-const EditorialGallery = {
-  mainEl: document.getElementById("main-focus-image"),
+const Gallery = {
+  main: document.getElementById("main-focus-image"),
 
   init() {
-    const matrix = document.getElementById("editorial-matrix");
-    if (!matrix) return;
+    const thumbs = document.getElementById("pdThumbs");
+    if (!thumbs) return;
 
-    matrix.addEventListener("click", (e) => {
-      const cell = e.target.closest(".matrix-cell");
-      if (!cell) return;
-
-      const url = cell.dataset.url;
-      const index = Number(cell.dataset.index || 0);
-      this.swap(url, index);
+    thumbs.addEventListener("click", (e) => {
+      const btn = e.target.closest(".pd-thumb");
+      if (!btn) return;
+      this.swap(btn.dataset.url, btn);
     });
   },
 
-  swap(url, index) {
-    if (!this.mainEl || !url) return;
+  swap(url, btn) {
+    if (!this.main || !url) return;
 
-    this.mainEl.style.opacity = "0";
+    this.main.style.opacity = "0";
 
     setTimeout(() => {
-      this.mainEl.src = url;
-      this.mainEl.style.opacity = "1";
-    }, 140);
+      this.main.src = url;
+      this.main.style.opacity = "1";
+    }, 120);
 
-    document.querySelectorAll("#editorial-matrix .matrix-cell").forEach((cell, i) => {
-      const active = i === index;
-      cell.classList.toggle("border-[#241207]", active);
-      cell.classList.toggle("opacity-100", active);
-      cell.classList.toggle("border-[#eadfd4]", !active);
-      cell.classList.toggle("opacity-60", !active);
-    });
+    document.querySelectorAll(".pd-thumb").forEach((item) => item.classList.remove("is-active"));
+    btn.classList.add("is-active");
   }
 };
 
@@ -821,18 +714,13 @@ function selectColor(color) {
   if (label) label.textContent = color;
 
   document.querySelectorAll(".size-group").forEach((group) => {
-    group.style.display = group.dataset.color === color ? "grid" : "none";
+    group.classList.toggle("hidden", group.dataset.color !== color);
   });
 
-  const groups = Array.from(document.querySelectorAll(".size-group"));
-  const activeGroup = groups.find((group) => group.dataset.color === color);
-
+  const activeGroup = Array.from(document.querySelectorAll(".size-group")).find((group) => group.dataset.color === color);
   if (!activeGroup) return;
 
-  const availableSize = activeGroup.querySelector(".size-radio:not([disabled])");
-  const firstSize = activeGroup.querySelector(".size-radio");
-
-  const target = availableSize || firstSize;
+  const target = activeGroup.querySelector(".size-radio:not([disabled])") || activeGroup.querySelector(".size-radio");
 
   if (target) {
     target.checked = true;
@@ -863,18 +751,12 @@ function selectSize(input) {
   ProductUI.updatePrice(price, priceFormatted, compare, compareFormatted, discount);
   ProductUI.updateQtyMax(stock > 0 ? stock : 1);
   ProductUI.setStockMessage(stock, available);
-
-  if (available) {
-    ProductUI.setSubmitState(true, "THÊM VÀO GIỎ");
-  } else {
-    ProductUI.setSubmitState(false, "HẾT HÀNG");
-  }
+  ProductUI.setSubmitState(available, available ? "THÊM VÀO GIỎ" : "HẾT HÀNG");
 }
 
 function disableSubmitState(message) {
   const variantInput = document.getElementById("selected-variant-id");
   if (variantInput) variantInput.value = "";
-
   ProductUI.setSubmitState(false, message || "HẾT HÀNG");
   ProductUI.setStockMessage(0, false);
 }
@@ -883,19 +765,17 @@ function chQty(delta) {
   const qty = document.getElementById("qty");
   const mobileQty = document.getElementById("mobile-qty");
   const hiddenQty = document.getElementById("hidden-qty");
-
   const maxStock = Number(qty ? qty.max || 1 : 1) || 1;
 
   let value = Number(qty ? qty.value || 1 : 1) + Number(delta || 0);
-  if (value < 1) value = 1;
-  if (value > maxStock) value = maxStock;
+  value = Math.max(1, Math.min(value, maxStock));
 
   if (qty) qty.value = String(value);
   if (mobileQty) mobileQty.value = String(value);
   if (hiddenQty) hiddenQty.value = String(value);
 }
 
-window.toggleAccordion = function(id) {
+function toggleAccordion(id) {
   const content = document.getElementById(id);
   const icon = document.getElementById("icon-" + id);
 
@@ -903,54 +783,60 @@ window.toggleAccordion = function(id) {
 
   content.classList.toggle("open");
   if (icon) icon.classList.toggle("open");
-};
+}
 
 function openSizeGuide() {
   const modal = document.getElementById("sizeGuideModal");
-  const content = document.getElementById("sgContent");
-
-  if (!modal || !content) return;
-
-  modal.classList.remove("hidden");
-  modal.classList.add("flex");
-
-  setTimeout(() => {
-    modal.classList.remove("opacity-0");
-    modal.classList.add("opacity-100");
-    content.classList.remove("scale-95");
-    content.classList.add("scale-100");
-  }, 10);
-
+  if (!modal) return;
+  modal.classList.add("open");
   document.body.style.overflow = "hidden";
 }
 
 function closeSizeGuide() {
   const modal = document.getElementById("sizeGuideModal");
-  const content = document.getElementById("sgContent");
-
-  if (!modal || !content) return;
-
-  modal.classList.remove("opacity-100");
-  modal.classList.add("opacity-0");
-  content.classList.remove("scale-100");
-  content.classList.add("scale-95");
-
-  setTimeout(() => {
-    modal.classList.remove("flex");
-    modal.classList.add("hidden");
-  }, 260);
-
+  if (!modal) return;
+  modal.classList.remove("open");
   document.body.style.overflow = "";
 }
 
+function getTrafficSource() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("utm_source") || localStorage.getItem("utm_source") || "organic";
+}
+
+function trackEvent(eventType, qty = 1) {
+  if (!ProductUI.state.productId) return;
+
+  try {
+    const payload = JSON.stringify({
+      product_id: ProductUI.state.productId,
+      event_type: eventType,
+      channel: "web",
+      source: getTrafficSource(),
+      qty
+    });
+
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon("/api/analytics/track", new Blob([payload], { type: "application/json" }));
+    } else {
+      fetch("/api/analytics/track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload
+      }).catch(() => {});
+    }
+  } catch (_) {}
+}
+
 document.addEventListener("DOMContentLoaded", () => {
-  EditorialGallery.init();
+  Gallery.init();
 
   document.querySelectorAll(".color-swatch").forEach((el) => {
-    el.style.backgroundColor = el.dataset.bg || "#ead8c8";
+    el.style.backgroundColor = el.dataset.bg || "#ddd";
   });
 
   const firstColor = document.querySelector(".color-radio:checked") || document.querySelector(".color-radio");
+
   if (firstColor) {
     firstColor.checked = true;
     selectColor(firstColor.value);
@@ -979,6 +865,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   const form = document.getElementById("purchase-form");
+
   if (form) {
     form.addEventListener("submit", (event) => {
       const hasVariants = Boolean(document.querySelector(".size-radio"));
@@ -986,12 +873,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (hasVariants && (!selectedVariant || !selectedVariant.value)) {
         event.preventDefault();
+        ProductUI.toast("Vui lòng chọn phân loại");
         ProductUI.setSubmitState(false, "CHỌN PHÂN LOẠI");
         return;
       }
 
       if (!ProductUI.state.selectedAvailable) {
         event.preventDefault();
+        ProductUI.toast("Sản phẩm đã hết hàng");
         ProductUI.setSubmitState(false, "HẾT HÀNG");
         return;
       }
@@ -1001,6 +890,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   const wishlistBtn = document.getElementById("btn-wishlist");
+
   if (wishlistBtn) {
     wishlistBtn.addEventListener("click", async function() {
       if (!ProductUI.state.productId) return;
@@ -1029,77 +919,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
           if (data.action === "added") {
             if (svg) svg.setAttribute("fill", "currentColor");
-            this.classList.add("text-red-600");
+            this.classList.add("is-on");
+            ProductUI.toast("Đã thêm yêu thích");
             trackEvent("wishlist", 1);
           } else {
             if (svg) svg.setAttribute("fill", "none");
-            this.classList.remove("text-red-600");
+            this.classList.remove("is-on");
+            ProductUI.toast("Đã bỏ yêu thích");
           }
         }
-      } catch (err) {
+      } catch (_) {
+        ProductUI.toast("Lỗi kết nối");
       } finally {
         this.disabled = false;
       }
     });
   }
 
-  const sgTabs = document.querySelectorAll(".sg-tab-btn");
-  const sgContents = document.querySelectorAll(".sg-tab-content");
-
-  sgTabs.forEach((tab) => {
-    tab.addEventListener("click", () => {
-      sgTabs.forEach((item) => {
-        item.classList.remove("bg-[#3b2414]", "text-white", "border-[#3b2414]");
-        item.classList.add("bg-white", "text-[#9b7b63]", "border-[#eadfd4]");
-      });
-
-      tab.classList.add("bg-[#3b2414]", "text-white", "border-[#3b2414]");
-      tab.classList.remove("bg-white", "text-[#9b7b63]", "border-[#eadfd4]");
-
-      const target = tab.dataset.target;
-
-      sgContents.forEach((content) => {
-        content.classList.toggle("block", content.id === target);
-        content.classList.toggle("hidden", content.id !== target);
-      });
-    });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeSizeGuide();
   });
 
-  if (ProductUI.state.productId) {
-    trackEvent("view", 1);
-  }
+  if (ProductUI.state.productId) trackEvent("view", 1);
 });
-
-function getTrafficSource() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get("utm_source") || localStorage.getItem("utm_source") || "organic";
-}
-
-function trackEvent(eventType, qty = 1) {
-  if (!ProductUI.state.productId) return;
-
-  try {
-    const payload = JSON.stringify({
-      product_id: ProductUI.state.productId,
-      event_type: eventType,
-      channel: "web",
-      source: getTrafficSource(),
-      qty: qty
-    });
-
-    if (navigator.sendBeacon) {
-      navigator.sendBeacon(
-        "/api/analytics/track",
-        new Blob([payload], { type: "application/json" })
-      );
-    } else {
-      fetch("/api/analytics/track", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: payload
-      }).catch(() => {});
-    }
-  } catch (err) {}
-}
 </script>
 {% endblock %}

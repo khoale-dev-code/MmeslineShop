@@ -1,229 +1,312 @@
-{% extends "base.html" %}
-{% block title %}MMESTLINE | Minimalism Fashion{% endblock %}
+{# ═══════════════════════════════════════════════════════
+   MMESTLINE — FEATURED PRODUCTS
+   UI gọn · Thuần Việt · Icon xem nhanh · Thêm giỏ · Yêu thích
+   Yêu cầu:
+   - Có featured_products
+   - Có function triggerQuickView(button) ở quick view modal
+   - Có endpoint /api/favorites/toggle
+   ═══════════════════════════════════════════════════════ #}
 
-{% block extra_head %}
-<link
-  rel="preload"
-  href="https://cdn.hstatic.net/files/200001029438/file/ef7df01e-38a3-4b59-b7ae-79757c79a37b.mp4"
-  as="video"
-  type="video/mp4"
->
-
-<style>
-  .mm-home {
-    background: #fff;
-    color: #000;
-    overflow-x: hidden;
-  }
-
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-
-  .slider-item {
-    --item-w: 82vw;
-  }
-
-  @media (min-width: 640px) {
-    .slider-item {
-      --item-w: 45vw;
-    }
-  }
-
-  @media (min-width: 1024px) {
-    .slider-item {
-      --item-w: 28vw;
-    }
-  }
-
-  @media (min-width: 1280px) {
-    .slider-item {
-      --item-w: 22vw;
-    }
-  }
-
-  .mm-home video,
-  .mm-home img {
-    transform: translate3d(0, 0, 0);
-    backface-visibility: hidden;
-  }
-
-  .mm-fade-up {
-    opacity: 0;
-    transform: translateY(28px);
-    animation: mmFadeUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  }
-
-  @keyframes mmFadeUp {
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .mm-product-media {
-    position: relative;
-    aspect-ratio: 4 / 5;
-    background:
-      radial-gradient(circle at top, rgba(255, 255, 255, 0.85), transparent 42%),
-      linear-gradient(135deg, #f8f6f3, #ebe6df);
-    overflow: hidden;
-  }
-
-  .mm-product-media img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    object-position: center;
-    padding: 7%;
-    transition:
-      transform 900ms cubic-bezier(0.16, 1, 0.3, 1),
-      opacity 260ms ease;
-  }
-
-  .mm-product-card:hover .mm-product-media img {
-    transform: scale(1.035);
-  }
-
-  .mm-product-card {
-    min-width: 0;
-  }
-
-  .mm-product-info {
-    min-height: 112px;
-  }
-
-  .mm-product-name {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .mm-category-card img {
-    transform: scale(1.01);
-    transition: transform 1600ms cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .mm-category-card:hover img {
-    transform: scale(1.055);
-  }
-
-  @media (max-width: 640px) {
-    .mm-product-media {
-      aspect-ratio: 3 / 4;
+{% if featured_products %}
+<section class="mm-featured bg-white py-16 md:py-24">
+  <style>
+    .mm-featured{
+      --mm-ink:#111;
+      --mm-muted:#777;
+      --mm-soft:#f6f6f6;
+      --mm-line:#e8e8e8;
+      --mm-radius:5px;
+      --mm-ease:cubic-bezier(.16,1,.3,1);
+      overflow:hidden;
     }
 
-    .mm-product-media img {
-      padding: 8%;
+    .mm-featured .no-scrollbar::-webkit-scrollbar{display:none}
+    .mm-featured .no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
+
+    .mm-featured-kicker{
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:.26em;
+      text-transform:uppercase;
+      color:var(--mm-muted);
     }
-  }
 
-  @media (prefers-reduced-motion: reduce) {
-    .mm-fade-up,
-    .mm-product-media img,
-    .mm-category-card img {
-      animation: none !important;
-      transition: none !important;
-      transform: none !important;
-      opacity: 1 !important;
+    .mm-featured-title{
+      margin-top:.75rem;
+      font-size:clamp(34px,5.5vw,76px);
+      line-height:.92;
+      font-weight:900;
+      letter-spacing:-.055em;
+      text-transform:uppercase;
+      color:var(--mm-ink);
     }
-  }
-</style>
-{% endblock %}
 
-{% block content %}
-<div class="mm-home bg-white text-black font-sans w-full selection:bg-black selection:text-white">
+    .mm-featured-link{
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:.16em;
+      text-transform:uppercase;
+      color:#777;
+      transition:color .18s ease;
+    }
 
-  {# ══ 1. HERO SECTION ══ #}
-  <section class="relative h-[calc(100vh-var(--header-h,115px)-var(--topbar-h,0px))] min-h-[560px] overflow-hidden bg-neutral-900 flex items-end">
-    <video
-      autoplay
-      muted
-      loop
-      playsinline
-      preload="auto"
-      class="absolute inset-0 w-full h-full object-cover bg-neutral-900"
-    >
-      <source src="https://cdn.hstatic.net/files/200001029438/file/ef7df01e-38a3-4b59-b7ae-79757c79a37b.mp4" type="video/mp4">
-    </video>
+    .mm-featured-link:hover{color:#111}
 
-    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+    .mm-featured-nav{
+      width:44px;
+      height:44px;
+      display:grid;
+      place-items:center;
+      border:1px solid var(--mm-line);
+      border-radius:999px;
+      background:#fff;
+      color:#111;
+      transition:background .18s ease,color .18s ease,border-color .18s ease,opacity .18s ease;
+    }
 
-    <div class="relative z-10 w-full px-6 pb-16 md:px-12 md:pb-28 text-white mm-fade-up">
-      <p class="text-[10px] md:text-[12px] font-black uppercase tracking-[0.4em] mb-4 text-neutral-300">
-        Spring / Summer 2026
-      </p>
+    .mm-featured-nav:hover{
+      background:#111;
+      border-color:#111;
+      color:#fff;
+    }
 
-      <h1 class="text-6xl md:text-8xl lg:text-[9rem] font-black uppercase tracking-tighter leading-[0.85] mb-9">
-        Beyond <br> The Form
-      </h1>
+    .mm-featured-nav:disabled{
+      opacity:.25;
+      pointer-events:none;
+    }
 
-      <a href="/shop" data-nav class="group inline-flex items-center gap-4">
-        <span class="text-[11px] font-black uppercase tracking-[0.22em] border-b-2 border-white pb-1.5 group-hover:pr-6 transition-all duration-300">
-          Discover Now
-        </span>
+    .mm-featured-track{
+      display:flex;
+      width:max-content;
+      gap:16px;
+    }
 
-        <svg class="w-4 h-4 group-hover:translate-x-2 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3"/>
-        </svg>
+    @media(min-width:768px){
+      .mm-featured-track{gap:24px}
+    }
+
+    .mm-product-card{
+      width:82vw;
+      flex:0 0 auto;
+      scroll-snap-align:start;
+    }
+
+    @media(min-width:640px){
+      .mm-product-card{width:45vw}
+    }
+
+    @media(min-width:1024px){
+      .mm-product-card{width:28vw}
+    }
+
+    @media(min-width:1280px){
+      .mm-product-card{width:22vw}
+    }
+
+    .mm-product-media{
+      position:relative;
+      aspect-ratio:4/5;
+      overflow:hidden;
+      border:1px solid var(--mm-line);
+      border-radius:var(--mm-radius);
+      background:var(--mm-soft);
+    }
+
+    .mm-product-media img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      object-position:top center;
+      transform:scale(1.01);
+      transition:transform .85s var(--mm-ease);
+      display:block;
+    }
+
+    .mm-product-card:hover .mm-product-media img{
+      transform:scale(1.045);
+    }
+
+    .mm-badge{
+      position:absolute;
+      left:10px;
+      top:10px;
+      z-index:10;
+      border-radius:var(--mm-radius);
+      background:rgba(255,255,255,.94);
+      padding:7px 10px;
+      font-size:9px;
+      font-weight:900;
+      letter-spacing:.15em;
+      text-transform:uppercase;
+      color:#111;
+      backdrop-filter:blur(10px);
+    }
+
+    .mm-badge.is-dark{
+      background:#111;
+      color:#fff;
+    }
+
+    .mm-card-actions{
+      position:absolute;
+      top:10px;
+      right:10px;
+      z-index:20;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    .mm-card-icon{
+      width:38px;
+      height:38px;
+      display:grid;
+      place-items:center;
+      border:1px solid rgba(0,0,0,.08);
+      border-radius:var(--mm-radius);
+      background:rgba(255,255,255,.92);
+      color:#111;
+      backdrop-filter:blur(10px);
+      transition:background .18s ease,color .18s ease,transform .18s ease;
+    }
+
+    .mm-card-icon:hover{
+      background:#111;
+      color:#fff;
+      transform:translateY(-1px);
+    }
+
+    .mm-card-icon.is-loved{
+      color:#dc2626;
+    }
+
+    .mm-card-icon.is-loved:hover{
+      background:#fff;
+      color:#dc2626;
+    }
+
+    .mm-card-add{
+      position:absolute;
+      left:10px;
+      right:10px;
+      bottom:10px;
+      z-index:20;
+      height:42px;
+      border-radius:var(--mm-radius);
+      background:#111;
+      color:#fff;
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      opacity:0;
+      transform:translateY(10px);
+      transition:opacity .22s var(--mm-ease),transform .22s var(--mm-ease),background .18s ease;
+    }
+
+    .mm-product-card:hover .mm-card-add{
+      opacity:1;
+      transform:none;
+    }
+
+    .mm-card-add:hover{background:#333}
+
+    .mm-card-add:disabled{
+      background:#999;
+      cursor:not-allowed;
+    }
+
+    .mm-product-name{
+      display:-webkit-box;
+      -webkit-line-clamp:2;
+      -webkit-box-orient:vertical;
+      overflow:hidden;
+      font-size:13px;
+      font-weight:800;
+      line-height:1.35;
+      letter-spacing:-.01em;
+      color:#111;
+      transition:color .18s ease;
+    }
+
+    .mm-product-name:hover{color:#666}
+
+    .mm-progress-wrap{
+      height:2px;
+      overflow:hidden;
+      background:#f1f1f1;
+    }
+
+    .mm-progress-bar{
+      height:100%;
+      width:0;
+      background:#111;
+      transition:width .18s ease;
+    }
+
+    @media(max-width:640px){
+      .mm-product-media{aspect-ratio:3/4}
+
+      .mm-card-actions{
+        top:8px;
+        right:8px;
+        gap:6px;
+      }
+
+      .mm-card-icon{
+        width:34px;
+        height:34px;
+      }
+
+      .mm-card-add{
+        left:8px;
+        right:8px;
+        bottom:8px;
+        height:40px;
+        opacity:1;
+        transform:none;
+        font-size:9px;
+      }
+    }
+
+    @media(prefers-reduced-motion:reduce){
+      .mm-product-media img,
+      .mm-card-add,
+      .mm-card-icon{
+        transition:none!important;
+        transform:none!important;
+      }
+    }
+  </style>
+
+  <div class="mb-10 flex flex-col gap-7 px-5 sm:px-8 md:mb-14 md:flex-row md:items-end md:justify-between md:px-12">
+    <div>
+      <span class="mm-featured-kicker block">Sản phẩm nổi bật</span>
+      <h2 class="mm-featured-title">Hàng mới về</h2>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <a href="/shop" data-nav class="mm-featured-link hidden md:inline-flex">
+        Xem tất cả
       </a>
+
+      <button id="mmFeaturedPrev" type="button" aria-label="Sản phẩm trước" class="mm-featured-nav">
+        <i class="fa-solid fa-chevron-left text-xs"></i>
+      </button>
+
+      <button id="mmFeaturedNext" type="button" aria-label="Sản phẩm tiếp theo" class="mm-featured-nav">
+        <i class="fa-solid fa-chevron-right text-xs"></i>
+      </button>
     </div>
-  </section>
+  </div>
 
-  {# ══ 2. NEW ARRIVALS SLIDER ══ #}
-  {% if featured_products %}
-  <section class="py-20 md:py-28">
-    <div class="px-6 md:px-12 mb-12 md:mb-14 flex flex-col md:flex-row md:items-end justify-between gap-8">
-      <div class="max-w-xl">
-        <span class="text-[10px] font-black uppercase tracking-[0.3em] text-neutral-400 block mb-3">
-          Curated Selection
-        </span>
+  <div
+    id="mmFeaturedSlider"
+    class="no-scrollbar relative cursor-grab select-none overflow-x-auto overflow-y-hidden scroll-smooth snap-x snap-mandatory px-5 pb-8 active:cursor-grabbing sm:px-8 md:px-12"
+  >
+    <div id="mmFeaturedTrack" class="mm-featured-track">
 
-        <h2 class="text-4xl md:text-5xl font-black uppercase tracking-tighter leading-none">
-          New Arrivals
-        </h2>
-
-        <div class="w-16 h-[3px] bg-black mt-6"></div>
-      </div>
-
-      <div class="flex gap-3">
-        <button
-          id="btnPrev"
-          type="button"
-          aria-label="Sản phẩm trước"
-          class="w-12 h-12 flex items-center justify-center border border-neutral-200 rounded-full hover:bg-black hover:text-white transition-all duration-300 disabled:opacity-20"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path d="M15.75 19.5L8.25 12l7.5-7.5"/>
-          </svg>
-        </button>
-
-        <button
-          id="btnNext"
-          type="button"
-          aria-label="Sản phẩm tiếp theo"
-          class="w-12 h-12 flex items-center justify-center border border-neutral-200 rounded-full hover:bg-black hover:text-white transition-all duration-300 disabled:opacity-20"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path d="M8.25 4.5l7.5 7.5-7.5 7.5"/>
-          </svg>
-        </button>
-      </div>
-    </div>
-
-    <div
-      id="slider-container"
-      class="relative overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth no-scrollbar select-none cursor-grab active:cursor-grabbing px-6 md:px-12 pb-8"
-    >
-      <div id="slider-track" class="flex gap-4 md:gap-7 w-max">
-
-        {% for product in featured_products %}
+      {% for product in featured_products %}
         {% set variants = product.product_variants or [] %}
         {% set images = product.product_images or [] %}
         {% set imgs = images|map(attribute='url')|list %}
@@ -232,14 +315,11 @@
           {% set _ = imgs.insert(0, product.thumbnail_url) %}
         {% endif %}
 
-        {% set img1 = imgs[0] if imgs else 'https://placehold.co/800x1000/f4f2f0/111?text=MMESTLINE' %}
-        {% set display_cat = product.categories.name if product.categories else 'Core Collection' %}
+        {% set img1 = imgs[0] if imgs else 'https://placehold.co/900x1125/f4f2f0/111?text=MMESTLINE' %}
+        {% set display_cat = product.categories.name if product.categories else 'Bộ sưu tập chính' %}
         {% set stock = variants|sum(attribute='stock') if variants else (product.stock or product.stock_quantity or 0) %}
 
-        <article
-          class="slider-item mm-product-card snap-start flex-shrink-0 group"
-          style="width: var(--item-w, 280px);"
-        >
+        <article class="mm-product-card group">
           <div class="mm-product-media">
             <a
               href="/product/{{ product.slug or product.id }}"
@@ -265,235 +345,232 @@
             </a>
 
             {% if stock <= 0 %}
-            <span class="absolute left-4 top-4 text-[9px] font-black uppercase tracking-[0.2em] bg-black text-white px-3 py-1.5 shadow-sm pointer-events-none">
-              Hết hàng
-            </span>
+              <span class="mm-badge is-dark">Hết hàng</span>
             {% elif loop.index <= 3 %}
-            <span class="absolute left-4 top-4 text-[9px] font-black uppercase tracking-[0.2em] bg-white text-black px-3 py-1.5 shadow-sm pointer-events-none">
-              Mới
-            </span>
+              <span class="mm-badge">Mới</span>
             {% endif %}
 
-            <div class="absolute inset-x-4 bottom-4 translate-y-7 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 z-20 hidden md:block">
+            <div class="mm-card-actions">
               <button
                 type="button"
-                onclick="triggerQuickView(this);"
+                class="mm-card-icon"
+                onclick="triggerQuickView(this)"
+                title="Xem nhanh"
+                aria-label="Xem nhanh sản phẩm"
                 data-id="{{ product.id }}"
                 data-slug="{{ product.slug }}"
                 data-name="{{ product.name }}"
                 data-price="{{ product.price }}"
                 data-image="{{ img1 }}"
+                data-images='{{ imgs|tojson|safe }}'
                 data-category="{{ display_cat }}"
                 data-stock="{{ stock }}"
-                data-variants='{{ variants | tojson | safe if variants else "[]" }}'
-                class="w-full bg-black text-white text-[10px] font-black uppercase tracking-widest py-4 hover:bg-neutral-800 shadow-xl transition-colors"
+                data-variants='{{ variants|tojson|safe if variants else "[]" }}'
               >
-                Quick View +
+                <i class="fa-regular fa-eye text-sm"></i>
+              </button>
+
+              <button
+                type="button"
+                class="mm-card-icon"
+                onclick="MMFeatured.love('{{ product.id }}', this)"
+                title="Yêu thích"
+                aria-label="Thêm vào yêu thích"
+              >
+                <i class="fa-regular fa-heart text-sm"></i>
               </button>
             </div>
+
+            <button
+              type="button"
+              class="mm-card-add"
+              onclick="triggerQuickView(this)"
+              {% if stock <= 0 %}disabled{% endif %}
+              data-id="{{ product.id }}"
+              data-slug="{{ product.slug }}"
+              data-name="{{ product.name }}"
+              data-price="{{ product.price }}"
+              data-image="{{ img1 }}"
+              data-images='{{ imgs|tojson|safe }}'
+              data-category="{{ display_cat }}"
+              data-stock="{{ stock }}"
+              data-variants='{{ variants|tojson|safe if variants else "[]" }}'
+            >
+              {% if stock <= 0 %}
+                Hết hàng
+              {% else %}
+                Thêm vào giỏ hàng
+              {% endif %}
+            </button>
           </div>
 
-          <div class="mm-product-info mt-5">
-            <p class="text-[9px] font-black uppercase tracking-[0.22em] text-neutral-400 mb-2 truncate">
-              {{ display_cat }}
-            </p>
-
-            <div class="flex justify-between items-start gap-4">
-              <h3 class="mm-product-name text-[13px] font-black uppercase tracking-tight text-black leading-snug hover:text-neutral-500 transition-colors">
-                <a href="/product/{{ product.slug or product.id }}" data-nav>
-                  {{ product.name }}
-                </a>
-              </h3>
-
-              <p class="text-[13px] font-semibold whitespace-nowrap">
-                ₫{{ "{:,.0f}".format(product.price|float) }}
+          <div class="mt-4 flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="mb-1.5 truncate text-[9px] font-black uppercase tracking-[.2em] text-neutral-400">
+                {{ display_cat }}
               </p>
+
+              <a href="/product/{{ product.slug or product.id }}" data-nav class="block">
+                <h3 class="mm-product-name">
+                  {{ product.name }}
+                </h3>
+              </a>
             </div>
+
+            <p class="shrink-0 whitespace-nowrap text-right text-[13px] font-semibold">
+              ₫{{ "{:,.0f}".format(product.price|float) }}
+            </p>
           </div>
         </article>
-        {% endfor %}
+      {% endfor %}
 
-      </div>
     </div>
+  </div>
 
-    <div class="mt-6 mx-6 md:mx-12 h-[2px] bg-neutral-100 relative overflow-hidden">
-      <div id="progressBar" class="absolute top-0 left-0 h-full bg-black w-0 transition-all duration-200"></div>
+  <div class="mx-5 mt-4 sm:mx-8 md:mx-12">
+    <div class="mm-progress-wrap">
+      <div id="mmFeaturedProgress" class="mm-progress-bar"></div>
     </div>
-  </section>
-  {% endif %}
+  </div>
 
-  {# ══ 3. CATEGORY BENTO GRID ══ #}
-  {% if categories and categories|length >= 2 %}
-  <section class="px-4 md:px-8 grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 mb-28 md:mb-32">
-    {% set cat1 = categories[0] %}
-    {% set cat2 = categories[1] %}
+  <script>
+    window.MMFeatured = window.MMFeatured || {};
 
-    <a
-      href="/shop?category={{ cat1.slug }}"
-      data-nav
-      class="mm-category-card md:col-span-8 relative group overflow-hidden aspect-[4/5] md:aspect-auto md:h-[80vh] bg-neutral-100"
-    >
-      <img
-        src="{{ cat1.image_url if cat1.image_url else 'https://placehold.co/1200x1500/f4f2f0/111?text=' ~ cat1.name|urlencode }}"
-        alt="{{ cat1.name }}"
-        width="1200"
-        height="1500"
-        class="w-full h-full object-cover"
-        loading="lazy"
-        decoding="async"
-      >
+    (function(){
+      "use strict";
 
-      <div class="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition-colors duration-700"></div>
+      const slider = document.getElementById("mmFeaturedSlider");
+      const progress = document.getElementById("mmFeaturedProgress");
+      const next = document.getElementById("mmFeaturedNext");
+      const prev = document.getElementById("mmFeaturedPrev");
 
-      <div class="absolute bottom-10 left-8 right-8 md:bottom-16 md:left-16 text-white transform group-hover:-translate-y-3 transition-transform duration-700">
-        <h2 class="text-4xl md:text-5xl font-black uppercase tracking-tighter mb-4">
-          {{ cat1.name }}
-        </h2>
+      if (!slider) return;
 
-        <span class="text-[11px] font-black uppercase tracking-[0.2em] border-b-2 border-white pb-1">
-          Explore Edition
-        </span>
-      </div>
-    </a>
+      let ticking = false;
+      let isDown = false;
+      let isDragging = false;
+      let startX = 0;
+      let scrollLeft = 0;
 
-    <a
-      href="/shop?category={{ cat2.slug }}"
-      data-nav
-      class="mm-category-card md:col-span-4 relative group overflow-hidden aspect-[4/5] md:h-[80vh] bg-neutral-100"
-    >
-      <img
-        src="{{ cat2.image_url if cat2.image_url else 'https://placehold.co/900x1200/f4f2f0/111?text=' ~ cat2.name|urlencode }}"
-        alt="{{ cat2.name }}"
-        width="900"
-        height="1200"
-        class="w-full h-full object-cover"
-        loading="lazy"
-        decoding="async"
-      >
+      function updateUI(){
+        const max = slider.scrollWidth - slider.clientWidth;
 
-      <div class="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition-colors duration-700"></div>
+        if (max <= 0) {
+          if (progress) progress.style.width = "100%";
+          if (prev) prev.disabled = true;
+          if (next) next.disabled = true;
+          return;
+        }
 
-      <div class="absolute bottom-10 left-8 right-8 text-white transform group-hover:-translate-y-3 transition-transform duration-700">
-        <h2 class="text-3xl font-black uppercase tracking-tighter mb-4">
-          {{ cat2.name }}
-        </h2>
+        const value = slider.scrollLeft / max;
 
-        <span class="text-[10px] font-black uppercase tracking-[0.2em] border-b-2 border-white pb-1">
-          Shop Now
-        </span>
-      </div>
-    </a>
-  </section>
-  {% endif %}
+        if (progress) progress.style.width = Math.max(4, value * 100) + "%";
+        if (prev) prev.disabled = slider.scrollLeft <= 8;
+        if (next) next.disabled = slider.scrollLeft >= max - 8;
+      }
 
-</div>
+      function requestUpdate(){
+        if (ticking) return;
 
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-  const container = document.getElementById("slider-container");
-  const progress = document.getElementById("progressBar");
-  const btnNext = document.getElementById("btnNext");
-  const btnPrev = document.getElementById("btnPrev");
+        ticking = true;
+        requestAnimationFrame(function(){
+          updateUI();
+          ticking = false;
+        });
+      }
 
-  if (!container) return;
+      function getStep(){
+        const item = slider.querySelector(".mm-product-card");
+        return item ? item.offsetWidth + 24 : slider.clientWidth * 0.8;
+      }
 
-  let ticking = false;
+      next?.addEventListener("click", function(){
+        slider.scrollBy({ left:getStep(), behavior:"smooth" });
+      });
 
-  function updateUI() {
-    const max = container.scrollWidth - container.clientWidth;
+      prev?.addEventListener("click", function(){
+        slider.scrollBy({ left:-getStep(), behavior:"smooth" });
+      });
 
-    if (max <= 0) {
-      if (progress) progress.style.width = "100%";
-      if (btnPrev) btnPrev.disabled = true;
-      if (btnNext) btnNext.disabled = true;
-      return;
-    }
+      slider.addEventListener("scroll", requestUpdate, { passive:true });
 
-    if (progress) {
-      progress.style.width = (container.scrollLeft / max * 100) + "%";
-    }
+      slider.addEventListener("mousedown", function(event){
+        isDown = true;
+        isDragging = false;
+        startX = event.pageX - slider.offsetLeft;
+        scrollLeft = slider.scrollLeft;
+        slider.classList.remove("scroll-smooth");
+      });
 
-    if (btnPrev) btnPrev.disabled = container.scrollLeft <= 10;
-    if (btnNext) btnNext.disabled = container.scrollLeft >= max - 10;
-  }
+      window.addEventListener("mouseup", function(){
+        if (!isDown) return;
 
-  container.addEventListener("scroll", function () {
-    if (ticking) return;
+        isDown = false;
+        slider.classList.add("scroll-smooth");
 
-    window.requestAnimationFrame(function () {
+        setTimeout(function(){
+          isDragging = false;
+        }, 80);
+      });
+
+      slider.addEventListener("mousemove", function(event){
+        if (!isDown) return;
+
+        event.preventDefault();
+
+        const x = event.pageX - slider.offsetLeft;
+        const walk = (x - startX) * 1.2;
+
+        if (Math.abs(walk) > 6) isDragging = true;
+        slider.scrollLeft = scrollLeft - walk;
+      });
+
+      slider.querySelectorAll("a, button").forEach(function(el){
+        el.addEventListener("click", function(event){
+          if (!isDragging) return;
+
+          event.preventDefault();
+          event.stopPropagation();
+        });
+      });
+
+      MMFeatured.love = async function(productId, btn){
+        if (!productId || !btn) return;
+
+        const icon = btn.querySelector("i");
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.content || "";
+
+        btn.disabled = true;
+
+        try {
+          const res = await fetch("/api/favorites/toggle", {
+            method:"POST",
+            headers:{
+              "Content-Type":"application/json",
+              "X-CSRFToken":csrf
+            },
+            body:JSON.stringify({ product_id:productId })
+          });
+
+          if (res.status === 401) {
+            window.location.href = "/auth/login";
+            return;
+          }
+
+          const data = await res.json().catch(() => ({}));
+          const loved = data.action === "added" || data.status === "added";
+
+          btn.classList.toggle("is-loved", loved);
+          if (icon) icon.className = loved ? "fa-solid fa-heart text-sm" : "fa-regular fa-heart text-sm";
+        } catch (_) {
+        } finally {
+          btn.disabled = false;
+        }
+      };
+
       updateUI();
-      ticking = false;
-    });
-
-    ticking = true;
-  }, { passive: true });
-
-  function getStep() {
-    const item = container.querySelector(".slider-item");
-    return item ? item.offsetWidth + 28 : container.clientWidth * 0.8;
-  }
-
-  if (btnNext) {
-    btnNext.addEventListener("click", function () {
-      container.scrollBy({ left: getStep(), behavior: "smooth" });
-    });
-  }
-
-  if (btnPrev) {
-    btnPrev.addEventListener("click", function () {
-      container.scrollBy({ left: -getStep(), behavior: "smooth" });
-    });
-  }
-
-  let isDown = false;
-  let startX = 0;
-  let scrollLeft = 0;
-  let isDragging = false;
-
-  container.addEventListener("mousedown", function (event) {
-    isDown = true;
-    isDragging = false;
-    startX = event.pageX - container.offsetLeft;
-    scrollLeft = container.scrollLeft;
-    container.style.cursor = "grabbing";
-    container.classList.remove("scroll-smooth");
-  });
-
-  window.addEventListener("mouseup", function () {
-    if (!isDown) return;
-
-    isDown = false;
-    container.style.cursor = "grab";
-    container.classList.add("scroll-smooth");
-
-    setTimeout(function () {
-      isDragging = false;
-    }, 60);
-  });
-
-  container.addEventListener("mousemove", function (event) {
-    if (!isDown) return;
-
-    event.preventDefault();
-
-    const x = event.pageX - container.offsetLeft;
-    const walk = (x - startX) * 1.35;
-
-    if (Math.abs(walk) > 5) isDragging = true;
-
-    container.scrollLeft = scrollLeft - walk;
-  });
-
-  container.querySelectorAll("a, button").forEach(function (el) {
-    el.addEventListener("click", function (event) {
-      if (!isDragging) return;
-      event.preventDefault();
-      event.stopPropagation();
-    });
-  });
-
-  updateUI();
-  window.addEventListener("resize", updateUI, { passive: true });
-});
-</script>
-{% endblock %}
+      window.addEventListener("resize", requestUpdate, { passive:true });
+    })();
+  </script>
+</section>
+{% endif %}

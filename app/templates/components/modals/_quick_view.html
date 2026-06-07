@@ -1,293 +1,642 @@
-{# ═══════════════════════════════════════════════════════════
-   QUICK VIEW MODAL — Korean Fashion 2026 · GUA Maison
-   Image slideshow + Variant selection + Full interaction
-   ═══════════════════════════════════════════════════════════ #}
+{# QUICK VIEW — MMESTLINE Compact #}
 
 <style>
-  #quick-view-modal .qv-slide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:32px;opacity:0;transition:opacity .55s cubic-bezier(.4,0,.2,1),transform .55s cubic-bezier(.4,0,.2,1);transform:translateX(28px)}
-  #quick-view-modal .qv-slide.qv-active{opacity:1;transform:translateX(0);z-index:2}
-  #quick-view-modal .qv-slide.qv-prev{opacity:0;transform:translateX(-28px);z-index:1}
-  #quick-view-modal .qv-dot{width:5px;height:5px;border-radius:50%;background:#ccc;cursor:pointer;transition:background .2s,transform .2s;border:none;padding:0}
-  #quick-view-modal .qv-dot.qv-dot-active{background:#000;transform:scale(1.35)}
-  #quick-view-modal .qv-color-swatch{width:24px;height:24px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:transform .2s;position:relative;background:none;padding:0}
-  #quick-view-modal .qv-color-swatch::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:1.5px solid transparent;transition:border-color .2s}
-  #quick-view-modal .qv-color-swatch.qv-sel{border-color:#111;transform:scale(1.12)}
-  #quick-view-modal .qv-color-swatch.qv-sel::after{border-color:#111}
-  #quick-view-modal .qv-size-btn{height:36px;min-width:44px;padding:0 14px;border:1px solid #e0e0e0;background:#fff;font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .18s;font-family:inherit}
-  #quick-view-modal .qv-size-btn:hover:not(:disabled){border-color:#111}
-  #quick-view-modal .qv-size-btn.qv-sel{background:#111;color:#fff;border-color:#111}
-  #quick-view-modal .qv-size-btn:disabled{opacity:.28;cursor:not-allowed;text-decoration:line-through}
+  :root{
+    --qv-ink:#111;
+    --qv-muted:#777;
+    --qv-soft:#f6f6f6;
+    --qv-line:#e7e7e7;
+    --qv-radius:5px;
+  }
+
+  #quick-view-modal *{box-sizing:border-box}
+
+  #quick-view-modal{
+    font-family:"DM Sans","Inter",system-ui,sans-serif;
+  }
+
+  #quick-view-modal .qv-panel{
+    width:min(820px,calc(100vw - 24px));
+    max-height:min(82dvh,680px);
+    border-radius:var(--qv-radius);
+    background:#fff;
+    overflow:hidden;
+    box-shadow:0 24px 70px rgba(0,0,0,.22);
+    transform:translateY(10px) scale(.985);
+    transition:transform .22s cubic-bezier(.16,1,.3,1);
+  }
+
+  #quick-view-modal.opacity-100 .qv-panel{
+    transform:translateY(0) scale(1);
+  }
+
+  #quick-view-modal .qv-media{
+    position:relative;
+    background:var(--qv-soft);
+    min-height:360px;
+    overflow:hidden;
+  }
+
+  #quick-view-modal .qv-slide{
+    position:absolute;
+    inset:0;
+    display:grid;
+    place-items:center;
+    padding:18px;
+    opacity:0;
+    transform:translateX(16px);
+    transition:.28s cubic-bezier(.16,1,.3,1);
+  }
+
+  #quick-view-modal .qv-slide.qv-active{
+    opacity:1;
+    transform:none;
+    z-index:2;
+  }
+
+  #quick-view-modal .qv-slide img{
+    width:100%;
+    height:100%;
+    max-height:460px;
+    object-fit:contain;
+    display:block;
+  }
+
+  #quick-view-modal .qv-close,
+  #quick-view-modal .qv-nav{
+    position:absolute;
+    z-index:20;
+    display:grid;
+    place-items:center;
+    width:34px;
+    height:34px;
+    border:1px solid rgba(0,0,0,.08);
+    border-radius:var(--qv-radius);
+    background:rgba(255,255,255,.9);
+    color:#111;
+    transition:.16s ease;
+  }
+
+  #quick-view-modal .qv-close:hover,
+  #quick-view-modal .qv-nav:hover{
+    background:#111;
+    color:#fff;
+  }
+
+  #quick-view-modal .qv-close{
+    right:12px;
+    top:12px;
+  }
+
+  #quick-view-modal .qv-nav{
+    top:50%;
+    transform:translateY(-50%);
+  }
+
+  #quick-view-modal .qv-nav.prev{left:10px}
+  #quick-view-modal .qv-nav.next{right:10px}
+
+  #quick-view-modal .qv-dots{
+    position:absolute;
+    left:50%;
+    bottom:12px;
+    z-index:20;
+    display:flex;
+    gap:5px;
+    transform:translateX(-50%);
+  }
+
+  #quick-view-modal .qv-dot{
+    width:16px;
+    height:2px;
+    border:0;
+    border-radius:99px;
+    background:rgba(0,0,0,.24);
+    padding:0;
+  }
+
+  #quick-view-modal .qv-dot.qv-dot-active{
+    width:28px;
+    background:#111;
+  }
+
+  #quick-view-modal .qv-info{
+    max-height:min(82dvh,680px);
+    overflow:auto;
+    padding:26px;
+  }
+
+  #quick-view-modal .qv-info::-webkit-scrollbar{
+    display:none;
+  }
+
+  #quick-view-modal .qv-kicker{
+    font-size:9px;
+    font-weight:850;
+    letter-spacing:.2em;
+    text-transform:uppercase;
+    color:var(--qv-muted);
+  }
+
+  #quick-view-modal .qv-title{
+    margin-top:8px;
+    font-size:clamp(21px,2.1vw,28px);
+    line-height:1.12;
+    font-weight:760;
+    letter-spacing:-.025em;
+    color:#111;
+    text-wrap:balance;
+  }
+
+  #quick-view-modal .qv-price{
+    font-size:20px;
+    font-weight:850;
+    letter-spacing:-.02em;
+    color:#111;
+  }
+
+  #quick-view-modal .qv-old-price{
+    font-size:12px;
+    font-weight:700;
+    color:#aaa;
+    text-decoration:line-through;
+  }
+
+  #quick-view-modal .qv-stock{
+    min-height:18px;
+    font-size:10px;
+    font-weight:850;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+  }
+
+  #quick-view-modal .qv-section{
+    padding-top:17px;
+    border-top:1px solid var(--qv-line);
+  }
+
+  #quick-view-modal .qv-label{
+    font-size:10px;
+    font-weight:850;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:#111;
+  }
+
+  #quick-view-modal .qv-sub{
+    font-size:10px;
+    font-weight:750;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--qv-muted);
+  }
+
+  #quick-view-modal .qv-swatch{
+    width:30px;
+    height:30px;
+    border:1px solid var(--qv-line);
+    border-radius:var(--qv-radius);
+    background:#ddd;
+    cursor:pointer;
+  }
+
+  #quick-view-modal .qv-swatch.qv-sel{
+    border-color:#111;
+    box-shadow:0 0 0 2px #111 inset;
+  }
+
+  #quick-view-modal .qv-size{
+    min-width:44px;
+    height:36px;
+    padding:0 12px;
+    border:1px solid var(--qv-line);
+    border-radius:var(--qv-radius);
+    background:#fff;
+    color:#111;
+    font-size:10px;
+    font-weight:850;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+  }
+
+  #quick-view-modal .qv-size.qv-sel{
+    background:#111;
+    border-color:#111;
+    color:#fff;
+  }
+
+  #quick-view-modal .qv-size:disabled{
+    background:#f4f4f4;
+    color:#aaa;
+    text-decoration:line-through;
+    cursor:not-allowed;
+  }
+
+  #quick-view-modal .qv-qty{
+    display:grid;
+    grid-template-columns:34px 38px 34px;
+    height:44px;
+    border:1px solid #111;
+    border-radius:var(--qv-radius);
+    overflow:hidden;
+  }
+
+  #quick-view-modal .qv-qty button{
+    font-size:17px;
+    color:#555;
+  }
+
+  #quick-view-modal .qv-qty button:hover{
+    background:#f5f5f5;
+    color:#111;
+  }
+
+  #quick-view-modal .qv-qty input{
+    width:100%;
+    border:0;
+    outline:0;
+    text-align:center;
+    font-size:12px;
+    font-weight:850;
+    background:transparent;
+    pointer-events:none;
+  }
+
+  #quick-view-modal .qv-submit,
+  #quick-view-modal .qv-detail{
+    height:44px;
+    border-radius:var(--qv-radius);
+    font-size:10px;
+    font-weight:900;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+  }
+
+  #quick-view-modal .qv-submit{
+    border:1px solid #111;
+    background:#111;
+    color:#fff;
+  }
+
+  #quick-view-modal .qv-submit:hover:not(:disabled){
+    background:#333;
+  }
+
+  #quick-view-modal .qv-submit:disabled{
+    border-color:#e5e5e5;
+    background:#f1f1f1;
+    color:#aaa;
+  }
+
+  #quick-view-modal .qv-detail{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    border:1px solid var(--qv-line);
+    background:#fff;
+    color:#111;
+  }
+
+  #quick-view-modal .qv-detail:hover{
+    border-color:#111;
+  }
+
+  @media(max-width:767px){
+    #quick-view-modal{
+      align-items:flex-end;
+      padding:0;
+    }
+
+    #quick-view-modal .qv-panel{
+      width:100%;
+      max-height:88dvh;
+      border-radius:5px 5px 0 0;
+      overflow:auto;
+    }
+
+    #quick-view-modal .qv-media{
+      min-height:260px;
+      height:38dvh;
+    }
+
+    #quick-view-modal .qv-info{
+      max-height:none;
+      padding:20px;
+    }
+
+    #quick-view-modal .qv-title{
+      font-size:22px;
+    }
+
+    #quick-view-modal .qv-slide{
+      padding:14px;
+    }
+  }
 </style>
 
-<div id="quick-view-modal" class="fixed inset-0 z-[200] hidden items-center justify-center px-4 sm:px-6 opacity-0 transition-opacity duration-300" style="font-family:'DM Sans','Inter',sans-serif">
+<div
+  id="quick-view-modal"
+  class="fixed inset-0 z-[220] hidden items-center justify-center bg-black/50 px-3 opacity-0 backdrop-blur-[3px] transition-opacity duration-200 sm:px-5"
+  aria-hidden="true"
+>
+  <button type="button" class="absolute inset-0" onclick="closeQuickView()" aria-label="Đóng"></button>
 
-  {# Backdrop #}
-  <div class="absolute inset-0 bg-black/50 backdrop-blur-[2px] cursor-pointer" onclick="closeQuickView()"></div>
-
-  {# Modal #}
-  <div id="qv-inner" class="relative bg-white w-full max-w-[880px] max-h-[96vh] md:max-h-[90vh] rounded-sm shadow-2xl overflow-hidden flex flex-col md:flex-row transform scale-95 transition-transform duration-300 z-10">
-
-    {# Close #}
-    <button onclick="closeQuickView()" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-stone-300 hover:text-black transition-colors z-50">
-      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+  <section id="qv-inner" class="qv-panel relative z-10 grid grid-cols-1 md:grid-cols-[46%_54%]" role="dialog" aria-modal="true">
+    <button type="button" class="qv-close" onclick="closeQuickView()" aria-label="Đóng">
+      <i class="fa-solid fa-xmark text-sm"></i>
     </button>
 
-    {# ── LEFT: Image Slideshow ── #}
-    <div class="w-full md:w-[48%] bg-[#f7f5f2] relative flex-shrink-0 overflow-hidden" style="min-height:320px">
-      
-      {# Slides container #}
+    <div class="qv-media">
       <div id="qv-slides" class="absolute inset-0"></div>
 
-      {# Arrows #}
-      <button onclick="qvSlide(-1)" class="absolute left-2.5 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 hover:bg-white flex items-center justify-center transition-colors">
-        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
-      </button>
-      <button onclick="qvSlide(1)" class="absolute right-2.5 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 hover:bg-white flex items-center justify-center transition-colors">
-        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+      <button type="button" class="qv-nav prev" onclick="qvSlide(-1)" aria-label="Ảnh trước">
+        <i class="fa-solid fa-chevron-left text-xs"></i>
       </button>
 
-      {# Dots #}
-      <div id="qv-dots" class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10"></div>
+      <button type="button" class="qv-nav next" onclick="qvSlide(1)" aria-label="Ảnh sau">
+        <i class="fa-solid fa-chevron-right text-xs"></i>
+      </button>
+
+      <div id="qv-dots" class="qv-dots"></div>
     </div>
 
-    {# ── RIGHT: Product Info ── #}
-    <div class="w-full md:w-[52%] flex flex-col overflow-y-auto no-scrollbar bg-white p-8 md:p-10">
+    <div class="qv-info">
+      <p id="qv-category" class="qv-kicker">Collection</p>
 
-      {# Header #}
-      <div class="mb-6">
-        <p id="qv-category" class="text-[9px] font-medium tracking-[.22em] uppercase text-stone-400 mb-2.5">Collection</p>
-        <h2 id="qv-name" class="text-[1.45rem] font-light tracking-tight text-black leading-snug mb-4" style="font-family:'Playfair Display',serif">Product Name</h2>
-        <div class="flex items-baseline gap-3">
-          <span id="qv-price" class="text-base font-medium text-black">0₫</span>
-          <span id="qv-price-original" class="text-xs text-stone-300 line-through hidden"></span>
-        </div>
-        <div id="qv-stock-status" class="mt-3 h-5 text-[9px] font-medium tracking-[.15em] uppercase"></div>
+      <h2 id="qv-name" class="qv-title">Product Name</h2>
+
+      <div class="mt-4 flex flex-wrap items-baseline gap-3">
+        <span id="qv-price" class="qv-price">0₫</span>
+        <span id="qv-price-original" class="qv-old-price hidden"></span>
       </div>
 
-      {# Divider #}
-      <div class="h-px bg-stone-100 mb-6"></div>
+      <div id="qv-stock-status" class="qv-stock mt-3"></div>
 
-      {# Form #}
-      <form action="/cart/add" method="POST" class="flex-1 flex flex-col">
+      <form action="/cart/add" method="POST" class="mt-5">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="product_id" id="qv-input-id">
         <input type="hidden" name="variant_id" id="qv-variant-id">
 
-        <div class="space-y-7 flex-1">
-
-          {# Color #}
-          <div id="qv-color-section" class="hidden">
-            <div class="flex justify-between items-center mb-3.5">
-              <span class="text-[9px] font-medium tracking-[.2em] uppercase text-black">Màu sắc</span>
-              <span id="qv-color-label" class="text-[9px] tracking-[.15em] uppercase text-stone-500"></span>
-            </div>
-            <div id="qv-colors" class="flex flex-wrap gap-2.5"></div>
+        <section id="qv-color-section" class="qv-section hidden">
+          <div class="mb-3 flex items-center justify-between gap-3">
+            <span class="qv-label">Màu sắc</span>
+            <span id="qv-color-label" class="qv-sub"></span>
           </div>
+          <div id="qv-colors" class="flex flex-wrap gap-2"></div>
+        </section>
 
-          {# Size #}
-          <div id="qv-size-section" class="hidden">
-            <div class="flex justify-between items-center mb-3.5">
-              <span class="text-[9px] font-medium tracking-[.2em] uppercase text-black">Kích thước</span>
-              <button type="button" class="text-[9px] font-medium tracking-widest uppercase text-stone-400 hover:text-black border-b border-stone-200 pb-px transition-colors">Bảng size</button>
-            </div>
-            <div id="qv-sizes" class="flex flex-wrap gap-1.5"></div>
+        <section id="qv-size-section" class="qv-section mt-5 hidden">
+          <div class="mb-3 flex items-center justify-between gap-3">
+            <span class="qv-label">Kích thước</span>
+            <span class="qv-sub">Chọn size</span>
           </div>
+          <div id="qv-sizes" class="flex flex-wrap gap-2"></div>
+        </section>
 
-        </div>
-
-        {# Actions #}
-        <div class="mt-8 space-y-3">
-          <div class="h-px bg-stone-100 mb-5"></div>
-
-          {# Qty + Add #}
-          <div class="flex gap-2.5">
-            <div class="flex items-center border border-stone-200 h-12 px-4 gap-1">
-              <button type="button" onclick="qvChangeQty(-1)" class="w-6 text-base text-stone-400 hover:text-black transition-colors font-light">−</button>
-              <input type="number" id="qv-qty" name="quantity" value="1" readonly class="w-8 text-center text-[11px] font-medium bg-transparent outline-none pointer-events-none">
-              <button type="button" onclick="qvChangeQty(1)" class="w-6 text-base text-stone-400 hover:text-black transition-colors font-light">+</button>
+        <div class="mt-6 border-t border-[#e7e7e7] pt-4">
+          <div class="grid grid-cols-[106px_1fr] gap-2">
+            <div class="qv-qty">
+              <button type="button" onclick="qvChangeQty(-1)" aria-label="Giảm">−</button>
+              <input id="qv-qty" name="quantity" type="number" value="1" readonly>
+              <button type="button" onclick="qvChangeQty(1)" aria-label="Tăng">+</button>
             </div>
-            <button type="submit" id="qv-submit-btn"
-              class="flex-1 bg-black text-white h-12 text-[10px] font-medium tracking-[.2em] uppercase transition-all hover:bg-stone-800 disabled:bg-stone-100 disabled:text-stone-300 disabled:cursor-not-allowed">
-              Thêm vào giỏ hàng
+
+            <button type="submit" id="qv-submit-btn" class="qv-submit">
+              Thêm vào giỏ
             </button>
           </div>
 
-          {# Detail link #}
-          <a href="#" id="qv-detail-link" class="flex items-center justify-center gap-2 h-10 border border-stone-200 hover:border-black transition-colors text-[10px] font-medium tracking-[.18em] uppercase text-stone-500 hover:text-black">
-            Xem chi tiết sản phẩm
-            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          <a id="qv-detail-link" href="#" class="qv-detail mt-2">
+            Xem chi tiết
+            <i class="fa-solid fa-arrow-right text-xs"></i>
           </a>
         </div>
       </form>
     </div>
-  </div>
+  </section>
 </div>
 
 <script>
 (function(){
-  window.qvMaxStock = 1;
-  window.currentProductVariants = [];
-  window.currentBasePrice = 0;
-  window._qvCur = 0;
-  window._qvImages = [];
+  "use strict";
 
-  const COLOR_MAP = {
-    'đen':'#111','black':'#111','trắng':'#fff','white':'#fff','đỏ':'#dc2626','red':'#dc2626',
-    'xanh dương':'#2563eb','blue':'#2563eb','xanh navy':'#1e3a8a','navy':'#1e3a8a',
-    'xanh lá':'#16a34a','green':'#16a34a','vàng':'#eab308','yellow':'#eab308',
-    'cam':'#ea580c','orange':'#ea580c','hồng':'#ec4899','pink':'#ec4899',
-    'tím':'#9333ea','purple':'#9333ea','xám':'#6b7280','gray':'#6b7280','grey':'#6b7280',
-    'nâu':'#78350f','brown':'#78350f','be':'#d4c5b0','beige':'#d4c5b0','kem':'#fef3c7','cream':'#fef3c7'
+  const $ = (s,r=document) => r.querySelector(s);
+  const $$ = (s,r=document) => Array.from(r.querySelectorAll(s));
+
+  const COLORS = {
+    "đen":"#111","black":"#111","trắng":"#fff","white":"#fff","đỏ":"#dc2626","red":"#dc2626",
+    "xanh dương":"#2563eb","blue":"#2563eb","navy":"#1e3a8a","xanh navy":"#1e3a8a",
+    "xanh lá":"#16a34a","green":"#16a34a","vàng":"#eab308","yellow":"#eab308",
+    "cam":"#ea580c","orange":"#ea580c","hồng":"#ec4899","pink":"#ec4899",
+    "tím":"#9333ea","purple":"#9333ea","xám":"#6b7280","gray":"#6b7280","grey":"#6b7280",
+    "nâu":"#78350f","brown":"#78350f","be":"#d4c5b0","beige":"#d4c5b0","kem":"#fef3c7","cream":"#fef3c7"
   };
 
-  function hexFromName(n){ return n ? (COLOR_MAP[n.toLowerCase().trim()]||'#ccc') : '#ccc'; }
+  const QV = {imgs:[],i:0,variants:[],base:0,max:1};
 
-  function qvBuildSlides(images){
-    window._qvImages = images.length ? images : [''];
-    window._qvCur = 0;
-    const sc = document.getElementById('qv-slides');
-    const dc = document.getElementById('qv-dots');
-    if(!sc||!dc) return;
-    sc.innerHTML = '';
-    dc.innerHTML = '';
-    window._qvImages.forEach((src,i)=>{
-      const slide = document.createElement('div');
-      slide.className = 'qv-slide' + (i===0?' qv-active':'');
-      slide.innerHTML = `<img src="${src}" alt="Look ${i+1}" style="max-height:380px;max-width:100%;object-fit:contain;mix-blend-multiply;transition:opacity .4s" onerror="this.style.opacity='.3'">`;
-      sc.appendChild(slide);
-      const dot = document.createElement('button');
-      dot.className = 'qv-dot' + (i===0?' qv-dot-active':'');
-      dot.type = 'button';
-      dot.onclick = ()=>qvGoTo(i);
-      dc.appendChild(dot);
-    });
+  const money = v => Number(v || 0).toLocaleString("vi-VN") + "₫";
+  const safe = v => String(v || "").replace(/"/g,"&quot;");
+  const hex = n => COLORS[String(n || "").toLowerCase().trim()] || "#ccc";
+
+  function json(raw,fallback){
+    try{
+      if(!raw || raw === "None") return fallback;
+      return JSON.parse(raw);
+    }catch(_){ return fallback; }
+  }
+
+  function slides(images){
+    QV.imgs = images && images.length ? images : [""];
+    QV.i = 0;
+
+    $("#qv-slides").innerHTML = QV.imgs.map((src,i)=>`
+      <div class="qv-slide${i===0 ? " qv-active" : ""}">
+        <img src="${safe(src)}" alt="Product ${i+1}" ${i ? 'loading="lazy"' : 'loading="eager"'}
+             onerror="this.src='https://placehold.co/700x900/f6f6f6/111111?text=MMESTLINE'">
+      </div>
+    `).join("");
+
+    $("#qv-dots").innerHTML = QV.imgs.map((_,i)=>`
+      <button type="button" class="qv-dot${i===0 ? " qv-dot-active" : ""}" onclick="qvGoTo(${i})"></button>
+    `).join("");
+
+    const show = QV.imgs.length > 1;
+    $$(".qv-nav").forEach(b => b.style.display = show ? "grid" : "none");
+    $("#qv-dots").style.display = show ? "flex" : "none";
   }
 
   window.qvGoTo = function(n){
-    const slides = document.querySelectorAll('.qv-slide');
-    if(!slides.length) return;
-    slides[window._qvCur].classList.remove('qv-active');
-    slides[window._qvCur].classList.add('qv-prev');
-    const prev = window._qvCur;
-    window._qvCur = (n+slides.length)%slides.length;
-    slides[window._qvCur].classList.add('qv-active');
-    setTimeout(()=>slides[prev].classList.remove('qv-prev'),600);
-    document.querySelectorAll('.qv-dot').forEach((d,i)=>d.classList.toggle('qv-dot-active',i===window._qvCur));
+    const items = $$(".qv-slide");
+    if(!items.length) return;
+
+    items[QV.i]?.classList.remove("qv-active");
+    QV.i = (n + items.length) % items.length;
+    items[QV.i]?.classList.add("qv-active");
+
+    $$(".qv-dot").forEach((d,i)=>d.classList.toggle("qv-dot-active", i === QV.i));
   };
 
-  window.qvSlide = function(d){ qvGoTo(window._qvCur+d); };
+  window.qvSlide = d => qvGoTo(QV.i + Number(d || 0));
 
   window.triggerQuickView = function(btn){
-    const id=btn.getAttribute('data-id'), slug=btn.getAttribute('data-slug'),
-      name=btn.getAttribute('data-name'), price=btn.getAttribute('data-price'),
-      image=btn.getAttribute('data-image'), category=btn.getAttribute('data-category'),
-      stock=parseInt(btn.getAttribute('data-stock'))||0;
-    let variants=[], images=[];
-    try{
-      const rv=btn.getAttribute('data-variants');
-      if(rv&&rv!=='None'&&rv!=='[]') variants=JSON.parse(rv);
-    }catch(e){}
-    try{
-      const ri=btn.getAttribute('data-images');
-      if(ri&&ri!=='None'&&ri!=='[]') images=JSON.parse(ri);
-    }catch(e){}
-    if(!images.length&&image) images=[image];
-    openQuickView(id,slug,name,price,images,category,stock,variants);
+    const image = btn.dataset.image;
+    let images = json(btn.dataset.images, []);
+    if(!images.length && image) images = [image];
+
+    openQuickView(
+      btn.dataset.id,
+      btn.dataset.slug,
+      btn.dataset.name,
+      btn.dataset.price,
+      images,
+      btn.dataset.category,
+      parseInt(btn.dataset.stock,10) || 0,
+      json(btn.dataset.variants, [])
+    );
   };
 
   window.openQuickView = function(id,slug,name,price,images,category,stock,variants){
-    const modal=document.getElementById('quick-view-modal');
-    if(!modal) return;
-    window.currentProductVariants=variants||[];
-    window.currentBasePrice=parseFloat(price)||0;
-    document.getElementById('qv-input-id').value=id;
-    document.getElementById('qv-name').textContent=name;
-    document.getElementById('qv-category').textContent=category;
-    document.getElementById('qv-detail-link').href=`/product/${slug||id}`;
-    document.getElementById('qv-qty').value=1;
-    qvBuildSlides(Array.isArray(images)?images:[images]);
-    const cs=document.getElementById('qv-color-section'), ss=document.getElementById('qv-size-section');
-    if(window.currentProductVariants.length>0){
-      cs.classList.remove('hidden'); ss.classList.remove('hidden');
-      const uniqColors=[];
-      window.currentProductVariants.forEach(v=>{
-        if(v.color_name&&!uniqColors.find(c=>c.name===v.color_name))
-          uniqColors.push({name:v.color_name,hex:v.color_hex||v.hex_code||hexFromName(v.color_name)});
-      });
-      document.getElementById('qv-colors').innerHTML=uniqColors.map((c,i)=>`
-        <button type="button" class="qv-color-swatch${i===0?' qv-sel':''}" data-color="${c.name}" style="background:${c.hex}" onclick="qvPickColor(this)"></button>
-      `).join('');
-      if(uniqColors.length) qvRenderSizes(uniqColors[0].name);
-    } else {
-      cs.classList.add('hidden'); ss.classList.add('hidden');
-      document.getElementById('qv-variant-id').value='';
-      qvUpdateUI(stock,window.currentBasePrice,null);
+    QV.variants = Array.isArray(variants) ? variants : [];
+    QV.base = parseFloat(price) || 0;
+    QV.max = Math.max(1,stock || 1);
+
+    $("#qv-input-id").value = id || "";
+    $("#qv-variant-id").value = "";
+    $("#qv-name").textContent = name || "Product";
+    $("#qv-category").textContent = category || "MMESTLINE";
+    $("#qv-detail-link").href = "/product/" + (slug || id || "");
+    $("#qv-qty").value = 1;
+
+    slides(images);
+    $("#qv-price").textContent = money(QV.base);
+    $("#qv-price-original").classList.add("hidden");
+
+    if(QV.variants.length) renderColors();
+    else{
+      $("#qv-color-section").classList.add("hidden");
+      $("#qv-size-section").classList.add("hidden");
+      update(stock, QV.base, "");
     }
-    modal.classList.remove('hidden'); modal.classList.add('flex');
-    requestAnimationFrame(()=>{
-      modal.classList.add('opacity-100');
-      document.getElementById('qv-inner').classList.add('scale-100');
-    });
-    document.body.style.overflow='hidden';
+
+    const modal = $("#quick-view-modal");
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+    modal.setAttribute("aria-hidden","false");
+
+    requestAnimationFrame(()=>modal.classList.add("opacity-100"));
+    document.body.style.overflow = "hidden";
   };
+
+  function renderColors(){
+    const colors = [];
+
+    QV.variants.forEach(v=>{
+      const name = v.color_name || v.color || "";
+      if(name && !colors.some(c=>c.name === name)){
+        colors.push({name,hex:v.color_hex || v.hex_code || v.hex || hex(name)});
+      }
+    });
+
+    if(!colors.length){
+      $("#qv-color-section").classList.add("hidden");
+      $("#qv-size-section").classList.remove("hidden");
+      renderSizes("");
+      return;
+    }
+
+    $("#qv-color-section").classList.remove("hidden");
+    $("#qv-size-section").classList.remove("hidden");
+
+    $("#qv-colors").innerHTML = colors.map((c,i)=>`
+      <button type="button" class="qv-swatch${i===0 ? " qv-sel" : ""}"
+              style="background:${safe(c.hex)}" data-color="${safe(c.name)}"
+              onclick="qvPickColor(this)" title="${safe(c.name)}"></button>
+    `).join("");
+
+    renderSizes(colors[0].name);
+  }
 
   window.qvPickColor = function(btn){
-    document.querySelectorAll('#qv-colors .qv-color-swatch').forEach(b=>b.classList.remove('qv-sel'));
-    btn.classList.add('qv-sel');
-    qvRenderSizes(btn.dataset.color);
+    $$("#qv-colors .qv-swatch").forEach(b=>b.classList.remove("qv-sel"));
+    btn.classList.add("qv-sel");
+    renderSizes(btn.dataset.color || "");
   };
 
-  window.qvRenderSizes = function(colorName){
-    document.getElementById('qv-color-label').textContent=colorName;
-    const variants=window.currentProductVariants.filter(v=>v.color_name===colorName);
-    const first=variants.find(v=>v.stock>0)||null;
-    document.getElementById('qv-sizes').innerHTML=variants.map(v=>{
-      const ok=v.stock>0;
-      const sel=(first&&v.id===first.id)?' qv-sel':'';
-      return '<button type="button" class="qv-size-btn'+sel+'"'
-        +' data-vid="'+v.id+'" data-stock="'+v.stock+'" data-price="'+(v.price_override||window.currentBasePrice)+'"'
-        +(ok?'':' disabled')+' onclick="qvPickSize(this)">'+v.size+'</button>';
-    }).join('');
-    if(first) qvUpdateUI(first.stock,first.price_override||window.currentBasePrice,first.id);
-    else qvUpdateUI(0,window.currentBasePrice,null);
-  };
+  function renderSizes(color){
+    $("#qv-color-label").textContent = color || "";
+
+    const vars = color
+      ? QV.variants.filter(v => (v.color_name || v.color || "") === color)
+      : QV.variants;
+
+    const first = vars.find(v => Number(v.stock || 0) > 0);
+
+    $("#qv-sizes").innerHTML = vars.map(v=>{
+      const st = Number(v.stock || 0);
+      const ok = st > 0;
+      const sel = first && v.id === first.id;
+
+      return `<button type="button" class="qv-size${sel ? " qv-sel" : ""}"
+                data-vid="${safe(v.id)}"
+                data-stock="${st}"
+                data-price="${v.price_override || v.price || QV.base}"
+                ${ok ? "" : "disabled"}
+                onclick="qvPickSize(this)">${safe(v.size || v.size_name || "OS")}</button>`;
+    }).join("");
+
+    first ? update(first.stock, first.price_override || first.price || QV.base, first.id) : update(0, QV.base, "");
+  }
 
   window.qvPickSize = function(btn){
-    document.querySelectorAll('#qv-sizes .qv-size-btn').forEach(b=>b.classList.remove('qv-sel'));
-    btn.classList.add('qv-sel');
-    qvUpdateUI(parseInt(btn.dataset.stock),parseFloat(btn.dataset.price),btn.dataset.vid);
+    $$("#qv-sizes .qv-size").forEach(b=>b.classList.remove("qv-sel"));
+    btn.classList.add("qv-sel");
+    update(parseInt(btn.dataset.stock,10) || 0, parseFloat(btn.dataset.price) || QV.base, btn.dataset.vid || "");
   };
 
-  window.qvUpdateUI = function(stock,price,vid){
-    const sub=document.getElementById('qv-submit-btn'), st=document.getElementById('qv-stock-status'), po=document.getElementById('qv-price-original');
-    document.getElementById('qv-variant-id').value=vid||'';
-    document.getElementById('qv-price').textContent=Number(price).toLocaleString('vi-VN')+'₫';
-    if(price<window.currentBasePrice){ po.textContent=Number(window.currentBasePrice).toLocaleString('vi-VN')+'₫'; po.classList.remove('hidden'); }
-    else po.classList.add('hidden');
-    if(stock>0){
-      window.qvMaxStock=stock; sub.disabled=false; sub.textContent='Thêm vào giỏ hàng';
-      st.innerHTML='<span style="color:#2a9d5c">● Còn hàng</span>';
-    } else {
-      window.qvMaxStock=1; sub.disabled=true; sub.textContent='Tạm hết hàng';
-      st.innerHTML='<span style="color:#e05050">● Hết hàng</span>';
+  function update(stock,price,variantId){
+    $("#qv-variant-id").value = variantId || "";
+    $("#qv-price").textContent = money(price);
+
+    if(price && price < QV.base){
+      $("#qv-price-original").textContent = money(QV.base);
+      $("#qv-price-original").classList.remove("hidden");
+    }else{
+      $("#qv-price-original").classList.add("hidden");
     }
+
+    const ok = stock > 0;
+    QV.max = ok ? stock : 1;
+    $("#qv-submit-btn").disabled = !ok;
+    $("#qv-submit-btn").textContent = ok ? "Thêm vào giỏ" : "Tạm hết hàng";
+    $("#qv-stock-status").innerHTML = ok
+      ? '<span style="color:#15803d">● Còn hàng</span>'
+      : '<span style="color:#dc2626">● Hết hàng</span>';
+    $("#qv-qty").value = 1;
+  }
+
+  window.qvChangeQty = function(delta){
+    const el = $("#qv-qty");
+    const next = Number(el.value || 1) + Number(delta || 0);
+    if(next >= 1 && next <= QV.max) el.value = next;
   };
 
   window.closeQuickView = function(){
-    const modal=document.getElementById('quick-view-modal');
+    const modal = $("#quick-view-modal");
     if(!modal) return;
-    modal.classList.remove('opacity-100');
-    document.getElementById('qv-inner').classList.remove('scale-100');
-    setTimeout(()=>{ modal.classList.remove('flex'); modal.classList.add('hidden'); document.body.style.overflow=''; },300);
+
+    modal.classList.remove("opacity-100");
+    modal.setAttribute("aria-hidden","true");
+
+    setTimeout(()=>{
+      modal.classList.remove("flex");
+      modal.classList.add("hidden");
+      document.body.style.overflow = "";
+    },220);
   };
 
-  window.qvChangeQty = function(d){
-    const el=document.getElementById('qv-qty');
-    if(!el) return;
-    const v=parseInt(el.value)+d;
-    if(v>=1&&v<=window.qvMaxStock) el.value=v;
-  };
-
-  document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeQuickView(); });
+  document.addEventListener("keydown", e=>{
+    if(e.key === "Escape") closeQuickView();
+  });
 })();
 </script>
