@@ -6,24 +6,36 @@
 {% set sf = system_settings.get('storefront', {}) if system_settings is defined and system_settings else {} %}
 {% set hero_url = sf.get('hero_banner_url') or '' %}
 
-{% if hero_url and not hero_url.lower().endswith('.mp4') %}
+{% if hero_url and not hero_url.lower().endswith('.mp4') and not hero_url.lower().endswith('.webm') %}
   <link rel="preload" as="image" href="{{ hero_url }}" fetchpriority="high">
 {% endif %}
 
 <style>
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-
   .mm-home {
-    background: #fff;
-    color: #000;
+    --mm-green: #1b4922;
+    --mm-gold: #c99e14;
+    --mm-ink: #101510;
+    --mm-line: rgba(27, 73, 34, .14);
+    --mm-soft: #f7f9f2;
+    --mm-radius: 5px;
+    --mm-ease: cubic-bezier(.16, 1, .3, 1);
+
+    width: 100%;
+    max-width: 100%;
     overflow-x: hidden;
+    background: #fff;
+    color: var(--mm-ink);
+  }
+
+  .no-scrollbar,
+  .mm-no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar,
+  .mm-no-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 
   .mm-hero-title {
@@ -32,102 +44,54 @@
   }
 
   .mm-media-frame {
-  background: #f6f6f6;
-  overflow: hidden;
-  width: 100%;
-}
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #f6f6f6;
+  }
 
-.mm-media-frame img,
-.mm-media-frame video {
-  width: 100%;
-  display: block;
-  object-position: center;
-}
+  .mm-media-frame img,
+  .mm-media-frame video {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-position: center;
+  }
 
-/* Dùng cho banner cần tràn khung như hero */
-.mm-media-cover img,
-.mm-media-cover video {
-  height: 100%;
-  object-fit: cover;
-}
+  .mm-media-cover img,
+  .mm-media-cover video {
+    object-fit: cover;
+  }
 
-/* Dùng cho ảnh cần linh hoạt theo tỷ lệ thật */
-.mm-media-fluid {
-  position: relative;
-  height: auto;
-  min-height: unset;
-}
-
-.mm-media-fluid img,
-.mm-media-fluid video {
-  height: auto;
-  object-fit: contain;
-}
-
-/* Giữ ảnh lớn nhưng không ép chết tỷ lệ */
-.mm-fluid-section {
-  background: #fff;
-  overflow: hidden;
-}
-
-.mm-fluid-section .mm-media-frame {
-  position: relative;
-}
-
-.mm-fluid-section img,
-.mm-fluid-section video {
-  width: 100%;
-  height: auto;
-  max-height: 92vh;
-  object-fit: contain;
-  background: #f6f6f6;
-}
-
-/* Video mượt hơn */
-.mm-smooth-video {
-  background: #111;
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  will-change: opacity;
-}
-
-/* Hover ảnh thôi, không scale video quá nhiều để tránh giật */
-.mm-img-pan {
-  transform: scale(1.005);
-  transition: transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: transform;
-}
-
-.group:hover .mm-img-pan {
-  transform: scale(1.025);
-}
-
-video.mm-img-pan,
-.group:hover video.mm-img-pan {
-  transform: translateZ(0);
-}
+  .mm-smooth-video {
+    background: #111;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
 
   .mm-img-pan {
-    transform: scale(1.015);
-    transition: transform 1.1s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translateZ(0) scale(1.01);
+    backface-visibility: hidden;
+    transition: transform .9s var(--mm-ease);
     will-change: transform;
   }
 
   .group:hover .mm-img-pan {
-    transform: scale(1.055);
+    transform: translateZ(0) scale(1.04);
   }
 
-  /*
-    PowerPoint style reveal:
-    Nội dung vẫn chiếm sẵn layout, chỉ đổi opacity/transform.
-    Vì vậy giảm CLS tốt hơn lazy render.
-  */
+  video.mm-img-pan,
+  .group:hover video.mm-img-pan {
+    transform: translateZ(0);
+  }
+
   .mm-slide-reveal {
-    opacity: 0.001;
-    transform: translateY(42px) scale(0.985);
+    opacity: .001;
+    transform: translateY(38px) scale(.985);
     transition:
-      opacity 0.82s cubic-bezier(0.16, 1, 0.3, 1),
-      transform 0.82s cubic-bezier(0.16, 1, 0.3, 1);
+      opacity .72s var(--mm-ease),
+      transform .72s var(--mm-ease);
     will-change: opacity, transform;
   }
 
@@ -137,11 +101,11 @@ video.mm-img-pan,
   }
 
   .mm-slide-left {
-    transform: translateX(-56px) scale(0.985);
+    transform: translateX(-48px) scale(.985);
   }
 
   .mm-slide-right {
-    transform: translateX(56px) scale(0.985);
+    transform: translateX(48px) scale(.985);
   }
 
   .mm-slide-left.is-visible,
@@ -150,45 +114,117 @@ video.mm-img-pan,
   }
 
   .mm-slide-zoom {
-    transform: translateY(40px) scale(0.94);
+    transform: translateY(34px) scale(.95);
   }
 
   .mm-slide-zoom.is-visible {
     transform: translateY(0) scale(1);
   }
 
-  .mm-section-kicker {
-    font-size: 9px;
-    font-weight: 900;
-    letter-spacing: 0.32em;
-    text-transform: uppercase;
-    color: #8a8a8a;
-  }
-
   .mm-section-title {
     font-size: clamp(34px, 6vw, 88px);
-    line-height: 0.9;
-    letter-spacing: -0.06em;
+    line-height: .9;
+    letter-spacing: -.06em;
     font-weight: 950;
     text-transform: uppercase;
   }
 
-  .mm-section-copy {
-    color: rgba(255, 255, 255, 0.82);
-    font-size: 13px;
-    line-height: 1.8;
-    max-width: 420px;
-  }
-
   .mm-dark-overlay {
     background:
-      linear-gradient(to top, rgba(0, 0, 0, 0.78), rgba(0, 0, 0, 0.12) 58%, rgba(0, 0, 0, 0.08)),
-      linear-gradient(to right, rgba(0, 0, 0, 0.26), transparent 58%);
+      linear-gradient(to top, rgba(0, 0, 0, .78), rgba(0, 0, 0, .12) 58%, rgba(0, 0, 0, .08)),
+      linear-gradient(to right, rgba(0, 0, 0, .26), transparent 58%);
   }
 
-  .mm-product-card img {
+  /* Collection scroll fix */
+  .mm-collection-scroll {
+    display: flex;
+    gap: 4px;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    overscroll-behavior-x: contain;
+    overscroll-behavior-y: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+    user-select: none;
+    cursor: grab;
+  }
+
+  .mm-collection-scroll.is-dragging {
+    cursor: grabbing;
+    scroll-behavior: auto;
+  }
+
+  .mm-collection-item {
+    position: relative;
+    display: block;
+    flex: 0 0 auto;
+    width: 88vw;
+    min-width: 88vw;
     aspect-ratio: 3 / 4;
+    overflow: hidden;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    background: #f5f5f5;
+  }
+
+  .mm-collection-item img,
+  .mm-collection-item video {
+    width: 100%;
+    height: 100%;
     object-fit: cover;
+    pointer-events: none;
+  }
+
+  .mm-collection-title {
+    border-radius: 2px;
+    background: rgba(255, 255, 255, .94);
+    color: #111;
+    backdrop-filter: blur(10px);
+  }
+
+  @media (min-width: 640px) {
+    .mm-collection-item {
+      width: calc(50vw - 6px);
+      min-width: calc(50vw - 6px);
+    }
+  }
+
+  @media (min-width: 768px) {
+    .mm-collection-scroll {
+      gap: 8px;
+    }
+
+    .mm-collection-item {
+      aspect-ratio: 4 / 5;
+    }
+
+    .mm-collection-item.is-count-1 {
+      width: 100%;
+      min-width: 100%;
+    }
+
+    .mm-collection-item.is-count-2 {
+      width: calc(50% - 4px);
+      min-width: calc(50% - 4px);
+    }
+
+    .mm-collection-item.is-count-3,
+    .mm-collection-item.is-count-many {
+      width: calc(33.333% - 6px);
+      min-width: calc(33.333% - 6px);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .mm-collection-item.is-count-4,
+    .mm-collection-item.is-count-many {
+      width: calc(25% - 6px);
+      min-width: calc(25% - 6px);
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -209,7 +245,8 @@ video.mm-img-pan,
 
 {% set sf = system_settings.get('storefront', {}) if system_settings is defined and system_settings else {} %}
 {% set hero_url = sf.get('hero_banner_url') or '' %}
-{% set is_video = hero_url.lower().endswith('.mp4') or hero_url.lower().endswith('.webm') or 'video' in hero_url.lower() if hero_url else false %}
+{% set lower_hero = hero_url.lower() if hero_url else '' %}
+{% set is_video = lower_hero.endswith('.mp4') or lower_hero.endswith('.webm') or 'video' in lower_hero if hero_url else false %}
 
 {% set home_colls = collections | selectattr('show_on_home', 'equalto', true) | list if collections else [] %}
 {% set display_collections = home_colls if home_colls|length > 0 else (collections if collections else []) %}
@@ -218,8 +255,8 @@ video.mm-img-pan,
 <div class="mm-home">
 
   {# HERO #}
-  <section class="relative w-full h-[calc(100vh-var(--header-h,72px)-var(--topbar-h,0px))] min-h-[620px] overflow-hidden bg-neutral-950 flex items-end">
-   <div class="absolute inset-0 mm-media-frame mm-media-cover">
+  <section class="relative flex h-[calc(100vh-var(--header-h,72px)-var(--topbar-h,0px))] min-h-[620px] w-full items-end overflow-hidden bg-neutral-950">
+    <div class="absolute inset-0 mm-media-frame mm-media-cover">
       {% if hero_url %}
         {% if is_video %}
           <video
@@ -229,7 +266,7 @@ video.mm-img-pan,
             playsinline
             preload="auto"
             poster="{{ sf.get('banner_desktop_url') or '' }}"
-            class="w-full h-full object-cover"
+            class="h-full w-full object-cover"
           >
             <source src="{{ hero_url }}" type="video/mp4">
           </video>
@@ -242,7 +279,7 @@ video.mm-img-pan,
             fetchpriority="high"
             loading="eager"
             decoding="async"
-            class="w-full h-full object-cover object-center"
+            class="h-full w-full object-cover object-center"
           >
         {% endif %}
       {% else %}
@@ -252,7 +289,7 @@ video.mm-img-pan,
           loop
           playsinline
           preload="auto"
-          class="w-full h-full object-cover"
+          class="h-full w-full object-cover"
         >
           <source src="{{ url_for('static', filename='video/MMESTLINE CON NGỰA.mp4') }}" type="video/mp4">
         </video>
@@ -261,23 +298,23 @@ video.mm-img-pan,
 
     <div class="absolute inset-0 mm-dark-overlay"></div>
 
-    <div class="relative z-10 w-full px-6 md:px-12 pb-16 md:pb-24 text-white">
+    <div class="relative z-10 w-full px-6 pb-16 text-white md:px-12 md:pb-24">
       <div class="mm-slide-reveal is-visible max-w-5xl">
-        <p class="text-[10px] md:text-xs font-black uppercase tracking-[0.35em] text-white/70 mb-5">
+        <p class="mb-5 text-[10px] font-black uppercase tracking-[0.35em] text-white/70 md:text-xs">
           MMÉSTLINE 2026
         </p>
 
-        <h1 class="mm-hero-title text-5xl md:text-7xl lg:text-[6rem] font-black uppercase tracking-tight leading-none mb-5">
+        <h1 class="mm-hero-title mb-5 text-5xl font-black uppercase leading-none tracking-tight md:text-7xl lg:text-[6rem]">
           New <br class="md:hidden">Collection
         </h1>
 
-        <p class="text-xs md:text-sm font-medium tracking-wide mb-8 max-w-md text-neutral-200 leading-7">
+        <p class="mb-8 max-w-md text-xs font-medium leading-7 tracking-wide text-neutral-200 md:text-sm">
           Nơi quần áo không còn là vật thể — mà là nhịp điệu, chuyển động, và cảm xúc.
         </p>
 
         <a
           href="/shop"
-          class="inline-flex items-center gap-3 text-[11px] font-black uppercase tracking-[0.24em] border-b-2 border-white pb-2 hover:text-neutral-300 hover:border-neutral-300 transition-colors"
+          class="inline-flex items-center gap-3 border-b-2 border-white pb-2 text-[11px] font-black uppercase tracking-[0.24em] transition-colors hover:border-neutral-300 hover:text-neutral-300"
         >
           Khám phá ngay
         </a>
@@ -285,24 +322,35 @@ video.mm-img-pan,
     </div>
   </section>
 
-  {# COLLECTIONS POWERPOINT STRIP #}
+  {# COLLECTIONS #}
   {% if total_colls > 0 %}
-  <section class="w-full bg-white px-1 md:px-2 py-1 md:py-2">
-    <div class="flex overflow-x-auto snap-x snap-mandatory no-scrollbar gap-1 md:gap-2">
+  <section class="w-full overflow-hidden bg-white px-1 py-1 md:px-2 md:py-2">
+    <div
+      id="mmHomeCollectionScroll"
+      class="mm-collection-scroll mm-no-scrollbar"
+      data-home-collection-scroll
+      data-lenis-prevent
+      aria-label="Bộ sưu tập MMESTLINE"
+    >
       {% for collection in display_collections %}
         {% if total_colls == 1 %}
-          {% set w_class = "w-full min-w-full" %}
+          {% set count_class = "is-count-1" %}
         {% elif total_colls == 2 %}
-          {% set w_class = "w-[86vw] md:w-[calc(50%-0.25rem)] min-w-[86vw] md:min-w-[calc(50%-0.25rem)]" %}
+          {% set count_class = "is-count-2" %}
         {% elif total_colls == 3 %}
-          {% set w_class = "w-[86vw] md:w-[calc(33.333%-0.33rem)] min-w-[86vw] md:min-w-[calc(33.333%-0.33rem)]" %}
+          {% set count_class = "is-count-3" %}
+        {% elif total_colls == 4 %}
+          {% set count_class = "is-count-4" %}
         {% else %}
-          {% set w_class = "w-[86vw] sm:w-[calc(50%-2px)] md:w-[calc(33.333%-0.33rem)] lg:w-[calc(25%-0.375rem)] min-w-[86vw] sm:min-w-[calc(50%-2px)] md:min-w-[calc(33.333%-0.33rem)] lg:min-w-[calc(25%-0.375rem)]" %}
+          {% set count_class = "is-count-many" %}
         {% endif %}
 
         <a
           href="/shop?collection={{ collection.slug }}"
-          class="mm-slide-reveal mm-slide-zoom relative group block aspect-[3/4] md:aspect-[4/5] overflow-hidden bg-neutral-100 snap-start shrink-0 {{ w_class }}"
+          class="mm-collection-item {{ count_class }} mm-slide-reveal mm-slide-zoom group"
+          data-nav
+          draggable="false"
+          aria-label="{{ collection.name }}"
         >
           <div class="absolute inset-0 mm-media-frame">
             {% if collection.video_url %}
@@ -313,7 +361,7 @@ video.mm-img-pan,
                 playsinline
                 preload="metadata"
                 data-scroll-video
-                class="mm-img-pan"
+                class="mm-img-pan mm-smooth-video"
               ></video>
             {% else %}
               <img
@@ -322,21 +370,27 @@ video.mm-img-pan,
                 width="800"
                 height="1000"
                 decoding="async"
-                {% if loop.index <= 2 %}loading="eager" fetchpriority="high"{% else %}loading="lazy"{% endif %}
+                draggable="false"
+                {% if loop.index <= 2 %}
+                  loading="eager"
+                  fetchpriority="high"
+                {% else %}
+                  loading="lazy"
+                {% endif %}
                 class="mm-img-pan"
               >
             {% endif %}
           </div>
 
-          <div class="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition-colors duration-500"></div>
+          <div class="absolute inset-0 bg-black/10 transition-colors duration-500 group-hover:bg-black/30"></div>
 
           <div class="absolute bottom-5 left-5 z-10 pr-5">
-            <h3 class="text-[10px] md:text-[11px] font-black uppercase tracking-widest text-black bg-white px-4 py-2 shadow-sm">
+            <h3 class="mm-collection-title px-4 py-2 text-[10px] font-black uppercase tracking-widest shadow-sm md:text-[11px]">
               {{ collection.name }}
             </h3>
 
             {% if collection.description %}
-              <p class="mt-3 text-white text-[11px] font-medium leading-relaxed opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 line-clamp-2">
+              <p class="mt-3 line-clamp-2 translate-y-2 text-[11px] font-medium leading-relaxed text-white opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
                 {{ collection.description }}
               </p>
             {% endif %}
@@ -348,8 +402,8 @@ video.mm-img-pan,
   {% endif %}
 
   {# SIGNATURE BANNER #}
-  <section class="relative w-full min-h-[620px] md:min-h-[900px] h-[72vh] md:h-[110vh] mt-1 md:mt-2 overflow-hidden bg-neutral-100 group">
-    <div class="absolute inset-0 mm-media-frame mm-slide-reveal">
+  <section class="group relative mt-1 h-[72vh] min-h-[620px] w-full overflow-hidden bg-neutral-100 md:mt-2 md:h-[110vh] md:min-h-[900px]">
+    <div class="absolute inset-0 mm-media-frame mm-media-cover mm-slide-reveal">
       <img
         src="{{ sf.get('banner2_url') or 'https://i.pinimg.com/1200x/c2/66/05/c2660571733bc9f4b917675c9bfe94f9.jpg' }}"
         alt="MMÉSTLINE Signature"
@@ -361,23 +415,25 @@ video.mm-img-pan,
       >
     </div>
 
-    <div class="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition-colors duration-700"></div>
+    <div class="absolute inset-0 bg-black/10 transition-colors duration-700 group-hover:bg-black/30"></div>
 
-    <div class="absolute bottom-12 left-6 md:left-12 text-white z-10 mm-slide-reveal mm-slide-left">
-      <p class="text-[10px] font-black uppercase tracking-[0.35em] text-white/70 mb-4">
+    <div class="absolute bottom-12 left-6 z-10 text-white mm-slide-reveal mm-slide-left md:left-12">
+      <p class="mb-4 text-[10px] font-black uppercase tracking-[0.35em] text-white/70">
         Campaign
       </p>
+
       <h2 class="mm-section-title">Signature</h2>
-      <a href="/shop" class="text-[11px] font-black uppercase tracking-widest border-b-2 border-white pb-2 mt-5 inline-block hover:pr-6 transition-all duration-300">
+
+      <a href="/shop" class="mt-5 inline-block border-b-2 border-white pb-2 text-[11px] font-black uppercase tracking-widest transition-all duration-300 hover:pr-6">
         Shop Now
       </a>
     </div>
   </section>
 
   {# SPLIT BANNERS #}
-  <section class="w-full p-1 md:p-2 grid grid-cols-1 md:grid-cols-2 gap-1 md:gap-2">
-    <div class="relative w-full min-h-[520px] md:min-h-[720px] h-[62vh] md:h-[82vh] group overflow-hidden bg-neutral-100">
-      <div class="absolute inset-0 mm-media-frame mm-slide-reveal mm-slide-left">
+  <section class="grid w-full grid-cols-1 gap-1 p-1 md:grid-cols-2 md:gap-2 md:p-2">
+    <div class="group relative h-[62vh] min-h-[520px] w-full overflow-hidden bg-neutral-100 md:h-[82vh] md:min-h-[720px]">
+      <div class="absolute inset-0 mm-media-frame mm-media-cover mm-slide-reveal mm-slide-left">
         <img
           src="{{ sf.get('split_left_url') or 'https://i.pinimg.com/1200x/8d/f1/b1/8df1b177ec235f6699a8f56cd324e5e4.jpg' }}"
           alt="MMÉSTLINE Essentials"
@@ -389,18 +445,18 @@ video.mm-img-pan,
         >
       </div>
 
-      <div class="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition duration-700"></div>
+      <div class="absolute inset-0 bg-black/10 transition duration-700 group-hover:bg-black/30"></div>
 
-      <div class="absolute bottom-10 left-8 md:left-12 text-white z-10 mm-slide-reveal">
-        <h2 class="text-3xl md:text-5xl font-black uppercase tracking-tight">Essentials</h2>
-        <a href="/shop" class="text-[10px] font-black uppercase tracking-widest border-b-2 border-white pb-1 mt-4 inline-block">
+      <div class="absolute bottom-10 left-8 z-10 text-white mm-slide-reveal md:left-12">
+        <h2 class="text-3xl font-black uppercase tracking-tight md:text-5xl">Essentials</h2>
+        <a href="/shop" class="mt-4 inline-block border-b-2 border-white pb-1 text-[10px] font-black uppercase tracking-widest">
           Explore
         </a>
       </div>
     </div>
 
-    <div class="relative w-full min-h-[520px] md:min-h-[720px] h-[62vh] md:h-[82vh] group overflow-hidden bg-neutral-100">
-      <div class="absolute inset-0 mm-media-frame mm-slide-reveal mm-slide-right">
+    <div class="group relative h-[62vh] min-h-[520px] w-full overflow-hidden bg-neutral-100 md:h-[82vh] md:min-h-[720px]">
+      <div class="absolute inset-0 mm-media-frame mm-media-cover mm-slide-reveal mm-slide-right">
         <img
           src="{{ sf.get('split_right_url') or 'https://i.pinimg.com/736x/ad/49/55/ad4955e1f64e66bf775163948ba51a3b.jpg' }}"
           alt="MMÉSTLINE Avant-Garde"
@@ -412,11 +468,11 @@ video.mm-img-pan,
         >
       </div>
 
-      <div class="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition duration-700"></div>
+      <div class="absolute inset-0 bg-black/10 transition duration-700 group-hover:bg-black/30"></div>
 
-      <div class="absolute bottom-10 left-8 md:left-12 text-white z-10 mm-slide-reveal">
-        <h2 class="text-3xl md:text-5xl font-black uppercase tracking-tight">Avant-Garde</h2>
-        <a href="/shop" class="text-[10px] font-black uppercase tracking-widest border-b-2 border-white pb-1 mt-4 inline-block">
+      <div class="absolute bottom-10 left-8 z-10 text-white mm-slide-reveal md:left-12">
+        <h2 class="text-3xl font-black uppercase tracking-tight md:text-5xl">Avant-Garde</h2>
+        <a href="/shop" class="mt-4 inline-block border-b-2 border-white pb-1 text-[10px] font-black uppercase tracking-widest">
           Explore
         </a>
       </div>
@@ -425,36 +481,38 @@ video.mm-img-pan,
 
   {# VIDEO BANNER #}
   {% set video_url = sf.get('banner4_video_url') %}
-  <section class="relative w-full min-h-[560px] md:min-h-[760px] h-[68vh] md:h-[82vh] mt-1 md:mt-2 overflow-hidden bg-neutral-950 group">
+  <section class="group relative mt-1 h-[68vh] min-h-[560px] w-full overflow-hidden bg-neutral-950 md:mt-2 md:h-[82vh] md:min-h-[760px]">
     <video
       loop
       muted
       playsinline
       preload="metadata"
       data-scroll-video
-      class="absolute inset-0 w-full h-full object-cover object-center bg-neutral-950"
+      class="absolute inset-0 h-full w-full bg-neutral-950 object-cover object-center"
     >
       <source src="{{ video_url if video_url else 'https://www.pexels.com/download/video/10664773/' }}" type="video/mp4">
     </video>
 
-    <div class="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors duration-700"></div>
+    <div class="absolute inset-0 bg-black/30 transition-colors duration-700 group-hover:bg-black/40"></div>
 
-    <div class="absolute bottom-12 left-6 md:left-12 text-white z-10 mm-slide-reveal mm-slide-left">
-      <p class="text-[10px] font-black uppercase tracking-[0.35em] text-white/70 mb-4">
+    <div class="absolute bottom-12 left-6 z-10 text-white mm-slide-reveal mm-slide-left md:left-12">
+      <p class="mb-4 text-[10px] font-black uppercase tracking-[0.35em] text-white/70">
         Selected
       </p>
+
       <h2 class="mm-section-title">Best Sellers</h2>
-      <a href="/shop" class="text-[11px] font-black uppercase tracking-widest border-b-2 border-white pb-2 mt-5 inline-block hover:pr-6 transition-all duration-300">
+
+      <a href="/shop" class="mt-5 inline-block border-b-2 border-white pb-2 text-[11px] font-black uppercase tracking-widest transition-all duration-300 hover:pr-6">
         Shop Now
       </a>
     </div>
   </section>
 
-   {# FEATURED PRODUCTS #}
-{% include 'components/home/_featured.html' ignore missing %}
+  {# FEATURED PRODUCTS #}
+  {% include 'components/home/_featured.html' ignore missing %}
 
   {# CTA #}
-  <section class="bg-white min-h-[360px]">
+  <section class="min-h-[360px] bg-white">
     <div class="mm-slide-reveal">
       {% include 'components/home/_cta_register.html' ignore missing %}
     </div>
@@ -466,10 +524,14 @@ video.mm-img-pan,
 (function () {
   "use strict";
 
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
   function initReveal() {
     const items = document.querySelectorAll(".mm-slide-reveal");
 
-    if (!("IntersectionObserver" in window)) {
+    if (!items.length) return;
+
+    if (!("IntersectionObserver" in window) || prefersReducedMotion) {
       items.forEach((item) => item.classList.add("is-visible"));
       return;
     }
@@ -488,7 +550,7 @@ video.mm-img-pan,
     });
 
     items.forEach((item, index) => {
-      item.style.transitionDelay = Math.min(index % 4, 3) * 70 + "ms";
+      item.style.transitionDelay = `${Math.min(index % 4, 3) * 60}ms`;
       observer.observe(item);
     });
   }
@@ -498,16 +560,21 @@ video.mm-img-pan,
 
     if (!videos.length) return;
 
+    videos.forEach((video) => {
+      video.muted = true;
+      video.playsInline = true;
+    });
+
     if (!("IntersectionObserver" in window)) {
-      videos.forEach((video) => {
-        video.play().catch(() => {});
-      });
+      videos.forEach((video) => video.play().catch(() => {}));
       return;
     }
 
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         const video = entry.target;
+
+        if (!(video instanceof HTMLVideoElement)) return;
 
         if (entry.isIntersecting) {
           video.play().catch(() => {});
@@ -523,13 +590,86 @@ video.mm-img-pan,
     videos.forEach((video) => observer.observe(video));
   }
 
-  function initSlider() {
+  function initHomeCollectionScroll() {
+    const scroller = document.querySelector("[data-home-collection-scroll]");
+
+    if (!scroller || scroller.dataset.ready === "1") return;
+
+    scroller.dataset.ready = "1";
+
+    let isDown = false;
+    let isDragging = false;
+    let startX = 0;
+    let scrollLeft = 0;
+    let raf = null;
+
+    const stopDrag = () => {
+      if (!isDown) return;
+
+      isDown = false;
+      scroller.classList.remove("is-dragging");
+
+      setTimeout(() => {
+        isDragging = false;
+      }, 80);
+    };
+
+    scroller.addEventListener("pointerdown", (event) => {
+      if (event.pointerType === "mouse" && event.button !== 0) return;
+
+      isDown = true;
+      isDragging = false;
+      startX = event.clientX;
+      scrollLeft = scroller.scrollLeft;
+
+      scroller.classList.add("is-dragging");
+
+      try {
+        scroller.setPointerCapture(event.pointerId);
+      } catch (_) {}
+    });
+
+    scroller.addEventListener("pointermove", (event) => {
+      if (!isDown) return;
+
+      const dx = event.clientX - startX;
+
+      if (Math.abs(dx) > 6) {
+        isDragging = true;
+      }
+
+      if (raf) return;
+
+      raf = requestAnimationFrame(() => {
+        scroller.scrollLeft = scrollLeft - dx;
+        raf = null;
+      });
+    }, { passive: true });
+
+    scroller.addEventListener("pointerup", stopDrag);
+    scroller.addEventListener("pointercancel", stopDrag);
+    scroller.addEventListener("mouseleave", stopDrag);
+
+    scroller.querySelectorAll("a").forEach((link) => {
+      link.addEventListener("click", (event) => {
+        if (!isDragging) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+      });
+    });
+  }
+
+  function initLegacySliderIfExists() {
     const container = document.getElementById("slider-container");
+
+    if (!container || container.dataset.ready === "1") return;
+
+    container.dataset.ready = "1";
+
     const progressBar = document.getElementById("progressBar");
     const btnNext = document.getElementById("btnNext");
     const btnPrev = document.getElementById("btnPrev");
-
-    if (!container) return;
 
     const updateUI = () => {
       const maxScroll = container.scrollWidth - container.clientWidth;
@@ -541,9 +681,9 @@ video.mm-img-pan,
         return;
       }
 
-      const scrollProgress = (container.scrollLeft / maxScroll) * 100;
+      const progress = (container.scrollLeft / maxScroll) * 100;
 
-      if (progressBar) progressBar.style.width = scrollProgress + "%";
+      if (progressBar) progressBar.style.width = `${progress}%`;
       if (btnPrev) btnPrev.disabled = container.scrollLeft <= 5;
       if (btnNext) btnNext.disabled = container.scrollLeft >= maxScroll - 5;
     };
@@ -553,88 +693,32 @@ video.mm-img-pan,
       return item ? item.offsetWidth + 24 : container.clientWidth * 0.72;
     };
 
-    if (btnNext) {
-      btnNext.addEventListener("click", () => {
-        container.scrollBy({ left: getScrollStep(), behavior: "smooth" });
-      });
-    }
+    btnNext?.addEventListener("click", () => {
+      container.scrollBy({ left: getScrollStep(), behavior: "smooth" });
+    });
 
-    if (btnPrev) {
-      btnPrev.addEventListener("click", () => {
-        container.scrollBy({ left: -getScrollStep(), behavior: "smooth" });
-      });
-    }
+    btnPrev?.addEventListener("click", () => {
+      container.scrollBy({ left: -getScrollStep(), behavior: "smooth" });
+    });
 
     container.addEventListener("scroll", updateUI, { passive: true });
     window.addEventListener("resize", updateUI, { passive: true });
 
-    let isDown = false;
-    let isDragging = false;
-    let startX = 0;
-    let scrollLeft = 0;
-    let frame = null;
-
-    container.addEventListener("mousedown", (event) => {
-      isDown = true;
-      isDragging = false;
-      startX = event.pageX - container.offsetLeft;
-      scrollLeft = container.scrollLeft;
-      container.classList.remove("scroll-smooth");
-      container.style.cursor = "grabbing";
-    });
-
-    window.addEventListener("mouseup", () => {
-      if (!isDown) return;
-
-      isDown = false;
-      container.style.cursor = "";
-      container.classList.add("scroll-smooth");
-
-      if (isDragging) {
-        const step = getScrollStep();
-        const snapPoint = Math.round(container.scrollLeft / step) * step;
-        container.scrollTo({ left: snapPoint, behavior: "smooth" });
-      }
-
-      setTimeout(() => {
-        isDragging = false;
-      }, 60);
-    });
-
-    container.addEventListener("mousemove", (event) => {
-      if (!isDown) return;
-
-      event.preventDefault();
-
-      const x = event.pageX - container.offsetLeft;
-      const walk = (x - startX) * 1.35;
-
-      if (Math.abs(walk) > 5) isDragging = true;
-
-      if (frame) return;
-
-      frame = requestAnimationFrame(() => {
-        container.scrollLeft = scrollLeft - walk;
-        frame = null;
-      });
-    });
-
-    container.querySelectorAll("a, button").forEach((el) => {
-      el.addEventListener("click", (event) => {
-        if (!isDragging) return;
-        event.preventDefault();
-        event.stopPropagation();
-      });
-    });
-
     updateUI();
   }
 
-  document.addEventListener("DOMContentLoaded", () => {
+  function initHomePage() {
     initReveal();
     initScrollVideos();
-    initSlider();
-  });
+    initHomeCollectionScroll();
+    initLegacySliderIfExists();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initHomePage, { once: true });
+  } else {
+    initHomePage();
+  }
 })();
 </script>
 {% endblock %}
