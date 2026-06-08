@@ -22,7 +22,7 @@
 
     width: 100%;
     max-width: 100%;
-    overflow-x: hidden;
+    overflow-x: clip;
     background: #fff;
     color: var(--mm-ink);
   }
@@ -35,6 +35,8 @@
 
   .no-scrollbar::-webkit-scrollbar,
   .mm-no-scrollbar::-webkit-scrollbar {
+    width: 0;
+    height: 0;
     display: none;
   }
 
@@ -135,40 +137,64 @@
       linear-gradient(to right, rgba(0, 0, 0, .26), transparent 58%);
   }
 
-  /* Collection scroll fix */
-  .mm-collection-scroll {
-    display: flex;
-    gap: 4px;
+  /* =========================================================
+     COLLECTIONS — MOBILE NATIVE SWIPE FIX
+     ========================================================= */
+
+  .mm-collection-section {
     width: 100%;
     max-width: 100%;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scroll-snap-type: x mandatory;
-    scroll-behavior: smooth;
+    background: #fff;
+    padding: 4px;
+    overflow: visible;
+  }
+
+  .mm-collection-viewport {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: scroll !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
     overscroll-behavior-y: auto;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-x;
-    user-select: none;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 0;
+    touch-action: pan-y pinch-zoom;
     cursor: grab;
   }
 
-  .mm-collection-scroll.is-dragging {
+  .mm-collection-viewport.is-dragging {
     cursor: grabbing;
-    scroll-behavior: auto;
+  }
+
+  .mm-collection-track {
+    display: flex;
+    align-items: stretch;
+    gap: 4px;
+    width: max-content;
+    min-width: 100%;
   }
 
   .mm-collection-item {
     position: relative;
     display: block;
     flex: 0 0 auto;
-    width: 88vw;
-    min-width: 88vw;
+    width: min(88vw, 420px);
+    min-width: min(88vw, 420px);
     aspect-ratio: 3 / 4;
     overflow: hidden;
     scroll-snap-align: start;
     scroll-snap-stop: always;
     background: #f5f5f5;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  .mm-collection-item .mm-media-frame,
+  .mm-collection-item img,
+  .mm-collection-item video,
+  .mm-collection-item .mm-collection-overlay {
+    pointer-events: none;
   }
 
   .mm-collection-item img,
@@ -176,7 +202,6 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    pointer-events: none;
   }
 
   .mm-collection-title {
@@ -186,16 +211,53 @@
     backdrop-filter: blur(10px);
   }
 
+  .mm-collection-hint {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 10px 6px 2px;
+    color: rgba(16, 21, 16, .54);
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+  }
+
+  .mm-collection-progress {
+    position: relative;
+    width: 78px;
+    height: 2px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(27, 73, 34, .12);
+  }
+
+  .mm-collection-progress span {
+    position: absolute;
+    inset-block: 0;
+    left: 0;
+    width: 0%;
+    border-radius: inherit;
+    background: var(--mm-green);
+    transition: width .12s linear;
+  }
+
   @media (min-width: 640px) {
     .mm-collection-item {
-      width: calc(50vw - 6px);
-      min-width: calc(50vw - 6px);
+      width: calc(50vw - 8px);
+      min-width: calc(50vw - 8px);
     }
   }
 
   @media (min-width: 768px) {
-    .mm-collection-scroll {
+    .mm-collection-section {
+      padding: 8px;
+    }
+
+    .mm-collection-track {
       gap: 8px;
+      width: 100%;
     }
 
     .mm-collection-item {
@@ -212,7 +274,12 @@
       min-width: calc(50% - 4px);
     }
 
-    .mm-collection-item.is-count-3,
+    .mm-collection-item.is-count-3 {
+      width: calc(33.333% - 6px);
+      min-width: calc(33.333% - 6px);
+    }
+
+    .mm-collection-item.is-count-4,
     .mm-collection-item.is-count-many {
       width: calc(33.333% - 6px);
       min-width: calc(33.333% - 6px);
@@ -220,6 +287,10 @@
   }
 
   @media (min-width: 1024px) {
+    .mm-collection-viewport {
+      cursor: default;
+    }
+
     .mm-collection-item.is-count-4,
     .mm-collection-item.is-count-many {
       width: calc(25% - 6px);
@@ -246,7 +317,7 @@
 {% set sf = system_settings.get('storefront', {}) if system_settings is defined and system_settings else {} %}
 {% set hero_url = sf.get('hero_banner_url') or '' %}
 {% set lower_hero = hero_url.lower() if hero_url else '' %}
-{% set is_video = lower_hero.endswith('.mp4') or lower_hero.endswith('.webm') or 'video' in lower_hero if hero_url else false %}
+{% set is_video = (lower_hero.endswith('.mp4') or lower_hero.endswith('.webm') or 'video' in lower_hero) if hero_url else false %}
 
 {% set home_colls = collections | selectattr('show_on_home', 'equalto', true) | list if collections else [] %}
 {% set display_collections = home_colls if home_colls|length > 0 else (collections if collections else []) %}
@@ -324,80 +395,91 @@
 
   {# COLLECTIONS #}
   {% if total_colls > 0 %}
-  <section class="w-full overflow-hidden bg-white px-1 py-1 md:px-2 md:py-2">
+  <section class="mm-collection-section">
     <div
-      id="mmHomeCollectionScroll"
-      class="mm-collection-scroll mm-no-scrollbar"
+      id="mmHomeCollectionViewport"
+      class="mm-collection-viewport mm-no-scrollbar"
       data-home-collection-scroll
       data-lenis-prevent
       aria-label="Bộ sưu tập MMESTLINE"
     >
-      {% for collection in display_collections %}
-        {% if total_colls == 1 %}
-          {% set count_class = "is-count-1" %}
-        {% elif total_colls == 2 %}
-          {% set count_class = "is-count-2" %}
-        {% elif total_colls == 3 %}
-          {% set count_class = "is-count-3" %}
-        {% elif total_colls == 4 %}
-          {% set count_class = "is-count-4" %}
-        {% else %}
-          {% set count_class = "is-count-many" %}
-        {% endif %}
+      <div class="mm-collection-track">
+        {% for collection in display_collections %}
+          {% if total_colls == 1 %}
+            {% set count_class = "is-count-1" %}
+          {% elif total_colls == 2 %}
+            {% set count_class = "is-count-2" %}
+          {% elif total_colls == 3 %}
+            {% set count_class = "is-count-3" %}
+          {% elif total_colls == 4 %}
+            {% set count_class = "is-count-4" %}
+          {% else %}
+            {% set count_class = "is-count-many" %}
+          {% endif %}
 
-        <a
-          href="/shop?collection={{ collection.slug }}"
-          class="mm-collection-item {{ count_class }} mm-slide-reveal mm-slide-zoom group"
-          data-nav
-          draggable="false"
-          aria-label="{{ collection.name }}"
-        >
-          <div class="absolute inset-0 mm-media-frame">
-            {% if collection.video_url %}
-              <video
-                src="{{ collection.video_url }}"
-                muted
-                loop
-                playsinline
-                preload="metadata"
-                data-scroll-video
-                class="mm-img-pan mm-smooth-video"
-              ></video>
-            {% else %}
-              <img
-                src="{{ collection.image_url if collection.image_url else 'https://placehold.co/800x1000/f8f8f8/cccccc?text=' ~ collection.name|urlencode }}"
-                alt="{{ collection.name }}"
-                width="800"
-                height="1000"
-                decoding="async"
-                draggable="false"
-                {% if loop.index <= 2 %}
-                  loading="eager"
-                  fetchpriority="high"
-                {% else %}
-                  loading="lazy"
-                {% endif %}
-                class="mm-img-pan"
-              >
-            {% endif %}
-          </div>
+          <a
+            href="/shop?collection={{ collection.slug }}"
+            class="mm-collection-item {{ count_class }} mm-slide-reveal mm-slide-zoom group"
+            data-nav
+            draggable="false"
+            aria-label="{{ collection.name }}"
+          >
+            <div class="absolute inset-0 mm-media-frame">
+              {% if collection.video_url %}
+                <video
+                  src="{{ collection.video_url }}"
+                  muted
+                  loop
+                  playsinline
+                  preload="metadata"
+                  data-scroll-video
+                  class="mm-img-pan mm-smooth-video"
+                ></video>
+              {% else %}
+                <img
+                  src="{{ collection.image_url if collection.image_url else 'https://placehold.co/800x1000/f8f8f8/cccccc?text=' ~ collection.name|urlencode }}"
+                  alt="{{ collection.name }}"
+                  width="800"
+                  height="1000"
+                  decoding="async"
+                  draggable="false"
+                  {% if loop.index <= 2 %}
+                    loading="eager"
+                    fetchpriority="high"
+                  {% else %}
+                    loading="lazy"
+                  {% endif %}
+                  class="mm-img-pan"
+                >
+              {% endif %}
+            </div>
 
-          <div class="absolute inset-0 bg-black/10 transition-colors duration-500 group-hover:bg-black/30"></div>
+            <div class="mm-collection-overlay absolute inset-0 bg-black/10 transition-colors duration-500 group-hover:bg-black/30"></div>
 
-          <div class="absolute bottom-5 left-5 z-10 pr-5">
-            <h3 class="mm-collection-title px-4 py-2 text-[10px] font-black uppercase tracking-widest shadow-sm md:text-[11px]">
-              {{ collection.name }}
-            </h3>
+            <div class="absolute bottom-5 left-5 z-10 pr-5">
+              <h3 class="mm-collection-title px-4 py-2 text-[10px] font-black uppercase tracking-widest shadow-sm md:text-[11px]">
+                {{ collection.name }}
+              </h3>
 
-            {% if collection.description %}
-              <p class="mt-3 line-clamp-2 translate-y-2 text-[11px] font-medium leading-relaxed text-white opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-                {{ collection.description }}
-              </p>
-            {% endif %}
-          </div>
-        </a>
-      {% endfor %}
+              {% if collection.description %}
+                <p class="mt-3 line-clamp-2 translate-y-2 text-[11px] font-medium leading-relaxed text-white opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+                  {{ collection.description }}
+                </p>
+              {% endif %}
+            </div>
+          </a>
+        {% endfor %}
+      </div>
     </div>
+
+    {% if total_colls > 1 %}
+      <div class="mm-collection-hint md:hidden">
+        <span>Vuốt để xem thêm</span>
+        <div class="mm-collection-progress" aria-hidden="true">
+          <span data-collection-progress></span>
+        </div>
+      </div>
+    {% endif %}
   </section>
   {% endif %}
 
@@ -591,73 +673,104 @@
   }
 
   function initHomeCollectionScroll() {
-    const scroller = document.querySelector("[data-home-collection-scroll]");
+    const viewport = document.querySelector("[data-home-collection-scroll]");
+    const progress = document.querySelector("[data-collection-progress]");
 
-    if (!scroller || scroller.dataset.ready === "1") return;
+    if (!viewport || viewport.dataset.ready === "1") return;
 
-    scroller.dataset.ready = "1";
+    viewport.dataset.ready = "1";
 
-    let isDown = false;
-    let isDragging = false;
     let startX = 0;
-    let scrollLeft = 0;
-    let raf = null;
+    let startY = 0;
+    let hasMoved = false;
 
-    const stopDrag = () => {
-      if (!isDown) return;
+    function updateProgress() {
+      if (!progress) return;
 
-      isDown = false;
-      scroller.classList.remove("is-dragging");
+      const max = viewport.scrollWidth - viewport.clientWidth;
 
-      setTimeout(() => {
-        isDragging = false;
-      }, 80);
-    };
-
-    scroller.addEventListener("pointerdown", (event) => {
-      if (event.pointerType === "mouse" && event.button !== 0) return;
-
-      isDown = true;
-      isDragging = false;
-      startX = event.clientX;
-      scrollLeft = scroller.scrollLeft;
-
-      scroller.classList.add("is-dragging");
-
-      try {
-        scroller.setPointerCapture(event.pointerId);
-      } catch (_) {}
-    });
-
-    scroller.addEventListener("pointermove", (event) => {
-      if (!isDown) return;
-
-      const dx = event.clientX - startX;
-
-      if (Math.abs(dx) > 6) {
-        isDragging = true;
+      if (max <= 0) {
+        progress.style.width = "100%";
+        return;
       }
 
-      if (raf) return;
+      const value = Math.max(8, Math.min(100, (viewport.scrollLeft / max) * 100));
+      progress.style.width = value + "%";
+    }
 
-      raf = requestAnimationFrame(() => {
-        scroller.scrollLeft = scrollLeft - dx;
-        raf = null;
-      });
+    viewport.addEventListener("scroll", updateProgress, { passive: true });
+
+    viewport.addEventListener("touchstart", function (event) {
+      const touch = event.touches && event.touches[0];
+      if (!touch) return;
+
+      startX = touch.clientX;
+      startY = touch.clientY;
+      hasMoved = false;
+      viewport.classList.add("is-dragging");
     }, { passive: true });
 
-    scroller.addEventListener("pointerup", stopDrag);
-    scroller.addEventListener("pointercancel", stopDrag);
-    scroller.addEventListener("mouseleave", stopDrag);
+    viewport.addEventListener("touchmove", function (event) {
+      const touch = event.touches && event.touches[0];
+      if (!touch) return;
 
-    scroller.querySelectorAll("a").forEach((link) => {
-      link.addEventListener("click", (event) => {
-        if (!isDragging) return;
+      const dx = Math.abs(touch.clientX - startX);
+      const dy = Math.abs(touch.clientY - startY);
+
+      if (dx > 8 && dx > dy) {
+        hasMoved = true;
+      }
+    }, { passive: true });
+
+    viewport.addEventListener("touchend", function () {
+      viewport.classList.remove("is-dragging");
+
+      window.setTimeout(function () {
+        hasMoved = false;
+      }, 90);
+    }, { passive: true });
+
+    viewport.addEventListener("pointerdown", function (event) {
+      if (event.pointerType !== "mouse") return;
+      if (event.button !== 0) return;
+
+      startX = event.clientX;
+      startY = event.clientY;
+      hasMoved = false;
+      viewport.classList.add("is-dragging");
+    });
+
+    viewport.addEventListener("pointermove", function (event) {
+      if (event.pointerType !== "mouse") return;
+
+      const dx = Math.abs(event.clientX - startX);
+      const dy = Math.abs(event.clientY - startY);
+
+      if (dx > 8 && dx > dy) {
+        hasMoved = true;
+      }
+    });
+
+    viewport.addEventListener("pointerup", function () {
+      viewport.classList.remove("is-dragging");
+
+      window.setTimeout(function () {
+        hasMoved = false;
+      }, 90);
+    });
+
+    viewport.querySelectorAll("a").forEach(function (link) {
+      link.addEventListener("click", function (event) {
+        if (!hasMoved) return;
 
         event.preventDefault();
         event.stopPropagation();
       });
     });
+
+    updateProgress();
+
+    window.addEventListener("resize", updateProgress, { passive: true });
   }
 
   function initLegacySliderIfExists() {
@@ -681,9 +794,9 @@
         return;
       }
 
-      const progress = (container.scrollLeft / maxScroll) * 100;
+      const progressValue = (container.scrollLeft / maxScroll) * 100;
 
-      if (progressBar) progressBar.style.width = `${progress}%`;
+      if (progressBar) progressBar.style.width = `${progressValue}%`;
       if (btnPrev) btnPrev.disabled = container.scrollLeft <= 5;
       if (btnNext) btnNext.disabled = container.scrollLeft >= maxScroll - 5;
     };
