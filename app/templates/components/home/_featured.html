@@ -1,753 +1,570 @@
 {#
-  app/templates/partials/_featured.html
-  =====================================
-  MMESTLINE — Featured Products
+  app/templates/components/home/_featured.html
+  ===========================================
+  MMESTLINE Featured Products
 
-  Logic:
-  - Controller truyền featured_products.
-  - ProductModel.get_featured_products() chỉ lấy products.is_featured = true.
-  - Sản phẩm phải is_active = true mới được hiển thị.
-  - Có quick view: triggerQuickView(button)
-  - Có favorite API: /api/favorites/toggle
+  Yêu cầu:
+  - Mobile swipe ngang mượt.
+  - Đồng bộ với index.html:
+    data-mm-x-scroll
+    data-featured-scroll
+    data-lenis-prevent
+    .mm-x-viewport
+    .mm-x-track
+    .mm-x-item
+  - Có xem nhanh, yêu thích, thêm giỏ hàng.
 #}
 
-{% set featured_products = featured_products if featured_products is defined and featured_products else [] %}
-
-{% if featured_products|length > 0 %}
-<section class="mm-featured bg-white py-16 md:py-24" aria-labelledby="mmFeaturedTitle">
+{% if featured_products and featured_products|length > 0 %}
+<section class="mm-featured-section bg-white">
   <style>
-    .mm-featured {
-      --mm-ink: #111;
-      --mm-muted: #777;
-      --mm-soft: #f6f6f6;
-      --mm-line: #e8e8e8;
+    .mm-featured-section {
+      --mm-green: #1b4922;
+      --mm-green-dark: #123418;
+      --mm-gold: #c99e14;
+      --mm-ink: #101510;
+      --mm-muted: #687466;
+      --mm-line: rgba(27, 73, 34, .14);
+      --mm-soft: #f7f9f2;
       --mm-radius: 5px;
       --mm-ease: cubic-bezier(.16, 1, .3, 1);
+
+      width: 100%;
+      max-width: 100%;
       overflow: hidden;
+      padding: 3.75rem 0 4.5rem;
+      background: #fff;
+      color: var(--mm-ink);
     }
 
-    .mm-featured .no-scrollbar::-webkit-scrollbar {
-      display: none;
-    }
-
-    .mm-featured .no-scrollbar {
-      -ms-overflow-style: none;
-      scrollbar-width: none;
+    .mm-featured-head {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      padding: 0 1rem;
+      margin-bottom: 2rem;
     }
 
     .mm-featured-kicker {
-      display: block;
-      color: var(--mm-muted);
+      margin-bottom: .8rem;
+      color: var(--mm-gold);
       font-size: 10px;
-      font-weight: 900;
-      letter-spacing: .26em;
+      font-weight: 950;
+      letter-spacing: .28em;
       text-transform: uppercase;
     }
 
     .mm-featured-title {
-      margin-top: .75rem;
       color: var(--mm-ink);
-      font-size: clamp(34px, 5.5vw, 76px);
-      font-weight: 900;
-      letter-spacing: -.055em;
-      line-height: .92;
+      font-size: clamp(2.15rem, 6vw, 5.4rem);
+      font-weight: 950;
+      line-height: .9;
+      letter-spacing: -.06em;
       text-transform: uppercase;
+      text-wrap: balance;
     }
 
-    .mm-featured-link {
-      color: #777;
-      font-size: 10px;
-      font-weight: 900;
-      letter-spacing: .16em;
+    .mm-featured-desc {
+      max-width: 32rem;
+      margin-top: 1rem;
+      color: var(--mm-muted);
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.75;
+    }
+
+    .mm-featured-view-all {
+      display: none;
+      align-items: center;
+      gap: .55rem;
+      width: max-content;
+      border-bottom: 2px solid var(--mm-ink);
+      padding-bottom: .45rem;
+      color: var(--mm-ink);
+      font-size: 11px;
+      font-weight: 950;
+      letter-spacing: .18em;
       text-transform: uppercase;
-      transition: color .18s ease;
+      transition: color .18s ease, border-color .18s ease, gap .18s ease;
     }
 
-    .mm-featured-link:hover {
-      color: #111;
+    .mm-featured-view-all:hover {
+      gap: .9rem;
+      color: var(--mm-green);
+      border-color: var(--mm-green);
     }
 
-    .mm-featured-nav {
-      width: 44px;
-      height: 44px;
-      display: grid;
-      place-items: center;
-      border: 1px solid var(--mm-line);
-      border-radius: 999px;
-      background: #fff;
-      color: #111;
-      transition:
-        background .18s ease,
-        color .18s ease,
-        border-color .18s ease,
-        opacity .18s ease;
-    }
-
-    .mm-featured-nav:hover {
-      background: #111;
-      border-color: #111;
-      color: #fff;
-    }
-
-    .mm-featured-nav:disabled {
-      opacity: .25;
-      pointer-events: none;
+    .mm-featured-scroll {
+      padding: 0 1rem;
     }
 
     .mm-featured-track {
-      display: flex;
-      width: max-content;
-      gap: 16px;
+      gap: .85rem;
+      padding-bottom: .25rem;
     }
 
-    @media (min-width: 768px) {
-      .mm-featured-track {
-        gap: 24px;
-      }
+    .mm-featured-card {
+      width: min(76vw, 320px);
+      min-width: min(76vw, 320px);
+      background: #fff;
     }
 
-    .mm-product-card {
-      width: 82vw;
-      flex: 0 0 auto;
-      scroll-snap-align: start;
-    }
-
-    @media (min-width: 640px) {
-      .mm-product-card {
-        width: 45vw;
-      }
-    }
-
-    @media (min-width: 1024px) {
-      .mm-product-card {
-        width: 28vw;
-      }
-    }
-
-    @media (min-width: 1280px) {
-      .mm-product-card {
-        width: 22vw;
-      }
-    }
-
-    .mm-product-media {
+    .mm-featured-media {
       position: relative;
-      aspect-ratio: 4 / 5;
+      display: block;
+      width: 100%;
+      aspect-ratio: 3 / 4;
       overflow: hidden;
-      border: 1px solid var(--mm-line);
       border-radius: var(--mm-radius);
       background: var(--mm-soft);
-      isolation: isolate;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
 
-    .mm-product-media img {
+    .mm-featured-media img {
       width: 100%;
       height: 100%;
       display: block;
       object-fit: cover;
-      object-position: top center;
-      transform: translateZ(0) scale(1.01);
+      object-position: center;
+      pointer-events: none;
+      transform: translate3d(0, 0, 0) scale(1.01);
+      transition: transform .8s var(--mm-ease), filter .22s ease;
       backface-visibility: hidden;
-      transition: transform .85s var(--mm-ease);
     }
 
-    .mm-product-card:hover .mm-product-media img {
-      transform: translateZ(0) scale(1.045);
+    .mm-featured-card:hover .mm-featured-media img {
+      transform: translate3d(0, 0, 0) scale(1.045);
+      filter: contrast(1.04);
     }
 
-    .mm-badge {
+    .mm-featured-media::after {
+      content: "";
       position: absolute;
-      top: 10px;
-      left: 10px;
-      z-index: 10;
-      border-radius: var(--mm-radius);
-      background: rgba(255, 255, 255, .94);
-      padding: 7px 10px;
-      color: #111;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(to top, rgba(0, 0, 0, .38), transparent 42%),
+        linear-gradient(to bottom, rgba(0, 0, 0, .08), transparent 32%);
+      opacity: .65;
+      transition: opacity .25s ease;
+    }
+
+    .mm-featured-card:hover .mm-featured-media::after {
+      opacity: .86;
+    }
+
+    .mm-featured-badge {
+      position: absolute;
+      left: .75rem;
+      top: .75rem;
+      z-index: 3;
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .92);
+      color: var(--mm-green);
+      padding: 0 .72rem;
       font-size: 9px;
-      font-weight: 900;
-      letter-spacing: .15em;
+      font-weight: 950;
+      letter-spacing: .14em;
       text-transform: uppercase;
       backdrop-filter: blur(10px);
+      pointer-events: none;
     }
 
-    .mm-badge.is-dark {
-      background: #111;
-      color: #fff;
-    }
-
-    .mm-badge.is-sale {
-      background: #dc2626;
-      color: #fff;
-    }
-
-    .mm-card-actions {
+    .mm-featured-actions {
       position: absolute;
-      top: 10px;
-      right: 10px;
-      z-index: 20;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
+      right: .75rem;
+      top: .75rem;
+      z-index: 4;
+      display: grid;
+      gap: .45rem;
     }
 
-    .mm-card-icon {
+    .mm-featured-action {
       width: 38px;
       height: 38px;
       display: grid;
       place-items: center;
-      border: 1px solid rgba(0, 0, 0, .08);
-      border-radius: var(--mm-radius);
-      background: rgba(255, 255, 255, .92);
-      color: #111;
-      backdrop-filter: blur(10px);
+      border: 0;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .94);
+      color: var(--mm-ink);
+      box-shadow: 0 14px 30px -22px rgba(0, 0, 0, .6);
       transition:
         background .18s ease,
         color .18s ease,
-        transform .18s ease,
-        opacity .18s ease;
+        transform .18s ease;
     }
 
-    .mm-card-icon:hover {
-      background: #111;
+    .mm-featured-action:hover {
+      background: var(--mm-green);
       color: #fff;
       transform: translateY(-1px);
     }
 
-    .mm-card-icon:disabled {
-      opacity: .55;
-      pointer-events: none;
+    .mm-featured-action i {
+      font-size: 14px;
+      line-height: 1;
     }
 
-    .mm-card-icon.is-loved {
-      color: #dc2626;
+    .mm-featured-info {
+      padding-top: .85rem;
     }
 
-    .mm-card-icon.is-loved:hover {
-      background: #fff;
-      color: #dc2626;
+    .mm-featured-name {
+      display: -webkit-box;
+      min-height: 2.8em;
+      overflow: hidden;
+      color: var(--mm-ink);
+      font-size: 13px;
+      font-weight: 900;
+      line-height: 1.4;
+      letter-spacing: -.01em;
+      text-transform: uppercase;
+      transition: color .18s ease;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
     }
 
-    .mm-card-add {
-      position: absolute;
-      left: 10px;
-      right: 10px;
-      bottom: 10px;
-      z-index: 20;
-      height: 42px;
-      border-radius: var(--mm-radius);
-      background: #111;
-      color: #fff;
-      font-size: 10px;
+    .mm-featured-name:hover {
+      color: var(--mm-green);
+    }
+
+    .mm-featured-meta {
+      margin-top: .45rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .75rem;
+    }
+
+    .mm-featured-price {
+      color: var(--mm-green);
+      font-size: 13px;
+      font-weight: 950;
+      white-space: nowrap;
+    }
+
+    .mm-featured-small {
+      color: rgba(16, 21, 16, .42);
+      font-size: 9px;
       font-weight: 900;
       letter-spacing: .12em;
       text-transform: uppercase;
-      opacity: 0;
-      transform: translateY(10px);
+    }
+
+    .mm-featured-cart {
+      margin-top: .78rem;
+      width: 100%;
+      min-height: 42px;
+      border: 0;
+      border-radius: var(--mm-radius);
+      background: var(--mm-ink);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .14em;
+      text-transform: uppercase;
       transition:
-        opacity .22s var(--mm-ease),
-        transform .22s var(--mm-ease),
-        background .18s ease;
+        background .18s ease,
+        color .18s ease,
+        transform .18s ease;
     }
 
-    .mm-product-card:hover .mm-card-add {
-      opacity: 1;
-      transform: none;
+    .mm-featured-cart:hover {
+      background: var(--mm-gold);
+      color: var(--mm-green-dark);
+      transform: translateY(-1px);
     }
 
-    .mm-card-add:hover {
-      background: #333;
+    .mm-featured-cart:active {
+      transform: scale(.985);
     }
 
-    .mm-card-add:disabled {
-      background: #999;
-      cursor: not-allowed;
+    .mm-featured-mobile-link {
+      margin: 2rem 1rem 0;
+      display: inline-flex;
+      width: calc(100% - 2rem);
+      min-height: 46px;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--mm-radius);
+      background: var(--mm-green);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .18em;
+      text-transform: uppercase;
     }
 
-    .mm-product-name {
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      color: #111;
-      font-size: 13px;
-      font-weight: 800;
-      letter-spacing: -.01em;
-      line-height: 1.35;
-      transition: color .18s ease;
+    .mm-featured-hint {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: .9rem 1rem 0;
+      color: rgba(16, 21, 16, .52);
+      font-size: 9px;
+      font-weight: 950;
+      letter-spacing: .18em;
+      text-transform: uppercase;
     }
 
-    .mm-product-name:hover {
-      color: #666;
-    }
-
-    .mm-price {
-      white-space: nowrap;
-      text-align: right;
-      font-size: 13px;
-      font-weight: 800;
-      line-height: 1.25;
-    }
-
-    .mm-price-old {
-      display: block;
-      margin-top: 3px;
-      color: #999;
-      font-size: 11px;
-      font-weight: 600;
-      text-decoration: line-through;
-    }
-
-    .mm-progress-wrap {
+    .mm-featured-progress {
+      position: relative;
+      width: 86px;
       height: 2px;
       overflow: hidden;
-      background: #f1f1f1;
+      border-radius: 999px;
+      background: rgba(27, 73, 34, .12);
     }
 
-    .mm-progress-bar {
-      height: 100%;
-      width: 0;
-      background: #111;
-      transition: width .18s ease;
+    .mm-featured-progress span {
+      position: absolute;
+      inset-block: 0;
+      left: 0;
+      width: 8%;
+      border-radius: inherit;
+      background: var(--mm-green);
+      transition: width .12s linear;
     }
 
-    @media (max-width: 640px) {
-      .mm-product-media {
-        aspect-ratio: 3 / 4;
+    @media (min-width: 640px) {
+      .mm-featured-card {
+        width: 42vw;
+        min-width: 42vw;
+      }
+    }
+
+    @media (min-width: 768px) {
+      .mm-featured-section {
+        padding: 5.25rem 0 6rem;
       }
 
-      .mm-card-actions {
-        top: 8px;
-        right: 8px;
-        gap: 6px;
+      .mm-featured-head {
+        flex-direction: row;
+        align-items: end;
+        justify-content: space-between;
+        padding: 0 5vw;
+        margin-bottom: 3rem;
       }
 
-      .mm-card-icon {
-        width: 34px;
-        height: 34px;
+      .mm-featured-view-all {
+        display: inline-flex;
       }
 
-      .mm-card-add {
-        left: 8px;
-        right: 8px;
-        bottom: 8px;
-        height: 40px;
-        opacity: 1;
-        transform: none;
-        font-size: 9px;
+      .mm-featured-scroll {
+        padding: 0 5vw;
+      }
+
+      .mm-featured-track {
+        gap: 1rem;
+      }
+
+      .mm-featured-card {
+        width: 30vw;
+        min-width: 30vw;
+      }
+
+      .mm-featured-mobile-link {
+        display: none;
+      }
+
+      .mm-featured-hint {
+        display: none;
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .mm-featured-card {
+        width: calc((100vw - 10vw - 3rem) / 4);
+        min-width: calc((100vw - 10vw - 3rem) / 4);
+        max-width: 340px;
       }
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .mm-product-media img,
-      .mm-card-add,
-      .mm-card-icon {
+      .mm-featured-media img,
+      .mm-featured-action,
+      .mm-featured-cart {
         transition: none !important;
         transform: none !important;
       }
     }
   </style>
 
-  <div class="mb-10 flex flex-col gap-7 px-5 sm:px-8 md:mb-14 md:flex-row md:items-end md:justify-between md:px-12">
+  <div class="mm-featured-head">
     <div>
-      <span class="mm-featured-kicker">Sản phẩm nổi bật</span>
-      <h2 id="mmFeaturedTitle" class="mm-featured-title">New Arrivals</h2>
+      <p class="mm-featured-kicker">
+        Featured Selection
+      </p>
+
+      <h2 class="mm-featured-title">
+        Sản phẩm nổi bật
+      </h2>
+
+      <p class="mm-featured-desc">
+        Những thiết kế được chọn lọc từ MMESTLINE, phù hợp để mặc hằng ngày
+        nhưng vẫn giữ được tinh thần riêng và tính thẩm mỹ cao.
+      </p>
     </div>
 
-    <div class="flex items-center gap-3">
-      <a href="/shop" data-nav class="mm-featured-link hidden md:inline-flex">
-        Xem tất cả
-      </a>
-
-      <button
-        id="mmFeaturedPrev"
-        type="button"
-        aria-label="Sản phẩm trước"
-        class="mm-featured-nav"
-      >
-        <i class="fa-solid fa-chevron-left text-xs" aria-hidden="true"></i>
-      </button>
-
-      <button
-        id="mmFeaturedNext"
-        type="button"
-        aria-label="Sản phẩm tiếp theo"
-        class="mm-featured-nav"
-      >
-        <i class="fa-solid fa-chevron-right text-xs" aria-hidden="true"></i>
-      </button>
-    </div>
+    <a href="/shop" class="mm-featured-view-all" data-nav>
+      Xem tất cả
+      <i class="fa-solid fa-arrow-right-long"></i>
+    </a>
   </div>
 
-  <div
-    id="mmFeaturedSlider"
-    class="no-scrollbar relative cursor-grab select-none overflow-x-auto overflow-y-hidden scroll-smooth snap-x snap-mandatory px-5 pb-8 active:cursor-grabbing sm:px-8 md:px-12"
-  >
-    <div id="mmFeaturedTrack" class="mm-featured-track">
+  <div class="mm-x-section">
+    <div
+      id="mmFeaturedScroll"
+      class="mm-x-viewport mm-no-scrollbar mm-featured-scroll"
+      data-mm-x-scroll
+      data-featured-scroll
+      data-lenis-prevent
+      aria-label="Sản phẩm nổi bật MMESTLINE"
+    >
+      <div class="mm-x-track mm-featured-track">
+        {% for product in featured_products %}
+          {% set thumb =
+            product.thumbnail_url
+            or product.image
+            or product.image_url
+            or 'https://placehold.co/600x800/f7f9f2/1b4922?text=MMESTLINE'
+          %}
 
-      {% for product in featured_products %}
-        {% set variants = product.get('product_variants', product.get('variants', [])) if product is mapping else (product.product_variants or product.variants or []) %}
-        {% set images = product.get('product_images', product.get('images', [])) if product is mapping else (product.product_images or product.images or []) %}
-        {% set imgs = images|map(attribute='url')|select|list %}
+          {% set product_url = '/product/' ~ product.slug if product.slug else '/shop' %}
+          {% set product_price = product.price|float if product.price else 0 %}
 
-        {% set product_id = product.get('id') if product is mapping else product.id %}
-        {% set product_slug = product.get('slug') if product is mapping else product.slug %}
-        {% set product_name = product.get('name') if product is mapping else product.name %}
-        {% set product_price = product.get('price', 0) if product is mapping else product.price %}
-        {% set product_thumb = product.get('thumbnail_url') if product is mapping else product.thumbnail_url %}
-        {% set product_stock = product.get('stock', product.get('stock_quantity', product.get('total_stock', 0))) if product is mapping else (product.stock or product.stock_quantity or product.total_stock or 0) %}
-        {% set compare_at_price = product.get('compare_at_price', product.get('old_price')) if product is mapping else (product.compare_at_price or product.old_price) %}
-        {% set discount_percent = product.get('discount_percent') if product is mapping else product.discount_percent %}
-
-        {% if product_thumb and product_thumb not in imgs %}
-          {% set _ = imgs.insert(0, product_thumb) %}
-        {% endif %}
-
-        {% set img1 = imgs[0] if imgs else 'https://placehold.co/900x1125/f4f2f0/111?text=MMESTLINE' %}
-
-        {% set category = product.get('categories') if product is mapping else product.categories %}
-        {% if category is mapping %}
-          {% set display_cat = category.get('name') or 'Bộ sưu tập chính' %}
-        {% elif category %}
-          {% set display_cat = category.name %}
-        {% else %}
-          {% set display_cat = product.get('category_name', 'Bộ sưu tập chính') if product is mapping else (product.category_name or 'Bộ sưu tập chính') %}
-        {% endif %}
-
-        {% if variants %}
-          {% set stock = variants|sum(attribute='stock') %}
-        {% else %}
-          {% set stock = product_stock or 0 %}
-        {% endif %}
-
-        {% set product_url = '/product/' ~ (product_slug or product_id) %}
-
-        <article class="mm-product-card group" data-product-id="{{ product_id }}">
-          <div class="mm-product-media">
+          <article class="mm-featured-card mm-x-item">
             <a
               href="{{ product_url }}"
-              class="block h-full w-full"
-              draggable="false"
+              class="mm-featured-media group"
               data-nav
-              aria-label="{{ product_name }}"
+              draggable="false"
+              aria-label="{{ product.name }}"
             >
               <img
-                src="{{ img1 }}"
-                alt="{{ product_name }}"
-                width="900"
-                height="1125"
-                draggable="false"
+                src="{{ thumb }}"
+                alt="{{ product.name }}"
+                width="600"
+                height="800"
+                loading="{{ 'eager' if loop.index <= 2 else 'lazy' }}"
                 decoding="async"
-                {% if loop.index <= 4 %}
-                  loading="eager"
-                  fetchpriority="high"
-                {% else %}
-                  loading="lazy"
-                {% endif %}
-                onerror="this.src='https://placehold.co/900x1125/f4f2f0/111?text=MMESTLINE'"
+                draggable="false"
               >
+
+              <span class="mm-featured-badge">
+                Nổi bật
+              </span>
+
+              <div class="mm-featured-actions">
+                <button
+                  type="button"
+                  class="mm-featured-action"
+                  aria-label="Xem nhanh sản phẩm"
+                  onclick="event.preventDefault(); event.stopPropagation(); if(window.openQuickView){openQuickView('{{ product.id }}')}else{location.href='{{ product_url }}'}"
+                >
+                  <i class="fa-regular fa-eye"></i>
+                </button>
+
+                <button
+                  type="button"
+                  class="mm-featured-action"
+                  aria-label="Thêm vào yêu thích"
+                  onclick="event.preventDefault(); event.stopPropagation(); if(window.toggleHeart){toggleHeart('{{ product.id }}', this)}"
+                >
+                  <i class="fa-regular fa-heart heart-icon"></i>
+                </button>
+              </div>
             </a>
 
-            {% if stock|int <= 0 %}
-              <span class="mm-badge is-dark">Hết hàng</span>
-            {% elif discount_percent %}
-              <span class="mm-badge is-sale">-{{ discount_percent }}%</span>
-            {% elif loop.index <= 3 %}
-              <span class="mm-badge">Mới</span>
-            {% endif %}
-
-            <div class="mm-card-actions">
-              <button
-                type="button"
-                class="mm-card-icon"
-                onclick="triggerQuickView(this)"
-                title="Xem nhanh"
-                aria-label="Xem nhanh sản phẩm"
-                data-id="{{ product_id }}"
-                data-slug="{{ product_slug }}"
-                data-name="{{ product_name }}"
-                data-price="{{ product_price }}"
-                data-compare-price="{{ compare_at_price or '' }}"
-                data-image="{{ img1 }}"
-                data-images='{{ imgs|tojson|safe }}'
-                data-category="{{ display_cat }}"
-                data-stock="{{ stock }}"
-                data-variants='{{ variants|tojson|safe if variants else "[]" }}'
-              >
-                <i class="fa-regular fa-eye text-sm" aria-hidden="true"></i>
-              </button>
-
-              <button
-                type="button"
-                class="mm-card-icon"
-                onclick="MMFeatured.love('{{ product_id }}', this)"
-                title="Yêu thích"
-                aria-label="Thêm vào yêu thích"
-                data-product-id="{{ product_id }}"
-              >
-                <i class="fa-regular fa-heart text-sm" aria-hidden="true"></i>
-              </button>
-            </div>
-
-            <button
-              type="button"
-              class="mm-card-add"
-              onclick="triggerQuickView(this)"
-              {% if stock|int <= 0 %}disabled{% endif %}
-              data-id="{{ product_id }}"
-              data-slug="{{ product_slug }}"
-              data-name="{{ product_name }}"
-              data-price="{{ product_price }}"
-              data-compare-price="{{ compare_at_price or '' }}"
-              data-image="{{ img1 }}"
-              data-images='{{ imgs|tojson|safe }}'
-              data-category="{{ display_cat }}"
-              data-stock="{{ stock }}"
-              data-variants='{{ variants|tojson|safe if variants else "[]" }}'
-            >
-              {% if stock|int <= 0 %}
-                Hết hàng
-              {% else %}
-                Thêm vào giỏ hàng
-              {% endif %}
-            </button>
-          </div>
-
-          <div class="mt-4 flex items-start justify-between gap-4">
-            <div class="min-w-0">
-              <p class="mb-1.5 truncate text-[9px] font-black uppercase tracking-[.2em] text-neutral-400">
-                {{ display_cat }}
-              </p>
-
-              <a href="{{ product_url }}" data-nav class="block">
-                <h3 class="mm-product-name">
-                  {{ product_name }}
-                </h3>
+            <div class="mm-featured-info">
+              <a href="{{ product_url }}" data-nav class="mm-featured-name">
+                {{ product.name }}
               </a>
+
+              <div class="mm-featured-meta">
+                <p class="mm-featured-price">
+                  {{ '{:,.0f}'.format(product_price).replace(',', '.') }} ₫
+                </p>
+
+                {% if product.stock is defined %}
+                  <span class="mm-featured-small">
+                    {% if product.stock|int > 0 %}
+                      Còn hàng
+                    {% else %}
+                      Hết hàng
+                    {% endif %}
+                  </span>
+                {% endif %}
+              </div>
+
+              <button
+                type="button"
+                class="mm-featured-cart"
+                onclick="if(window.addToCartQuick){addToCartQuick('{{ product.id }}')}else{location.href='{{ product_url }}'}"
+              >
+                Thêm vào giỏ
+              </button>
             </div>
-
-            <p class="mm-price">
-              ₫{{ "{:,.0f}".format(product_price|float) }}
-
-              {% if compare_at_price and compare_at_price|float > product_price|float %}
-                <span class="mm-price-old">
-                  ₫{{ "{:,.0f}".format(compare_at_price|float) }}
-                </span>
-              {% endif %}
-            </p>
-          </div>
-        </article>
-      {% endfor %}
-
+          </article>
+        {% endfor %}
+      </div>
     </div>
   </div>
 
-  <div class="mx-5 mt-4 sm:mx-8 md:mx-12">
-    <div class="mm-progress-wrap">
-      <div id="mmFeaturedProgress" class="mm-progress-bar"></div>
+  {% if featured_products|length > 1 %}
+    <div class="mm-featured-hint md:hidden">
+      <span>Vuốt để xem thêm</span>
+      <div class="mm-featured-progress" aria-hidden="true">
+        <span data-featured-progress></span>
+      </div>
     </div>
-  </div>
+  {% endif %}
+
+  <a href="/shop" class="mm-featured-mobile-link md:hidden" data-nav>
+    Xem tất cả sản phẩm
+  </a>
 
   <script>
-    window.MMFeatured = window.MMFeatured || {};
-
     (function () {
       "use strict";
 
-      const slider = document.getElementById("mmFeaturedSlider");
-      const progress = document.getElementById("mmFeaturedProgress");
-      const next = document.getElementById("mmFeaturedNext");
-      const prev = document.getElementById("mmFeaturedPrev");
+      function initFeaturedScrollProgress() {
+        const scroller = document.querySelector("[data-featured-scroll]");
+        const progress = document.querySelector("[data-featured-progress]");
 
-      if (!slider || slider.dataset.ready === "1") return;
-      slider.dataset.ready = "1";
+        if (!scroller || !progress || scroller.dataset.featuredProgressReady === "1") return;
 
-      let ticking = false;
-      let isDown = false;
-      let isDragging = false;
-      let startX = 0;
-      let scrollLeft = 0;
+        scroller.dataset.featuredProgressReady = "1";
 
-      function updateUI() {
-        const max = slider.scrollWidth - slider.clientWidth;
+        function update() {
+          const max = scroller.scrollWidth - scroller.clientWidth;
 
-        if (max <= 0) {
-          if (progress) progress.style.width = "100%";
-          if (prev) prev.disabled = true;
-          if (next) next.disabled = true;
-          return;
-        }
-
-        const value = slider.scrollLeft / max;
-
-        if (progress) progress.style.width = Math.max(4, value * 100) + "%";
-        if (prev) prev.disabled = slider.scrollLeft <= 8;
-        if (next) next.disabled = slider.scrollLeft >= max - 8;
-      }
-
-      function requestUpdate() {
-        if (ticking) return;
-
-        ticking = true;
-
-        requestAnimationFrame(function () {
-          updateUI();
-          ticking = false;
-        });
-      }
-
-      function getStep() {
-        const item = slider.querySelector(".mm-product-card");
-        const gap = window.innerWidth >= 768 ? 24 : 16;
-        return item ? item.offsetWidth + gap : slider.clientWidth * 0.8;
-      }
-
-      if (next) {
-        next.addEventListener("click", function () {
-          slider.scrollBy({ left: getStep(), behavior: "smooth" });
-        });
-      }
-
-      if (prev) {
-        prev.addEventListener("click", function () {
-          slider.scrollBy({ left: -getStep(), behavior: "smooth" });
-        });
-      }
-
-      slider.addEventListener("scroll", requestUpdate, { passive: true });
-
-      slider.addEventListener("mousedown", function (event) {
-        if (event.button !== 0) return;
-
-        isDown = true;
-        isDragging = false;
-        startX = event.pageX - slider.offsetLeft;
-        scrollLeft = slider.scrollLeft;
-        slider.classList.remove("scroll-smooth");
-      });
-
-      window.addEventListener("mouseup", function () {
-        if (!isDown) return;
-
-        isDown = false;
-        slider.classList.add("scroll-smooth");
-
-        setTimeout(function () {
-          isDragging = false;
-        }, 80);
-      });
-
-      slider.addEventListener("mousemove", function (event) {
-        if (!isDown) return;
-
-        event.preventDefault();
-
-        const x = event.pageX - slider.offsetLeft;
-        const walk = (x - startX) * 1.2;
-
-        if (Math.abs(walk) > 6) isDragging = true;
-
-        slider.scrollLeft = scrollLeft - walk;
-      });
-
-      slider.querySelectorAll("a, button").forEach(function (el) {
-        el.addEventListener("click", function (event) {
-          if (!isDragging) return;
-
-          event.preventDefault();
-          event.stopPropagation();
-        });
-      });
-
-      MMFeatured.love = async function (productId, btn) {
-        if (!productId || !btn) return;
-
-        const icon = btn.querySelector("i");
-        const csrf = document.querySelector('meta[name="csrf-token"]')?.content || "";
-
-        btn.disabled = true;
-
-        try {
-          const res = await fetch("/api/favorites/toggle", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-CSRFToken": csrf
-            },
-            body: JSON.stringify({ product_id: productId })
-          });
-
-          if (res.status === 401) {
-            window.location.href = "/auth/login";
+          if (max <= 0) {
+            progress.style.width = "100%";
             return;
           }
 
-          if (!res.ok) return;
-
-          const data = await res.json().catch(function () {
-            return {};
-          });
-
-          const action = data.action || data.status || data.result;
-          const loved = action === "added" || action === "success_added";
-
-          btn.classList.toggle("is-loved", loved);
-          btn.setAttribute(
-            "aria-label",
-            loved ? "Bỏ khỏi yêu thích" : "Thêm vào yêu thích"
-          );
-
-          if (icon) {
-            icon.className = loved
-              ? "fa-solid fa-heart text-sm"
-              : "fa-regular fa-heart text-sm";
-          }
-
-          try {
-            const current = JSON.parse(localStorage.getItem("gua_favs") || "[]").map(String);
-            const id = String(productId);
-            const nextFavs = loved
-              ? Array.from(new Set(current.concat(id)))
-              : current.filter(function (x) { return x !== id; });
-
-            localStorage.setItem("gua_favs", JSON.stringify(nextFavs));
-          } catch (_) {}
-
-        } catch (_) {
-        } finally {
-          btn.disabled = false;
-        }
-      };
-
-      function syncLovedState() {
-        let favs = [];
-
-        try {
-          favs = JSON.parse(localStorage.getItem("gua_favs") || "[]").map(String);
-        } catch (_) {
-          favs = [];
+          const value = Math.max(8, Math.min(100, (scroller.scrollLeft / max) * 100));
+          progress.style.width = value + "%";
         }
 
-        slider.querySelectorAll("[data-product-id]").forEach(function (btn) {
-          const id = String(btn.dataset.productId || "");
-          const loved = favs.includes(id);
-          const icon = btn.querySelector("i");
+        scroller.addEventListener("scroll", update, { passive: true });
+        window.addEventListener("resize", update, { passive: true });
 
-          btn.classList.toggle("is-loved", loved);
-
-          if (icon && btn.classList.contains("mm-card-icon")) {
-            icon.className = loved
-              ? "fa-solid fa-heart text-sm"
-              : "fa-regular fa-heart text-sm";
-          }
-        });
+        update();
       }
 
-      syncLovedState();
-      updateUI();
-
-      window.addEventListener("resize", requestUpdate, { passive: true });
-      window.addEventListener("storage", syncLovedState);
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initFeaturedScrollProgress, { once: true });
+      } else {
+        initFeaturedScrollProgress();
+      }
     })();
   </script>
 </section>

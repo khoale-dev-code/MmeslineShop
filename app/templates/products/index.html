@@ -13,11 +13,11 @@
 <style>
   .mm-home {
     --mm-green: #1b4922;
+    --mm-green-dark: #123418;
     --mm-gold: #c99e14;
     --mm-ink: #101510;
-    --mm-line: rgba(27, 73, 34, .14);
+    --mm-muted: #687466;
     --mm-soft: #f7f9f2;
-    --mm-radius: 5px;
     --mm-ease: cubic-bezier(.16, 1, .3, 1);
 
     width: 100%;
@@ -27,13 +27,11 @@
     color: var(--mm-ink);
   }
 
-  .no-scrollbar,
   .mm-no-scrollbar {
     scrollbar-width: none;
     -ms-overflow-style: none;
   }
 
-  .no-scrollbar::-webkit-scrollbar,
   .mm-no-scrollbar::-webkit-scrollbar {
     width: 0;
     height: 0;
@@ -66,26 +64,26 @@
     object-fit: cover;
   }
 
-  .mm-smooth-video {
-    background: #111;
-    transform: translateZ(0);
-    backface-visibility: hidden;
-  }
-
   .mm-img-pan {
-    transform: translateZ(0) scale(1.01);
+    transform: translate3d(0, 0, 0) scale(1.01);
     backface-visibility: hidden;
     transition: transform .9s var(--mm-ease);
     will-change: transform;
   }
 
   .group:hover .mm-img-pan {
-    transform: translateZ(0) scale(1.04);
+    transform: translate3d(0, 0, 0) scale(1.04);
   }
 
   video.mm-img-pan,
   .group:hover video.mm-img-pan {
-    transform: translateZ(0);
+    transform: translate3d(0, 0, 0);
+  }
+
+  .mm-smooth-video {
+    background: #111;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
   }
 
   .mm-slide-reveal {
@@ -138,33 +136,47 @@
   }
 
   /* =========================================================
-     COLLECTIONS — MOBILE NATIVE SWIPE FIX
+     COLLECTION — HARD MOBILE SWIPE FIX
+     Không phụ thuộc base / Lenis / data-nav.
      ========================================================= */
 
   .mm-collection-section {
     width: 100%;
     max-width: 100%;
+    overflow: visible !important;
     background: #fff;
     padding: 4px;
-    overflow: visible;
   }
 
   .mm-collection-viewport {
+    position: relative;
     width: 100%;
     max-width: 100%;
-    overflow-x: scroll !important;
+    display: block;
+    overflow-x: auto !important;
     overflow-y: hidden !important;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
     overscroll-behavior-y: auto;
-    scroll-snap-type: x mandatory;
-    scroll-padding-inline: 0;
-    touch-action: pan-y pinch-zoom;
+    scroll-snap-type: x proximity;
+    scroll-behavior: smooth;
+    touch-action: pan-y;
     cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .mm-collection-viewport::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
   }
 
   .mm-collection-viewport.is-dragging {
     cursor: grabbing;
+    scroll-behavior: auto;
   }
 
   .mm-collection-track {
@@ -175,7 +187,7 @@
     min-width: 100%;
   }
 
-  .mm-collection-item {
+  .mm-collection-card {
     position: relative;
     display: block;
     flex: 0 0 auto;
@@ -183,32 +195,91 @@
     min-width: min(88vw, 420px);
     aspect-ratio: 3 / 4;
     overflow: hidden;
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
     background: #f5f5f5;
+    scroll-snap-align: start;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
+    -webkit-user-select: none;
   }
 
-  .mm-collection-item .mm-media-frame,
-  .mm-collection-item img,
-  .mm-collection-item video,
-  .mm-collection-item .mm-collection-overlay {
+  .mm-collection-card.is-count-1 {
+    width: calc(100vw - 8px);
+    min-width: calc(100vw - 8px);
+  }
+
+  .mm-collection-card * {
+    -webkit-user-drag: none;
+  }
+
+  .mm-collection-card .mm-media-frame,
+  .mm-collection-card img,
+  .mm-collection-card video,
+  .mm-collection-overlay {
     pointer-events: none;
   }
 
-  .mm-collection-item img,
-  .mm-collection-item video {
+  .mm-collection-card img,
+  .mm-collection-card video {
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
 
+  .mm-collection-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, .12);
+    transition: background .45s ease;
+  }
+
+  .mm-collection-card:hover .mm-collection-overlay {
+    background: rgba(0, 0, 0, .32);
+  }
+
+  .mm-collection-info {
+    position: absolute;
+    left: 1.25rem;
+    right: 1.25rem;
+    bottom: 1.25rem;
+    z-index: 5;
+    pointer-events: none;
+  }
+
   .mm-collection-title {
-    border-radius: 2px;
+    display: inline-flex;
+    max-width: 100%;
+    padding: .55rem .85rem;
+    border-radius: 3px;
     background: rgba(255, 255, 255, .94);
     color: #111;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .16em;
+    line-height: 1.25;
+    text-transform: uppercase;
+    box-shadow: 0 12px 30px -24px rgba(0, 0, 0, .55);
     backdrop-filter: blur(10px);
+  }
+
+  .mm-collection-desc {
+    display: -webkit-box;
+    max-width: 24rem;
+    margin-top: .75rem;
+    overflow: hidden;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 650;
+    line-height: 1.6;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity .25s ease, transform .25s ease;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .mm-collection-card:hover .mm-collection-desc {
+    opacity: 1;
+    transform: translateY(0);
   }
 
   .mm-collection-hint {
@@ -237,14 +308,14 @@
     position: absolute;
     inset-block: 0;
     left: 0;
-    width: 0%;
+    width: 8%;
     border-radius: inherit;
     background: var(--mm-green);
     transition: width .12s linear;
   }
 
   @media (min-width: 640px) {
-    .mm-collection-item {
+    .mm-collection-card {
       width: calc(50vw - 8px);
       min-width: calc(50vw - 8px);
     }
@@ -260,27 +331,27 @@
       width: 100%;
     }
 
-    .mm-collection-item {
+    .mm-collection-card {
       aspect-ratio: 4 / 5;
     }
 
-    .mm-collection-item.is-count-1 {
+    .mm-collection-card.is-count-1 {
       width: 100%;
       min-width: 100%;
     }
 
-    .mm-collection-item.is-count-2 {
+    .mm-collection-card.is-count-2 {
       width: calc(50% - 4px);
       min-width: calc(50% - 4px);
     }
 
-    .mm-collection-item.is-count-3 {
+    .mm-collection-card.is-count-3 {
       width: calc(33.333% - 6px);
       min-width: calc(33.333% - 6px);
     }
 
-    .mm-collection-item.is-count-4,
-    .mm-collection-item.is-count-many {
+    .mm-collection-card.is-count-4,
+    .mm-collection-card.is-count-many {
       width: calc(33.333% - 6px);
       min-width: calc(33.333% - 6px);
     }
@@ -289,10 +360,11 @@
   @media (min-width: 1024px) {
     .mm-collection-viewport {
       cursor: default;
+      touch-action: auto;
     }
 
-    .mm-collection-item.is-count-4,
-    .mm-collection-item.is-count-many {
+    .mm-collection-card.is-count-4,
+    .mm-collection-card.is-count-many {
       width: calc(25% - 6px);
       min-width: calc(25% - 6px);
     }
@@ -399,7 +471,7 @@
     <div
       id="mmHomeCollectionViewport"
       class="mm-collection-viewport mm-no-scrollbar"
-      data-home-collection-scroll
+      data-mm-collection-scroll
       data-lenis-prevent
       aria-label="Bộ sưu tập MMESTLINE"
     >
@@ -419,8 +491,7 @@
 
           <a
             href="/shop?collection={{ collection.slug }}"
-            class="mm-collection-item {{ count_class }} mm-slide-reveal mm-slide-zoom group"
-            data-nav
+            class="mm-collection-card {{ count_class }} mm-slide-reveal mm-slide-zoom group"
             draggable="false"
             aria-label="{{ collection.name }}"
           >
@@ -454,15 +525,15 @@
               {% endif %}
             </div>
 
-            <div class="mm-collection-overlay absolute inset-0 bg-black/10 transition-colors duration-500 group-hover:bg-black/30"></div>
+            <div class="mm-collection-overlay"></div>
 
-            <div class="absolute bottom-5 left-5 z-10 pr-5">
-              <h3 class="mm-collection-title px-4 py-2 text-[10px] font-black uppercase tracking-widest shadow-sm md:text-[11px]">
+            <div class="mm-collection-info">
+              <h3 class="mm-collection-title">
                 {{ collection.name }}
               </h3>
 
               {% if collection.description %}
-                <p class="mt-3 line-clamp-2 translate-y-2 text-[11px] font-medium leading-relaxed text-white opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+                <p class="mm-collection-desc">
                   {{ collection.description }}
                 </p>
               {% endif %}
@@ -672,22 +743,29 @@
     videos.forEach((video) => observer.observe(video));
   }
 
-  function initHomeCollectionScroll() {
-    const viewport = document.querySelector("[data-home-collection-scroll]");
+  function initCollectionSwipe() {
+    const viewport = document.querySelector("[data-mm-collection-scroll]");
     const progress = document.querySelector("[data-collection-progress]");
 
-    if (!viewport || viewport.dataset.ready === "1") return;
+    if (!viewport || viewport.dataset.collectionSwipeReady === "1") return;
 
-    viewport.dataset.ready = "1";
+    viewport.dataset.collectionSwipeReady = "1";
 
+    let isDown = false;
+    let hasDragged = false;
+    let lockAxis = null;
     let startX = 0;
     let startY = 0;
-    let hasMoved = false;
+    let startScrollLeft = 0;
+
+    function maxScroll() {
+      return Math.max(0, viewport.scrollWidth - viewport.clientWidth);
+    }
 
     function updateProgress() {
       if (!progress) return;
 
-      const max = viewport.scrollWidth - viewport.clientWidth;
+      const max = maxScroll();
 
       if (max <= 0) {
         progress.style.width = "100%";
@@ -698,70 +776,84 @@
       progress.style.width = value + "%";
     }
 
+    function onStart(clientX, clientY) {
+      isDown = true;
+      hasDragged = false;
+      lockAxis = null;
+      startX = clientX;
+      startY = clientY;
+      startScrollLeft = viewport.scrollLeft;
+      viewport.classList.add("is-dragging");
+    }
+
+    function onMove(clientX, clientY, event) {
+      if (!isDown) return;
+
+      const dx = clientX - startX;
+      const dy = clientY - startY;
+
+      if (!lockAxis) {
+        if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+        lockAxis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+      }
+
+      if (lockAxis !== "x") return;
+
+      hasDragged = true;
+
+      if (event && event.cancelable) {
+        event.preventDefault();
+      }
+
+      viewport.scrollLeft = startScrollLeft - dx;
+      updateProgress();
+    }
+
+    function onEnd() {
+      if (!isDown) return;
+
+      isDown = false;
+      lockAxis = null;
+      viewport.classList.remove("is-dragging");
+
+      window.setTimeout(() => {
+        hasDragged = false;
+      }, 140);
+    }
+
     viewport.addEventListener("scroll", updateProgress, { passive: true });
 
     viewport.addEventListener("touchstart", function (event) {
       const touch = event.touches && event.touches[0];
       if (!touch) return;
 
-      startX = touch.clientX;
-      startY = touch.clientY;
-      hasMoved = false;
-      viewport.classList.add("is-dragging");
+      onStart(touch.clientX, touch.clientY);
     }, { passive: true });
 
     viewport.addEventListener("touchmove", function (event) {
       const touch = event.touches && event.touches[0];
       if (!touch) return;
 
-      const dx = Math.abs(touch.clientX - startX);
-      const dy = Math.abs(touch.clientY - startY);
+      onMove(touch.clientX, touch.clientY, event);
+    }, { passive: false });
 
-      if (dx > 8 && dx > dy) {
-        hasMoved = true;
-      }
-    }, { passive: true });
+    viewport.addEventListener("touchend", onEnd, { passive: true });
+    viewport.addEventListener("touchcancel", onEnd, { passive: true });
 
-    viewport.addEventListener("touchend", function () {
-      viewport.classList.remove("is-dragging");
-
-      window.setTimeout(function () {
-        hasMoved = false;
-      }, 90);
-    }, { passive: true });
-
-    viewport.addEventListener("pointerdown", function (event) {
-      if (event.pointerType !== "mouse") return;
+    viewport.addEventListener("mousedown", function (event) {
       if (event.button !== 0) return;
-
-      startX = event.clientX;
-      startY = event.clientY;
-      hasMoved = false;
-      viewport.classList.add("is-dragging");
+      onStart(event.clientX, event.clientY);
     });
 
-    viewport.addEventListener("pointermove", function (event) {
-      if (event.pointerType !== "mouse") return;
-
-      const dx = Math.abs(event.clientX - startX);
-      const dy = Math.abs(event.clientY - startY);
-
-      if (dx > 8 && dx > dy) {
-        hasMoved = true;
-      }
+    window.addEventListener("mousemove", function (event) {
+      onMove(event.clientX, event.clientY, event);
     });
 
-    viewport.addEventListener("pointerup", function () {
-      viewport.classList.remove("is-dragging");
+    window.addEventListener("mouseup", onEnd);
 
-      window.setTimeout(function () {
-        hasMoved = false;
-      }, 90);
-    });
-
-    viewport.querySelectorAll("a").forEach(function (link) {
+    viewport.querySelectorAll("a").forEach((link) => {
       link.addEventListener("click", function (event) {
-        if (!hasMoved) return;
+        if (!hasDragged) return;
 
         event.preventDefault();
         event.stopPropagation();
@@ -769,62 +861,13 @@
     });
 
     updateProgress();
-
     window.addEventListener("resize", updateProgress, { passive: true });
-  }
-
-  function initLegacySliderIfExists() {
-    const container = document.getElementById("slider-container");
-
-    if (!container || container.dataset.ready === "1") return;
-
-    container.dataset.ready = "1";
-
-    const progressBar = document.getElementById("progressBar");
-    const btnNext = document.getElementById("btnNext");
-    const btnPrev = document.getElementById("btnPrev");
-
-    const updateUI = () => {
-      const maxScroll = container.scrollWidth - container.clientWidth;
-
-      if (maxScroll <= 0) {
-        if (progressBar) progressBar.style.width = "100%";
-        if (btnPrev) btnPrev.disabled = true;
-        if (btnNext) btnNext.disabled = true;
-        return;
-      }
-
-      const progressValue = (container.scrollLeft / maxScroll) * 100;
-
-      if (progressBar) progressBar.style.width = `${progressValue}%`;
-      if (btnPrev) btnPrev.disabled = container.scrollLeft <= 5;
-      if (btnNext) btnNext.disabled = container.scrollLeft >= maxScroll - 5;
-    };
-
-    const getScrollStep = () => {
-      const item = container.querySelector(".slider-item");
-      return item ? item.offsetWidth + 24 : container.clientWidth * 0.72;
-    };
-
-    btnNext?.addEventListener("click", () => {
-      container.scrollBy({ left: getScrollStep(), behavior: "smooth" });
-    });
-
-    btnPrev?.addEventListener("click", () => {
-      container.scrollBy({ left: -getScrollStep(), behavior: "smooth" });
-    });
-
-    container.addEventListener("scroll", updateUI, { passive: true });
-    window.addEventListener("resize", updateUI, { passive: true });
-
-    updateUI();
   }
 
   function initHomePage() {
     initReveal();
     initScrollVideos();
-    initHomeCollectionScroll();
-    initLegacySliderIfExists();
+    initCollectionSwipe();
   }
 
   if (document.readyState === "loading") {
