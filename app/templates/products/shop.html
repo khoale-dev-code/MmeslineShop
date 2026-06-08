@@ -14,19 +14,15 @@
 
 {% block extra_head %}
   <meta name="csrf-token" content="{{ csrf_token() }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/shop.css') }}?v=20260608-11">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/shop.css') }}?v=20260608-13">
 
   <style>
     /*
-      SHOP MOBILE TAP FIX
+      SHOP MOBILE TAP FIX + QUICK VIEW MOBILE UI
       --------------------------------------------------
-      Lỗi hiện tại: trên mobile, chat widget/header đang bắt pointer
-      nên chỉ bấm được vài sản phẩm đầu, các sản phẩm bên dưới không vào detail.
-
-      Mục tiêu:
-      - Link sản phẩm luôn nằm đúng trong card.
-      - Chat khi đang đóng không được phủ và bắt click trên grid.
-      - Vẫn giữ nút mở chat hoạt động.
+      - Link sản phẩm không bị tràn khỏi card.
+      - Chat khi đóng không phủ lên shop.
+      - Quick view mobile chuyển thành bottom sheet gọn hơn.
     */
 
     .mm-shop {
@@ -96,11 +92,6 @@
     }
 
     @media (max-width: 767px) {
-      /*
-        Chat widget khi đóng chỉ được để nút toggle bấm được.
-        Các panel/header/body chat không được phủ lên sản phẩm.
-      */
-
       body:not(.mm-chat-open) .mm-chat-header,
       body:not(.mm-chat-open) .mm-chat-body,
       body:not(.mm-chat-open) .mm-chat-panel,
@@ -139,9 +130,387 @@
         pointer-events: auto !important;
       }
     }
+
+    /*
+      QUICK VIEW — dùng trực tiếp trong shop.html để ghi đè modal cũ.
+    */
+
+    .mm-qv-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 2200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .mm-qv-modal.open {
+      display: flex !important;
+    }
+
+    .mm-qv-backdrop {
+      position: absolute;
+      inset: 0;
+      border: 0;
+      background: rgba(0, 0, 0, .52);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+
+    .mm-qv-sheet {
+      position: relative;
+      z-index: 2;
+      width: min(920px, calc(100vw - 28px));
+      max-height: min(86dvh, 720px);
+      overflow: hidden;
+      border: 1px solid rgba(16, 21, 16, .12);
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: 0 32px 90px -48px rgba(0, 0, 0, .55);
+      transform: translateY(12px) scale(.985);
+      opacity: 0;
+      transition:
+        transform .24s cubic-bezier(.16, 1, .3, 1),
+        opacity .2s ease;
+    }
+
+    .mm-qv-modal.open .mm-qv-sheet {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+
+    .mm-qv-handle {
+      display: none;
+    }
+
+    .mm-qv-close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 10;
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(16, 21, 16, .1);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .94);
+      color: #101510;
+      box-shadow: 0 14px 30px -22px rgba(0, 0, 0, .35);
+      transition:
+        transform .18s ease,
+        background .18s ease,
+        color .18s ease;
+    }
+
+    .mm-qv-close:hover {
+      background: #101510;
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    .mm-qv-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 46%) minmax(0, 54%);
+      min-height: 520px;
+    }
+
+    .mm-qv-media {
+      position: relative;
+      overflow: hidden;
+      background: #f6f6f6;
+    }
+
+    .mm-qv-media img {
+      width: 100%;
+      height: 100%;
+      min-height: 520px;
+      display: block;
+      object-fit: cover;
+      object-position: top center;
+    }
+
+    .mm-qv-content {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 34px 30px 28px;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .mm-qv-kicker {
+      margin: 0 0 10px;
+      color: #b98b62;
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .2em;
+      line-height: 1.25;
+      text-transform: uppercase;
+    }
+
+    .mm-qv-title {
+      margin: 0;
+      color: #241207;
+      font-size: clamp(25px, 2.6vw, 36px);
+      font-weight: 950;
+      line-height: 1.06;
+      letter-spacing: -.045em;
+      text-transform: uppercase;
+      text-wrap: balance;
+    }
+
+    .mm-qv-price {
+      margin: 22px 0 0;
+      color: #241207;
+      font-size: 26px;
+      font-weight: 950;
+      letter-spacing: -.04em;
+    }
+
+    .mm-qv-field {
+      margin-top: 26px;
+      padding-top: 22px;
+      border-top: 1px solid rgba(36, 18, 7, .1);
+    }
+
+    .mm-qv-label {
+      display: block;
+      margin-bottom: 10px;
+      color: #b98b62;
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+
+    .mm-qv-select {
+      width: 100%;
+      height: 48px;
+      border: 1px solid rgba(36, 18, 7, .14);
+      border-radius: 8px;
+      background: #fff;
+      padding: 0 14px;
+      color: #241207;
+      font-size: 13px;
+      font-weight: 800;
+      outline: none;
+    }
+
+    .mm-qv-select:focus {
+      border-color: #241207;
+      box-shadow: 0 0 0 4px rgba(36, 18, 7, .08);
+    }
+
+    .mm-qv-actions {
+      margin-top: auto;
+      padding-top: 28px;
+      display: grid;
+      grid-template-columns: 1fr 150px;
+      gap: 10px;
+    }
+
+    .mm-qv-add,
+    .mm-qv-detail {
+      height: 48px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .15em;
+      line-height: 1;
+      text-transform: uppercase;
+      transition:
+        transform .18s cubic-bezier(.16, 1, .3, 1),
+        background .18s ease,
+        color .18s ease,
+        border-color .18s ease;
+    }
+
+    .mm-qv-add {
+      border: 1px solid #241207;
+      background: #241207;
+      color: #fff;
+    }
+
+    .mm-qv-add:hover {
+      background: #1b4922;
+      border-color: #1b4922;
+    }
+
+    .mm-qv-detail {
+      border: 1px solid rgba(36, 18, 7, .14);
+      background: #fff;
+      color: #241207;
+      text-decoration: none;
+    }
+
+    .mm-qv-detail:hover {
+      border-color: #241207;
+    }
+
+    .mm-qv-add:active,
+    .mm-qv-detail:active {
+      transform: scale(.97);
+    }
+
+    .mm-qv-add:disabled {
+      border-color: #e5e5e5;
+      background: #f1f1f1;
+      color: #aaa;
+      cursor: not-allowed;
+    }
+
+    @media (max-width: 767px) {
+      .mm-qv-modal {
+        align-items: flex-end;
+        justify-content: center;
+      }
+
+      .mm-qv-sheet {
+        width: 100%;
+        max-height: 92dvh;
+        border-radius: 18px 18px 0 0;
+        border-left: 0;
+        border-right: 0;
+        border-bottom: 0;
+        transform: translateY(32px);
+      }
+
+      .mm-qv-handle {
+        position: absolute;
+        top: 8px;
+        left: 50%;
+        z-index: 12;
+        display: block;
+        width: 44px;
+        height: 4px;
+        border-radius: 999px;
+        background: rgba(36, 18, 7, .18);
+        transform: translateX(-50%);
+      }
+
+      .mm-qv-close {
+        top: 14px;
+        right: 14px;
+        width: 36px;
+        height: 36px;
+      }
+
+      .mm-qv-layout {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        max-height: 92dvh;
+      }
+
+      .mm-qv-media {
+        height: 34dvh;
+        max-height: 300px;
+        min-height: 230px;
+        flex: 0 0 auto;
+      }
+
+      .mm-qv-media img {
+        height: 100%;
+        min-height: 0;
+        object-fit: contain;
+        object-position: center;
+        padding: 14px 34px 10px;
+      }
+
+      .mm-qv-content {
+        max-height: calc(92dvh - 230px);
+        min-height: 0;
+        padding: 16px 16px calc(92px + env(safe-area-inset-bottom, 0px));
+        overflow: auto;
+      }
+
+      .mm-qv-kicker {
+        margin-bottom: 8px;
+        font-size: 9px;
+        letter-spacing: .17em;
+      }
+
+      .mm-qv-title {
+        font-size: 21px;
+        line-height: 1.15;
+        letter-spacing: -.04em;
+      }
+
+      .mm-qv-price {
+        margin-top: 16px;
+        font-size: 23px;
+      }
+
+      .mm-qv-field {
+        margin-top: 18px;
+        padding-top: 16px;
+      }
+
+      .mm-qv-label {
+        font-size: 9px;
+      }
+
+      .mm-qv-select {
+        height: 46px;
+        border-radius: 8px;
+        font-size: 12px;
+      }
+
+      .mm-qv-actions {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 20;
+        margin: 0;
+        padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+        grid-template-columns: 1fr 48px;
+        gap: 8px;
+        border-top: 1px solid rgba(36, 18, 7, .1);
+        background: rgba(255, 255, 255, .95);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        box-shadow: 0 -18px 44px -34px rgba(0, 0, 0, .38);
+      }
+
+      .mm-qv-add,
+      .mm-qv-detail {
+        height: 48px;
+        border-radius: 999px;
+      }
+
+      .mm-qv-add {
+        font-size: 10px;
+        letter-spacing: .13em;
+      }
+
+      .mm-qv-detail {
+        width: 48px;
+        padding: 0;
+        font-size: 0;
+      }
+
+      .mm-qv-detail span {
+        display: none;
+      }
+
+      .mm-qv-detail i {
+        font-size: 13px;
+      }
+
+      body.mm-qv-open #gua-ai-chat,
+      body.mm-qv-open .mm-chat-widget {
+        display: none !important;
+        pointer-events: none !important;
+      }
+    }
   </style>
 {% endblock %}
-
 {% block content %}
 {% set shop_banner = storefront.shop_banner_url if storefront is defined and storefront and storefront.shop_banner_url else 'https://d2w9rnfcy7mm78.cloudfront.net/29334430/original_f3ab732e0aeafd6b8cd6002334dcc905.gif?1720621365?bc=0' %}
 
@@ -406,24 +775,22 @@
                 </button>
               </div>
 
-              <div class="mm-addbar">
-                <button
-                  type="button"
-                  class="mm-add"
-                  data-add
-                  {% if stock <= 0 %}disabled{% endif %}
-                >
-                  {% if stock <= 0 %}
-                    Hết hàng
-                  {% else %}
-                    Thêm vào giỏ
-                  {% endif %}
-                </button>
-
-                <button type="button" class="mm-quick" data-quick aria-label="Xem nhanh">
-                  <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                </button>
-              </div>
+          <div class="mm-addbar mm-addbar-icon">
+          <button
+            type="button"
+            class="mm-add mm-add-icon"
+            data-add
+            aria-label="{% if stock <= 0 %}Sản phẩm hết hàng{% else %}Thêm {{ product.name }} vào giỏ hàng{% endif %}"
+            title="{% if stock <= 0 %}Hết hàng{% else %}Thêm vào giỏ{% endif %}"
+            {% if stock <= 0 %}disabled{% endif %}
+          >
+            {% if stock <= 0 %}
+              <i class="fa-solid fa-ban" aria-hidden="true"></i>
+            {% else %}
+              <i class="fa-solid fa-cart-plus" aria-hidden="true"></i>
+            {% endif %}
+          </button>
+        </div>
 
               {% if stock <= 0 %}
                 <span class="mm-badge sold">Sold Out</span>
@@ -571,49 +938,86 @@
   </aside>
 </div>
 
-{# QUICK VIEW MODAL #}
-<div class="mm-modal" id="quickModal">
-  <div class="mm-backdrop" data-close-quick></div>
+{# QUICK VIEW MODAL — Mobile Optimized #}
+<div
+  class="mm-modal mm-qv-modal"
+  id="quickModal"
+  aria-hidden="true"
+>
+  <button
+    type="button"
+    class="mm-qv-backdrop"
+    data-close-quick
+    aria-label="Đóng xem nhanh"
+  ></button>
 
-  <section class="mm-qv-panel">
-    <div class="mm-qv-img">
-      <img id="qvImg" src="" alt="">
-    </div>
+  <section
+    class="mm-qv-sheet"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="qvTitle"
+  >
+    <div class="mm-qv-handle" aria-hidden="true"></div>
 
-    <div class="mm-qv-info">
-      <div class="flex items-start justify-between gap-4">
-        <div>
-          <p id="qvCat" class="mm-cat"></p>
+    <button
+      type="button"
+      class="mm-qv-close"
+      data-close-quick
+      aria-label="Đóng"
+    >
+      <i class="fa-solid fa-xmark"></i>
+    </button>
 
-          <h2
-            id="qvTitle"
-            class="mt-2 text-2xl md:text-3xl font-black uppercase tracking-[-.04em] text-[#241207]"
-          ></h2>
+    <div class="mm-qv-layout">
+      <div class="mm-qv-media">
+        <img
+          id="qvImg"
+          src=""
+          alt=""
+          width="900"
+          height="1200"
+          loading="eager"
+          decoding="async"
+        >
+      </div>
+
+      <div class="mm-qv-content">
+        <div class="mm-qv-main-info">
+          <p id="qvCat" class="mm-qv-kicker">MMESTLINE</p>
+
+          <h2 id="qvTitle" class="mm-qv-title"></h2>
+
+          <p id="qvPrice" class="mm-qv-price"></p>
+
+          <div class="mm-qv-field">
+            <label for="qvVariant" class="mm-qv-label">
+              Phân loại
+            </label>
+
+            <select id="qvVariant" class="mm-qv-select"></select>
+          </div>
         </div>
 
-        <button type="button" class="mm-btn !w-10 !px-0 shrink-0" data-close-quick>
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
+        <div class="mm-qv-actions">
+          <button
+            type="button"
+            id="qvAdd"
+            class="mm-qv-add"
+          >
+            <i class="fa-solid fa-cart-plus"></i>
+            <span>Thêm vào giỏ</span>
+          </button>
 
-      <p id="qvPrice" class="text-2xl font-black text-[#241207]"></p>
-
-      <div>
-        <label class="mb-2 block text-[10px] font-black uppercase tracking-[.18em] text-[#b98b62]">
-          Phân loại
-        </label>
-
-        <select id="qvVariant" class="mm-select"></select>
-      </div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-auto">
-        <button type="button" id="qvAdd" class="mm-btn !h-12 !bg-[#241207] !text-white">
-          Thêm vào giỏ
-        </button>
-
-        <a id="qvLink" href="#" class="mm-btn !h-12">
-          Xem chi tiết
-        </a>
+          <a
+            id="qvLink"
+            href="#"
+            class="mm-qv-detail"
+            aria-label="Xem chi tiết sản phẩm"
+          >
+            <span>Xem chi tiết</span>
+            <i class="fa-solid fa-arrow-right"></i>
+          </a>
+        </div>
       </div>
     </div>
   </section>
@@ -621,7 +1025,40 @@
 
 <div class="mm-toast" id="shopToast"></div>
 {% endblock %}
-
 {% block extra_scripts %}
-  <script src="{{ url_for('static', filename='js/shop.js') }}?v=20260608-11" defer></script>
+  <script src="{{ url_for('static', filename='js/shop.js') }}?v=20260608-13" defer></script>
+
+  <script>
+    /*
+      Quick View body-state bridge:
+      Nếu shop.js hiện tại chưa thêm body.mm-qv-open thì đoạn này tự đồng bộ,
+      giúp ẩn chat khi quick view mở ở mobile.
+    */
+    document.addEventListener("DOMContentLoaded", function () {
+      var quickModal = document.getElementById("quickModal");
+
+      if (!quickModal) return;
+
+      function syncQuickViewState() {
+        document.body.classList.toggle(
+          "mm-qv-open",
+          quickModal.classList.contains("open")
+        );
+
+        quickModal.setAttribute(
+          "aria-hidden",
+          quickModal.classList.contains("open") ? "false" : "true"
+        );
+      }
+
+      var observer = new MutationObserver(syncQuickViewState);
+
+      observer.observe(quickModal, {
+        attributes: true,
+        attributeFilter: ["class"]
+      });
+
+      syncQuickViewState();
+    });
+  </script>
 {% endblock %}

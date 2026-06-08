@@ -1038,3 +1038,237 @@
     scroll-behavior: auto !important;
   }
 }
+/* ==========================================================================
+   Mobile product action buttons - compact icon version
+   ========================================================================== */
+
+.mm-addbar-icon {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  left: auto;
+  z-index: 22;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  width: auto;
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.mm-add-icon,
+.mm-quick-icon {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1;
+  box-shadow: 0 14px 34px -22px rgba(0, 0, 0, .5);
+  transition:
+    transform .18s cubic-bezier(.16, 1, .3, 1),
+    background .18s ease,
+    color .18s ease,
+    border-color .18s ease,
+    opacity .18s ease;
+}
+
+.mm-add-icon {
+  border: 1px solid rgba(16, 21, 16, .88);
+  background: #101510;
+  color: #fff;
+}
+
+.mm-add-icon:hover {
+  background: #1b4922;
+  border-color: #1b4922;
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+.mm-add-icon:active,
+.mm-quick-icon:active {
+  transform: scale(.94);
+}
+
+.mm-add-icon:disabled {
+  background: rgba(16, 21, 16, .42);
+  border-color: rgba(16, 21, 16, .08);
+  color: rgba(255, 255, 255, .78);
+  cursor: not-allowed;
+  opacity: .85;
+}
+
+.mm-quick-icon {
+  border: 1px solid rgba(16, 21, 16, .1);
+  background: rgba(255, 255, 255, .94);
+  color: #101510;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.mm-quick-icon:hover {
+  border-color: #101510;
+  background: #fff;
+  color: #1b4922;
+  transform: translateY(-2px);
+}
+
+@media (min-width: 768px) {
+  .mm-addbar-icon {
+    right: 12px;
+    bottom: 12px;
+    gap: 8px;
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  .mm-card:hover .mm-addbar-icon {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .mm-add-icon,
+  .mm-quick-icon {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+  }
+}
+
+@media (max-width: 767px) {
+  .mm-addbar-icon {
+    right: 7px;
+    bottom: 7px;
+    gap: 6px;
+  }
+
+  .mm-add-icon,
+  .mm-quick-icon {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    font-size: 12px;
+    box-shadow: 0 10px 24px -18px rgba(0, 0, 0, .45);
+  }
+
+  .mm-actions {
+    top: 7px;
+    right: 7px;
+  }
+
+  .mm-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .mm-badge {
+    top: 7px;
+    left: 7px;
+  }
+}
+/* ==========================================================================
+   Product card mobile action - only cart icon at bottom
+   ========================================================================== */
+
+.mm-addbar-icon {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  left: auto;
+  z-index: 22;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: auto;
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.mm-add-icon {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(16, 21, 16, .88);
+  background: #101510;
+  color: #fff;
+  font-size: 14px;
+  line-height: 1;
+  box-shadow: 0 14px 34px -22px rgba(0, 0, 0, .5);
+  transition:
+    transform .18s cubic-bezier(.16, 1, .3, 1),
+    background .18s ease,
+    color .18s ease,
+    border-color .18s ease,
+    opacity .18s ease;
+}
+
+.mm-add-icon:hover {
+  background: #1b4922;
+  border-color: #1b4922;
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+.mm-add-icon:active {
+  transform: scale(.94);
+}
+
+.mm-add-icon:disabled {
+  background: rgba(16, 21, 16, .42);
+  border-color: rgba(16, 21, 16, .08);
+  color: rgba(255, 255, 255, .78);
+  cursor: not-allowed;
+  opacity: .85;
+}
+
+/* Ẩn hoàn toàn quick icon cũ nếu HTML cũ còn sót */
+.mm-addbar-icon .mm-quick,
+.mm-addbar-icon .mm-quick-icon {
+  display: none !important;
+}
+
+@media (min-width: 768px) {
+  .mm-addbar-icon {
+    right: 12px;
+    bottom: 12px;
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  .mm-card:hover .mm-addbar-icon {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .mm-add-icon {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+  }
+}
+
+@media (max-width: 767px) {
+  .mm-addbar-icon {
+    right: 7px;
+    bottom: 7px;
+  }
+
+  .mm-add-icon {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    font-size: 12px;
+    box-shadow: 0 10px 24px -18px rgba(0, 0, 0, .45);
+  }
+}
