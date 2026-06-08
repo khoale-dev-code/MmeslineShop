@@ -3,19 +3,19 @@
   ===================
   MMESTLINE AI Chat Widget
 
-  Theme:
-  - Green: #1b4922
-  - Gold:  #c99e14
-
-  API:
-  - POST /api/bot
-  - payload: { session_id, message }
+  Fix chính:
+  - Khi chat đóng: wrapper không bắt click, chỉ nút FAB bắt click.
+  - .mm-chat-window.hidden luôn display:none !important để không đè UI mobile.
+  - Khi chat mở: body thêm class mm-chat-open.
+  - Ở mobile/detail: FAB nâng lên khỏi vùng nút thêm giỏ hàng.
+  - Không auto-call /api/bot khi load trang.
 #}
 
 <div
   id="gua-ai-chat"
-  class="fixed bottom-4 right-4 z-[200] flex flex-col items-end gap-3 font-sans sm:bottom-6 sm:right-6"
+  class="mm-chat-widget fixed z-[160] font-sans"
   data-lenis-prevent
+  data-chat-widget
 >
   {# ───────────────── CHAT WINDOW ───────────────── #}
   <div
@@ -24,9 +24,9 @@
     role="dialog"
     aria-modal="false"
     aria-labelledby="mmChatTitle"
+    data-chat-window
   >
-    {# Header #}
-    <div class="mm-chat-header">
+    <div class="mm-chat-header" data-chat-header>
       <div class="mm-chat-header-left">
         <div class="mm-chat-avatar">
           <i class="fa-solid fa-sparkles"></i>
@@ -46,21 +46,19 @@
 
       <button
         type="button"
-        onclick="toggleBot()"
         class="mm-chat-close"
+        data-chat-close
         aria-label="Đóng chat"
       >
         <i class="fa-solid fa-chevron-down"></i>
       </button>
     </div>
 
-    {# Intro strip #}
     <div class="mm-chat-strip">
       <p>AI Stylist / chọn size / gợi ý phối đồ</p>
     </div>
 
-    {# Messages #}
-    <div id="chatbot-messages" class="mm-chat-messages">
+    <div id="chatbot-messages" class="mm-chat-messages" data-chat-body>
       <div class="mm-msg mm-msg-ai chat-bubble-anim">
         <div class="mm-msg-avatar">AI</div>
 
@@ -71,15 +69,14 @@
           </p>
 
           <div class="mm-chat-suggestions">
-            <button type="button" onclick="quickAskBot('Tư vấn size cho tôi')">Tư vấn size</button>
-            <button type="button" onclick="quickAskBot('Gợi ý phối đồ đi chơi')">Phối đồ</button>
-            <button type="button" onclick="quickAskBot('Tìm sản phẩm mới nhất')">Tìm sản phẩm</button>
+            <button type="button" data-quick-ask="Tư vấn size cho tôi">Tư vấn size</button>
+            <button type="button" data-quick-ask="Gợi ý phối đồ đi chơi">Phối đồ</button>
+            <button type="button" data-quick-ask="Tìm sản phẩm mới nhất">Tìm sản phẩm</button>
           </div>
         </div>
       </div>
     </div>
 
-    {# Input #}
     <div class="mm-chat-input-wrap">
       <div class="mm-chat-input-box">
         <input
@@ -88,13 +85,12 @@
           placeholder="Hỏi Stylist về phối đồ, chọn size..."
           autocomplete="off"
           class="mm-chat-input"
-          onkeydown="if(event.key === 'Enter' && !event.shiftKey) sendBotMessage()"
         >
 
         <button
           type="button"
-          onclick="sendBotMessage()"
           class="mm-chat-send"
+          data-chat-send
           aria-label="Gửi tin nhắn"
         >
           <i class="fa-solid fa-paper-plane"></i>
@@ -110,9 +106,9 @@
   {# ───────────────── FLOAT BUTTON ───────────────── #}
   <button
     type="button"
-    onclick="toggleBot()"
     id="bot-toggle-btn"
     class="mm-chat-fab"
+    data-chat-toggle
     aria-label="Mở chat tư vấn"
     aria-expanded="false"
   >
@@ -148,6 +144,30 @@
     --chat-radius: 14px;
     --chat-radius-sm: 8px;
     --chat-ease: cubic-bezier(.16, 1, .3, 1);
+
+    right: 1rem;
+    bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: .75rem;
+    pointer-events: none;
+  }
+
+  #gua-ai-chat * {
+    box-sizing: border-box;
+  }
+
+  /*
+    FIX TẬN GỐC:
+    CSS cũ .mm-chat-window display:flex có thể ghi đè .hidden.
+    Dòng này bắt buộc để chat đóng không còn tồn tại trên UI và không bắt pointer.
+  */
+  .mm-chat-window.hidden {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
   }
 
   .mm-chat-window {
@@ -168,14 +188,20 @@
     transform-origin: bottom right;
     transform: translate3d(0, 10px, 0) scale(.96);
     opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
     transition:
       opacity .24s var(--chat-ease),
-      transform .24s var(--chat-ease);
+      transform .24s var(--chat-ease),
+      visibility .24s var(--chat-ease);
     backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
   }
 
   .mm-chat-window.is-open {
     opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
     transform: translate3d(0, 0, 0) scale(1);
   }
 
@@ -290,6 +316,7 @@
       linear-gradient(180deg, rgba(255,255,255,.5), rgba(247,249,242,.6));
     scrollbar-width: thin;
     scrollbar-color: rgba(27, 73, 34, .55) transparent;
+    -webkit-overflow-scrolling: touch;
   }
 
   .mm-chat-messages::-webkit-scrollbar {
@@ -521,6 +548,7 @@
       background .18s ease,
       border-color .18s ease;
     overflow: hidden;
+    pointer-events: auto;
   }
 
   .mm-chat-fab:hover {
@@ -642,25 +670,47 @@
     flex-shrink: 0;
   }
 
+  /*
+    MOBILE:
+    - Chat đóng: chỉ nút FAB bắt pointer.
+    - Chat mở: window bắt pointer.
+    - FAB nâng cao hơn để không che nút thêm vào giỏ ở trang chi tiết.
+  */
   @media (max-width: 640px) {
     #gua-ai-chat {
       right: 12px;
-      bottom: 12px;
-      left: 12px;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 92px);
+      left: auto;
       align-items: flex-end;
+      pointer-events: none;
     }
 
-    .mm-chat-window {
+    body.mm-chat-open #gua-ai-chat {
+      left: 12px;
+      pointer-events: auto;
+    }
+
+    body.mm-chat-open .mm-chat-window {
       width: 100%;
-      height: min(620px, calc(100dvh - 104px));
-      max-height: calc(100dvh - 104px);
+      height: min(620px, calc(100dvh - 128px));
+      max-height: calc(100dvh - 128px);
       border-radius: 16px;
     }
 
+    body:not(.mm-chat-open) .mm-chat-window,
+    body:not(.mm-chat-open) .mm-chat-header,
+    body:not(.mm-chat-open) .mm-chat-strip,
+    body:not(.mm-chat-open) .mm-chat-messages,
+    body:not(.mm-chat-open) .mm-chat-input-wrap {
+      pointer-events: none !important;
+      visibility: hidden !important;
+    }
+
     .mm-chat-fab {
-      width: 56px;
-      height: 56px;
+      width: 54px;
+      height: 54px;
       border-radius: 17px;
+      pointer-events: auto;
     }
 
     .mm-bubble {
@@ -668,9 +718,10 @@
     }
   }
 
-  @media (max-width: 1023px) {
-    body:has(.fixed.bottom-0) #gua-ai-chat {
-      bottom: 88px !important;
+  @media (min-width: 641px) {
+    #gua-ai-chat {
+      right: 1.5rem;
+      bottom: 1.5rem;
     }
   }
 
@@ -727,66 +778,105 @@
       return number.toLocaleString("vi-VN") + " ₫";
     }
 
-    function scrollToBottom() {
-      const chatBox = document.getElementById("chatbot-messages");
-      if (!chatBox) return;
+    function getEls() {
+      return {
+        widget: document.getElementById("gua-ai-chat"),
+        win: document.getElementById("chatbot-window"),
+        input: document.getElementById("chatbot-input"),
+        messages: document.getElementById("chatbot-messages"),
+        toggle: document.getElementById("bot-toggle-btn"),
+        close: document.querySelector("[data-chat-close]"),
+        send: document.querySelector("[data-chat-send]")
+      };
+    }
 
-      chatBox.scrollTop = chatBox.scrollHeight;
+    function scrollToBottom() {
+      const { messages } = getEls();
+
+      if (!messages) return;
+
+      messages.scrollTop = messages.scrollHeight;
     }
 
     function setFabIcon(open) {
-      const btn = document.getElementById("bot-toggle-btn");
-      if (!btn) return;
+      const { toggle } = getEls();
 
-      btn.setAttribute("aria-expanded", open ? "true" : "false");
+      if (!toggle) return;
 
-      btn.innerHTML = open
+      toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      toggle.setAttribute("aria-label", open ? "Đóng chat tư vấn" : "Mở chat tư vấn");
+
+      toggle.innerHTML = open
         ? '<svg class="mm-chat-fab-icon" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>'
         : '<span class="mm-chat-fab-pulse"></span><svg class="mm-chat-fab-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v5.279z"/></svg>';
     }
 
-    window.toggleBot = function toggleBot() {
-      const win = document.getElementById("chatbot-window");
-      const input = document.getElementById("chatbot-input");
+    function openBot() {
+      const { win, input } = getEls();
 
       if (!win) return;
 
-      const isHidden = win.classList.contains("hidden");
+      document.body.classList.add("mm-chat-open");
+      win.classList.remove("hidden");
+      win.classList.add("is-open");
 
-      if (isHidden) {
-        win.classList.remove("hidden");
-        win.classList.add("flex");
+      setFabIcon(true);
 
-        requestAnimationFrame(function () {
-          win.classList.add("is-open");
-          setFabIcon(true);
-          input?.focus();
-          scrollToBottom();
-        });
-      } else {
-        win.classList.remove("is-open");
-        setFabIcon(false);
+      window.MMScroll?.stop?.();
 
-        setTimeout(function () {
+      requestAnimationFrame(function () {
+        input?.focus();
+        scrollToBottom();
+      });
+    }
+
+    function closeBot() {
+      const { win } = getEls();
+
+      if (!win) return;
+
+      win.classList.remove("is-open");
+      document.body.classList.remove("mm-chat-open");
+
+      setFabIcon(false);
+
+      window.MMScroll?.start?.();
+
+      window.setTimeout(function () {
+        if (!document.body.classList.contains("mm-chat-open")) {
           win.classList.add("hidden");
-          win.classList.remove("flex");
-        }, 230);
+        }
+      }, 230);
+    }
+
+    window.toggleBot = function toggleBot() {
+      const { win } = getEls();
+
+      if (!win) return;
+
+      if (win.classList.contains("hidden") || !win.classList.contains("is-open")) {
+        openBot();
+      } else {
+        closeBot();
       }
     };
 
     window.quickAskBot = function quickAskBot(text) {
-      const input = document.getElementById("chatbot-input");
+      const { input } = getEls();
+
       if (!input) return;
 
+      openBot();
       input.value = text || "";
       window.sendBotMessage();
     };
 
     function appendUserMessage(message) {
-      const chatBox = document.getElementById("chatbot-messages");
-      if (!chatBox) return;
+      const { messages } = getEls();
 
-      chatBox.insertAdjacentHTML(
+      if (!messages) return;
+
+      messages.insertAdjacentHTML(
         "beforeend",
         `
         <div class="mm-msg mm-msg-user chat-bubble-anim">
@@ -799,12 +889,13 @@
     }
 
     function appendTyping() {
-      const chatBox = document.getElementById("chatbot-messages");
-      if (!chatBox) return "";
+      const { messages } = getEls();
+
+      if (!messages) return "";
 
       const typingId = "typing-" + Date.now();
 
-      chatBox.insertAdjacentHTML(
+      messages.insertAdjacentHTML(
         "beforeend",
         `
         <div id="${typingId}" class="mm-msg mm-msg-ai chat-bubble-anim">
@@ -850,8 +941,9 @@
     }
 
     function appendAiMessage(data) {
-      const chatBox = document.getElementById("chatbot-messages");
-      if (!chatBox) return;
+      const { messages } = getEls();
+
+      if (!messages) return;
 
       const reply = escapeHTML(data?.reply || "Mình chưa hiểu rõ yêu cầu. Bạn có thể mô tả thêm không?");
       let extra = "";
@@ -883,7 +975,7 @@
         extra += buildProductCards(data.products);
       }
 
-      chatBox.insertAdjacentHTML(
+      messages.insertAdjacentHTML(
         "beforeend",
         `
         <div class="mm-msg mm-msg-ai chat-bubble-anim">
@@ -898,12 +990,13 @@
     }
 
     function appendSystemMessage(message, type) {
-      const chatBox = document.getElementById("chatbot-messages");
-      if (!chatBox) return;
+      const { messages } = getEls();
+
+      if (!messages) return;
 
       const color = type === "error" ? "#dc2626" : "#1b4922";
 
-      chatBox.insertAdjacentHTML(
+      messages.insertAdjacentHTML(
         "beforeend",
         `
         <div class="flex justify-center chat-bubble-anim">
@@ -916,7 +1009,8 @@
     }
 
     window.sendBotMessage = async function sendBotMessage() {
-      const input = document.getElementById("chatbot-input");
+      const { input } = getEls();
+
       if (!input) return;
 
       const message = input.value.trim();
@@ -969,5 +1063,46 @@
         scrollToBottom();
       }
     };
+
+    function bindEvents() {
+      const { toggle, close, send, input } = getEls();
+
+      toggle?.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        window.toggleBot();
+      });
+
+      close?.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        closeBot();
+      });
+
+      send?.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        window.sendBotMessage();
+      });
+
+      input?.addEventListener("keydown", function (event) {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          window.sendBotMessage();
+        }
+      });
+
+      document.querySelectorAll("[data-quick-ask]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          window.quickAskBot(btn.dataset.quickAsk || "");
+        });
+      });
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", bindEvents, { once: true });
+    } else {
+      bindEvents();
+    }
   })();
 </script>

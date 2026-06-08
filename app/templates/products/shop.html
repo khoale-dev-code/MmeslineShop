@@ -1,750 +1,178 @@
 {% extends "base.html" %}
 
 {% block title %}
-  {% if keyword %}{{ keyword }}{% elif category %}{{ category|replace('-', ' ')|title }}{% else %}Shop All{% endif %} — MMESTLINE
+  {% if keyword %}
+    {{ keyword }} — MMESTLINE
+  {% elif category %}
+    {{ category|replace('-', ' ')|title }} — MMESTLINE
+  {% elif collection %}
+    {{ collection|replace('-', ' ')|title }} — MMESTLINE
+  {% else %}
+    Shop All — MMESTLINE
+  {% endif %}
 {% endblock %}
 
 {% block extra_head %}
-<meta name="csrf-token" content="{{ csrf_token() }}">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/shop.css') }}?v=20260608-11">
 
-<style>
-  :root{
-    --mm-ink:#111111;
-    --mm-bg:#ffffff;
-    --mm-soft:#f7f7f7;
-    --mm-line:#e5e5e5;
-    --mm-muted:#707070;
-    --mm-sub:#a3a3a3;
-    --mm-red:#b91c1c;
-    --mm-radius:5px;
-    --mm-ease:cubic-bezier(.16,1,.3,1);
-  }
+  <style>
+    /*
+      SHOP MOBILE TAP FIX
+      --------------------------------------------------
+      Lỗi hiện tại: trên mobile, chat widget/header đang bắt pointer
+      nên chỉ bấm được vài sản phẩm đầu, các sản phẩm bên dưới không vào detail.
 
-  .mm-shop{
-    background:#fff;
-    color:var(--mm-ink);
-  }
+      Mục tiêu:
+      - Link sản phẩm luôn nằm đúng trong card.
+      - Chat khi đang đóng không được phủ và bắt click trên grid.
+      - Vẫn giữ nút mở chat hoạt động.
+    */
 
-  .mm-hero{
-    height:clamp(340px,46vh,580px);
-    position:relative;
-    display:flex;
-    align-items:end;
-    overflow:hidden;
-    background:#111;
-    border-bottom:1px solid #111;
-  }
-
-  .mm-hero img,
-  .mm-hero video{
-    position:absolute;
-    inset:0;
-    width:100%;
-    height:100%;
-    object-fit:cover;
-    filter:brightness(.72) contrast(1.02);
-    transform:scale(1.01);
-  }
-
-  .mm-hero:after{
-    content:"";
-    position:absolute;
-    inset:0;
-    background:linear-gradient(to top,rgba(0,0,0,.76),rgba(0,0,0,.18) 58%,rgba(0,0,0,.04));
-  }
-
-  .mm-hero-inner{
-    position:relative;
-    z-index:2;
-    width:100%;
-    max-width:1520px;
-    margin:auto;
-    padding:0 20px 36px;
-    display:flex;
-    align-items:end;
-    justify-content:space-between;
-    gap:20px;
-  }
-
-  .mm-kicker{
-    margin:0;
-    font-size:10px;
-    font-weight:900;
-    letter-spacing:.28em;
-    text-transform:uppercase;
-    color:rgba(255,255,255,.72);
-  }
-
-  .mm-title{
-    margin-top:12px;
-    font-size:clamp(44px,8vw,108px);
-    line-height:.88;
-    font-weight:950;
-    letter-spacing:-.07em;
-    text-transform:uppercase;
-    color:#fff;
-  }
-
-  .mm-title em{
-    font-style:normal;
-    color:rgba(255,255,255,.68);
-  }
-
-  .mm-count{
-    font-size:clamp(36px,5vw,70px);
-    line-height:.9;
-    font-weight:950;
-    color:#fff;
-    text-align:right;
-  }
-
-  .mm-toolbar{
-    position:sticky;
-    top:var(--header-h,72px);
-    z-index:50;
-    border-bottom:1px solid var(--mm-line);
-    background:rgba(255,255,255,.92);
-    backdrop-filter:blur(18px);
-  }
-
-  .mm-toolbar-inner{
-    max-width:1520px;
-    margin:auto;
-    min-height:62px;
-    padding:0 20px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:14px;
-  }
-
-  .mm-btn{
-    height:40px;
-    border:1px solid var(--mm-line);
-    background:#fff;
-    color:var(--mm-ink);
-    border-radius:var(--mm-radius);
-    padding:0 14px;
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:8px;
-    font-size:10px;
-    font-weight:900;
-    letter-spacing:.15em;
-    text-transform:uppercase;
-    transition:background .18s ease,color .18s ease,border-color .18s ease,transform .18s ease;
-    cursor:pointer;
-  }
-
-  .mm-btn:hover{
-    border-color:#111;
-    background:#111;
-    color:#fff;
-  }
-
-  .mm-search{
-    height:40px;
-    width:min(360px,36vw);
-    border:1px solid var(--mm-line);
-    border-radius:var(--mm-radius);
-    background:#fff;
-    padding:0 13px;
-    display:flex;
-    align-items:center;
-    gap:10px;
-  }
-
-  .mm-search input{
-    width:100%;
-    border:0;
-    outline:0;
-    background:transparent;
-    font-size:11px;
-    font-weight:800;
-    letter-spacing:.11em;
-    text-transform:uppercase;
-    color:var(--mm-ink);
-  }
-
-  .mm-meta{
-    font-size:10px;
-    font-weight:900;
-    letter-spacing:.16em;
-    text-transform:uppercase;
-    color:var(--mm-muted);
-    white-space:nowrap;
-  }
-
-  .mm-wrap{
-    max-width:1520px;
-    margin:auto;
-    padding:26px 20px 90px;
-    background:#fff;
-  }
-
-  .mm-grid{
-    display:grid;
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:12px;
-  }
-
-  @media(min-width:760px){
-    .mm-grid{
-      grid-template-columns:repeat(3,minmax(0,1fr));
-      gap:16px;
-    }
-  }
-
-  @media(min-width:1160px){
-    .mm-grid{
-      grid-template-columns:repeat(4,minmax(0,1fr));
-      gap:18px;
+    .mm-shop {
+      position: relative;
+      z-index: 1;
     }
 
-    .mm-grid.compact{
-      grid-template-columns:repeat(5,minmax(0,1fr));
+    .mm-card {
+      position: relative !important;
+      isolation: isolate !important;
+      contain: layout paint !important;
+      overflow: hidden !important;
+      z-index: 1 !important;
     }
 
-    .mm-grid.large{
-      grid-template-columns:repeat(3,minmax(0,1fr));
-    }
-  }
-
-  .mm-card{
-    position:relative;
-    overflow:hidden;
-    border:1px solid var(--mm-line);
-    border-radius:var(--mm-radius);
-    background:#fff;
-    transition:transform .22s var(--mm-ease),box-shadow .22s var(--mm-ease),border-color .18s ease;
-  }
-
-  .mm-card:hover{
-    transform:translateY(-2px);
-    border-color:#cfcfcf;
-    box-shadow:0 18px 48px -38px rgba(0,0,0,.28);
-  }
-
-  .mm-media{
-    position:relative;
-    aspect-ratio:3/4;
-    overflow:hidden;
-    background:#f4f4f4;
-  }
-
-  .mm-img{
-    position:absolute;
-    inset:0;
-    width:100%;
-    height:100%;
-    object-fit:cover;
-    object-position:top center;
-    transition:opacity .28s ease,transform .68s var(--mm-ease);
-  }
-
-  .mm-img.alt{
-    opacity:0;
-    transform:scale(1.035);
-  }
-
-  .mm-card:hover .mm-img.main{
-    opacity:0;
-    transform:scale(1.035);
-  }
-
-  .mm-card:hover .mm-img.alt{
-    opacity:1;
-    transform:scale(1.01);
-  }
-
-  .mm-badge{
-    position:absolute;
-    top:10px;
-    left:10px;
-    z-index:6;
-    border:1px solid rgba(0,0,0,.08);
-    border-radius:var(--mm-radius);
-    background:rgba(255,255,255,.92);
-    backdrop-filter:blur(10px);
-    padding:7px 9px;
-    font-size:9px;
-    font-weight:900;
-    letter-spacing:.16em;
-    text-transform:uppercase;
-    color:#111;
-  }
-
-  .mm-badge.sold{
-    top:auto;
-    bottom:10px;
-    background:#111;
-    color:#fff;
-    border-color:#111;
-  }
-
-  .mm-actions{
-    position:absolute;
-    right:10px;
-    top:10px;
-    z-index:7;
-    display:flex;
-    flex-direction:column;
-    gap:7px;
-  }
-
-  .mm-icon{
-    width:36px;
-    height:36px;
-    border:1px solid rgba(0,0,0,.08);
-    border-radius:var(--mm-radius);
-    background:rgba(255,255,255,.92);
-    backdrop-filter:blur(10px);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    color:#111;
-    transition:background .18s ease,color .18s ease,transform .18s ease;
-    cursor:pointer;
-  }
-
-  .mm-icon:hover{
-    transform:translateY(-1px);
-    background:#111;
-    color:#fff;
-  }
-
-  .mm-icon.is-on{
-    color:var(--mm-red);
-  }
-
-  .mm-icon.is-on:hover{
-    background:#fff;
-    color:var(--mm-red);
-  }
-
-  .mm-addbar{
-    position:absolute;
-    left:10px;
-    right:10px;
-    bottom:10px;
-    z-index:7;
-    display:grid;
-    grid-template-columns:1fr 42px;
-    gap:8px;
-    opacity:0;
-    transform:translateY(10px);
-    transition:opacity .22s var(--mm-ease),transform .22s var(--mm-ease);
-  }
-
-  .mm-card:hover .mm-addbar{
-    opacity:1;
-    transform:translateY(0);
-  }
-
-  .mm-add,
-  .mm-quick{
-    height:42px;
-    border-radius:var(--mm-radius);
-    cursor:pointer;
-  }
-
-  .mm-add{
-    border:0;
-    background:#111;
-    color:#fff;
-    font-size:10px;
-    font-weight:900;
-    letter-spacing:.15em;
-    text-transform:uppercase;
-  }
-
-  .mm-add:disabled{
-    background:#9ca3af;
-    cursor:not-allowed;
-  }
-
-  .mm-quick{
-    border:1px solid var(--mm-line);
-    background:#fff;
-    color:#111;
-  }
-
-  .mm-quick:hover{
-    border-color:#111;
-  }
-
-  .mm-info{
-    padding:14px 13px 15px;
-    min-height:132px;
-    display:flex;
-    flex-direction:column;
-    gap:6px;
-  }
-
-  .mm-cat{
-    font-size:9px;
-    font-weight:900;
-    letter-spacing:.2em;
-    text-transform:uppercase;
-    color:var(--mm-muted);
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-  }
-
-  .mm-name{
-    font-size:12px;
-    font-weight:900;
-    letter-spacing:.045em;
-    line-height:1.42;
-    text-transform:uppercase;
-    color:#111;
-    display:-webkit-box;
-    -webkit-line-clamp:2;
-    -webkit-box-orient:vertical;
-    overflow:hidden;
-  }
-
-  .mm-name:hover{
-    color:#555;
-  }
-
-  .mm-price{
-    margin-top:auto;
-    display:flex;
-    align-items:baseline;
-    gap:8px;
-    flex-wrap:wrap;
-  }
-
-  .mm-price strong{
-    font-size:15px;
-    font-weight:950;
-    color:#111;
-  }
-
-  .mm-price del{
-    font-size:12px;
-    font-weight:800;
-    color:#aaa;
-  }
-
-  .mm-price span{
-    font-size:10px;
-    font-weight:950;
-    color:var(--mm-red);
-  }
-
-  .mm-drawer,
-  .mm-modal{
-    position:fixed;
-    inset:0;
-    z-index:1200;
-    display:none;
-  }
-
-  .mm-drawer.open,
-  .mm-modal.open{
-    display:block;
-  }
-
-  .mm-backdrop{
-    position:absolute;
-    inset:0;
-    background:rgba(0,0,0,.46);
-    backdrop-filter:blur(4px);
-  }
-
-  .mm-panel{
-    position:absolute;
-    right:0;
-    top:0;
-    width:min(430px,92vw);
-    height:100%;
-    background:#fff;
-    border-left:1px solid var(--mm-line);
-    display:flex;
-    flex-direction:column;
-    animation:slideIn .3s var(--mm-ease);
-  }
-
-  @keyframes slideIn{
-    from{transform:translateX(100%)}
-    to{transform:none}
-  }
-
-  .mm-panel-head{
-    height:72px;
-    border-bottom:1px solid var(--mm-line);
-    padding:0 20px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-  }
-
-  .mm-panel-body{
-    flex:1;
-    overflow:auto;
-    padding:20px;
-    display:flex;
-    flex-direction:column;
-    gap:24px;
-  }
-
-  .mm-panel-foot{
-    border-top:1px solid var(--mm-line);
-    padding:14px 20px;
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:10px;
-  }
-
-  .mm-filter-title{
-    font-size:10px;
-    font-weight:900;
-    letter-spacing:.22em;
-    text-transform:uppercase;
-    color:#111;
-    border-bottom:1px solid var(--mm-line);
-    padding-bottom:10px;
-  }
-
-  .mm-choice{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    font-size:12px;
-    font-weight:800;
-    letter-spacing:.09em;
-    text-transform:uppercase;
-    color:var(--mm-muted);
-    cursor:pointer;
-  }
-
-  .mm-choice input{
-    width:17px;
-    height:17px;
-    accent-color:#111;
-  }
-
-  .mm-chips{
-    display:flex;
-    flex-wrap:wrap;
-    gap:8px;
-  }
-
-  .mm-chip input{
-    display:none;
-  }
-
-  .mm-chip span{
-    height:34px;
-    border:1px solid var(--mm-line);
-    border-radius:var(--mm-radius);
-    background:#fff;
-    padding:0 12px;
-    display:inline-flex;
-    align-items:center;
-    font-size:10px;
-    font-weight:900;
-    letter-spacing:.11em;
-    text-transform:uppercase;
-    color:var(--mm-muted);
-    cursor:pointer;
-  }
-
-  .mm-chip input:checked + span{
-    background:#111;
-    border-color:#111;
-    color:#fff;
-  }
-
-  .mm-qv-panel{
-    position:absolute;
-    left:50%;
-    top:50%;
-    width:min(900px,94vw);
-    max-height:90dvh;
-    overflow:hidden;
-    transform:translate(-50%,-50%);
-    border:1px solid var(--mm-line);
-    border-radius:var(--mm-radius);
-    background:#fff;
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    animation:qvIn .22s var(--mm-ease);
-  }
-
-  @keyframes qvIn{
-    from{opacity:0;transform:translate(-50%,-47%) scale(.985)}
-    to{opacity:1;transform:translate(-50%,-50%) scale(1)}
-  }
-
-  .mm-qv-img{
-    aspect-ratio:3/4;
-    background:#f4f4f4;
-  }
-
-  .mm-qv-img img{
-    width:100%;
-    height:100%;
-    object-fit:cover;
-    object-position:top center;
-  }
-
-  .mm-qv-info{
-    padding:26px;
-    display:flex;
-    flex-direction:column;
-    gap:15px;
-    overflow:auto;
-  }
-
-  .mm-select{
-    height:46px;
-    border:1px solid var(--mm-line);
-    border-radius:var(--mm-radius);
-    background:#fff;
-    padding:0 13px;
-    font-size:12px;
-    font-weight:800;
-    color:#111;
-    outline:none;
-  }
-
-  .mm-toast{
-    position:fixed;
-    left:50%;
-    bottom:26px;
-    z-index:3000;
-    transform:translateX(-50%) translateY(16px);
-    opacity:0;
-    background:#111;
-    color:#fff;
-    border-radius:var(--mm-radius);
-    padding:13px 18px;
-    font-size:10px;
-    font-weight:900;
-    letter-spacing:.16em;
-    text-transform:uppercase;
-    pointer-events:none;
-    transition:.22s ease;
-  }
-
-  .mm-toast.show{
-    opacity:1;
-    transform:translateX(-50%);
-  }
-
-  .mm-empty{
-    display:none;
-    min-height:340px;
-    align-items:center;
-    justify-content:center;
-    text-align:center;
-    border:1px dashed var(--mm-line);
-    border-radius:var(--mm-radius);
-    background:#fff;
-    padding:46px 20px;
-  }
-
-  .mm-empty.show{
-    display:flex;
-  }
-
-  @media(max-width:760px){
-    .mm-hero{
-      height:42vh;
-      min-height:330px;
+    .mm-media,
+    .mm-info {
+      position: relative !important;
+      isolation: isolate !important;
     }
 
-    .mm-hero-inner{
-      flex-direction:column;
-      align-items:flex-start;
-      padding:0 16px 30px;
+    .mm-media {
+      overflow: hidden !important;
     }
 
-    .mm-count{
-      text-align:left;
+    .mm-media-link {
+      position: absolute !important;
+      inset: 0 !important;
+      z-index: 2 !important;
+      display: block !important;
+      width: 100% !important;
+      height: 100% !important;
+      max-width: 100% !important;
+      max-height: 100% !important;
+      overflow: hidden !important;
+      transform: none !important;
+      pointer-events: auto !important;
+      touch-action: manipulation !important;
+      -webkit-tap-highlight-color: transparent !important;
     }
 
-    .mm-toolbar-inner{
-      padding:0 12px;
+    .mm-media-link img {
+      pointer-events: none !important;
+      user-select: none !important;
+      -webkit-user-drag: none !important;
     }
 
-    .mm-search{
-      display:none;
+    .mm-name {
+      position: relative !important;
+      z-index: 3 !important;
+      pointer-events: auto !important;
+      touch-action: manipulation !important;
+      -webkit-tap-highlight-color: transparent !important;
+      text-decoration: none !important;
     }
 
-    .mm-wrap{
-      padding:16px 10px 70px;
+    .mm-actions,
+    .mm-addbar {
+      position: absolute !important;
+      z-index: 20 !important;
+      pointer-events: auto !important;
     }
 
-    .mm-grid{
-      gap:10px;
+    .mm-badge {
+      z-index: 18 !important;
+      pointer-events: none !important;
     }
 
-    .mm-info{
-      padding:12px;
-      min-height:126px;
-    }
+    @media (max-width: 767px) {
+      /*
+        Chat widget khi đóng chỉ được để nút toggle bấm được.
+        Các panel/header/body chat không được phủ lên sản phẩm.
+      */
 
-    .mm-name{
-      font-size:11px;
-    }
+      body:not(.mm-chat-open) .mm-chat-header,
+      body:not(.mm-chat-open) .mm-chat-body,
+      body:not(.mm-chat-open) .mm-chat-panel,
+      body:not(.mm-chat-open) .mm-chat-window,
+      body:not(.mm-chat-open) .mm-chat-box,
+      body:not(.mm-chat-open) .mm-chat-content,
+      body:not(.mm-chat-open) [data-chat-panel],
+      body:not(.mm-chat-open) [data-chat-window],
+      body:not(.mm-chat-open) [data-chat-body] {
+        pointer-events: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+      }
 
-    .mm-addbar{
-      opacity:1;
-      transform:none;
-      grid-template-columns:1fr 40px;
-    }
+      body:not(.mm-chat-open) .mm-chat,
+      body:not(.mm-chat-open) .mm-chat-widget,
+      body:not(.mm-chat-open) #mmChat,
+      body:not(.mm-chat-open) #mmChatWidget,
+      body:not(.mm-chat-open) [data-chat-widget] {
+        pointer-events: none !important;
+      }
 
-    .mm-actions{
-      top:8px;
-      right:8px;
-    }
+      body:not(.mm-chat-open) .mm-chat-toggle,
+      body:not(.mm-chat-open) #mmChatToggle,
+      body:not(.mm-chat-open) [data-chat-toggle] {
+        pointer-events: auto !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+      }
 
-    .mm-icon{
-      width:34px;
-      height:34px;
+      body.mm-chat-open .mm-chat,
+      body.mm-chat-open .mm-chat-widget,
+      body.mm-chat-open #mmChat,
+      body.mm-chat-open #mmChatWidget,
+      body.mm-chat-open [data-chat-widget] {
+        pointer-events: auto !important;
+      }
     }
-
-    .mm-qv-panel{
-      grid-template-columns:1fr;
-      width:94vw;
-      max-height:92dvh;
-      overflow:auto;
-    }
-
-    .mm-qv-img{
-      max-height:48vh;
-    }
-  }
-
-  @media(prefers-reduced-motion:reduce){
-    *{
-      transition:none!important;
-      animation:none!important;
-    }
-  }
-</style>
+  </style>
 {% endblock %}
 
 {% block content %}
 {% set shop_banner = storefront.shop_banner_url if storefront is defined and storefront and storefront.shop_banner_url else 'https://d2w9rnfcy7mm78.cloudfront.net/29334430/original_f3ab732e0aeafd6b8cd6002334dcc905.gif?1720621365?bc=0' %}
 
 <div class="mm-shop">
+  {# HERO #}
   <section class="mm-hero">
     {% if '.mp4' in shop_banner|lower or '.webm' in shop_banner|lower %}
-      <video src="{{ shop_banner }}" autoplay muted loop playsinline preload="auto"></video>
+      <video
+        src="{{ shop_banner }}"
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="auto"
+      ></video>
     {% else %}
-      <img src="{{ shop_banner }}" alt="MMESTLINE Campaign" width="1920" height="1080" loading="eager" fetchpriority="high" decoding="async">
+      <img
+        src="{{ shop_banner }}"
+        alt="MMESTLINE Campaign"
+        width="1920"
+        height="1080"
+        loading="eager"
+        fetchpriority="high"
+        decoding="async"
+      >
     {% endif %}
 
     <div class="mm-hero-inner">
       <div>
         <p class="mm-kicker">MMESTLINE — Official Store</p>
+
         <h1 class="mm-title">
           {% if keyword %}
             “<em>{{ keyword }}</em>”
@@ -759,12 +187,15 @@
       </div>
 
       <div>
-        <div class="mm-count" id="shopHeroCount">{{ total if total else products|length }}</div>
+        <div class="mm-count" id="shopHeroCount">
+          {{ total if total else products|length }}
+        </div>
         <p class="mm-kicker text-right">Products</p>
       </div>
     </div>
   </section>
 
+  {# TOOLBAR #}
   <div class="mm-toolbar">
     <div class="mm-toolbar-inner">
       <div class="flex items-center gap-3 min-w-0">
@@ -774,16 +205,36 @@
         </button>
 
         <form class="mm-search" method="GET" action="{{ url_for('products.shop') }}">
-          {% if category %}<input type="hidden" name="category" value="{{ category }}">{% endif %}
-          {% if collection %}<input type="hidden" name="collection" value="{{ collection }}">{% endif %}
-          {% if current_gender %}<input type="hidden" name="gender" value="{{ current_gender }}">{% endif %}
+          {% if category %}
+            <input type="hidden" name="category" value="{{ category }}">
+          {% endif %}
+
+          {% if collection %}
+            <input type="hidden" name="collection" value="{{ collection }}">
+          {% endif %}
+
+          {% if current_gender %}
+            <input type="hidden" name="gender" value="{{ current_gender }}">
+          {% endif %}
+
           <i class="fa-solid fa-magnifying-glass text-[#b7a191] text-xs"></i>
-          <input type="search" name="q" id="shopLiveSearch" value="{{ keyword or '' }}" placeholder="Tìm sản phẩm...">
+
+          <input
+            type="search"
+            name="q"
+            id="shopLiveSearch"
+            value="{{ keyword or '' }}"
+            placeholder="Tìm sản phẩm..."
+            autocomplete="off"
+          >
         </form>
       </div>
 
       <div class="flex items-center gap-3">
-        <span class="mm-meta"><span id="shopCount">{{ total if total else products|length }}</span> Items</span>
+        <span class="mm-meta">
+          <span id="shopCount">{{ total if total else products|length }}</span> Items
+        </span>
+
         <button type="button" class="mm-btn hidden lg:inline-flex" data-grid="large">3</button>
         <button type="button" class="mm-btn hidden lg:inline-flex" data-grid="normal">4</button>
         <button type="button" class="mm-btn hidden lg:inline-flex" data-grid="compact">5</button>
@@ -791,22 +242,36 @@
     </div>
   </div>
 
+  {# PRODUCT GRID #}
   <main class="mm-wrap">
     <div class="mm-empty" id="shopEmpty">
       <div>
-        <h2 class="text-4xl md:text-6xl font-black uppercase tracking-[-.06em] text-[#241207]">Không tìm thấy</h2>
-        <p class="mt-3 mb-6 text-sm font-semibold text-[#8a6a52]">Thử xóa bộ lọc hoặc tìm kiếm bằng từ khóa khác.</p>
-        <button type="button" class="mm-btn" data-clear-filter>Xóa bộ lọc</button>
+        <h2 class="text-4xl md:text-6xl font-black uppercase tracking-[-.06em] text-[#241207]">
+          Không tìm thấy
+        </h2>
+
+        <p class="mt-3 mb-6 text-sm font-semibold text-[#8a6a52]">
+          Thử xóa bộ lọc hoặc tìm kiếm bằng từ khóa khác.
+        </p>
+
+        <button type="button" class="mm-btn" data-clear-filter>
+          Xóa bộ lọc
+        </button>
       </div>
     </div>
 
-    {% if products %}
+    {% if products and products|length > 0 %}
       {% set ns = namespace(sizes=[], colors=[]) %}
 
       {% for p in products %}
         {% for v in (p.product_variants or []) %}
-          {% if v.size and v.size not in ns.sizes %}{% set _ = ns.sizes.append(v.size) %}{% endif %}
-          {% if v.color_name and v.color_name not in ns.colors %}{% set _ = ns.colors.append(v.color_name) %}{% endif %}
+          {% if v.size and v.size not in ns.sizes %}
+            {% set _ = ns.sizes.append(v.size) %}
+          {% endif %}
+
+          {% if v.color_name and v.color_name not in ns.colors %}
+            {% set _ = ns.colors.append(v.color_name) %}
+          {% endif %}
         {% endfor %}
       {% endfor %}
 
@@ -824,34 +289,56 @@
           {% set img2 = imgs[1] if imgs|length > 1 else img1 %}
 
           {% set category_names = [] %}
+          {% set category_names_lower = [] %}
           {% set category_slugs = [] %}
 
           {% if product.product_categories %}
             {% for pc in product.product_categories %}
               {% if pc.categories %}
-                {% if pc.categories.name and pc.categories.name not in category_names %}{% set _ = category_names.append(pc.categories.name) %}{% endif %}
-                {% if pc.categories.slug and pc.categories.slug not in category_slugs %}{% set _ = category_slugs.append(pc.categories.slug) %}{% endif %}
+                {% if pc.categories.name and pc.categories.name not in category_names %}
+                  {% set _ = category_names.append(pc.categories.name) %}
+                  {% set _ = category_names_lower.append(pc.categories.name|lower) %}
+                {% endif %}
+
+                {% if pc.categories.slug and pc.categories.slug not in category_slugs %}
+                  {% set _ = category_slugs.append(pc.categories.slug) %}
+                {% endif %}
               {% endif %}
             {% endfor %}
           {% endif %}
 
           {% if product.categories %}
-            {% if product.categories.name and product.categories.name not in category_names %}{% set _ = category_names.append(product.categories.name) %}{% endif %}
-            {% if product.categories.slug and product.categories.slug not in category_slugs %}{% set _ = category_slugs.append(product.categories.slug) %}{% endif %}
+            {% if product.categories.name and product.categories.name not in category_names %}
+              {% set _ = category_names.append(product.categories.name) %}
+              {% set _ = category_names_lower.append(product.categories.name|lower) %}
+            {% endif %}
+
+            {% if product.categories.slug and product.categories.slug not in category_slugs %}
+              {% set _ = category_slugs.append(product.categories.slug) %}
+            {% endif %}
           {% endif %}
 
           {% set display_cat = category_names[0] if category_names else 'MMESTLINE' %}
+
           {% set size_list = [] %}
           {% set color_list = [] %}
 
           {% for v in variants %}
-            {% if v.size and v.size not in size_list %}{% set _ = size_list.append(v.size) %}{% endif %}
-            {% if v.color_name and v.color_name not in color_list %}{% set _ = color_list.append(v.color_name) %}{% endif %}
+            {% if v.size and v.size not in size_list %}
+              {% set _ = size_list.append(v.size) %}
+            {% endif %}
+
+            {% if v.color_name and v.color_name not in color_list %}
+              {% set _ = color_list.append(v.color_name) %}
+            {% endif %}
           {% endfor %}
 
           {% set stock = variants|sum(attribute='stock') if variants else (product.stock or 0) %}
           {% set price = product.price or 0 %}
           {% set compare_price = product.compare_at_price or 0 %}
+          {% set product_slug_or_id = product.slug or product.id %}
+          {% set product_url = url_for('products.detail', slug=product_slug_or_id) %}
+
           {% set first_variant = namespace(id='') %}
 
           {% for v in variants %}
@@ -863,9 +350,10 @@
           <article
             class="mm-card"
             data-id="{{ product.id }}"
+            data-slug="{{ product_slug_or_id }}"
             data-name="{{ product.name|lower }}"
             data-title="{{ product.name }}"
-            data-url="/product/{{ product.slug or product.id }}"
+            data-url="{{ product_url }}"
             data-img="{{ img1 }}"
             data-price="{{ price }}"
             data-price-text="{{ '{:,.0f}'.format(price|float).replace(',', '.') }}₫"
@@ -873,17 +361,40 @@
             data-stock="{{ stock }}"
             data-first-variant="{{ first_variant.id }}"
             data-category-slugs='{{ category_slugs|tojson }}'
-            data-category-names='{{ category_names|map("lower")|list|tojson }}'
+            data-category-names='{{ category_names_lower|tojson }}'
             data-created="{{ product.created_at or '' }}"
             data-sold="{{ product.sold_count|default(0) }}"
             data-sizes='{{ size_list|tojson }}'
             data-colors='{{ color_list|tojson }}'
           >
             <div class="mm-media">
-              <a href="/product/{{ product.slug or product.id }}" class="absolute inset-0 z-[3]" aria-label="{{ product.name }}"></a>
+              <a
+                href="{{ product_url }}"
+                class="mm-media-link"
+                aria-label="Xem chi tiết {{ product.name }}"
+              >
+                <img
+                  class="mm-img main"
+                  src="{{ img1 }}"
+                  alt="{{ product.name }}"
+                  width="800"
+                  height="1067"
+                  loading="{{ 'eager' if loop.index <= 4 else 'lazy' }}"
+                  decoding="async"
+                  draggable="false"
+                >
 
-              <img class="mm-img main" src="{{ img1 }}" alt="{{ product.name }}" width="800" height="1067" loading="eager" decoding="async">
-              <img class="mm-img alt" src="{{ img2 }}" alt="{{ product.name }}" width="800" height="1067" loading="eager" decoding="async">
+                <img
+                  class="mm-img alt"
+                  src="{{ img2 }}"
+                  alt="{{ product.name }}"
+                  width="800"
+                  height="1067"
+                  loading="lazy"
+                  decoding="async"
+                  draggable="false"
+                >
+              </a>
 
               <div class="mm-actions">
                 <button type="button" class="mm-icon" data-fav aria-label="Yêu thích sản phẩm">
@@ -896,8 +407,17 @@
               </div>
 
               <div class="mm-addbar">
-                <button type="button" class="mm-add" data-add {% if stock <= 0 %}disabled{% endif %}>
-                  {% if stock <= 0 %}Hết hàng{% else %}Thêm vào giỏ{% endif %}
+                <button
+                  type="button"
+                  class="mm-add"
+                  data-add
+                  {% if stock <= 0 %}disabled{% endif %}
+                >
+                  {% if stock <= 0 %}
+                    Hết hàng
+                  {% else %}
+                    Thêm vào giỏ
+                  {% endif %}
                 </button>
 
                 <button type="button" class="mm-quick" data-quick aria-label="Xem nhanh">
@@ -915,7 +435,10 @@
             <div class="mm-info">
               <p class="mm-cat">{{ display_cat }}</p>
 
-              <a href="/product/{{ product.slug or product.id }}" class="mm-name">
+              <a
+                href="{{ product_url }}"
+                class="mm-name"
+              >
                 {{ product.name }}
               </a>
 
@@ -943,18 +466,25 @@
       </div>
 
       <script id="shopFilterMeta" type="application/json">
-        {"sizes":{{ ns.sizes|sort|tojson }},"colors":{{ ns.colors|sort|tojson }}}
+        {
+          "sizes": {{ ns.sizes|sort|tojson }},
+          "colors": {{ ns.colors|sort|tojson }}
+        }
       </script>
     {% endif %}
   </main>
 </div>
 
+{# FILTER DRAWER #}
 <div class="mm-drawer" id="filterDrawer">
   <div class="mm-backdrop" data-close-filter></div>
 
   <aside class="mm-panel">
     <div class="mm-panel-head">
-      <h2 class="text-xl font-black uppercase tracking-[-.03em]">Filter</h2>
+      <h2 class="text-xl font-black uppercase tracking-[-.03em]">
+        Filter
+      </h2>
+
       <button type="button" class="mm-btn !w-10 !px-0" data-close-filter>
         <i class="fa-solid fa-xmark"></i>
       </button>
@@ -963,25 +493,56 @@
     <div class="mm-panel-body">
       <div class="md:hidden">
         <div class="mm-filter-title mb-3">Tìm kiếm</div>
+
         <form class="mm-search !flex !w-full" method="GET" action="{{ url_for('products.shop') }}">
           <i class="fa-solid fa-magnifying-glass text-[#b7a191] text-xs"></i>
-          <input type="search" name="q" id="shopMobileSearch" value="{{ keyword or '' }}" placeholder="Tìm sản phẩm...">
+
+          <input
+            type="search"
+            name="q"
+            id="shopMobileSearch"
+            value="{{ keyword or '' }}"
+            placeholder="Tìm sản phẩm..."
+            autocomplete="off"
+          >
         </form>
       </div>
 
       <div class="space-y-3">
         <div class="mm-filter-title">Sắp xếp</div>
-        <label class="mm-choice"><input type="radio" name="shopSort" value="newest" checked><span>Mới nhất</span></label>
-        <label class="mm-choice"><input type="radio" name="shopSort" value="best"><span>Bán chạy</span></label>
-        <label class="mm-choice"><input type="radio" name="shopSort" value="price_asc"><span>Giá thấp đến cao</span></label>
-        <label class="mm-choice"><input type="radio" name="shopSort" value="price_desc"><span>Giá cao đến thấp</span></label>
+
+        <label class="mm-choice">
+          <input type="radio" name="shopSort" value="newest" checked>
+          <span>Mới nhất</span>
+        </label>
+
+        <label class="mm-choice">
+          <input type="radio" name="shopSort" value="best">
+          <span>Bán chạy</span>
+        </label>
+
+        <label class="mm-choice">
+          <input type="radio" name="shopSort" value="price_asc">
+          <span>Giá thấp đến cao</span>
+        </label>
+
+        <label class="mm-choice">
+          <input type="radio" name="shopSort" value="price_desc">
+          <span>Giá cao đến thấp</span>
+        </label>
       </div>
 
       <div class="space-y-3">
         <div class="mm-filter-title">Danh mục</div>
+
         {% for cat in global_categories or [] %}
           <label class="mm-choice">
-            <input type="checkbox" class="filter-category" value="{{ cat.slug }}" {% if category == cat.slug %}checked{% endif %}>
+            <input
+              type="checkbox"
+              class="filter-category"
+              value="{{ cat.slug }}"
+              {% if category == cat.slug %}checked{% endif %}
+            >
             <span>{{ cat.name }}</span>
           </label>
         {% endfor %}
@@ -999,12 +560,18 @@
     </div>
 
     <div class="mm-panel-foot">
-      <button type="button" class="mm-btn" data-clear-filter>Bỏ lọc</button>
-      <button type="button" class="mm-btn !bg-[#241207] !text-white" data-close-filter>Áp dụng</button>
+      <button type="button" class="mm-btn" data-clear-filter>
+        Bỏ lọc
+      </button>
+
+      <button type="button" class="mm-btn !bg-[#241207] !text-white" data-close-filter>
+        Áp dụng
+      </button>
     </div>
   </aside>
 </div>
 
+{# QUICK VIEW MODAL #}
 <div class="mm-modal" id="quickModal">
   <div class="mm-backdrop" data-close-quick></div>
 
@@ -1017,7 +584,11 @@
       <div class="flex items-start justify-between gap-4">
         <div>
           <p id="qvCat" class="mm-cat"></p>
-          <h2 id="qvTitle" class="mt-2 text-2xl md:text-3xl font-black uppercase tracking-[-.04em] text-[#241207]"></h2>
+
+          <h2
+            id="qvTitle"
+            class="mt-2 text-2xl md:text-3xl font-black uppercase tracking-[-.04em] text-[#241207]"
+          ></h2>
         </div>
 
         <button type="button" class="mm-btn !w-10 !px-0 shrink-0" data-close-quick>
@@ -1031,6 +602,7 @@
         <label class="mb-2 block text-[10px] font-black uppercase tracking-[.18em] text-[#b98b62]">
           Phân loại
         </label>
+
         <select id="qvVariant" class="mm-select"></select>
       </div>
 
@@ -1051,266 +623,5 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
-(function(){
-  "use strict";
-
-  const csrf = document.querySelector('meta[name="csrf-token"]')?.content || "";
-  const grid = document.getElementById("shopGrid");
-  const empty = document.getElementById("shopEmpty");
-  const toast = document.getElementById("shopToast");
-  const drawer = document.getElementById("filterDrawer");
-  const quick = document.getElementById("quickModal");
-  const search = document.getElementById("shopLiveSearch");
-  const mobileSearch = document.getElementById("shopMobileSearch");
-  const countEls = [document.getElementById("shopCount"), document.getElementById("shopHeroCount")].filter(Boolean);
-
-  const $ = (s,r=document) => r.querySelector(s);
-  const $$ = (s,r=document) => Array.from(r.querySelectorAll(s));
-
-  function json(v,f=[]){try{return JSON.parse(v || "")}catch(_){return f}}
-  function cards(){return grid ? $$(".mm-card", grid) : []}
-  function checked(s){return $$(s + ":checked").map(i => i.value)}
-  function money(v){return (Number(v)||0).toLocaleString("vi-VN") + "₫"}
-
-  function notify(msg){
-    if(!toast) return;
-    toast.textContent = msg;
-    toast.classList.add("show");
-    clearTimeout(toast._t);
-    toast._t = setTimeout(() => toast.classList.remove("show"), 2200);
-  }
-
-  function openDrawer(){drawer?.classList.add("open");document.body.style.overflow="hidden"}
-  function closeDrawer(){drawer?.classList.remove("open");document.body.style.overflow=""}
-  function openQuick(){quick?.classList.add("open");document.body.style.overflow="hidden"}
-  function closeQuick(){quick?.classList.remove("open");document.body.style.overflow=""}
-
-  function applyFilters(){
-    if(!grid) return;
-
-    const term = (search?.value || mobileSearch?.value || "").trim().toLowerCase();
-    const cats = checked(".filter-category");
-    const sizes = checked(".filter-size");
-    const colors = checked(".filter-color");
-    const sort = $('input[name="shopSort"]:checked')?.value || "newest";
-    const visible = [];
-
-    cards().forEach(card => {
-      const name = card.dataset.name || "";
-      const catSlugs = json(card.dataset.categorySlugs);
-      const catNames = json(card.dataset.categoryNames);
-      const cardSizes = json(card.dataset.sizes);
-      const cardColors = json(card.dataset.colors);
-
-      let ok = true;
-      if(term && !name.includes(term) && !catNames.some(c => String(c).includes(term))) ok = false;
-      if(ok && cats.length && !cats.some(c => catSlugs.includes(c))) ok = false;
-      if(ok && sizes.length && !sizes.some(s => cardSizes.includes(s))) ok = false;
-      if(ok && colors.length && !colors.some(c => cardColors.includes(c))) ok = false;
-
-      card.style.display = ok ? "" : "none";
-      if(ok) visible.push(card);
-    });
-
-    visible.sort((a,b)=>{
-      if(sort==="price_asc") return Number(a.dataset.price)-Number(b.dataset.price);
-      if(sort==="price_desc") return Number(b.dataset.price)-Number(a.dataset.price);
-      if(sort==="best") return Number(b.dataset.sold)-Number(a.dataset.sold);
-      return new Date(b.dataset.created||0) - new Date(a.dataset.created||0);
-    });
-
-    visible.forEach(card => grid.appendChild(card));
-    countEls.forEach(el => el.textContent = visible.length);
-    grid.style.display = visible.length ? "grid" : "none";
-    empty?.classList.toggle("show", visible.length === 0);
-  }
-
-  function clearFilters(){
-    $$(".filter-category,.filter-size,.filter-color").forEach(i => i.checked = false);
-    const newest = $('input[name="shopSort"][value="newest"]');
-    if(newest) newest.checked = true;
-    if(search) search.value = "";
-    if(mobileSearch) mobileSearch.value = "";
-    applyFilters();
-  }
-
-  function initChips(){
-    const meta = document.getElementById("shopFilterMeta");
-    if(!meta) return;
-
-    const data = json(meta.textContent,{sizes:[],colors:[]});
-
-    function render(list, box, group, cls){
-      const b = document.getElementById(box);
-      const g = document.getElementById(group);
-      if(!list?.length || !b || !g) return;
-
-      g.classList.remove("hidden");
-      b.innerHTML = list.map(v => {
-        const safe = String(v).replace(/"/g,"&quot;");
-        return `<label class="mm-chip"><input type="checkbox" class="${cls}" value="${safe}"><span>${safe}</span></label>`;
-      }).join("");
-    }
-
-    render(data.sizes, "sizeChips", "sizeGroup", "filter-size");
-    render(data.colors, "colorChips", "colorGroup", "filter-color");
-  }
-
-  async function addToCart(card, variantId){
-    const pid = card?.dataset.id;
-    const vid = variantId || card?.dataset.firstVariant;
-
-    if(!pid || !vid){
-      notify("Vui lòng chọn phân loại");
-      openQuickFromCard(card);
-      return;
-    }
-
-    try{
-      const res = await fetch("/cart/add",{
-        method:"POST",
-        headers:{
-          "Content-Type":"application/json",
-          "X-CSRFToken": csrf,
-          "X-Requested-With":"XMLHttpRequest"
-        },
-        body:JSON.stringify({product_id:pid, variant_id:vid, quantity:1})
-      });
-
-      if(res.status === 401){
-        notify("Vui lòng đăng nhập");
-        setTimeout(()=>location.href="/auth/login",700);
-        return;
-      }
-
-      const data = await res.json().catch(()=>({}));
-      if(!res.ok || data.success === false){
-        notify(data.message || "Không thể thêm giỏ hàng");
-        return;
-      }
-
-      notify("Đã thêm vào giỏ hàng");
-    }catch(_){
-      notify("Lỗi kết nối");
-    }
-  }
-
-  function openQuickFromCard(card){
-    if(!card) return;
-
-    $("#qvImg").src = card.dataset.img || "";
-    $("#qvTitle").textContent = card.dataset.title || "";
-    $("#qvCat").textContent = card.dataset.category || "MMESTLINE";
-    $("#qvPrice").textContent = card.dataset.priceText || money(card.dataset.price);
-    $("#qvLink").href = card.dataset.url || "#";
-
-    const select = $("#qvVariant");
-    const source = $("[data-variant-select-source]", card);
-    select.innerHTML = source ? source.innerHTML : "";
-
-    $("#qvAdd").onclick = () => addToCart(card, select.value);
-    openQuick();
-  }
-
-  function initFavorites(){
-    let favs = json(localStorage.getItem("mm_favs"),[]);
-
-    cards().forEach(card => {
-      const btn = $("[data-fav]", card);
-      const pid = String(card.dataset.id || "");
-      if(!btn || !pid) return;
-
-      if(favs.includes(pid)){
-        btn.classList.add("is-on");
-        $("i", btn).className = "fa-solid fa-heart";
-      }
-
-      btn.addEventListener("click", async e => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        const was = btn.classList.contains("is-on");
-        btn.classList.toggle("is-on", !was);
-        $("i", btn).className = was ? "fa-regular fa-heart" : "fa-solid fa-heart";
-
-        try{
-          const res = await fetch("/api/favorites/toggle",{
-            method:"POST",
-            headers:{"Content-Type":"application/json","X-CSRFToken":csrf},
-            body:JSON.stringify({product_id:pid})
-          });
-
-          if(res.status === 401){
-            btn.classList.toggle("is-on", was);
-            $("i", btn).className = was ? "fa-solid fa-heart" : "fa-regular fa-heart";
-            notify("Vui lòng đăng nhập");
-            return;
-          }
-
-          favs = favs.filter(id => id !== pid);
-          if(!was) favs.push(pid);
-          localStorage.setItem("mm_favs", JSON.stringify(favs));
-          notify(!was ? "Đã thêm yêu thích" : "Đã bỏ yêu thích");
-        }catch(_){
-          btn.classList.toggle("is-on", was);
-          $("i", btn).className = was ? "fa-solid fa-heart" : "fa-regular fa-heart";
-          notify("Lỗi kết nối");
-        }
-      });
-    });
-  }
-
-  function initEvents(){
-    document.addEventListener("click", e => {
-      const card = e.target.closest(".mm-card");
-
-      if(e.target.closest("[data-open-filter]")) openDrawer();
-      if(e.target.closest("[data-close-filter]")) closeDrawer();
-      if(e.target.closest("[data-clear-filter]")) clearFilters();
-      if(e.target.closest("[data-close-quick]")) closeQuick();
-
-      if(e.target.closest("[data-quick]") && card){
-        e.preventDefault();
-        e.stopPropagation();
-        openQuickFromCard(card);
-      }
-
-      if(e.target.closest("[data-add]") && card){
-        e.preventDefault();
-        e.stopPropagation();
-        addToCart(card);
-      }
-    });
-
-    document.addEventListener("change", e => {
-      if(e.target.matches(".filter-category,.filter-size,.filter-color,input[name='shopSort']")) applyFilters();
-    });
-
-    let t;
-    [search,mobileSearch].forEach(input => input?.addEventListener("input", () => {
-      if(input === mobileSearch && search) search.value = mobileSearch.value;
-      clearTimeout(t);
-      t = setTimeout(applyFilters,160);
-    }));
-
-    $$("[data-grid]").forEach(btn => btn.addEventListener("click", () => {
-      grid?.classList.remove("large","compact");
-      if(btn.dataset.grid === "large") grid?.classList.add("large");
-      if(btn.dataset.grid === "compact") grid?.classList.add("compact");
-    }));
-
-    document.addEventListener("keydown", e => {
-      if(e.key === "Escape"){closeDrawer();closeQuick()}
-    });
-  }
-
-  document.addEventListener("DOMContentLoaded", () => {
-    initChips();
-    initFavorites();
-    initEvents();
-    applyFilters();
-  });
-})();
-</script>
+  <script src="{{ url_for('static', filename='js/shop.js') }}?v=20260608-11" defer></script>
 {% endblock %}
