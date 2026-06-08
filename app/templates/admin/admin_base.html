@@ -10,9 +10,9 @@
 
   {% set general_settings = system_settings.get('general', {}) if system_settings is defined and system_settings else {} %}
   {% set support_email = general_settings.get('email') %}
-  {% set display_shop_name = 'MMESTLINE' %}
-  {% set admin_logo_url = url_for('static', filename='images/mmestlinelogo.svg') %}
-  {% set favicon_url = url_for('static', filename='images/favicon.png') %}
+  {% set display_shop_name = display_shop_name|default('MMESTLINE') %}
+  {% set admin_logo_url = admin_logo_url if admin_logo_url is defined else url_for('static', filename='images/mmestlinelogo.svg') %}
+  {% set favicon_url = favicon_url if favicon_url is defined else url_for('static', filename='images/favicon.png') %}
 
   <title>
     {% block title %}
@@ -22,22 +22,19 @@
 
   <link rel="icon" href="{{ favicon_url }}" type="image/png">
 
+  {# Apply collapsed sớm để tránh giật layout khi reload. #}
   <script>
-    /*
-      Apply trạng thái sidebar thật sớm để tránh layout bị giật khi reload.
-      Lưu ý: đoạn này chỉ apply class, KHÔNG gắn event click.
-      Event click thu gọn/mở rộng để mm_admin_nav.js xử lý.
-    */
     (function () {
       try {
         var collapsed =
+          localStorage.getItem("mm_admin_sidebar_collapsed") === "1" ||
           localStorage.getItem("mmAdminSidebarCollapsed") === "1" ||
-          localStorage.getItem("mm_admin_sidebar_collapsed") === "1";
+          localStorage.getItem("admin_sidebar_collapsed") === "1";
 
         if (collapsed) {
+          document.documentElement.classList.add("mm-admin-sidebar-collapsed");
           document.documentElement.classList.add("mm-sidebar-collapsed");
           document.documentElement.classList.add("admin-sidebar-collapsed");
-          document.documentElement.classList.add("mm-admin-sidebar-collapsed");
         }
       } catch (_) {}
     })();
@@ -98,29 +95,26 @@
       --mm-card: #fffdf9;
       --mm-line: #eadfd4;
 
-      /*
-        Đồng bộ với _admin_sidebar.html:
-        sidebar full = 348px
-        sidebar collapsed = 92px
-      */
-      --admin-sidebar-width: 348px;
+      --admin-sidebar-width: 300px;
       --admin-sidebar-mini-width: 92px;
       --admin-topbar-height: 76px;
-      --admin-mobilebar-height: 64px;
+      --admin-topbar-mobile-height: 68px;
       --admin-content-ml: var(--admin-sidebar-width);
       --admin-bg: #fbf7f1;
+
+      --mm-admin-sidebar-w: var(--admin-sidebar-width);
+      --mm-admin-sidebar-collapsed-w: var(--admin-sidebar-mini-width);
+      --mm-admin-topbar-h: var(--admin-topbar-height);
     }
 
     html.mm-sidebar-collapsed,
     html.admin-sidebar-collapsed,
-    html.mm-admin-sidebar-collapsed {
-      --admin-content-ml: var(--admin-sidebar-mini-width);
-    }
-
+    html.mm-admin-sidebar-collapsed,
     body.mm-sidebar-collapsed,
     body.admin-sidebar-collapsed,
     body.mm-admin-sidebar-collapsed {
       --admin-content-ml: var(--admin-sidebar-mini-width);
+      --mm-admin-sidebar-w: var(--admin-sidebar-mini-width);
     }
 
     html,
@@ -142,7 +136,7 @@
     }
 
     ::selection {
-      color: #ffffff;
+      color: #fff;
       background: var(--mm-brown-800);
     }
 
@@ -180,23 +174,28 @@
       cursor: pointer;
     }
 
+    #mmAdminProgress,
+    .mm-admin-progress {
+      pointer-events: none !important;
+    }
+
     .admin-main,
     .admin-footer {
       margin-left: 0;
       transition:
-        margin-left 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+        margin-left 0.22s cubic-bezier(0.16, 1, 0.3, 1),
         padding-top 0.2s ease,
         background-color 0.2s ease;
     }
 
     .admin-main {
       min-width: 0;
-      min-height: 100vh;
-      padding-top: var(--admin-mobilebar-height);
+      min-height: 100dvh;
+      padding-top: var(--admin-topbar-mobile-height);
     }
 
     .admin-page-shell {
-      min-height: 100vh;
+      min-height: 100dvh;
     }
 
     .admin-page-inner {
@@ -204,14 +203,14 @@
       min-width: 0;
     }
 
-    /*
-      Override width từ class Tailwind trong _admin_sidebar.html.
-      Nhờ vậy dù sidebar có w-[348px] thì collapse vẫn chạy.
-    */
+    .admin-footer {
+      margin-left: 0;
+    }
+
     .mm-admin-sidebar {
       width: var(--admin-sidebar-width) !important;
       transition:
-        width 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+        width 0.22s cubic-bezier(0.16, 1, 0.3, 1),
         transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
@@ -228,20 +227,24 @@
     body.mm-sidebar-collapsed .mm-sidebar-label,
     body.mm-sidebar-collapsed .mm-sidebar-section-title,
     body.mm-sidebar-collapsed .mm-sidebar-badge,
+    body.mm-sidebar-collapsed .mm-sidebar-footer-text,
     body.admin-sidebar-collapsed .mm-sidebar-brand-text,
     body.admin-sidebar-collapsed .mm-sidebar-label,
     body.admin-sidebar-collapsed .mm-sidebar-section-title,
     body.admin-sidebar-collapsed .mm-sidebar-badge,
+    body.admin-sidebar-collapsed .mm-sidebar-footer-text,
     body.mm-admin-sidebar-collapsed .mm-sidebar-brand-text,
     body.mm-admin-sidebar-collapsed .mm-sidebar-label,
     body.mm-admin-sidebar-collapsed .mm-sidebar-section-title,
-    body.mm-admin-sidebar-collapsed .mm-sidebar-badge {
+    body.mm-admin-sidebar-collapsed .mm-sidebar-badge,
+    body.mm-admin-sidebar-collapsed .mm-sidebar-footer-text {
       width: 0 !important;
       max-width: 0 !important;
       opacity: 0 !important;
       visibility: hidden !important;
       overflow: hidden !important;
       white-space: nowrap !important;
+      pointer-events: none !important;
     }
 
     body.mm-sidebar-collapsed .mm-sidebar-link,
@@ -259,6 +262,9 @@
       margin-bottom: 18px !important;
     }
 
+    body.mm-sidebar-collapsed .mm-sidebar-nav-scroll,
+    body.admin-sidebar-collapsed .mm-sidebar-nav-scroll,
+    body.mm-admin-sidebar-collapsed .mm-sidebar-nav-scroll,
     body.mm-sidebar-collapsed .mm-admin-sidebar .custom-scrollbar,
     body.admin-sidebar-collapsed .mm-admin-sidebar .custom-scrollbar,
     body.mm-admin-sidebar-collapsed .mm-admin-sidebar .custom-scrollbar {
@@ -272,6 +278,10 @@
       transform: rotate(180deg);
     }
 
+    .mm-topbar {
+      left: 0;
+    }
+
     @media (min-width: 1024px) {
       .admin-main,
       .admin-footer {
@@ -281,11 +291,15 @@
       .admin-main {
         padding-top: var(--admin-topbar-height);
       }
+
+      .mm-topbar {
+        left: var(--admin-content-ml) !important;
+      }
     }
 
     @media (max-width: 1023.98px) {
       .admin-main {
-        padding-top: var(--admin-mobilebar-height);
+        padding-top: var(--admin-topbar-mobile-height);
       }
 
       .admin-footer {
@@ -293,7 +307,11 @@
       }
 
       .mm-admin-sidebar {
-        width: min(348px, 92vw) !important;
+        width: min(320px, 88vw) !important;
+      }
+
+      .mm-topbar {
+        left: 0 !important;
       }
     }
 
@@ -363,24 +381,43 @@
       border-color: #fecdd3;
     }
 
-    .mm-skip-link {
-      position: fixed;
-      left: 16px;
-      top: 16px;
-      z-index: 10000;
-      transform: translateY(-140%);
-      border-radius: 999px;
-      background: var(--mm-brown-900);
-      color: #fff;
-      padding: 10px 16px;
-      font-size: 12px;
-      font-weight: 900;
-      transition: transform 0.16s ease;
-    }
+  .mm-skip-link {
+  position: fixed;
+  left: 16px;
+  top: 16px;
+  z-index: 10000;
 
-    .mm-skip-link:focus {
-      transform: translateY(0);
-    }
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+
+  background: #3b2414;
+  color: #fff;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+  pointer-events: none;
+}
+
+.mm-skip-link:focus,
+.mm-skip-link:focus-visible {
+  width: auto;
+  height: auto;
+  padding: 10px 16px;
+  overflow: visible;
+
+  clip: auto;
+  clip-path: none;
+  white-space: normal;
+  pointer-events: auto;
+  outline: 3px solid rgba(185, 139, 98, 0.35);
+}
 
     @media (prefers-reduced-motion: reduce) {
       *,
@@ -402,9 +439,9 @@
   data-admin-logo="{{ admin_logo_url }}"
   data-shop-name="{{ display_shop_name }}"
 >
-  <a href="#adminContent" class="mm-skip-link">
-    Bỏ qua menu và vào nội dung
-  </a>
+ <a href="#adminContent" class="mm-skip-link" aria-label="Bỏ qua menu và vào nội dung chính">
+  Bỏ qua menu và vào nội dung
+</a>
 
   {% include "admin/admin_navbar.html" %}
 
@@ -479,7 +516,7 @@
           </a>
 
           <span class="font-bold">
-            v1.0.30
+            v1.0.31
           </span>
         </div>
 
@@ -491,7 +528,7 @@
     {% if messages %}
       <div
         id="mm-snackbar-container"
-        class="fixed bottom-5 right-5 z-[9999] flex flex-col gap-3 pointer-events-none w-[calc(100vw-2.5rem)] max-w-sm"
+        class="fixed bottom-5 right-5 z-[9999] flex w-[calc(100vw-2.5rem)] max-w-sm flex-col gap-3 pointer-events-none"
       >
         {% for category, message in messages %}
           {% set is_success = category == 'success' %}
@@ -530,12 +567,25 @@
 
   <script>
     /*
-      Script này chỉ xử lý toast + reveal.
-      Không xử lý sidebar toggle ở đây để tránh double click/double function.
-      Sidebar toggle nằm trong static/admin/js/mm_admin_nav.js.
+      Base chỉ xử lý toast + reveal + đồng bộ class collapsed vào body.
+      Sidebar/mobile menu/user dropdown do static/admin/js/mm_admin_nav.js xử lý.
     */
     (function () {
       "use strict";
+
+      function syncSidebarClassToBody() {
+        var root = document.documentElement;
+        var collapsed =
+          root.classList.contains("mm-admin-sidebar-collapsed") ||
+          root.classList.contains("mm-sidebar-collapsed") ||
+          root.classList.contains("admin-sidebar-collapsed");
+
+        if (!collapsed) return;
+
+        document.body.classList.add("mm-admin-sidebar-collapsed");
+        document.body.classList.add("mm-sidebar-collapsed");
+        document.body.classList.add("admin-sidebar-collapsed");
+      }
 
       function initToasts() {
         var toasts = document.querySelectorAll(".mm-admin-toast");
@@ -551,9 +601,7 @@
             toast.classList.add("translate-y-8", "opacity-0");
 
             setTimeout(function () {
-              if (toast && toast.parentNode) {
-                toast.remove();
-              }
+              if (toast && toast.parentNode) toast.remove();
             }, 500);
           }, 4200 + (index * 250));
         });
@@ -571,10 +619,10 @@
 
         var observer = new IntersectionObserver(function (entries) {
           entries.forEach(function (entry) {
-            if (entry.isIntersecting) {
-              entry.target.classList.add("active");
-              observer.unobserve(entry.target);
-            }
+            if (!entry.isIntersecting) return;
+
+            entry.target.classList.add("active");
+            observer.unobserve(entry.target);
           });
         }, {
           threshold: 0.08,
@@ -587,6 +635,7 @@
       }
 
       document.addEventListener("DOMContentLoaded", function () {
+        syncSidebarClassToBody();
         initToasts();
         initReveal();
 

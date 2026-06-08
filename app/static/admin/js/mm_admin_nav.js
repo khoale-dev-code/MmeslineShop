@@ -1,92 +1,175 @@
 (function () {
   "use strict";
 
-  const SELECTORS = {
+  const CONFIG = {
+    fullWidth: 300,
+    miniWidth: 92,
+    breakpoint: 1024,
+    storageKeys: [
+      "mm_admin_sidebar_collapsed",
+      "mmAdminSidebarCollapsed",
+      "admin_sidebar_collapsed"
+    ]
+  };
+
+  const SELECTOR = {
     sidebar: "#mmAdminSidebar, #adminSidebar, [data-admin-sidebar]",
-    backdrop: "#adminSidebarBackdrop, #mmAdminSidebarBackdrop, [data-admin-sidebar-backdrop]",
-    progress: "#mmAdminProgress",
+    sidebarToggle: "[data-admin-sidebar-toggle]",
+    mobileToggle: "[data-admin-mobile-menu-toggle]",
+    mobileClose: "[data-admin-mobile-menu-close]",
+    backdrop: "#mmAdminSidebarBackdrop, #adminSidebarBackdrop, [data-admin-sidebar-backdrop]",
 
+    topbar: "#adminTopbar, .mm-topbar",
+    main: "#adminMain, .admin-main, .mm-admin-main",
+
+    userButton: "#adminUserMenuButton",
     userDropdown: "#adminUserDropdown",
-    userDropdownBackdrop: "#adminUserDropdownBackdrop",
-    userMenuButton: "#adminUserMenuButton",
-    userMenuChevron: "#adminUserMenuChevron",
+    userBackdrop: "#adminUserDropdownBackdrop",
+    userChevron: "#adminUserMenuChevron",
 
-    sidebarToggle: "[data-admin-sidebar-toggle], #desktopSidebarToggle",
-    mobileMenuToggle: "[data-admin-mobile-menu-toggle], #adminMobileMenuButton, #openAdminSidebar",
-    mobileMenuClose: "[data-admin-mobile-menu-close], #closeAdminSidebar"
+    progress: "#mmAdminProgress",
+    navLink: "a[data-nav]",
+    prefetchLink: "a[data-prefetch]",
+    navForm: "form[data-form-nav]"
   };
 
-  const STORAGE_KEYS = {
-    collapsed: "mmAdminSidebarCollapsed",
-    collapsedLegacy: "mm_admin_sidebar_collapsed"
+  const CLASS = {
+    collapsed: [
+      "mm-admin-sidebar-collapsed",
+      "mm-sidebar-collapsed",
+      "admin-sidebar-collapsed"
+    ],
+    mobileOpen: [
+      "mm-admin-mobile-sidebar-open",
+      "admin-sidebar-open",
+      "mm-sidebar-open"
+    ],
+    loading: "mm-admin-loading",
+    open: "is-open",
+    hidden: "hidden"
   };
 
-  const state = {
-    progressStarted: false,
-    progressTimer: null,
-    initialized: false
-  };
+  let initialized = false;
+  let progressTimer = null;
+  let resizeTimer = null;
 
-  function $(selector, root = document) {
-    return root.querySelector(selector);
-  }
+  const $ = (selector, root = document) => root.querySelector(selector);
+  const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
 
-  function $all(selector, root = document) {
-    return Array.from(root.querySelectorAll(selector));
+  function isDesktop() {
+    return window.innerWidth >= CONFIG.breakpoint;
   }
 
   function getSidebar() {
-    return $(SELECTORS.sidebar);
+    return $(SELECTOR.sidebar);
+  }
+
+  function getTopbar() {
+    return $(SELECTOR.topbar);
+  }
+
+  function getMain() {
+    return $(SELECTOR.main);
   }
 
   function getBackdrop() {
-    return $(SELECTORS.backdrop);
+    return $(SELECTOR.backdrop);
   }
 
-  function isDesktop() {
-    return window.matchMedia("(min-width: 1024px)").matches;
+  function setRootClasses(classNames, enabled) {
+    classNames.forEach((name) => {
+      document.documentElement.classList.toggle(name, enabled);
+      document.body.classList.toggle(name, enabled);
+    });
   }
 
-  function readCollapsedState() {
+  function readCollapsed() {
     try {
-      return (
-        localStorage.getItem(STORAGE_KEYS.collapsed) === "1" ||
-        localStorage.getItem(STORAGE_KEYS.collapsedLegacy) === "1"
-      );
+      return CONFIG.storageKeys.some((key) => localStorage.getItem(key) === "1");
     } catch (_) {
       return false;
     }
   }
 
-  function writeCollapsedState(collapsed) {
+  function saveCollapsed(collapsed) {
     try {
-      localStorage.setItem(STORAGE_KEYS.collapsed, collapsed ? "1" : "0");
-      localStorage.setItem(STORAGE_KEYS.collapsedLegacy, collapsed ? "1" : "0");
+      CONFIG.storageKeys.forEach((key) => {
+        localStorage.setItem(key, collapsed ? "1" : "0");
+      });
     } catch (_) {}
   }
 
-  function setCollapsed(collapsed) {
+  function isCollapsed() {
+    return CLASS.collapsed.some((name) => {
+      return (
+        document.documentElement.classList.contains(name) ||
+        document.body.classList.contains(name)
+      );
+    });
+  }
+
+  function setCssVar(name, value) {
+    document.documentElement.style.setProperty(name, value);
+    document.body.style.setProperty(name, value);
+  }
+
+  function applyLayout(collapsed) {
+    const sidebar = getSidebar();
+    const topbar = getTopbar();
+    const main = getMain();
+
+    const width = collapsed ? CONFIG.miniWidth : CONFIG.fullWidth;
+    const widthPx = width + "px";
+
+    setCssVar("--mm-admin-sidebar-w", widthPx);
+    setCssVar("--admin-sidebar-width", widthPx);
+    setCssVar("--admin-content-ml", widthPx);
+
+    if (isDesktop()) {
+      if (sidebar) {
+        sidebar.style.width = widthPx;
+        sidebar.style.transform = "translateX(0)";
+        sidebar.setAttribute("aria-hidden", "false");
+      }
+
+      if (topbar) {
+        topbar.style.left = widthPx;
+      }
+
+      if (main) {
+        main.style.marginLeft = widthPx;
+      }
+
+      document.body.style.overflow = "";
+    } else {
+      if (sidebar) {
+        sidebar.style.width = "";
+      }
+
+      if (topbar) {
+        topbar.style.left = "0px";
+      }
+
+      if (main) {
+        main.style.marginLeft = "0px";
+      }
+    }
+  }
+
+  function setCollapsed(collapsed, shouldSave = true) {
     const enabled = Boolean(collapsed);
     const sidebar = getSidebar();
 
-    document.documentElement.classList.toggle("mm-sidebar-collapsed", enabled);
-    document.documentElement.classList.toggle("admin-sidebar-collapsed", enabled);
-    document.documentElement.classList.toggle("mm-admin-sidebar-collapsed", enabled);
-
-    document.body.classList.toggle("mm-sidebar-collapsed", enabled);
-    document.body.classList.toggle("admin-sidebar-collapsed", enabled);
-    document.body.classList.toggle("mm-admin-sidebar-collapsed", enabled);
+    setRootClasses(CLASS.collapsed, enabled);
+    applyLayout(enabled);
 
     if (sidebar) {
       sidebar.dataset.collapsed = enabled ? "1" : "0";
       sidebar.setAttribute("aria-expanded", enabled ? "false" : "true");
+      sidebar.setAttribute("aria-hidden", "false");
     }
 
-    $all(SELECTORS.sidebarToggle).forEach((button) => {
-      const icon =
-        button.querySelector("i") ||
-        document.getElementById("desktopSidebarToggleIcon");
-
+    $$(SELECTOR.sidebarToggle).forEach((button) => {
       button.setAttribute("aria-expanded", enabled ? "false" : "true");
       button.setAttribute(
         "aria-label",
@@ -96,197 +179,190 @@
         "title",
         enabled ? "Mở rộng thanh điều hướng" : "Thu gọn thanh điều hướng"
       );
-
-      if (icon) {
-        icon.className = enabled
-          ? "fa-solid fa-angles-right"
-          : "fa-solid fa-bars-staggered";
-      }
     });
-  }
 
-  function toggleCollapsed() {
-    const next = !document.body.classList.contains("mm-sidebar-collapsed");
-
-    writeCollapsedState(next);
-    setCollapsed(next);
+    if (shouldSave) saveCollapsed(enabled);
 
     window.dispatchEvent(
       new CustomEvent("mm-admin-sidebar-change", {
-        detail: { collapsed: next }
+        detail: { collapsed: enabled }
       })
     );
   }
 
+  function toggleCollapsed() {
+    setCollapsed(!isCollapsed());
+  }
+
+  function openMobileSidebar() {
+    const sidebar = getSidebar();
+    const backdrop = getBackdrop();
+
+    setRootClasses(CLASS.mobileOpen, true);
+
+    if (sidebar) {
+      sidebar.classList.add(CLASS.open);
+      sidebar.style.transform = "translateX(0)";
+      sidebar.setAttribute("aria-hidden", "false");
+    }
+
+    if (backdrop) {
+      backdrop.classList.add(CLASS.open);
+      backdrop.setAttribute("aria-hidden", "false");
+    }
+
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeMobileSidebar() {
+    const sidebar = getSidebar();
+    const backdrop = getBackdrop();
+
+    setRootClasses(CLASS.mobileOpen, false);
+
+    if (sidebar) {
+      sidebar.classList.remove(CLASS.open);
+      sidebar.style.transform = isDesktop() ? "translateX(0)" : "";
+      sidebar.setAttribute("aria-hidden", isDesktop() ? "false" : "true");
+    }
+
+    if (backdrop) {
+      backdrop.classList.remove(CLASS.open);
+      backdrop.setAttribute("aria-hidden", "true");
+    }
+
+    if (!document.body.classList.contains("mm-modal-open")) {
+      document.body.style.overflow = "";
+    }
+  }
+
+  function toggleSidebar() {
+    if (isDesktop()) {
+      toggleCollapsed();
+      return;
+    }
+
+    const opened = CLASS.mobileOpen.some((name) => {
+      return document.body.classList.contains(name);
+    });
+
+    opened ? closeMobileSidebar() : openMobileSidebar();
+  }
+
+  function syncMobileButton(opened) {
+    $$(SELECTOR.mobileToggle).forEach((button) => {
+      button.setAttribute("aria-expanded", opened ? "true" : "false");
+    });
+  }
+
+  function getUserDropdownOpened() {
+    const dropdown = $(SELECTOR.userDropdown);
+    if (!dropdown) return false;
+
+    return dropdown.classList.contains(CLASS.open) || !dropdown.classList.contains(CLASS.hidden);
+  }
+
+  function openUserMenu() {
+    const dropdown = $(SELECTOR.userDropdown);
+    const backdrop = $(SELECTOR.userBackdrop);
+    const button = $(SELECTOR.userButton);
+    const chevron = $(SELECTOR.userChevron);
+
+    if (!dropdown || !button) return;
+
+    dropdown.classList.remove(CLASS.hidden);
+    dropdown.classList.add(CLASS.open);
+    dropdown.setAttribute("aria-hidden", "false");
+
+    if (backdrop) {
+      backdrop.classList.remove(CLASS.hidden);
+      backdrop.classList.add(CLASS.open);
+      backdrop.setAttribute("aria-hidden", "false");
+    }
+
+    button.classList.add(CLASS.open);
+    button.setAttribute("aria-expanded", "true");
+
+    if (chevron) chevron.style.transform = "rotate(180deg)";
+  }
+
+  function closeUserMenu() {
+    const dropdown = $(SELECTOR.userDropdown);
+    const backdrop = $(SELECTOR.userBackdrop);
+    const button = $(SELECTOR.userButton);
+    const chevron = $(SELECTOR.userChevron);
+
+    if (!dropdown || !button) return;
+
+    dropdown.classList.remove(CLASS.open);
+    dropdown.classList.add(CLASS.hidden);
+    dropdown.setAttribute("aria-hidden", "true");
+
+    if (backdrop) {
+      backdrop.classList.remove(CLASS.open);
+      backdrop.classList.add(CLASS.hidden);
+      backdrop.setAttribute("aria-hidden", "true");
+    }
+
+    button.classList.remove(CLASS.open);
+    button.setAttribute("aria-expanded", "false");
+
+    if (chevron) chevron.style.transform = "";
+  }
+
+  function toggleUserMenu(event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    getUserDropdownOpened() ? closeUserMenu() : openUserMenu();
+  }
+
   const Progress = {
     start() {
-      const progress = $(SELECTORS.progress);
-      if (!progress || state.progressStarted) return;
+      const progress = $(SELECTOR.progress);
+      if (!progress) return;
 
-      state.progressStarted = true;
-      clearTimeout(state.progressTimer);
+      clearTimeout(progressTimer);
 
+      document.body.classList.add(CLASS.loading);
       progress.style.pointerEvents = "none";
       progress.style.opacity = "1";
-      progress.style.transition = "none";
       progress.style.width = "0%";
+      progress.style.transition = "none";
 
       requestAnimationFrame(() => {
         progress.style.transition = "width 480ms cubic-bezier(0.16, 1, 0.3, 1)";
-        progress.style.width = "78%";
+        progress.style.width = "72%";
       });
     },
 
     done() {
-      const progress = $(SELECTORS.progress);
+      const progress = $(SELECTOR.progress);
       if (!progress) return;
 
-      clearTimeout(state.progressTimer);
+      clearTimeout(progressTimer);
 
       progress.style.pointerEvents = "none";
       progress.style.transition = "width 160ms ease-out";
       progress.style.width = "100%";
 
-      state.progressTimer = setTimeout(() => {
+      progressTimer = setTimeout(() => {
         progress.style.transition = "opacity 220ms ease";
         progress.style.opacity = "0";
+        document.body.classList.remove(CLASS.loading);
 
-        setTimeout(() => {
+        progressTimer = setTimeout(() => {
           progress.style.transition = "none";
           progress.style.width = "0%";
           progress.style.opacity = "0";
-          state.progressStarted = false;
         }, 240);
       }, 130);
     }
   };
 
-  const AdminShell = {
-    openSidebar() {
-      const sidebar = getSidebar();
-      const backdrop = getBackdrop();
-
-      if (!sidebar) return;
-
-      sidebar.classList.add("is-open");
-      sidebar.setAttribute("aria-hidden", "false");
-
-      if (backdrop) {
-        backdrop.classList.add("is-open");
-        backdrop.setAttribute("aria-hidden", "false");
-      }
-
-      document.body.classList.add("admin-sidebar-open", "mm-admin-sidebar-open");
-
-      if (!isDesktop()) {
-        document.body.style.overflow = "hidden";
-      }
-    },
-
-    closeSidebar() {
-      const sidebar = getSidebar();
-      const backdrop = getBackdrop();
-
-      if (sidebar) {
-        sidebar.classList.remove("is-open");
-        sidebar.setAttribute("aria-hidden", isDesktop() ? "false" : "true");
-      }
-
-      if (backdrop) {
-        backdrop.classList.remove("is-open");
-        backdrop.setAttribute("aria-hidden", "true");
-      }
-
-      document.body.classList.remove("admin-sidebar-open", "mm-admin-sidebar-open");
-
-      if (!document.body.classList.contains("mm-modal-open")) {
-        document.body.style.overflow = "";
-      }
-    },
-
-    toggleSidebar() {
-      const sidebar = getSidebar();
-
-      if (!sidebar) return;
-
-      if (isDesktop()) {
-        toggleCollapsed();
-        return;
-      }
-
-      if (sidebar.classList.contains("is-open")) {
-        this.closeSidebar();
-      } else {
-        this.openSidebar();
-      }
-    },
-
-    toggleDesktopSidebar() {
-      toggleCollapsed();
-    },
-
-    openUserMenu() {
-      const dropdown = $(SELECTORS.userDropdown);
-      const backdrop = $(SELECTORS.userDropdownBackdrop);
-      const button = $(SELECTORS.userMenuButton);
-      const chevron = $(SELECTORS.userMenuChevron);
-
-      if (!dropdown || !backdrop) return;
-
-      dropdown.classList.remove("hidden");
-      dropdown.setAttribute("aria-hidden", "false");
-
-      backdrop.classList.remove("hidden");
-      backdrop.setAttribute("aria-hidden", "false");
-
-      button?.classList.add("is-open");
-      button?.setAttribute("aria-expanded", "true");
-
-      if (chevron) {
-        chevron.style.transform = "rotate(180deg)";
-      }
-    },
-
-    closeUserMenu() {
-      const dropdown = $(SELECTORS.userDropdown);
-      const backdrop = $(SELECTORS.userDropdownBackdrop);
-      const button = $(SELECTORS.userMenuButton);
-      const chevron = $(SELECTORS.userMenuChevron);
-
-      if (!dropdown || !backdrop) return;
-
-      dropdown.classList.add("hidden");
-      dropdown.setAttribute("aria-hidden", "true");
-
-      backdrop.classList.add("hidden");
-      backdrop.setAttribute("aria-hidden", "true");
-
-      button?.classList.remove("is-open");
-      button?.setAttribute("aria-expanded", "false");
-
-      if (chevron) {
-        chevron.style.transform = "rotate(0deg)";
-      }
-    },
-
-    toggleUserMenu(event) {
-      if (event) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
-
-      const dropdown = $(SELECTORS.userDropdown);
-      if (!dropdown) return;
-
-      if (dropdown.classList.contains("hidden")) {
-        this.openUserMenu();
-      } else {
-        this.closeUserMenu();
-      }
-    }
-  };
-
-  function shouldHandleNav(anchor) {
+  function shouldShowProgress(anchor) {
     const href = anchor.getAttribute("href");
 
     if (!href) return false;
@@ -299,10 +375,7 @@
 
       if (url.origin !== window.location.origin) return false;
 
-      if (
-        url.pathname === window.location.pathname &&
-        url.search === window.location.search
-      ) {
+      if (url.pathname === window.location.pathname && url.search === window.location.search) {
         return false;
       }
 
@@ -312,7 +385,7 @@
     }
   }
 
-  function prefetchUrl(href) {
+  function prefetch(href) {
     if (!href) return;
 
     try {
@@ -323,131 +396,107 @@
 
       const link = document.createElement("link");
       link.rel = "prefetch";
-      link.href = url.href;
       link.as = "document";
+      link.href = url.href;
       document.head.appendChild(link);
     } catch (_) {}
   }
 
-  function initSidebarState() {
-    const sidebar = getSidebar();
-    const backdrop = getBackdrop();
+  function initState() {
+    const savedCollapsed = readCollapsed();
 
-    setCollapsed(readCollapsedState());
+    setCollapsed(savedCollapsed, false);
 
-    if (sidebar) {
-      sidebar.setAttribute("aria-hidden", isDesktop() ? "false" : "true");
+    if (isDesktop()) {
+      closeMobileSidebar();
+      applyLayout(savedCollapsed);
+      getSidebar()?.setAttribute("aria-hidden", "false");
+    } else {
+      applyLayout(false);
+      closeMobileSidebar();
+      getSidebar()?.setAttribute("aria-hidden", "true");
     }
 
-    if (backdrop) {
-      backdrop.setAttribute("aria-hidden", "true");
-    }
+    getBackdrop()?.setAttribute("aria-hidden", "true");
+
+    const progress = $(SELECTOR.progress);
+    if (progress) progress.style.pointerEvents = "none";
   }
 
-  function initSidebarControls() {
+  function bindSidebar() {
     document.addEventListener("click", (event) => {
-      const toggle = event.target.closest(SELECTORS.sidebarToggle);
-      if (toggle) {
+      const sidebarToggle = event.target.closest(SELECTOR.sidebarToggle);
+      if (sidebarToggle) {
         event.preventDefault();
         event.stopPropagation();
-
-        if (isDesktop()) {
-          toggleCollapsed();
-        } else {
-          AdminShell.toggleSidebar();
-        }
-
+        toggleSidebar();
         return;
       }
 
-      const openButton = event.target.closest(SELECTORS.mobileMenuToggle);
-      if (openButton) {
+      const mobileToggle = event.target.closest(SELECTOR.mobileToggle);
+      if (mobileToggle) {
         event.preventDefault();
         event.stopPropagation();
-        AdminShell.openSidebar();
+        openMobileSidebar();
+        syncMobileButton(true);
         return;
       }
 
-      const closeButton = event.target.closest(SELECTORS.mobileMenuClose);
-      if (closeButton) {
+      const mobileClose = event.target.closest(SELECTOR.mobileClose);
+      if (mobileClose) {
         event.preventDefault();
         event.stopPropagation();
-        AdminShell.closeSidebar();
+        closeMobileSidebar();
+        syncMobileButton(false);
         return;
       }
 
-      const backdrop = event.target.closest(SELECTORS.backdrop);
-      if (backdrop && backdrop.classList.contains("is-open")) {
+      const backdrop = event.target.closest(SELECTOR.backdrop);
+      if (backdrop && !isDesktop()) {
         event.preventDefault();
-        AdminShell.closeSidebar();
+        closeMobileSidebar();
+        syncMobileButton(false);
       }
     });
-
-    window.addEventListener("storage", (event) => {
-      if (
-        event.key === STORAGE_KEYS.collapsed ||
-        event.key === STORAGE_KEYS.collapsedLegacy
-      ) {
-        setCollapsed(readCollapsedState());
-      }
-    });
-
-    window.addEventListener("resize", () => {
-      if (isDesktop()) {
-        AdminShell.closeSidebar();
-        const sidebar = getSidebar();
-        sidebar?.setAttribute("aria-hidden", "false");
-      }
-    }, { passive: true });
   }
 
-  function initUserMenu() {
-    const button = $(SELECTORS.userMenuButton);
-    const backdrop = $(SELECTORS.userDropdownBackdrop);
+  function bindUserMenu() {
+    const userButton = $(SELECTOR.userButton);
+    const userBackdrop = $(SELECTOR.userBackdrop);
 
-    button?.addEventListener("click", (event) => {
-      AdminShell.toggleUserMenu(event);
-    });
+    userButton?.addEventListener("click", toggleUserMenu);
 
-    backdrop?.addEventListener("click", () => {
-      AdminShell.closeUserMenu();
+    userBackdrop?.addEventListener("click", (event) => {
+      event.preventDefault();
+      closeUserMenu();
     });
 
     document.addEventListener("click", (event) => {
-      const dropdown = $(SELECTORS.userDropdown);
-      const menuButton = $(SELECTORS.userMenuButton);
+      const dropdown = $(SELECTOR.userDropdown);
+      const button = $(SELECTOR.userButton);
 
-      if (!dropdown || dropdown.classList.contains("hidden")) return;
+      if (!dropdown || !button) return;
+      if (!getUserDropdownOpened()) return;
       if (dropdown.contains(event.target)) return;
-      if (menuButton && menuButton.contains(event.target)) return;
+      if (button.contains(event.target)) return;
 
-      AdminShell.closeUserMenu();
+      closeUserMenu();
     });
   }
 
-  function initPrefetch() {
-    $all("a[data-prefetch]").forEach((anchor) => {
-      const href = anchor.getAttribute("href");
+  function bindNavigationProgress() {
+    document.addEventListener("click", (event) => {
+      const anchor = event.target.closest(SELECTOR.navLink);
+      if (!anchor) return;
+      if (!shouldShowProgress(anchor)) return;
 
-      anchor.addEventListener("mouseenter", () => prefetchUrl(href), { passive: true });
-      anchor.addEventListener("focus", () => prefetchUrl(href), { passive: true });
-      anchor.addEventListener("touchstart", () => prefetchUrl(href), { passive: true });
-    });
-  }
-
-  function initNavigationProgress() {
-    $all("a[data-nav]").forEach((anchor) => {
-      anchor.addEventListener("click", () => {
-        if (!shouldHandleNav(anchor)) return;
-
-        anchor.classList.add("is-loading");
-        Progress.start();
-        AdminShell.closeSidebar();
-        AdminShell.closeUserMenu();
-      });
+      anchor.classList.add("is-loading");
+      Progress.start();
+      closeMobileSidebar();
+      closeUserMenu();
     });
 
-    $all("form[data-form-nav]").forEach((form) => {
+    $$(SELECTOR.navForm).forEach((form) => {
       form.addEventListener("submit", () => {
         const button = form.querySelector('button[type="submit"]');
 
@@ -457,54 +506,112 @@
         }
 
         Progress.start();
-        AdminShell.closeUserMenu();
+        closeUserMenu();
       });
     });
 
+    window.addEventListener("beforeunload", () => Progress.start());
     window.addEventListener("pageshow", () => Progress.done());
     window.addEventListener("load", () => Progress.done());
-    window.addEventListener("beforeunload", () => Progress.start());
   }
 
-  function initKeyboardShortcuts() {
+  function bindPrefetch() {
+    $$(SELECTOR.prefetchLink).forEach((anchor) => {
+      const href = anchor.getAttribute("href");
+
+      anchor.addEventListener("mouseenter", () => prefetch(href), { passive: true });
+      anchor.addEventListener("focus", () => prefetch(href), { passive: true });
+      anchor.addEventListener("touchstart", () => prefetch(href), { passive: true });
+    });
+  }
+
+  function bindKeyboard() {
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
-        AdminShell.closeSidebar();
-        AdminShell.closeUserMenu();
+        closeMobileSidebar();
+        closeUserMenu();
+        syncMobileButton(false);
+        return;
       }
 
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "b") {
         event.preventDefault();
-        AdminShell.toggleDesktopSidebar();
+
+        if (isDesktop()) {
+          toggleCollapsed();
+        }
+      }
+    });
+  }
+
+  function bindResizeAndStorage() {
+    window.addEventListener(
+      "resize",
+      () => {
+        clearTimeout(resizeTimer);
+
+        resizeTimer = setTimeout(() => {
+          const collapsed = readCollapsed();
+
+          if (isDesktop()) {
+            closeMobileSidebar();
+            setCollapsed(collapsed, false);
+            getSidebar()?.setAttribute("aria-hidden", "false");
+          } else {
+            applyLayout(false);
+            closeMobileSidebar();
+            getSidebar()?.setAttribute("aria-hidden", "true");
+            syncMobileButton(false);
+          }
+        }, 120);
+      },
+      { passive: true }
+    );
+
+    window.addEventListener("storage", (event) => {
+      if (CONFIG.storageKeys.includes(event.key)) {
+        setCollapsed(readCollapsed(), false);
       }
     });
   }
 
   function exposeGlobals() {
-    window.AdminShell = AdminShell;
+    window.AdminShell = {
+      setCollapsed,
+      toggleDesktopSidebar: toggleCollapsed,
+      toggleSidebar,
+      openMobileSidebar,
+      closeMobileSidebar,
+      openSidebar: openMobileSidebar,
+      closeSidebar: closeMobileSidebar,
+      openUserMenu,
+      closeUserMenu,
+      toggleUserMenu,
+      refreshLayout: () => applyLayout(isCollapsed())
+    };
+
     window.AdminProgress = Progress;
 
     window.MMAdminLayout = window.MMAdminLayout || {};
-    window.MMAdminLayout.applySidebarState = function () {
-      setCollapsed(readCollapsedState());
-    };
+    window.MMAdminLayout.applySidebarState = () => setCollapsed(readCollapsed(), false);
     window.MMAdminLayout.toggleSidebarCollapsed = toggleCollapsed;
-    window.MMAdminLayout.openSidebar = AdminShell.openSidebar.bind(AdminShell);
-    window.MMAdminLayout.closeSidebar = AdminShell.closeSidebar.bind(AdminShell);
+    window.MMAdminLayout.openSidebar = openMobileSidebar;
+    window.MMAdminLayout.closeSidebar = closeMobileSidebar;
+    window.MMAdminLayout.refreshLayout = () => applyLayout(isCollapsed());
   }
 
   function init() {
-    if (state.initialized) return;
-    state.initialized = true;
+    if (initialized) return;
+    initialized = true;
 
-    initSidebarState();
-    initSidebarControls();
-    initUserMenu();
-    initPrefetch();
-    initNavigationProgress();
-    initKeyboardShortcuts();
     exposeGlobals();
-
+    initState();
+    bindSidebar();
+    bindUserMenu();
+    bindNavigationProgress();
+    bindPrefetch();
+    bindKeyboard();
+    bindResizeAndStorage();
     Progress.done();
   }
 

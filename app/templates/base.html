@@ -4,17 +4,31 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
+  {# ─────────────────────────────────────────────
+     GLOBAL SETTINGS SAFE DEFAULTS
+  ───────────────────────────────────────────── #}
   {% set storefront_settings = system_settings.get('storefront', {}) if system_settings is defined and system_settings else {} %}
-  {% set has_topbar = storefront_settings.get('topbar_active') == 'true' and storefront_settings.get('topbar_text') %}
-  {% set shop_name = 'MMESTLINE' %}
-  {% set shop_description = 'MMESTLINE | Official Online Store' %}
-  {% set shop_logo = url_for('static', filename='images/mmestlinelogo.svg') %}
+  {% set topbar_active = storefront_settings.get('topbar_active') %}
+  {% set topbar_text = storefront_settings.get('topbar_text') %}
+  {% set has_topbar = topbar_text and topbar_active in [true, 'true', 'True', '1', 1] %}
+
+  {% set shop_name = shop_name|default('MMESTLINE', true) %}
+  {% set shop_description = shop_description|default('MMESTLINE | Official Online Store', true) %}
+  {% set shop_logo = shop_logo|default(url_for('static', filename='images/mmestlinelogo.svg'), true) %}
+
+  {# Footer variables: set trước để footer không cần filter + slice trực tiếp #}
+  {% set footer_shop_name = footer_shop_name|default(shop_name, true) %}
+  {% set footer_brand_first = footer_shop_name[:4] %}
+  {% set footer_brand_rest = footer_shop_name[4:] %}
 
   <title>{% block title %}{{ shop_name }} | Official Online Store{% endblock %}</title>
 
   <meta name="description" content="{{ shop_description }}">
-  <meta name="theme-color" content="#241207">
-  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <meta name="theme-color" content="#1b4922">
+
+  {% if csrf_token is defined %}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+  {% endif %}
 
   <link rel="icon" type="image/svg+xml" href="{{ shop_logo }}?v=mmestline-2026">
   <link rel="shortcut icon" href="{{ shop_logo }}?v=mmestline-2026">
@@ -33,10 +47,12 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
   <link
     href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap"
     rel="stylesheet"
   >
+
   <link
     rel="stylesheet"
     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
@@ -55,11 +71,11 @@
           },
           colors: {
             mm: {
-              ink: '#241207',
-              brown: '#3b2414',
-              caramel: '#b98b62',
-              cream: '#fbf7f1',
-              soft: '#fffaf5'
+              green: '#1b4922',
+              gold: '#c99e14',
+              ink: '#101510',
+              cream: '#fbfaf4',
+              soft: '#f7f9f2'
             }
           }
         }
@@ -67,7 +83,6 @@
     };
   </script>
 
-  {# Không dùng defer cho Tailwind CDN để tránh giao diện nháy trước khi CSS được tạo #}
   <script src="https://cdn.tailwindcss.com"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/lenis@1/dist/lenis.min.js"></script>
 
@@ -77,34 +92,40 @@
       --topbar-h: 0px;
       --scroll-offset: calc(var(--header-h) + var(--topbar-h) + 16px);
 
-      --mm-ink: #241207;
-      --mm-brown: #3b2414;
-      --mm-brown-2: #5f3b1e;
-      --mm-caramel: #b98b62;
-      --mm-cream: #fbf7f1;
-      --mm-soft: #fffaf5;
-      --mm-line: #eadfd4;
-      --mm-muted: #8a6a52;
-      --mm-faint: #b7a191;
+      --mm-green: #1b4922;
+      --mm-green-dark: #123418;
+      --mm-gold: #c99e14;
+      --mm-gold-soft: rgba(201, 158, 20, .18);
 
-      --gua-ink: var(--mm-ink);
-      --gua-paper: #fffaf5;
-      --gua-muted: var(--mm-line);
-      --gua-ghost: #f6eee7;
-      --gua-warm: #75543f;
-      --gua-sub: #9b7b63;
+      --mm-ink: #101510;
+      --mm-cream: #fbfaf4;
+      --mm-soft: #f7f9f2;
+      --mm-line: rgba(27, 73, 34, .14);
+      --mm-muted: #687466;
+      --mm-faint: rgba(27, 73, 34, .45);
+
+      --gua-ink: var(--mm-green);
+      --gua-paper: #fbfaf4;
+      --gua-muted: rgba(27, 73, 34, .14);
+      --gua-ghost: #f7f9f2;
+      --gua-warm: var(--mm-green-dark);
+      --gua-sub: #687466;
       --gua-faint: var(--mm-faint);
-      --gua-accent: var(--mm-caramel);
+      --gua-accent: var(--mm-gold);
       --gua-radius: 14px;
-      --gua-shadow: 0 14px 36px -30px rgba(36,18,7,.45);
-      --gua-shadow-lg: 0 22px 52px -38px rgba(36,18,7,.6);
+      --gua-shadow: 0 14px 36px -30px rgba(27, 73, 34, .45);
+      --gua-shadow-lg: 0 22px 52px -38px rgba(27, 73, 34, .6);
     }
 
     @media (min-width: 1024px) {
-      :root { --header-h: 76px; }
+      :root {
+        --header-h: 76px;
+      }
     }
 
-    body.has-topbar { --topbar-h: 34px; }
+    body.has-topbar {
+      --topbar-h: 34px;
+    }
 
     *,
     *::before,
@@ -156,19 +177,48 @@
       margin: 0;
       overflow-x: hidden;
       background: #fff;
-      color: #000;
+      color: var(--mm-ink);
       font-family: "DM Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       text-rendering: optimizeLegibility;
     }
 
-    /*
-      Chống nháy layout:
-      - Tailwind CDN đã được load trước body.
-      - Không dùng opacity:0 toàn body để tránh cảm giác trắng màn hình.
-      - Chỉ loại bỏ animation cũ gây flash.
-    */
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    img,
+    video,
+    svg,
+    canvas {
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    img,
+    video {
+      background: #f6f6f6;
+    }
+
+    ::selection {
+      background: var(--mm-green);
+      color: #fff;
+    }
+
     .reveal,
     .reveal.active,
     .gua-reveal,
@@ -203,41 +253,6 @@
       touch-action: none;
     }
 
-    a {
-      color: inherit;
-      text-decoration: none;
-    }
-
-    button,
-    input,
-    textarea,
-    select {
-      font: inherit;
-    }
-
-    button {
-      cursor: pointer;
-    }
-
-    img,
-    video,
-    svg,
-    canvas {
-      max-width: 100%;
-      height: auto;
-      display: block;
-    }
-
-    img,
-    video {
-      background: #f6f6f6;
-    }
-
-    ::selection {
-      background: var(--mm-ink);
-      color: #fff;
-    }
-
     .top-bar {
       height: var(--topbar-h);
       min-height: var(--topbar-h);
@@ -246,7 +261,7 @@
       justify-content: center;
       padding: 0 1rem;
       overflow: hidden;
-      background: var(--mm-ink);
+      background: var(--mm-green);
       color: #fff;
       font-size: .68rem;
       font-weight: 900;
@@ -311,10 +326,6 @@
       overflow-x: hidden;
     }
 
-    /*
-      Không để lazy section hiện skeleton/placeholder rồi biến mất.
-      Giữ content-visibility để nhẹ trang nhưng không tạo flash nền.
-    */
     .lazy-render-section {
       min-height: 420px;
       background: #fff !important;
@@ -425,17 +436,18 @@
       padding: 0 1.6rem;
       border: 0;
       border-radius: var(--gua-radius);
-      background: var(--mm-ink);
+      background: var(--mm-green);
       color: #fff;
       font-size: 10px;
       font-weight: 900;
       letter-spacing: .16em;
       text-transform: uppercase;
-      transition: background .15s ease, transform .15s ease;
+      transition: background .15s ease, color .15s ease, transform .15s ease;
     }
 
     .gua-btn:hover {
-      background: var(--mm-brown);
+      background: var(--mm-gold);
+      color: var(--mm-green-dark);
       transform: translateY(-1px);
     }
 
@@ -445,13 +457,13 @@
 
     .gua-btn-ghost {
       background: #fff;
-      color: var(--mm-ink);
+      color: var(--mm-green);
       border: 1px solid var(--mm-line);
     }
 
     .gua-btn-ghost:hover {
-      background: #f6eee7;
-      color: var(--mm-ink);
+      background: var(--mm-soft);
+      color: var(--mm-green);
     }
 
     .gua-input {
@@ -461,7 +473,7 @@
       border: 1px solid var(--mm-line);
       border-radius: var(--gua-radius);
       background: #fff;
-      color: var(--mm-ink);
+      color: var(--mm-green);
       outline: none;
       font-size: 13px;
       font-weight: 600;
@@ -469,14 +481,14 @@
     }
 
     .gua-input:focus {
-      border-color: var(--mm-ink);
-      box-shadow: 0 0 0 3px rgba(36,18,7,.08);
+      border-color: var(--mm-green);
+      box-shadow: 0 0 0 3px rgba(27, 73, 34, .08);
     }
 
     .gua-label {
       display: block;
       margin-bottom: .55rem;
-      color: #4c2d18;
+      color: var(--mm-green);
       font-size: 10px;
       font-weight: 900;
       letter-spacing: .16em;
@@ -520,7 +532,7 @@
       padding: 0 4px;
       border: 1.5px solid #fff;
       border-radius: 999px;
-      background: var(--mm-ink);
+      background: var(--mm-green);
       color: #fff;
       font-size: 9px;
       font-weight: 900;
@@ -530,11 +542,6 @@
 
     .notif-badge.is-zero {
       visibility: hidden;
-    }
-
-    .mm-footer-brand {
-      color: var(--mm-ink);
-      font-weight: 900;
     }
 
     input[type=number]::-webkit-inner-spin-button,
@@ -611,7 +618,7 @@
 
   {% if has_topbar %}
     <div class="top-bar">
-      {{ storefront_settings.get('topbar_text')
+      {{ topbar_text
         | replace('GUA Maison', 'MMESTLINE')
         | replace('GUA MAISON', 'MMESTLINE')
         | replace('GUA.', 'MMESTLINE')
@@ -630,79 +637,12 @@
     {% block content %}{% endblock %}
   </main>
 
-  <footer class="bg-white pt-16 pb-8 border-t border-neutral-200 mt-auto min-h-[500px] md:min-h-[340px]">
-    <div class="max-w-[1400px] mx-auto px-4 md:px-8">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-10 mb-14">
-        <div class="md:col-span-2">
-          <h3 class="text-xs font-bold uppercase tracking-widest text-black mb-4">
-            Đăng ký nhận tin
-          </h3>
-
-          <p class="text-[11px] text-neutral-500 mb-6 uppercase tracking-wider">
-            Nhận thông báo về bộ sưu tập mới và quyền lợi ưu tiên từ {{ shop_name }}.
-          </p>
-
-          <form class="flex w-full max-w-sm border-b border-black pb-2">
-            <input
-              type="email"
-              placeholder="Địa chỉ email"
-              required
-              class="w-full text-xs font-medium tracking-widest uppercase border-0 px-0 py-2 placeholder:text-neutral-400 outline-none bg-transparent"
-            >
-            <button
-              type="submit"
-              class="text-xs font-bold uppercase tracking-widest text-black hover:text-neutral-500 transition-colors"
-            >
-              Đăng ký
-            </button>
-          </form>
-        </div>
-
-        <div>
-          <h3 class="text-xs font-bold uppercase tracking-widest text-black mb-6">
-            Hỗ trợ
-          </h3>
-
-          <ul class="space-y-4">
-            <li><a href="#" class="text-[11px] uppercase tracking-widest text-neutral-500 hover:text-black">Vận chuyển & Giao hàng</a></li>
-            <li><a href="#" class="text-[11px] uppercase tracking-widest text-neutral-500 hover:text-black">Đổi trả & Hoàn tiền</a></li>
-            <li><a href="#" class="text-[11px] uppercase tracking-widest text-neutral-500 hover:text-black">Chính sách bảo mật</a></li>
-            <li><a href="#" class="text-[11px] uppercase tracking-widest text-neutral-500 hover:text-black">Liên hệ</a></li>
-          </ul>
-        </div>
-
-        <div>
-          <h3 class="text-xs font-bold uppercase tracking-widest text-black mb-6">
-            Về {{ shop_name }}
-          </h3>
-
-          <ul class="space-y-4">
-            <li><a href="#" class="text-[11px] uppercase tracking-widest text-neutral-500 hover:text-black">Câu chuyện thương hiệu</a></li>
-            <li><a href="#" class="text-[11px] uppercase tracking-widest text-neutral-500 hover:text-black">Hệ thống cửa hàng</a></li>
-            <li><a href="#" class="text-[11px] uppercase tracking-widest text-neutral-500 hover:text-black">Tuyển dụng</a></li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="flex flex-col md:flex-row justify-between items-center gap-4 pt-8 border-t border-neutral-200">
-        <p class="text-[10px] uppercase tracking-[.2em] text-neutral-400">
-          &copy; 2026 <span class="mm-footer-brand">{{ shop_name }}</span>. All Rights Reserved.
-        </p>
-
-        <div class="flex items-center gap-6">
-          <a href="#" class="text-neutral-400 hover:text-black" aria-label="Instagram">
-            <i class="fa-brands fa-instagram"></i>
-          </a>
-          <a href="#" class="text-neutral-400 hover:text-black" aria-label="Facebook">
-            <i class="fa-brands fa-facebook-f"></i>
-          </a>
-          <a href="#" class="text-neutral-400 hover:text-black" aria-label="TikTok">
-            <i class="fa-brands fa-tiktok"></i>
-          </a>
-        </div>
-      </div>
-    </div>
-  </footer>
+  {# 
+    Footer đã được tách riêng.
+    Lưu ý: footer.html KHÔNG được có cú pháp:
+    {{ shop_name|default('MMESTLINE')[:4] }}
+  #}
+  {% include 'partials/footer.html' ignore missing %}
 
   {% include 'chat.html' ignore missing %}
   {% include 'components/modals/_quick_view.html' ignore missing %}
@@ -723,11 +663,16 @@
       }
 
       const toast = document.createElement("div");
-      toast.className = "bg-white px-5 py-3 border shadow-lg text-[11px] font-bold uppercase tracking-widest " + (isError ? "border-red-500 text-red-600" : "border-neutral-200 text-black");
-      toast.textContent = message || "";
+      toast.className =
+        "bg-white px-5 py-3 border shadow-lg text-[11px] font-bold uppercase tracking-widest " +
+        (isError ? "border-red-500 text-red-600" : "border-neutral-200 text-black");
 
+      toast.textContent = message || "";
       wrap.appendChild(toast);
-      setTimeout(() => toast.remove(), 2500);
+
+      setTimeout(function () {
+        toast.remove();
+      }, 2500);
     }
 
     async function toggleHeart(productId, btn) {
@@ -747,7 +692,9 @@
 
         if (res.status === 401) {
           showToast("Vui lòng đăng nhập", true);
-          setTimeout(() => location.href = "/auth/login", 1000);
+          setTimeout(function () {
+            location.href = "/auth/login";
+          }, 1000);
           return;
         }
 
@@ -812,7 +759,9 @@
           syncTouch: false,
           autoResize: true,
           prevent: function (node) {
-            return Boolean(node.closest("[data-lenis-prevent], .no-lenis, .modal, .drawer, #mobileMenu, #addr-modal, #modal-panel"));
+            return Boolean(
+              node.closest("[data-lenis-prevent], .no-lenis, .modal, .drawer, #mobileMenu, #addr-modal, #modal-panel")
+            );
           }
         });
 
@@ -861,6 +810,7 @@
               video.playsInline = true;
 
               const promise = video.play();
+
               if (promise && typeof promise.catch === "function") {
                 promise.catch(function () {});
               }
@@ -888,7 +838,9 @@
         if (!items.length) return;
 
         if (!("IntersectionObserver" in window)) {
-          items.forEach((el) => el.classList.add("is-visible"));
+          items.forEach(function (el) {
+            el.classList.add("is-visible");
+          });
           return;
         }
 
@@ -904,7 +856,9 @@
           rootMargin: "90px 0px"
         });
 
-        items.forEach((el) => observer.observe(el));
+        items.forEach(function (el) {
+          observer.observe(el);
+        });
       }
 
       function initPage() {
@@ -967,4 +921,4 @@
 
   {% block extra_scripts %}{% endblock %}
 </body>
-</html> 
+</html>

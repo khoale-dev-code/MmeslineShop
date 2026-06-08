@@ -1,375 +1,336 @@
+/* =========================================================
+   MMESTLINE Admin Navigation
+   Clean CSS
+   Dùng cho:
+   - admin_navbar.html
+   - _admin_sidebar.html
+   - _admin_topbar.html
+   - _admin_user_dropdown.html
+
+   Lưu ý:
+   - Không dùng _admin_mobile_bar.html nữa.
+   - Topbar là topbar duy nhất.
+   - Sidebar desktop có collapsed.
+   - Sidebar mobile là off-canvas.
+========================================================= */
+
 :root {
   --mm-brown-950: #241207;
   --mm-brown-900: #3b2414;
   --mm-brown-800: #4c2d18;
   --mm-brown-700: #5f3b1e;
   --mm-caramel: #b98b62;
-  --mm-sand: #ead8c8;
+  --mm-muted: #9b7b63;
   --mm-cream: #fbf7f1;
   --mm-soft: #fffaf5;
+  --mm-card: #fffdf9;
   --mm-line: #eadfd4;
 
-  --admin-sidebar-width: 280px;
-  --admin-sidebar-mini-width: 84px;
-  --admin-topbar-height: 76px;
-  --admin-mobilebar-height: 64px;
-  --admin-content-ml: var(--admin-sidebar-width);
+  --mm-admin-sidebar-full: 300px;
+  --mm-admin-sidebar-mini: 92px;
+  --mm-admin-sidebar-w: var(--mm-admin-sidebar-full);
+
+  --mm-admin-topbar-h: 76px;
+  --mm-admin-topbar-mobile-h: 68px;
+
+  --admin-sidebar-width: var(--mm-admin-sidebar-w);
+  --admin-sidebar-mini-width: var(--mm-admin-sidebar-mini);
+  --admin-topbar-height: var(--mm-admin-topbar-h);
+  --admin-content-ml: var(--mm-admin-sidebar-w);
+
+  --mm-ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* =========================
-   Progress
-========================= */
+/* =========================================================
+   Collapsed state
+========================================================= */
+
+html.mm-admin-sidebar-collapsed,
+html.mm-sidebar-collapsed,
+html.admin-sidebar-collapsed,
+body.mm-admin-sidebar-collapsed,
+body.mm-sidebar-collapsed,
+body.admin-sidebar-collapsed {
+  --mm-admin-sidebar-w: var(--mm-admin-sidebar-mini);
+  --admin-sidebar-width: var(--mm-admin-sidebar-mini);
+  --admin-content-ml: var(--mm-admin-sidebar-mini);
+}
+
+/* =========================================================
+   Progress bar
+========================================================= */
+
+#mmAdminProgress,
+.mm-admin-progress {
+  pointer-events: none !important;
+}
 
 .mm-admin-progress {
   position: fixed;
   top: 0;
-  left: 0;
+  left: var(--mm-admin-sidebar-w);
+  right: 0;
   z-index: 9999;
   width: 0;
-  height: 3px;
-  pointer-events: none;
+  height: 2px;
+  opacity: 0;
   background: linear-gradient(90deg, var(--mm-brown-700), var(--mm-caramel));
   border-radius: 0 999px 999px 0;
-  box-shadow: 0 0 18px rgba(95, 59, 30, 0.35);
-  transition: width 0.2s ease, opacity 0.2s ease;
-}
-
-/* =========================
-   Mobile bar
-========================= */
-
-.mm-mobilebar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 120;
-  height: var(--admin-mobilebar-height);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-inline: 16px;
-  background: rgba(251, 247, 241, 0.92);
-  border-bottom: 1px solid var(--mm-line);
-  backdrop-filter: blur(20px);
-}
-
-.mm-mobile-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.mm-mobile-logo {
-  width: 38px;
-  height: 38px;
-  border-radius: 16px;
-  object-fit: cover;
-}
-
-.mm-mobile-brand p {
-  margin: 0;
-  color: var(--mm-brown-950);
-  font-size: 13px;
-  font-weight: 900;
-  line-height: 1;
-}
-
-.mm-mobile-brand span {
-  display: block;
-  margin-top: 4px;
-  color: var(--mm-caramel);
-  font-size: 9px;
-  font-weight: 900;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
-
-/* =========================
-   Sidebar
-========================= */
-
-.mm-sidebar-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 190;
-  background: rgba(36, 18, 7, 0.45);
-  opacity: 0;
-  pointer-events: none;
-  backdrop-filter: blur(8px);
-  transition: opacity 0.2s ease;
-}
-
-.mm-sidebar-backdrop.is-open {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.mm-sidebar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  z-index: 200;
-  width: var(--admin-sidebar-width);
-  display: flex;
-  flex-direction: column;
-  background: rgba(255, 252, 248, 0.98);
-  border-right: 1px solid var(--mm-line);
-  transform: translateX(-105%);
+  box-shadow: 0 0 18px rgba(95, 59, 30, 0.26);
+  transform: translateZ(0);
   transition:
-    width 0.28s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    width 0.22s var(--mm-ease),
+    opacity 0.18s ease,
+    left 0.22s var(--mm-ease);
 }
 
-.mm-sidebar.is-open,
-body.mm-admin-menu-open .mm-sidebar,
-body.admin-sidebar-open .mm-sidebar {
-  transform: translateX(0);
+body.mm-admin-loading .mm-admin-progress {
+  width: 68%;
+  opacity: 1;
 }
 
-.mm-sidebar-head {
-  height: var(--admin-topbar-height);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-inline: 18px;
-  border-bottom: 1px solid var(--mm-line);
-  flex-shrink: 0;
-}
+/* =========================================================
+   Scrollbar helpers
+========================================================= */
 
-.mm-brand {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.mm-logo-wrap {
-  width: 46px;
-  height: 46px;
-  flex: 0 0 auto;
-  border-radius: 18px;
-  background: var(--mm-brown-700);
-  box-shadow: 0 12px 28px -18px rgba(36, 18, 7, 0.8);
-  overflow: hidden;
-}
-
-.mm-logo-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.mm-brand-text {
-  min-width: 0;
-}
-
-.mm-brand-text strong {
-  display: block;
-  color: var(--mm-brown-950);
-  font-size: 15px;
-  font-weight: 950;
-  letter-spacing: 0.02em;
-  line-height: 1;
-}
-
-.mm-brand-text small {
-  display: block;
-  margin-top: 6px;
-  color: var(--mm-caramel);
-  font-size: 9px;
-  font-weight: 900;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-}
-
-.mm-sidebar-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 18px 14px;
+.mm-admin-nav-scroll,
+.mm-sidebar-nav-scroll,
+.custom-scrollbar {
   scrollbar-width: none;
 }
 
-.mm-sidebar-body::-webkit-scrollbar {
+.mm-admin-nav-scroll::-webkit-scrollbar,
+.mm-sidebar-nav-scroll::-webkit-scrollbar,
+.custom-scrollbar::-webkit-scrollbar {
   width: 0;
   height: 0;
 }
 
-.mm-sidebar-foot {
-  padding: 14px;
-  border-top: 1px solid var(--mm-line);
-  flex-shrink: 0;
-}
+/* =========================================================
+   Sidebar
+========================================================= */
 
-/* =========================
-   Buttons
-========================= */
-
-.mm-close-btn,
-.mm-icon-btn {
-  width: 44px;
-  height: 44px;
-  border: 1px solid var(--mm-line);
-  border-radius: 18px;
-  background: var(--mm-soft);
-  color: var(--mm-brown-700);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition:
-    color 0.18s ease,
-    background 0.18s ease,
-    border-color 0.18s ease,
-    transform 0.18s ease;
-}
-
-.mm-icon-btn:hover,
-.mm-icon-btn.is-active,
-.mm-close-btn:hover {
-  color: #fff;
-  background: var(--mm-brown-700);
-  border-color: var(--mm-brown-700);
-  transform: translateY(-1px);
-}
-
-/* =========================
-   Nav items
-========================= */
-
-.mm-nav-section {
-  margin-bottom: 22px;
-}
-
-.mm-section-title {
-  margin: 0 0 8px;
-  padding-inline: 12px;
-  color: #a58b78;
-  font-size: 10px;
-  font-weight: 950;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-}
-
-.mm-nav-list {
-  display: grid;
-  gap: 4px;
-}
-
-.mm-nav-link {
-  position: relative;
-  width: 100%;
-  min-height: 48px;
-  border-radius: 18px;
-  color: #75543f;
-  padding: 9px 12px;
+#mmAdminSidebar,
+.mm-admin-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 120;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 13px;
-  font-weight: 850;
-  transition:
-    color 0.16s ease,
-    background 0.16s ease,
-    box-shadow 0.16s ease;
-}
-
-.mm-nav-link:hover {
+  width: var(--mm-admin-sidebar-w) !important;
+  height: 100dvh;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid var(--mm-line);
+  background:
+    radial-gradient(circle at 18% 0%, rgba(185, 139, 98, 0.18), transparent 32%),
+    linear-gradient(180deg, #fffaf5 0%, #fbf4ec 100%);
   color: var(--mm-brown-950);
-  background: #f6eee7;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(0);
+  transition:
+    width 0.22s var(--mm-ease),
+    transform 0.24s var(--mm-ease);
 }
 
-.mm-nav-link.is-active {
-  color: #fff;
-  background: linear-gradient(135deg, var(--mm-brown-700), var(--mm-brown-900));
-  box-shadow: 0 18px 36px -28px rgba(36, 18, 7, 0.75);
+.mm-sidebar-brand {
+  min-height: 76px;
 }
 
-.mm-nav-left {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.mm-sidebar-logo img {
+  max-width: 32px;
+  max-height: 32px;
 }
 
-.mm-nav-icon {
+.mm-sidebar-link {
+  position: relative;
+}
+
+.mm-sidebar-link::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  width: 3px;
+  height: 0;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0;
+  transform: translateY(-50%);
+  transition: height 0.18s ease, opacity 0.18s ease;
+}
+
+.mm-sidebar-link.is-active::after {
+  height: 22px;
+  opacity: 0.72;
+}
+
+/* =========================================================
+   Sidebar collapsed
+========================================================= */
+
+body.mm-admin-sidebar-collapsed .mm-sidebar-brand,
+body.mm-sidebar-collapsed .mm-sidebar-brand,
+body.admin-sidebar-collapsed .mm-sidebar-brand {
+  justify-content: center;
+  padding-inline: 12px;
+}
+
+body.mm-admin-sidebar-collapsed .mm-sidebar-brand-link,
+body.mm-sidebar-collapsed .mm-sidebar-brand-link,
+body.admin-sidebar-collapsed .mm-sidebar-brand-link {
+  flex: 0 0 auto;
+  justify-content: center;
+}
+
+body.mm-admin-sidebar-collapsed .mm-sidebar-brand-text,
+body.mm-admin-sidebar-collapsed .mm-sidebar-section-title,
+body.mm-admin-sidebar-collapsed .mm-sidebar-label,
+body.mm-admin-sidebar-collapsed .mm-sidebar-badge,
+body.mm-admin-sidebar-collapsed .mm-sidebar-footer-text,
+body.mm-sidebar-collapsed .mm-sidebar-brand-text,
+body.mm-sidebar-collapsed .mm-sidebar-section-title,
+body.mm-sidebar-collapsed .mm-sidebar-label,
+body.mm-sidebar-collapsed .mm-sidebar-badge,
+body.mm-sidebar-collapsed .mm-sidebar-footer-text,
+body.admin-sidebar-collapsed .mm-sidebar-brand-text,
+body.admin-sidebar-collapsed .mm-sidebar-section-title,
+body.admin-sidebar-collapsed .mm-sidebar-label,
+body.admin-sidebar-collapsed .mm-sidebar-badge,
+body.admin-sidebar-collapsed .mm-sidebar-footer-text {
+  width: 0 !important;
+  max-width: 0 !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  pointer-events: none !important;
+}
+
+body.mm-admin-sidebar-collapsed .mm-sidebar-link,
+body.mm-sidebar-collapsed .mm-sidebar-link,
+body.admin-sidebar-collapsed .mm-sidebar-link {
+  justify-content: center !important;
+  gap: 0 !important;
+  padding-left: 10px !important;
+  padding-right: 10px !important;
+}
+
+body.mm-admin-sidebar-collapsed .mm-sidebar-icon,
+body.mm-sidebar-collapsed .mm-sidebar-icon,
+body.admin-sidebar-collapsed .mm-sidebar-icon {
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+body.mm-admin-sidebar-collapsed .mm-sidebar-section,
+body.mm-sidebar-collapsed .mm-sidebar-section,
+body.admin-sidebar-collapsed .mm-sidebar-section {
+  margin-bottom: 18px;
+}
+
+body.mm-admin-sidebar-collapsed .mm-sidebar-nav-scroll,
+body.mm-sidebar-collapsed .mm-sidebar-nav-scroll,
+body.admin-sidebar-collapsed .mm-sidebar-nav-scroll,
+body.mm-admin-sidebar-collapsed .custom-scrollbar,
+body.mm-sidebar-collapsed .custom-scrollbar,
+body.admin-sidebar-collapsed .custom-scrollbar {
+  padding-inline: 12px !important;
+}
+
+body.mm-admin-sidebar-collapsed .mm-sidebar-toggle,
+body.mm-sidebar-collapsed .mm-sidebar-toggle,
+body.admin-sidebar-collapsed .mm-sidebar-toggle {
+  position: absolute;
+  top: 20px;
+  right: -15px;
+  z-index: 30;
   width: 34px;
   height: 34px;
-  flex: 0 0 auto;
-  border-radius: 14px;
-  background: #fbf4ed;
-  color: var(--mm-caramel);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.mm-nav-link.is-active .mm-nav-icon {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.14);
-}
-
-.mm-nav-label {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.mm-nav-badge,
-.mm-dot-badge {
-  min-width: 20px;
-  height: 20px;
   border-radius: 999px;
-  color: #fff;
-  background: #e54864;
-  padding-inline: 6px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: 950;
+  background: var(--mm-card);
+  box-shadow: 0 18px 34px -22px rgba(36, 18, 7, 0.72);
 }
 
-.mm-dot-badge {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  border: 2px solid #fff;
+body.mm-admin-sidebar-collapsed [data-admin-sidebar-toggle] i,
+body.mm-sidebar-collapsed [data-admin-sidebar-toggle] i,
+body.admin-sidebar-collapsed [data-admin-sidebar-toggle] i {
+  transform: rotate(180deg);
 }
 
-/* =========================
+/* =========================================================
+   Sidebar backdrop mobile
+========================================================= */
+
+.mm-admin-sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  background: rgba(36, 18, 7, 0.42);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+  transition: opacity 0.22s ease, visibility 0.22s ease;
+}
+
+body.mm-admin-mobile-sidebar-open .mm-admin-sidebar-backdrop,
+body.admin-sidebar-open .mm-admin-sidebar-backdrop,
+body.mm-sidebar-open .mm-admin-sidebar-backdrop,
+.mm-admin-sidebar-backdrop.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* =========================================================
    Topbar
-========================= */
+========================================================= */
 
+#adminTopbar,
 .mm-topbar {
   position: fixed;
   top: 0;
   right: 0;
-  left: var(--admin-content-ml);
-  z-index: 100;
-  height: var(--admin-topbar-height);
-  display: none;
+  left: var(--mm-admin-sidebar-w) !important;
+  z-index: 130 !important;
+  min-height: var(--mm-admin-topbar-h);
+  display: flex !important;
   align-items: center;
   justify-content: space-between;
-  padding-inline: 28px;
-  background: rgba(251, 247, 241, 0.9);
+  gap: 16px;
   border-bottom: 1px solid var(--mm-line);
-  backdrop-filter: blur(22px);
-  transition: left 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  background: rgba(255, 250, 245, 0.92);
+  padding: 0 22px;
+  color: var(--mm-brown-950);
+  pointer-events: auto !important;
+  backdrop-filter: blur(18px);
+  transition: left 0.22s var(--mm-ease);
 }
 
 .mm-topbar-left,
 .mm-topbar-actions {
-  min-width: 0;
   display: flex;
+  min-width: 0;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
+}
+
+.mm-topbar-left {
+  flex: 1;
+}
+
+.mm-topbar-actions {
+  flex-shrink: 0;
+}
+
+.mm-topbar-heading {
+  min-width: 0;
 }
 
 .mm-topbar-kicker {
-  margin: 0;
+  margin: 0 0 3px;
   color: var(--mm-caramel);
   font-size: 10px;
   font-weight: 950;
@@ -378,79 +339,142 @@ body.admin-sidebar-open .mm-sidebar {
 }
 
 .mm-topbar-title {
-  margin: 3px 0 0;
+  margin: 0;
+  max-width: min(46vw, 720px);
   color: var(--mm-brown-950);
   font-size: 18px;
   font-weight: 950;
-  line-height: 1.15;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+/* =========================================================
+   Topbar buttons
+========================================================= */
+
+.mm-icon-btn {
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--mm-line);
+  border-radius: 16px;
+  background: var(--mm-card);
+  color: var(--mm-brown-700);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease,
+    border-color 0.16s ease,
+    transform 0.16s ease;
+}
+
+.mm-icon-btn:hover,
+.mm-icon-btn.is-active {
+  background: var(--mm-brown-900);
+  border-color: var(--mm-brown-900);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+/* Hamburger chỉ hiện mobile/tablet */
+.mm-mobile-menu-btn {
+  display: none !important;
+}
+
+.mm-dot-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 19px;
+  height: 19px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--mm-soft);
+  border-radius: 999px;
+  background: #e54864;
+  color: #fff;
+  padding: 0 5px;
+  font-size: 9px;
+  font-weight: 950;
 }
 
 .mm-pos-btn {
-  min-height: 44px;
-  border-radius: 18px;
+  min-height: 42px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--mm-brown-900);
   color: #fff;
-  background: linear-gradient(135deg, var(--mm-brown-700), var(--mm-brown-900));
-  padding: 0 18px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: background 0.16s ease, transform 0.16s ease;
+}
+
+.mm-pos-btn:hover {
+  background: var(--mm-brown-950);
+  transform: translateY(-1px);
+}
+
+.mm-user-btn {
+  min-height: 46px;
+  border: 1px solid var(--mm-line);
+  border-radius: 18px;
+  background: var(--mm-card);
+  color: var(--mm-brown-950);
+  padding: 4px 8px 4px 14px;
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  font-size: 13px;
-  font-weight: 950;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  box-shadow: 0 16px 32px -24px rgba(36, 18, 7, 0.8);
-}
-
-/* =========================
-   User button / dropdown
-========================= */
-
-.mm-user-btn {
-  min-height: 52px;
-  border: 1px solid var(--mm-line);
-  border-radius: 20px;
-  background: var(--mm-soft);
-  padding: 6px 8px 6px 14px;
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  transition:
-    border-color 0.16s ease,
-    box-shadow 0.16s ease;
+  transition: background 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
 }
 
 .mm-user-btn:hover,
 .mm-user-btn.is-open {
-  border-color: rgba(95, 59, 30, 0.35);
-  box-shadow: 0 18px 40px -34px rgba(36, 18, 7, 0.8);
+  background: var(--mm-soft);
+  border-color: #d7c4b4;
+  box-shadow: 0 18px 40px -34px rgba(36, 18, 7, 0.72);
 }
 
 .mm-user-text {
-  text-align: right;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-end;
 }
 
 .mm-user-text strong {
-  display: block;
+  max-width: 128px;
   color: var(--mm-brown-950);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 950;
-  line-height: 1.15;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .mm-user-text small {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
-  margin-top: 4px;
+  margin-top: 2px;
   color: #059669;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 950;
   letter-spacing: 0.14em;
   text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .mm-user-text small span {
@@ -461,36 +485,67 @@ body.admin-sidebar-open .mm-sidebar {
 }
 
 .mm-user-avatar {
-  width: 42px;
-  height: 42px;
-  flex: 0 0 auto;
-  border-radius: 16px;
+  width: 38px;
+  height: 38px;
+  border-radius: 15px;
+  background: var(--mm-brown-900);
   color: #fff;
-  background: var(--mm-brown-950);
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  font-size: 14px;
   font-weight: 950;
 }
 
 .mm-chevron {
-  color: #b49b88;
-  font-size: 10px;
+  color: var(--mm-caramel);
+  font-size: 11px;
   transition: transform 0.16s ease;
 }
 
-.mm-user-dropdown {
+/* =========================================================
+   User dropdown
+========================================================= */
+
+.mm-user-dropdown,
+#adminUserDropdown {
   position: fixed;
-  top: calc(var(--admin-topbar-height) + 12px);
+  top: calc(var(--mm-admin-topbar-h) + 12px);
   right: 28px;
-  z-index: 999;
+  z-index: 160;
   width: min(320px, calc(100vw - 24px));
   overflow: hidden;
   border: 1px solid var(--mm-line);
-  border-radius: 28px;
+  border-radius: 24px;
   background: var(--mm-soft);
   box-shadow: 0 28px 90px -42px rgba(36, 18, 7, 0.75);
-  animation: mmMenuIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: mmMenuIn 0.18s var(--mm-ease) both;
+}
+
+#adminUserDropdown.hidden {
+  display: none !important;
+  pointer-events: none;
+}
+
+#adminUserDropdown.is-open {
+  display: block !important;
+  pointer-events: auto;
+}
+
+#adminUserDropdownBackdrop,
+.mm-user-dropdown-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  background: transparent;
+  pointer-events: none;
+}
+
+#adminUserDropdownBackdrop:not(.hidden),
+#adminUserDropdownBackdrop.is-open,
+.mm-user-dropdown-backdrop.is-open {
+  pointer-events: auto;
 }
 
 @keyframes mmMenuIn {
@@ -587,9 +642,7 @@ body.admin-sidebar-open .mm-sidebar {
   align-items: center;
   gap: 12px;
   text-align: left;
-  transition:
-    color 0.16s ease,
-    background 0.16s ease;
+  transition: color 0.16s ease, background 0.16s ease;
 }
 
 .mm-dropdown-item:hover {
@@ -653,101 +706,42 @@ body.admin-sidebar-open .mm-sidebar {
   background: #fff1f2;
 }
 
-/* =========================
-   Desktop layout
-========================= */
+/* =========================================================
+   Main layout compatibility
+========================================================= */
+
+.admin-main,
+.mm-admin-main,
+#adminMain {
+  position: relative;
+  z-index: 1;
+  min-height: 100dvh;
+  padding-top: var(--mm-admin-topbar-h) !important;
+  margin-left: var(--mm-admin-sidebar-w) !important;
+  transition:
+    margin-left 0.22s var(--mm-ease),
+    padding-top 0.18s ease;
+}
+
+/* =========================================================
+   Responsive
+========================================================= */
 
 @media (min-width: 1024px) {
-  .mm-mobilebar,
-  .mm-sidebar-backdrop {
+  .mm-admin-sidebar-backdrop {
     display: none !important;
+    pointer-events: none !important;
   }
 
-  .mm-sidebar {
+  #mmAdminSidebar,
+  .mm-admin-sidebar {
     transform: translateX(0);
   }
 
-  .mm-topbar {
-    display: flex;
-  }
-
-  body.admin-sidebar-collapsed,
-  body.mm-sidebar-collapsed {
-    --admin-content-ml: var(--admin-sidebar-mini-width);
-  }
-
-  body.admin-sidebar-collapsed .mm-sidebar,
-  body.mm-sidebar-collapsed .mm-sidebar {
-    width: var(--admin-sidebar-mini-width);
-  }
-
-  body.admin-sidebar-collapsed .mm-topbar,
-  body.mm-sidebar-collapsed .mm-topbar {
-    left: var(--admin-sidebar-mini-width);
-  }
-
-  body.admin-sidebar-hidden,
-  body.mm-sidebar-hidden {
-    --admin-content-ml: 0px;
-  }
-
-  body.admin-sidebar-hidden .mm-sidebar,
-  body.mm-sidebar-hidden .mm-sidebar {
-    transform: translateX(-105%);
-  }
-
-  body.admin-sidebar-hidden .mm-topbar,
-  body.mm-sidebar-hidden .mm-topbar {
-    left: 0;
-  }
-
-  body.admin-sidebar-collapsed .mm-brand-text,
-  body.mm-sidebar-collapsed .mm-brand-text,
-  body.admin-sidebar-collapsed .mm-section-title,
-  body.mm-sidebar-collapsed .mm-section-title,
-  body.admin-sidebar-collapsed .mm-nav-label,
-  body.mm-sidebar-collapsed .mm-nav-label {
+  .mm-mobile-menu-btn {
     display: none !important;
   }
-
-  body.admin-sidebar-collapsed .mm-sidebar-head,
-  body.mm-sidebar-collapsed .mm-sidebar-head {
-    justify-content: center;
-    padding-inline: 10px;
-  }
-
-  body.admin-sidebar-collapsed .mm-brand,
-  body.mm-sidebar-collapsed .mm-brand,
-  body.admin-sidebar-collapsed .mm-nav-link,
-  body.mm-sidebar-collapsed .mm-nav-link {
-    justify-content: center;
-  }
-
-  body.admin-sidebar-collapsed .mm-nav-link,
-  body.mm-sidebar-collapsed .mm-nav-link {
-    padding-inline: 10px;
-  }
-
-  body.admin-sidebar-collapsed .mm-nav-left,
-  body.mm-sidebar-collapsed .mm-nav-left {
-    gap: 0;
-  }
-
-  body.admin-sidebar-collapsed .mm-nav-badge,
-  body.mm-sidebar-collapsed .mm-nav-badge {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    min-width: 18px;
-    height: 18px;
-    padding-inline: 5px;
-    font-size: 9px;
-  }
 }
-
-/* =========================
-   Tablet / Mobile
-========================= */
 
 @media (max-width: 1279px) {
   .mm-user-text,
@@ -756,9 +750,7 @@ body.admin-sidebar-open .mm-sidebar {
   }
 
   .mm-pos-btn {
-    width: 44px;
-    height: 44px;
-    justify-content: center;
+    width: 42px;
     padding: 0;
   }
 
@@ -768,358 +760,33 @@ body.admin-sidebar-open .mm-sidebar {
 }
 
 @media (max-width: 1023.98px) {
-  .mm-topbar {
-    display: none !important;
-  }
-
-  .mm-sidebar {
-    width: min(86vw, 320px);
-    max-width: calc(100vw - 28px);
-  }
-
-  .mm-user-dropdown {
-    top: calc(var(--admin-mobilebar-height) + 8px);
-    right: 12px;
-  }
-}
-/* =========================================
-   MMESTLINE Admin Sidebar Compact Fix
-   Fix nút thu gọn đè logo khi collapsed
-========================================= */
-
-.mm-admin-sidebar {
-  width: var(--admin-sidebar-width, 300px) !important;
-  overflow: visible !important;
-}
-
-.mm-admin-sidebar .custom-scrollbar {
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-/* Width khi thu gọn */
-body.mm-sidebar-collapsed .mm-admin-sidebar,
-body.admin-sidebar-collapsed .mm-admin-sidebar,
-body.mm-admin-sidebar-collapsed .mm-admin-sidebar,
-html.mm-sidebar-collapsed body .mm-admin-sidebar,
-html.admin-sidebar-collapsed body .mm-admin-sidebar,
-html.mm-admin-sidebar-collapsed body .mm-admin-sidebar {
-  width: var(--admin-sidebar-mini-width, 86px) !important;
-}
-
-/* Ẩn chữ khi thu gọn */
-body.mm-sidebar-collapsed .mm-sidebar-brand-text,
-body.mm-sidebar-collapsed .mm-sidebar-label,
-body.mm-sidebar-collapsed .mm-sidebar-section-title,
-body.mm-sidebar-collapsed .mm-sidebar-badge,
-body.admin-sidebar-collapsed .mm-sidebar-brand-text,
-body.admin-sidebar-collapsed .mm-sidebar-label,
-body.admin-sidebar-collapsed .mm-sidebar-section-title,
-body.admin-sidebar-collapsed .mm-sidebar-badge,
-body.mm-admin-sidebar-collapsed .mm-sidebar-brand-text,
-body.mm-admin-sidebar-collapsed .mm-sidebar-label,
-body.mm-admin-sidebar-collapsed .mm-sidebar-section-title,
-body.mm-admin-sidebar-collapsed .mm-sidebar-badge {
-  width: 0 !important;
-  max-width: 0 !important;
-  opacity: 0 !important;
-  visibility: hidden !important;
-  overflow: hidden !important;
-  white-space: nowrap !important;
-}
-
-/* Brand collapsed: logo nằm giữa */
-body.mm-sidebar-collapsed .mm-sidebar-brand,
-body.admin-sidebar-collapsed .mm-sidebar-brand,
-body.mm-admin-sidebar-collapsed .mm-sidebar-brand {
-  justify-content: center !important;
-  padding-left: 10px !important;
-  padding-right: 10px !important;
-}
-
-body.mm-sidebar-collapsed .mm-sidebar-brand-link,
-body.admin-sidebar-collapsed .mm-sidebar-brand-link,
-body.mm-admin-sidebar-collapsed .mm-sidebar-brand-link {
-  flex: 0 0 auto !important;
-  justify-content: center !important;
-}
-
-body.mm-sidebar-collapsed .mm-sidebar-logo,
-body.admin-sidebar-collapsed .mm-sidebar-logo,
-body.mm-admin-sidebar-collapsed .mm-sidebar-logo {
-  margin-left: auto !important;
-  margin-right: auto !important;
-}
-
-/* Nút toggle nổi ra mép phải, không đè logo */
-body.mm-sidebar-collapsed .mm-sidebar-toggle,
-body.admin-sidebar-collapsed .mm-sidebar-toggle,
-body.mm-admin-sidebar-collapsed .mm-sidebar-toggle {
-  position: absolute !important;
-  top: 20px !important;
-  right: -15px !important;
-  z-index: 50 !important;
-  width: 34px !important;
-  height: 34px !important;
-  border-radius: 999px !important;
-  background: #fffdf9 !important;
-  box-shadow: 0 18px 34px -22px rgba(36, 18, 7, 0.72) !important;
-}
-
-/* Icon quay hướng mở rộng */
-body.mm-sidebar-collapsed .mm-sidebar-toggle i,
-body.admin-sidebar-collapsed .mm-sidebar-toggle i,
-body.mm-admin-sidebar-collapsed .mm-sidebar-toggle i {
-  transform: rotate(180deg);
-}
-
-/* Item menu căn giữa khi thu gọn */
-body.mm-sidebar-collapsed .mm-sidebar-link,
-body.admin-sidebar-collapsed .mm-sidebar-link,
-body.mm-admin-sidebar-collapsed .mm-sidebar-link {
-  justify-content: center !important;
-  gap: 0 !important;
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-}
-
-body.mm-sidebar-collapsed .mm-sidebar-icon,
-body.admin-sidebar-collapsed .mm-sidebar-icon,
-body.mm-admin-sidebar-collapsed .mm-sidebar-icon {
-  margin-left: auto !important;
-  margin-right: auto !important;
-}
-
-/* Padding menu khi thu gọn */
-body.mm-sidebar-collapsed .mm-admin-sidebar .custom-scrollbar,
-body.admin-sidebar-collapsed .mm-admin-sidebar .custom-scrollbar,
-body.mm-admin-sidebar-collapsed .mm-admin-sidebar .custom-scrollbar {
-  padding-left: 12px !important;
-  padding-right: 12px !important;
-}
-
-body.mm-sidebar-collapsed .mm-sidebar-section,
-body.admin-sidebar-collapsed .mm-sidebar-section,
-body.mm-admin-sidebar-collapsed .mm-sidebar-section {
-  margin-bottom: 18px !important;
-}
-
-/* Mobile giữ rộng theo màn hình */
-@media (max-width: 1023.98px) {
-  .mm-admin-sidebar {
-    width: min(300px, 88vw) !important;
-  }
-}
-/* =========================================
-   MMESTLINE Admin Topbar Compact
-========================================= */
-
-.mm-topbar {
-  position: fixed;
-  top: 0;
-  right: 0;
-  left: var(--admin-content-ml, 300px);
-  z-index: 80;
-  min-height: var(--admin-topbar-height, 72px);
-  border-bottom: 1px solid #eadfd4;
-  background: rgba(255, 250, 245, 0.88);
-  backdrop-filter: blur(18px);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 0 22px;
-  transition: left 0.24s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.mm-topbar-left,
-.mm-topbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
-
-.mm-topbar-left {
-  flex: 1;
-}
-
-.mm-topbar-actions {
-  flex-shrink: 0;
-}
-
-.mm-topbar-kicker {
-  margin: 0 0 3px;
-  color: #b98b62;
-  font-size: 10px;
-  font-weight: 950;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-}
-
-.mm-topbar-title {
-  margin: 0;
-  color: #241207;
-  font-size: 18px;
-  font-weight: 950;
-  letter-spacing: -0.035em;
-  line-height: 1.1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.mm-icon-btn {
-  width: 42px;
-  height: 42px;
-  border: 1px solid #eadfd4;
-  border-radius: 16px;
-  background: #fffdf9;
-  color: #5f3b1e;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.16s ease, color 0.16s ease, transform 0.16s ease;
-}
-
-.mm-icon-btn:hover,
-.mm-icon-btn.is-active {
-  background: #3b2414;
-  color: #fff;
-  transform: translateY(-1px);
-}
-
-.mm-dot-badge {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  min-width: 19px;
-  height: 19px;
-  padding: 0 5px;
-  border: 2px solid #fffaf5;
-  border-radius: 999px;
-  background: #e54864;
-  color: #fff;
-  font-size: 9px;
-  font-weight: 950;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.mm-pos-btn {
-  min-height: 42px;
-  border: 0;
-  border-radius: 16px;
-  background: #3b2414;
-  color: #fff;
-  padding: 0 16px;
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  font-size: 11px;
-  font-weight: 950;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  white-space: nowrap;
-  transition: background 0.16s ease, transform 0.16s ease;
-}
-
-.mm-pos-btn:hover {
-  background: #241207;
-  transform: translateY(-1px);
-}
-
-.mm-user-btn {
-  min-height: 46px;
-  border: 1px solid #eadfd4;
-  border-radius: 18px;
-  background: #fffdf9;
-  color: #241207;
-  padding: 4px 8px 4px 14px;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  transition: background 0.16s ease, border-color 0.16s ease;
-}
-
-.mm-user-btn:hover,
-.mm-user-btn.is-open {
-  background: #fffaf5;
-  border-color: #d7c4b4;
-}
-
-.mm-user-text {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  min-width: 0;
-}
-
-.mm-user-text strong {
-  max-width: 128px;
-  color: #241207;
-  font-size: 12px;
-  font-weight: 950;
-  line-height: 1.1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.mm-user-text small {
-  margin-top: 2px;
-  color: #059669;
-  font-size: 9px;
-  font-weight: 950;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.mm-user-text small span {
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: #10b981;
-}
-
-.mm-user-avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 15px;
-  background: #3b2414;
-  color: #fff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  font-weight: 950;
-  flex-shrink: 0;
-}
-
-.mm-chevron {
-  color: #b98b62;
-  font-size: 11px;
-  transition: transform 0.16s ease;
-}
-
-/* Sidebar collapsed: topbar tự bám theo mini width */
-body.mm-sidebar-collapsed .mm-topbar,
-body.admin-sidebar-collapsed .mm-topbar,
-body.mm-admin-sidebar-collapsed .mm-topbar,
-html.mm-sidebar-collapsed body .mm-topbar,
-html.admin-sidebar-collapsed body .mm-topbar,
-html.mm-admin-sidebar-collapsed body .mm-topbar {
-  left: var(--admin-sidebar-mini-width, 86px);
-}
-
-@media (max-width: 1023.98px) {
-  .mm-topbar {
+  .mm-admin-progress {
     left: 0;
-    min-height: var(--admin-mobilebar-height, 64px);
+  }
+
+  #mmAdminSidebar,
+  .mm-admin-sidebar {
+    z-index: 120;
+    width: min(320px, 88vw) !important;
+    transform: translateX(-105%);
+  }
+
+  .mm-admin-sidebar.is-open,
+  body.mm-admin-mobile-sidebar-open .mm-admin-sidebar,
+  body.admin-sidebar-open .mm-admin-sidebar,
+  body.mm-sidebar-open .mm-admin-sidebar {
+    transform: translateX(0);
+  }
+
+  #adminTopbar,
+  .mm-topbar {
+    left: 0 !important;
+    min-height: var(--mm-admin-topbar-mobile-h);
     padding: 0 14px;
+  }
+
+  .mm-mobile-menu-btn {
+    display: inline-flex !important;
   }
 
   .mm-topbar-kicker {
@@ -1127,19 +794,8 @@ html.mm-admin-sidebar-collapsed body .mm-topbar {
   }
 
   .mm-topbar-title {
+    max-width: 46vw;
     font-size: 16px;
-  }
-
-  .mm-pos-btn span,
-  .mm-user-text,
-  .mm-chevron {
-    display: none;
-  }
-
-  .mm-pos-btn {
-    width: 42px;
-    padding: 0;
-    justify-content: center;
   }
 
   .mm-user-btn {
@@ -1151,104 +807,324 @@ html.mm-admin-sidebar-collapsed body .mm-topbar {
     width: 36px;
     height: 36px;
   }
-}
-/* =========================================================
-   MMESTLINE Admin click-layer fix
-   Chống progress/backdrop/topbar/sidebar chặn click sai lớp.
-========================================================= */
 
-.mm-admin-progress {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 9999;
-  height: 3px;
-  width: 0;
-  opacity: 0;
-  background: #5a2f1f;
-  pointer-events: none !important;
-}
-
-/* Sidebar desktop */
-#mmAdminSidebar,
-#adminSidebar,
-.mm-admin-sidebar {
-  pointer-events: auto !important;
-}
-
-/* Link / button trong sidebar phải click được */
-.mm-admin-sidebar a,
-.mm-admin-sidebar button,
-.mm-admin-sidebar input,
-.mm-admin-sidebar form,
-.mm-sidebar-link,
-[data-nav] {
-  pointer-events: auto !important;
-}
-
-/* Topbar click được nhưng không phủ lên sidebar desktop */
-#adminTopbar,
-.mm-topbar {
-  pointer-events: auto !important;
-}
-
-/* Backdrop chỉ bắt click khi đang mở */
-#adminSidebarBackdrop,
-.mm-admin-sidebar-backdrop,
-#adminUserDropdownBackdrop {
-  pointer-events: none;
-}
-
-#adminSidebarBackdrop.is-open,
-.mm-admin-sidebar-backdrop.is-open,
-#adminUserDropdownBackdrop:not(.hidden) {
-  pointer-events: auto;
-}
-
-/* Dropdown không được chặn khi hidden */
-#adminUserDropdown.hidden,
-#adminUserDropdownBackdrop.hidden {
-  pointer-events: none !important;
-}
-
-/* Khi sidebar thu gọn vẫn cho icon click */
-body.admin-sidebar-collapsed .mm-admin-sidebar {
-  pointer-events: auto !important;
-}
-
-body.admin-sidebar-collapsed .mm-sidebar-link {
-  justify-content: center;
-  pointer-events: auto !important;
-}
-
-/* Tránh main content phủ ngược lên sidebar */
-.admin-main,
-.mm-admin-main,
-#adminMain,
-main {
-  position: relative;
-  z-index: 1;
-}
-
-/* Sidebar / topbar layer chuẩn */
-.mm-admin-sidebar {
-  z-index: 90;
-}
-
-.mm-topbar {
-  z-index: 80;
-}
-
-/* Mobile sidebar khi mở phải nằm trên topbar */
-@media (max-width: 1023px) {
-  .mm-admin-sidebar.is-open,
-  #mmAdminSidebar.is-open,
-  #adminSidebar.is-open {
-    z-index: 120 !important;
+  .admin-main,
+  .mm-admin-main,
+  #adminMain {
+    margin-left: 0 !important;
+    padding-top: var(--mm-admin-topbar-mobile-h) !important;
   }
 
-  #adminSidebarBackdrop.is-open,
-  .mm-admin-sidebar-backdrop.is-open {
-    z-index: 110 !important;
+  .mm-user-dropdown,
+  #adminUserDropdown {
+    top: calc(var(--mm-admin-topbar-mobile-h) + 10px);
+    right: 12px;
+  }
+}
+
+/* =========================================================
+   Motion safety
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .mm-admin-progress,
+  .mm-admin-sidebar,
+  .mm-admin-sidebar-backdrop,
+  .mm-topbar,
+  .mm-icon-btn,
+  .mm-pos-btn,
+  .mm-user-btn,
+  .mm-dropdown-item {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+/* =========================================================
+   MMESTLINE Admin — Final Sidebar/Topbar Polish
+   Sửa sạn UI sau collapsed
+========================================================= */
+
+:root {
+  --mm-admin-sidebar-full: 300px;
+  --mm-admin-sidebar-mini: 98px;
+  --mm-admin-sidebar-w: var(--mm-admin-sidebar-full);
+  --mm-admin-topbar-h: 96px;
+  --mm-admin-topbar-mobile-h: 68px;
+}
+
+html.mm-admin-sidebar-collapsed,
+html.mm-sidebar-collapsed,
+html.admin-sidebar-collapsed,
+body.mm-admin-sidebar-collapsed,
+body.mm-sidebar-collapsed,
+body.admin-sidebar-collapsed {
+  --mm-admin-sidebar-w: var(--mm-admin-sidebar-mini);
+}
+
+/* Sidebar phải cho nút toggle tràn ra ngoài, không bị cắt */
+#mmAdminSidebar,
+.mm-admin-sidebar {
+  width: var(--mm-admin-sidebar-w) !important;
+  overflow: visible !important;
+}
+
+/* Phần bên trong sidebar vẫn giữ scroll riêng */
+.mm-sidebar-nav-scroll {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+/* Brand sidebar cùng chiều cao với topbar */
+.mm-sidebar-brand {
+  height: var(--mm-admin-topbar-h) !important;
+  min-height: var(--mm-admin-topbar-h) !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  align-items: center !important;
+  background: rgba(255, 250, 245, 0.96) !important;
+}
+
+/* Logo không bị sát mép/cắt */
+.mm-sidebar-logo {
+  width: 52px !important;
+  height: 52px !important;
+  border-radius: 20px !important;
+  box-shadow: 0 16px 32px -24px rgba(36, 18, 7, 0.75);
+}
+
+.mm-sidebar-logo img {
+  width: 34px !important;
+  height: 34px !important;
+  object-fit: contain !important;
+}
+
+/* Nút toggle full sidebar */
+.mm-sidebar-toggle {
+  position: absolute !important;
+  top: 50% !important;
+  right: -18px !important;
+  z-index: 80 !important;
+  width: 38px !important;
+  height: 38px !important;
+  transform: translateY(-50%) !important;
+  border-radius: 999px !important;
+  background: #fffdf9 !important;
+  border: 1px solid #eadfd4 !important;
+  color: #5f3b1e !important;
+  box-shadow: 0 18px 38px -26px rgba(36, 18, 7, 0.72) !important;
+}
+
+.mm-sidebar-toggle:hover {
+  background: #5a2f1f !important;
+  color: #fff !important;
+}
+
+/* Khi collapsed: brand gọn, logo giữa */
+body.mm-admin-sidebar-collapsed .mm-sidebar-brand,
+body.mm-sidebar-collapsed .mm-sidebar-brand,
+body.admin-sidebar-collapsed .mm-sidebar-brand {
+  justify-content: center !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+body.mm-admin-sidebar-collapsed .mm-sidebar-brand-link,
+body.mm-sidebar-collapsed .mm-sidebar-brand-link,
+body.admin-sidebar-collapsed .mm-sidebar-brand-link {
+  width: 100% !important;
+  justify-content: center !important;
+  flex: 0 0 auto !important;
+}
+
+/* Nút toggle collapsed nằm đẹp ở ranh giới sidebar/topbar */
+body.mm-admin-sidebar-collapsed .mm-sidebar-toggle,
+body.mm-sidebar-collapsed .mm-sidebar-toggle,
+body.admin-sidebar-collapsed .mm-sidebar-toggle {
+  top: 50% !important;
+  right: -18px !important;
+  width: 38px !important;
+  height: 38px !important;
+  transform: translateY(-50%) !important;
+}
+
+body.mm-admin-sidebar-collapsed .mm-sidebar-toggle i,
+body.mm-sidebar-collapsed .mm-sidebar-toggle i,
+body.admin-sidebar-collapsed .mm-sidebar-toggle i {
+  transform: rotate(180deg) !important;
+}
+
+/* Topbar đồng bộ với brand sidebar */
+#adminTopbar,
+.mm-topbar {
+  left: var(--mm-admin-sidebar-w) !important;
+  min-height: var(--mm-admin-topbar-h) !important;
+  height: var(--mm-admin-topbar-h) !important;
+  padding-left: 36px !important;
+  padding-right: 28px !important;
+  border-left: 0 !important;
+  background: rgba(255, 250, 245, 0.94) !important;
+  backdrop-filter: blur(18px);
+}
+
+/* Main ăn theo topbar mới */
+#adminMain,
+.admin-main,
+.mm-admin-main {
+  margin-left: var(--mm-admin-sidebar-w) !important;
+  padding-top: var(--mm-admin-topbar-h) !important;
+}
+
+/* Khi collapsed, topbar không bị sát nút toggle */
+body.mm-admin-sidebar-collapsed #adminTopbar,
+body.mm-sidebar-collapsed #adminTopbar,
+body.admin-sidebar-collapsed #adminTopbar,
+body.mm-admin-sidebar-collapsed .mm-topbar,
+body.mm-sidebar-collapsed .mm-topbar,
+body.admin-sidebar-collapsed .mm-topbar {
+  padding-left: 48px !important;
+}
+
+/* Xóa cảm giác đường chia bị gắt */
+.mm-admin-sidebar {
+  border-right-color: rgba(234, 223, 212, 0.9) !important;
+}
+
+#adminTopbar,
+.mm-topbar {
+  border-bottom-color: rgba(234, 223, 212, 0.9) !important;
+}
+
+/* Mobile giữ nguyên gọn */
+@media (max-width: 1023.98px) {
+  :root {
+    --mm-admin-topbar-h: var(--mm-admin-topbar-mobile-h);
+  }
+
+  #mmAdminSidebar,
+  .mm-admin-sidebar {
+    width: min(320px, 88vw) !important;
+    overflow: hidden !important;
+  }
+
+  .mm-sidebar-brand {
+    height: 76px !important;
+    min-height: 76px !important;
+  }
+
+  .mm-sidebar-toggle {
+    display: none !important;
+  }
+
+  #adminTopbar,
+  .mm-topbar {
+    left: 0 !important;
+    height: var(--mm-admin-topbar-mobile-h) !important;
+    min-height: var(--mm-admin-topbar-mobile-h) !important;
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+
+  #adminMain,
+  .admin-main,
+  .mm-admin-main {
+    margin-left: 0 !important;
+    padding-top: var(--mm-admin-topbar-mobile-h) !important;
+  }
+}
+/* =========================================================
+   FIX: Sidebar toggle bị topbar đè + skip link không lộ
+========================================================= */
+
+/* Sidebar phải cao hơn topbar vì nút toggle tràn sang ranh giới */
+#mmAdminSidebar,
+.mm-admin-sidebar {
+  z-index: 170 !important;
+  overflow: visible !important;
+}
+
+/* Topbar thấp hơn sidebar một chút, nhưng vẫn cao hơn content */
+#adminTopbar,
+.mm-topbar {
+  z-index: 150 !important;
+}
+
+/* Nút toggle luôn nổi trên topbar */
+.mm-sidebar-toggle {
+  z-index: 190 !important;
+  pointer-events: auto !important;
+}
+
+/* Dropdown user cao nhất trong nhóm navigation */
+#adminUserDropdown,
+.mm-user-dropdown,
+.mm-admin-user-dropdown {
+  z-index: 220 !important;
+}
+
+/* Backdrop mobile thấp hơn sidebar và topbar */
+.mm-admin-sidebar-backdrop {
+  z-index: 140 !important;
+}
+
+/* Desktop không để backdrop cũ chặn click */
+@media (min-width: 1024px) {
+  .mm-admin-sidebar-backdrop {
+    display: none !important;
+    pointer-events: none !important;
+  }
+}
+
+/* Brand sidebar không cắt nút toggle */
+.mm-sidebar-brand {
+  overflow: visible !important;
+}
+
+/* Nút toggle nằm đẹp hơn ở mép sidebar */
+.mm-sidebar-toggle {
+  position: absolute !important;
+  top: 50% !important;
+  right: -19px !important;
+  width: 38px !important;
+  height: 38px !important;
+  transform: translateY(-50%) !important;
+  border-radius: 999px !important;
+  background: #fffdf9 !important;
+  border: 1px solid #eadfd4 !important;
+  color: #5f3b1e !important;
+  box-shadow: 0 18px 38px -26px rgba(36, 18, 7, 0.72) !important;
+}
+
+.mm-sidebar-toggle:hover {
+  background: #5a2f1f !important;
+  color: #fff !important;
+}
+
+/* Khi sidebar collapsed, giữ nút nằm đúng mép */
+body.mm-admin-sidebar-collapsed .mm-sidebar-toggle,
+body.mm-sidebar-collapsed .mm-sidebar-toggle,
+body.admin-sidebar-collapsed .mm-sidebar-toggle {
+  right: -19px !important;
+}
+
+body.mm-admin-sidebar-collapsed .mm-sidebar-toggle i,
+body.mm-sidebar-collapsed .mm-sidebar-toggle i,
+body.admin-sidebar-collapsed .mm-sidebar-toggle i {
+  transform: rotate(180deg) !important;
+}
+
+/* Topbar chừa khoảng thở để không dính nút toggle */
+@media (min-width: 1024px) {
+  #adminTopbar,
+  .mm-topbar {
+    padding-left: 44px !important;
+  }
+
+  body.mm-admin-sidebar-collapsed #adminTopbar,
+  body.mm-sidebar-collapsed #adminTopbar,
+  body.admin-sidebar-collapsed #adminTopbar,
+  body.mm-admin-sidebar-collapsed .mm-topbar,
+  body.mm-sidebar-collapsed .mm-topbar,
+  body.admin-sidebar-collapsed .mm-topbar {
+    padding-left: 52px !important;
   }
 }

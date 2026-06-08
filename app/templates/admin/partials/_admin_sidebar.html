@@ -1,39 +1,54 @@
 {#
   app/templates/admin/partials/_admin_sidebar.html
   ===============================================
-  MMESTLINE Admin Sidebar - Compact Clean Version
-  - Sidebar full gọn hơn.
-  - Sidebar collapsed không bị nút toggle đè logo.
-  - Có Cài đặt trong nhóm Hệ thống.
-  - Đồng bộ hook với mm_admin_nav.js và admin_base.html.
+  MMESTLINE Admin Sidebar
+
+  Đồng bộ với:
+  - static/admin/js/mm_admin_nav.js
+  - static/admin/css/mm_admin_nav.css
+
+  Hook bắt buộc:
+  - id="mmAdminSidebar"
+  - data-admin-sidebar
+  - data-admin-sidebar-toggle
+  - data-admin-sidebar-backdrop
 #}
 
 <aside
   id="mmAdminSidebar"
-  class="mm-admin-sidebar fixed left-0 top-0 z-[90] hidden h-screen w-[300px] border-r border-[#eadfd4] bg-[#fffaf5] transition-[width,transform] duration-200 lg:flex lg:flex-col"
+  class="mm-admin-sidebar"
   data-admin-sidebar
+  aria-label="Thanh điều hướng quản trị"
+  aria-hidden="false"
+  aria-expanded="true"
 >
-  {# Brand #}
+  {# ───────────────── Brand ───────────────── #}
   <div class="mm-sidebar-brand relative flex h-[76px] shrink-0 items-center gap-3 border-b border-[#eadfd4] px-4">
     <a
       href="{{ url_for('admin.dashboard') }}"
       class="mm-sidebar-brand-link flex min-w-0 flex-1 items-center gap-3"
       data-nav
-      title="{{ display_shop_name }}"
+      title="{{ display_shop_name|default('MMESTLINE') }}"
+      aria-label="{{ display_shop_name|default('MMESTLINE') }} Admin Dashboard"
     >
-      <span class="mm-sidebar-logo flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[18px] bg-[#5a2f1f]">
-        <img
-          src="{{ brand_logo }}"
-          alt="{{ display_shop_name }}"
-          class="h-8 w-8 object-contain"
-          width="32"
-          height="32"
-        >
+      <span class="mm-sidebar-logo flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[18px] bg-[#5a2f1f] text-white">
+        {% if brand_logo %}
+          <img
+            src="{{ brand_logo }}"
+            alt="{{ display_shop_name|default('MMESTLINE') }}"
+            class="h-8 w-8 object-contain"
+            width="32"
+            height="32"
+            loading="eager"
+          >
+        {% else %}
+          <span class="text-sm font-black">M</span>
+        {% endif %}
       </span>
 
       <span class="mm-sidebar-brand-text min-w-0 transition-all duration-150">
         <strong class="block truncate text-[16px] font-black uppercase tracking-[-0.02em] text-[#241207]">
-          {{ display_shop_name }}
+          {{ display_shop_name|default('MMESTLINE') }}
         </strong>
 
         <small class="mt-1 block text-[10px] font-black uppercase tracking-[0.24em] text-[#b98b62]">
@@ -42,27 +57,29 @@
       </span>
     </a>
 
+    {# Desktop collapse button — JS tự bắt bằng data-admin-sidebar-toggle #}
     <button
       type="button"
       class="mm-sidebar-toggle hidden h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#eadfd4] bg-white text-[#75543f] shadow-[0_14px_32px_-22px_rgba(36,18,7,.65)] transition hover:bg-[#5a2f1f] hover:text-white lg:inline-flex"
       data-admin-sidebar-toggle
       aria-label="Thu gọn thanh điều hướng"
+      aria-controls="mmAdminSidebar"
       aria-expanded="true"
       title="Thu gọn / mở rộng"
     >
-      <i class="fa-solid fa-angles-left text-[12px] transition-transform duration-200"></i>
+      <i class="fa-solid fa-angles-left text-[12px] transition-transform duration-200" aria-hidden="true"></i>
     </button>
   </div>
 
-  {# Menu #}
-  <div class="custom-scrollbar flex-1 overflow-y-auto overflow-x-hidden px-3 py-4">
+  {# ───────────────── Menu ───────────────── #}
+  <div class="mm-sidebar-nav-scroll flex-1 overflow-y-auto overflow-x-hidden px-3 py-4">
     {% for section in sidebar_sections %}
-      <div class="mb-6 mm-sidebar-section">
+      <section class="mm-sidebar-section mb-6">
         <p class="mm-sidebar-section-title mb-2 px-3 text-[10px] font-black uppercase tracking-[0.24em] text-[#b08c78] transition-all duration-150">
           {{ section['title'] }}
         </p>
 
-        <nav class="space-y-1.5">
+        <nav class="space-y-1.5" aria-label="{{ section['title'] }}">
           {% for label, ep, icon, badge in section['items'] %}
             {% set is_active =
               (ep == 'admin.dashboard' and dashboard_active)
@@ -84,14 +101,16 @@
               href="{{ url_for(ep) }}"
               data-nav
               title="{{ label }}"
+              aria-label="{{ label }}"
+              aria-current="{{ 'page' if is_active else 'false' }}"
               class="mm-sidebar-link group flex min-h-[52px] items-center gap-3 rounded-[18px] px-3 text-[14px] font-black transition-all duration-150
-                     {{ 'bg-[#5a2f1f] text-white shadow-[0_18px_40px_-30px_rgba(36,18,7,.65)]' if is_active else 'text-[#75543f] hover:bg-[#f4ece5] hover:text-[#241207]' }}"
+                     {{ 'is-active bg-[#5a2f1f] text-white shadow-[0_18px_40px_-30px_rgba(36,18,7,.65)]' if is_active else 'text-[#75543f] hover:bg-[#f4ece5] hover:text-[#241207]' }}"
             >
               <span
                 class="mm-sidebar-icon flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] transition-all
                        {{ 'bg-white/12 text-white' if is_active else 'bg-[#f7eee7] text-[#b98b62] group-hover:bg-white group-hover:text-[#5a2f1f]' }}"
               >
-                <i class="fa-solid {{ icon }} text-[13px]"></i>
+                <i class="fa-solid {{ icon }} text-[13px]" aria-hidden="true"></i>
               </span>
 
               <span class="mm-sidebar-label min-w-0 flex-1 truncate transition-all duration-150">
@@ -99,23 +118,26 @@
               </span>
 
               {% if badge and badge|int > 0 %}
-                <span class="mm-sidebar-badge flex min-w-5 items-center justify-center rounded-full bg-[#e54864] px-1.5 py-0.5 text-[9px] font-black text-white transition-all duration-150">
-                  {{ badge }}
+                <span
+                  class="mm-sidebar-badge flex min-w-5 items-center justify-center rounded-full bg-[#e54864] px-1.5 py-0.5 text-[9px] font-black text-white transition-all duration-150"
+                  aria-label="{{ badge }} mục cần xử lý"
+                >
+                  {{ badge if badge|int < 100 else '99+' }}
                 </span>
               {% endif %}
             </a>
           {% endfor %}
         </nav>
-      </div>
+      </section>
     {% endfor %}
 
     {% if system_links %}
-      <div class="mb-6 mm-sidebar-section">
+      <section class="mm-sidebar-section mb-6">
         <p class="mm-sidebar-section-title mb-2 px-3 text-[10px] font-black uppercase tracking-[0.24em] text-[#b08c78] transition-all duration-150">
           Hệ thống
         </p>
 
-        <nav class="space-y-1.5">
+        <nav class="space-y-1.5" aria-label="Hệ thống">
           {% for label, ep, icon in system_links %}
             {% set is_active =
               (ep == 'admin.settings_page' and settings_active)
@@ -129,14 +151,16 @@
               href="{{ url_for(ep) }}"
               data-nav
               title="{{ label }}"
+              aria-label="{{ label }}"
+              aria-current="{{ 'page' if is_active else 'false' }}"
               class="mm-sidebar-link group flex min-h-[52px] items-center gap-3 rounded-[18px] px-3 text-[14px] font-black transition-all duration-150
-                     {{ 'bg-[#5a2f1f] text-white shadow-[0_18px_40px_-30px_rgba(36,18,7,.65)]' if is_active else 'text-[#75543f] hover:bg-[#f4ece5] hover:text-[#241207]' }}"
+                     {{ 'is-active bg-[#5a2f1f] text-white shadow-[0_18px_40px_-30px_rgba(36,18,7,.65)]' if is_active else 'text-[#75543f] hover:bg-[#f4ece5] hover:text-[#241207]' }}"
             >
               <span
                 class="mm-sidebar-icon flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] transition-all
                        {{ 'bg-white/12 text-white' if is_active else 'bg-[#f7eee7] text-[#b98b62] group-hover:bg-white group-hover:text-[#5a2f1f]' }}"
               >
-                <i class="fa-solid {{ icon }} text-[13px]"></i>
+                <i class="fa-solid {{ icon }} text-[13px]" aria-hidden="true"></i>
               </span>
 
               <span class="mm-sidebar-label min-w-0 flex-1 truncate transition-all duration-150">
@@ -145,25 +169,26 @@
             </a>
           {% endfor %}
         </nav>
-      </div>
+      </section>
     {% endif %}
   </div>
 
-  {# Footer actions #}
-  <div class="shrink-0 border-t border-[#eadfd4] bg-[#fffaf5] p-3">
+  {# ───────────────── Footer actions ───────────────── #}
+  <div class="mm-sidebar-footer shrink-0 border-t border-[#eadfd4] bg-[#fffaf5]/95 p-3 backdrop-blur">
     <div class="space-y-1.5">
       <a
-        href="{{ url_for('products.index') }}"
+        href="/"
         target="_blank"
         rel="noopener"
         class="mm-sidebar-link group flex min-h-[50px] items-center gap-3 rounded-[17px] px-3 text-[14px] font-black text-[#75543f] transition hover:bg-[#f4ece5] hover:text-[#241207]"
         title="Xem Storefront"
+        aria-label="Xem Storefront"
       >
         <span class="mm-sidebar-icon flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] bg-[#f7eee7] text-[#b98b62] group-hover:bg-white group-hover:text-[#5a2f1f]">
-          <i class="fa-solid fa-store text-[13px]"></i>
+          <i class="fa-solid fa-store text-[13px]" aria-hidden="true"></i>
         </span>
 
-        <span class="mm-sidebar-label transition-all duration-150">
+        <span class="mm-sidebar-label mm-sidebar-footer-text transition-all duration-150">
           Xem Storefront
         </span>
       </a>
@@ -175,12 +200,13 @@
           type="submit"
           class="mm-sidebar-link group flex min-h-[50px] w-full items-center gap-3 rounded-[17px] px-3 text-left text-[14px] font-black text-[#e54864] transition hover:bg-[#fff1f2]"
           title="Đăng xuất"
+          aria-label="Đăng xuất"
         >
           <span class="mm-sidebar-icon flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] bg-[#fff1f2] text-[#e54864]">
-            <i class="fa-solid fa-arrow-right-from-bracket text-[13px]"></i>
+            <i class="fa-solid fa-arrow-right-from-bracket text-[13px]" aria-hidden="true"></i>
           </span>
 
-          <span class="mm-sidebar-label transition-all duration-150">
+          <span class="mm-sidebar-label mm-sidebar-footer-text transition-all duration-150">
             Đăng xuất
           </span>
         </button>
@@ -188,3 +214,22 @@
     </div>
   </div>
 </aside>
+
+{# Mobile backdrop — JS tự bắt bằng data-admin-sidebar-backdrop #}
+<div
+  id="mmAdminSidebarBackdrop"
+  class="mm-admin-sidebar-backdrop"
+  data-admin-sidebar-backdrop
+  aria-hidden="true"
+></div>
+
+{# Alias an toàn cho JS cũ. Không tạo thêm DOM hoặc ID trùng. #}
+<script>
+  window.addEventListener("DOMContentLoaded", function () {
+    var sidebar = document.getElementById("mmAdminSidebar");
+    if (!sidebar) return;
+
+    window.adminSidebar = sidebar;
+    sidebar.setAttribute("data-admin-sidebar-ready", "true");
+  });
+</script>

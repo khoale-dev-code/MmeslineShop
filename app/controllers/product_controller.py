@@ -3,13 +3,14 @@ app/controllers/product_controller.py
 =====================================
 Storefront controller cho MMESTLINE.
 
-Đồng bộ với product form/backend mới:
+Cập nhật:
+- Trang chủ lấy featured_products từ ProductModel.get_featured_products().
 - Hiểu compare_at_price thay cho old_price.
 - Hiểu giá riêng theo biến thể: product_variants.price_override.
 - Hiểu compare_at_price riêng của biến thể.
 - Tính trạng thái tồn kho theo variant và allow_backorder.
 - Format tiền Việt Nam dạng 199.000đ.
-- Tạo color_groups cho trang chi tiết sản phẩm dùng JS/template dễ hơn.
+- Tạo color_groups cho trang chi tiết sản phẩm.
 - Lọc shop đúng theo category / collection dạng N-N:
   categories -> product_categories -> products
   collections -> collection_products -> products
@@ -97,6 +98,17 @@ def _normalize_bool(value: Any) -> bool:
         return False
 
     return str(value).strip().lower() in ("1", "true", "yes", "on")
+
+
+def _get_first_relation_name(product: dict, relation_key: str, nested_key: str) -> str | None:
+    rows = product.get(relation_key) or []
+    if not rows:
+        return None
+
+    first = rows[0] or {}
+    nested = first.get(nested_key) or {}
+
+    return nested.get("name")
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -242,6 +254,81 @@ def _get_stock_status(stock: int, allow_backorder: bool, low_stock_threshold: in
     }
 
 
+def _normalize_images(product: dict) -> dict:
+    images = product.get("product_images") or []
+
+    images = sorted(
+        images,
+        key=lambda img: _safe_int(img.get("sort_order"), 0) if isinstance(img, dict) else 0,
+    )
+
+    product["product_images"] = images
+    product["images"] = images
+
+    if not product.get("thumbnail_url"):
+        primary = next(
+            (
+                img.get("url")
+                for img in images
+                if isinstance(img, dict) and img.get("is_primary") and img.get("url")
+            ),
+            None,
+        )
+
+        first = next(
+            (
+                img.get("url")
+                for img in images
+                if isinstance(img, dict) and img.get("url")
+            ),
+            None,
+        )
+
+        product["thumbnail_url"] = (
+            primary
+            or first
+            or "https://placehold.co/600x800/f8f8f8/ccc?text=MMESTLINE"
+        )
+
+    return product
+
+
+def _normalize_relations(product: dict) -> dict:
+    product_categories = product.get("product_categories") or []
+    collection_products = product.get("collection_products") or []
+
+    category_list = []
+    for row in product_categories:
+        if isinstance(row, dict) and isinstance(row.get("categories"), dict):
+            category_list.append(row["categories"])
+
+    collection_list = []
+    for row in collection_products:
+        if isinstance(row, dict) and isinstance(row.get("collections"), dict):
+            collection_list.append(row["collections"])
+
+    product["category_list"] = category_list
+    product["collection_list"] = collection_list
+
+    if category_list and not product.get("categories"):
+        product["categories"] = category_list[0]
+
+    if collection_list and not product.get("collections"):
+        product["collections"] = collection_list[0]
+
+    product["category_name"] = (
+        _get_first_relation_name(product, "product_categories", "categories")
+        or "MMESTLINE"
+    )
+
+    product["collection_name"] = (
+        _get_first_relation_name(product, "collection_products", "collections")
+        or None
+    )
+
+    return product
+
+
 def _normalize_product_for_storefront(product: dict) -> dict:
     """
     Chuẩn hóa product trước khi đưa vào template storefront.
@@ -249,6 +336,8 @@ def _normalize_product_for_storefront(product: dict) -> dict:
     if not product:
         return product
 
+    product = _normalize_images(product)
+    product = _normalize_relations(product)
     product = _normalize_price_fields(product)
 
     allow_backorder = _normalize_bool(product.get("allow_backorder"))
@@ -265,7 +354,17 @@ def _normalize_product_for_storefront(product: dict) -> dict:
             allow_backorder=allow_backorder,
         )
         for v in variants
+        if isinstance(v, dict)
     ]
+
+    normalized_variants = sorted(
+        normalized_variants,
+        key=lambda v: (
+            str(v.get("color_name") or ""),
+            _safe_int(v.get("sort_order"), 0),
+            str(v.get("size") or ""),
+        ),
+    )
 
     product["product_variants"] = normalized_variants
     product["variants"] = normalized_variants
@@ -281,6 +380,8 @@ def _normalize_product_for_storefront(product: dict) -> dict:
     product["stock_quantity"] = total_stock
     product["total_stock"] = total_stock
     product["allow_backorder"] = allow_backorder
+    product["is_featured"] = _normalize_bool(product.get("is_featured"))
+
     product["is_in_stock"] = total_stock > 0
     product["is_available"] = total_stock > 0 or allow_backorder
     product["is_low_stock"] = 0 < total_stock <= low_stock_threshold
@@ -294,6 +395,7 @@ def _normalize_product_for_storefront(product: dict) -> dict:
         product.get("seo_title")
         or product.get("meta_title")
         or product.get("name")
+        or "MMESTLINE"
     )
 
     product["seo_description"] = (
@@ -368,7 +470,11 @@ def _build_color_groups(product: dict) -> dict:
 
 
 def _normalize_product_list(products: list[dict]) -> list[dict]:
-    return [_normalize_product_for_storefront(p) for p in (products or [])]
+    return [
+        _normalize_product_for_storefront(ProductModel._format_product(p))
+        for p in (products or [])
+        if isinstance(p, dict)
+    ]
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -408,6 +514,7 @@ def _get_product_ids_by_category_slug(db, category_slug: Optional[str]) -> Optio
         db.table("categories")
         .select("id")
         .eq("slug", category_slug)
+        .eq("is_active", True)
         .limit(1)
         .execute()
     )
@@ -417,10 +524,24 @@ def _get_product_ids_by_category_slug(db, category_slug: Optional[str]) -> Optio
 
     category_id = cat_res.data[0]["id"]
 
+    child_res = (
+        db.table("categories")
+        .select("id")
+        .eq("parent_id", category_id)
+        .eq("is_active", True)
+        .execute()
+    )
+
+    category_ids = [category_id] + [
+        row["id"]
+        for row in (child_res.data or [])
+        if row.get("id")
+    ]
+
     pc_res = (
         db.table("product_categories")
         .select("product_id")
-        .eq("category_id", category_id)
+        .in_("category_id", category_ids)
         .execute()
     )
 
@@ -443,6 +564,7 @@ def _get_product_ids_by_collection_slug(db, collection_slug: Optional[str]) -> O
         db.table("collections")
         .select("id")
         .eq("slug", collection_slug)
+        .eq("is_active", True)
         .limit(1)
         .execute()
     )
@@ -487,12 +609,14 @@ def _query_storefront_products(
     collection_slug: Optional[str] = None,
     gender: Optional[str] = None,
     keyword: Optional[str] = None,
+    featured_only: bool = False,
+    sort: Optional[str] = None,
 ) -> dict:
     """
-    Query sản phẩm storefront trực tiếp từ controller để đảm bảo:
+    Query sản phẩm storefront:
     - category lọc đúng qua product_categories.
     - collection lọc đúng qua collection_products.
-    - vẫn lấy đủ product_images, product_variants, categories, collections.
+    - lấy đủ product_images, product_variants, categories, collections.
     """
     db = get_supabase()
 
@@ -525,6 +649,9 @@ def _query_storefront_products(
         .is_("deleted_at", "null")
     )
 
+    if featured_only:
+        query = query.eq("is_featured", True)
+
     if product_ids is not None:
         query = query.in_("id", product_ids)
 
@@ -536,22 +663,25 @@ def _query_storefront_products(
         query = query.or_(
             f"name.ilike.%{safe_keyword}%,"
             f"slug.ilike.%{safe_keyword}%,"
-            f"description.ilike.%{safe_keyword}%"
+            f"description.ilike.%{safe_keyword}%,"
+            f"search_keywords.ilike.%{safe_keyword}%"
         )
 
-    res = (
-        query
-        .order("created_at", desc=True)
-        .range(offset, end)
-        .execute()
-    )
+    sort_key = sort or "new"
 
+    if sort_key == "price_asc":
+        query = query.order("price", desc=False)
+    elif sort_key == "price_desc":
+        query = query.order("price", desc=True)
+    elif sort_key == "featured":
+        query = query.order("is_featured", desc=True).order("created_at", desc=True)
+    else:
+        query = query.order("created_at", desc=True)
+
+    res = query.range(offset, end).execute()
     raw_items = res.data or []
 
-    items = [
-        ProductModel._format_product(item)
-        for item in raw_items
-    ]
+    items = _normalize_product_list(raw_items)
 
     return {
         "items": items,
@@ -576,13 +706,26 @@ def _get_related_products(product: dict, limit: int = 4) -> list[dict]:
         if category_slug:
             related_result = _query_storefront_products(
                 page=1,
-                per_page=limit + 4,
+                per_page=limit + 6,
                 category_slug=category_slug,
             )
 
             related = [
                 item
-                for item in _normalize_product_list(related_result.get("items", []))
+                for item in related_result.get("items", [])
+                if item.get("id") != product.get("id")
+            ][:limit]
+
+        if not related:
+            fallback_result = _query_storefront_products(
+                page=1,
+                per_page=limit + 6,
+                featured_only=True,
+            )
+
+            related = [
+                item
+                for item in fallback_result.get("items", [])
                 if item.get("id") != product.get("id")
             ][:limit]
 
@@ -598,11 +741,23 @@ def _get_related_products(product: dict, limit: int = 4) -> list[dict]:
 
 @products_bp.route("/")
 def index():
+    """
+    Trang chủ storefront.
+
+    featured_products:
+    - Chỉ lấy sản phẩm is_featured=True.
+    - Nếu chưa có sản phẩm nổi bật, fallback lấy sản phẩm mới để tránh trang trống.
+    """
     try:
-        featured_result = _query_storefront_products(page=1, per_page=8)
-        featured = _normalize_product_list(featured_result.get("items", []))
+        featured = ProductModel.get_featured_products(limit=8)
+        featured = _normalize_product_list(featured)
+
+        if not featured:
+            fallback_result = _query_storefront_products(page=1, per_page=8)
+            featured = fallback_result.get("items", [])
+
     except Exception as e:
-        logger.error("[index] featured: %s", e, exc_info=True)
+        logger.error("[index] featured_products: %s", e, exc_info=True)
         featured = []
 
     try:
@@ -631,6 +786,7 @@ def shop():
     collection_slug = _clean(request.args.get("collection"))
     gender = _clean(request.args.get("gender"))
     keyword = _clean(request.args.get("q"))
+    sort = _clean(request.args.get("sort"))
 
     try:
         result = _query_storefront_products(
@@ -640,9 +796,10 @@ def shop():
             collection_slug=collection_slug,
             gender=gender,
             keyword=keyword,
+            sort=sort,
         )
 
-        products_list = _normalize_product_list(result.get("items", []))
+        products_list = result.get("items", [])
         total_items = _safe_int(result.get("total"), 0)
 
     except Exception as e:
@@ -659,6 +816,7 @@ def shop():
         collection=collection_slug,
         current_gender=gender,
         keyword=keyword,
+        sort=sort,
     )
 
 
@@ -681,12 +839,14 @@ def detail(slug: str):
     product = _normalize_product_for_storefront(product)
     product["color_groups"] = _build_color_groups(product)
 
-    default_variant = None
-
-    for variant in product.get("product_variants") or []:
-        if variant.get("is_available"):
-            default_variant = variant
-            break
+    default_variant = next(
+        (
+            variant
+            for variant in product.get("product_variants") or []
+            if variant.get("is_available")
+        ),
+        None,
+    )
 
     if not default_variant and product.get("product_variants"):
         default_variant = product["product_variants"][0]
@@ -748,10 +908,7 @@ def visual_search():
                 .execute()
             )
 
-            matched = [
-                _normalize_product_for_storefront(ProductModel._format_product(product))
-                for product in (result.data or [])
-            ]
+            matched = _normalize_product_list(result.data or [])
 
         flash(
             f"Tìm thấy {len(matched)} thiết kế tương tự."
@@ -778,6 +935,7 @@ def visual_search():
         current_gender=None,
         page=1,
         total_pages=1,
+        sort=None,
     )
 
 

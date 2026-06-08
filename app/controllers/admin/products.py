@@ -8,11 +8,12 @@ Quản lý Admin:
 - Categories
 - Collections
 
-Bản đồng bộ với product_form.html mới:
+Đồng bộ với product_form.html mới:
 - Giá bán, giá so sánh, giá vốn
 - SKU / Barcode
 - SEO title / description / keywords
 - description_html
+- is_active / is_featured / allow_backorder
 - Tạo nhanh category / collection trong form sản phẩm
 - Variant linh hoạt: size, color, stock, price_override, compare_at_price, cost_price, sku, barcode
 - Dùng service_role/admin client cho khu vực admin để tránh RLS
@@ -24,24 +25,31 @@ import unicodedata
 from datetime import datetime, timezone
 from typing import Any
 
-from flask import render_template, redirect, url_for, flash, request, current_app
+from flask import (
+    current_app,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 
-from app.utils.supabase_client import get_supabase_admin
-from app.models.product_model import ProductModel
+from app.middleware.auth_required import admin_required
 from app.models.category_model import CategoryModel
 from app.models.collection_model import CollectionModel
-from app.middleware.auth_required import admin_required
+from app.models.product_model import ProductModel
+from app.utils.supabase_client import get_supabase_admin
 
 from . import admin_bp
 from ._helpers import (
-    handle_errors,
+    _allowed_file,
     _args,
+    _filelist,
     _form,
     _getlist,
-    _filelist,
     _paginate,
     _total_pages,
-    _allowed_file,
+    handle_errors,
 )
 
 logger = logging.getLogger(__name__)
@@ -60,43 +68,7 @@ def _clean_text(value: Any, max_len: int | None = None) -> str:
     if max_len is not None:
         text = text[:max_len]
     return text
-def _get_existing_tags(limit: int = 300) -> list[str]:
-    """
-    Lấy danh sách tag đã từng dùng từ products.tags để gợi ý ở product_form.
-    products.tags có thể là list JSONB hoặc text tùy schema cũ.
-    """
-    tags = set()
 
-    try:
-        rows = (
-            _db_admin()
-            .table("products")
-            .select("tags")
-            .limit(limit)
-            .execute()
-            .data
-            or []
-        )
-
-        for row in rows:
-            raw = row.get("tags")
-
-            if isinstance(raw, list):
-                for item in raw:
-                    text = _clean_text(item, 60)
-                    if text:
-                        tags.add(text)
-
-            elif isinstance(raw, str):
-                for item in re.split(r"[,|;]+", raw):
-                    text = _clean_text(item, 60)
-                    if text:
-                        tags.add(text)
-
-    except Exception as e:
-        logger.warning("[products] Không lấy được existing tags: %s", e)
-
-    return sorted(tags, key=lambda x: x.lower())
 
 def _parse_vnd(value: Any, default: int = 0) -> int:
     """
@@ -156,7 +128,8 @@ def _unique_keep_order(values: list[Any]) -> list[Any]:
         if not value:
             continue
 
-        if value in seen:
+        value = str(value).strip()
+        if not value or value in seen:
             continue
 
         seen.add(value)
@@ -167,6 +140,77 @@ def _unique_keep_order(values: list[Any]) -> list[Any]:
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _none_if_empty(value: Any) -> str | None:
+    text = _clean_text(value)
+    return text or None
+
+
+def _upper_or_none(value: Any, max_len: int = 80) -> str | None:
+    text = _clean_text(value, max_len).upper()
+    return text or None
+
+
+def _get_existing_tags(limit: int = 500) -> list[str]:
+    """
+    Lấy danh sách tag đã từng dùng từ products.tags để gợi ý ở product_form.
+    products.tags có thể là list JSONB hoặc text tùy schema cũ.
+    """
+    tags: set[str] = set()
+
+    try:
+        rows = (
+            _db_admin()
+            .table("products")
+            .select("tags")
+            .limit(limit)
+            .execute()
+            .data
+            or []
+        )
+
+        for row in rows:
+            raw = row.get("tags")
+
+            if isinstance(raw, list):
+                for item in raw:
+                    text = _clean_text(item, 60)
+                    if text:
+                        tags.add(text)
+
+            elif isinstance(raw, str):
+                for item in re.split(r"[,|;]+", raw):
+                    text = _clean_text(item, 60)
+                    if text:
+                        tags.add(text)
+
+    except Exception as e:
+        logger.warning("[products] Không lấy được existing tags: %s", e)
+
+    return sorted(tags, key=lambda x: x.lower())
+
+
+def _render_product_form(
+    *,
+    product: dict | None,
+    cats: list,
+    colles: list,
+    tag_options: list[str],
+    status_code: int | None = None,
+):
+    response = render_template(
+        "admin/product_form.html",
+        product=product,
+        cats=cats,
+        colles=colles,
+        tag_options=tag_options,
+    )
+
+    if status_code:
+        return response, status_code
+
+    return response
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -286,6 +330,33 @@ def _get_or_create_collection(db, name: str) -> str | None:
 # PRODUCT FORM PARSING
 # ═══════════════════════════════════════════════════════════════
 
+def _parse_tags(value: Any) -> list[str]:
+    if not value:
+        return []
+
+    if isinstance(value, list):
+        raw_items = value
+    else:
+        raw_items = re.split(r"[,|;]+", str(value))
+
+    result = []
+    seen = set()
+
+    for raw in raw_items:
+        tag = _clean_text(raw, 60)
+        if not tag:
+            continue
+
+        key = tag.lower()
+        if key in seen:
+            continue
+
+        seen.add(key)
+        result.append(tag)
+
+    return result
+
+
 def _product_data_from_form(form: dict) -> dict:
     name = _clean_text(form.get("name"), 180)
 
@@ -304,17 +375,14 @@ def _product_data_from_form(form: dict) -> dict:
     if compare_at_price and price and compare_at_price <= price:
         compare_at_price = 0
 
-    tags_raw = form.get("tags", "")
-    tags = [t.strip() for t in str(tags_raw).split(",") if t.strip()] if tags_raw else []
-
-    description_html = form.get("description") or ""
+    description_html = form.get("description") or form.get("description_html") or ""
 
     seo_title = _clean_text(form.get("seo_title") or form.get("meta_title"), 70)
     seo_description = _clean_text(form.get("seo_description") or form.get("meta_description"), 170)
     seo_keywords = _clean_text(form.get("seo_keywords"), 255)
     search_keywords = _clean_text(form.get("search_keywords"), 255) or seo_keywords
 
-    return {
+    payload = {
         "name": name,
         "slug": slug,
         "description": description_html,
@@ -324,15 +392,22 @@ def _product_data_from_form(form: dict) -> dict:
         "compare_at_price": compare_at_price or None,
         "cost_price": cost_price or None,
 
-        "sku": _clean_text(form.get("sku"), 80).upper() or None,
-        "barcode": _clean_text(form.get("barcode"), 80).upper() or None,
+        # SKU / barcode rỗng phải là None để tránh lỗi UNIQUE với chuỗi rỗng.
+        "sku": _upper_or_none(form.get("sku")),
+        "barcode": _upper_or_none(form.get("barcode")),
 
-        "thumbnail_url": _clean_text(form.get("thumbnail_url")) or None,
+        "thumbnail_url": _none_if_empty(form.get("thumbnail_url")),
 
-        "is_featured": "is_featured" in form,
+        # Checkbox không tick sẽ không gửi field lên.
         "is_active": "is_active" in form,
+        "is_featured": "is_featured" in form,
         "allow_backorder": "allow_backorder" in form,
-        "low_stock_threshold": _safe_int(form.get("low_stock_threshold"), default=5, min_value=0),
+
+        "low_stock_threshold": _safe_int(
+            form.get("low_stock_threshold"),
+            default=5,
+            min_value=0,
+        ),
 
         "gender": _clean_text(form.get("gender"), 30) or "unisex",
         "brand": _clean_text(form.get("brand"), 120) or "MMESTLINE",
@@ -345,8 +420,26 @@ def _product_data_from_form(form: dict) -> dict:
         "seo_keywords": seo_keywords or None,
         "search_keywords": search_keywords or None,
 
-        "tags": tags,
+        "tags": _parse_tags(form.get("tags")),
     }
+
+    return payload
+
+
+def _validate_product_payload(payload: dict) -> str | None:
+    if not payload.get("name"):
+        return "Tên sản phẩm không được để trống."
+
+    if not payload.get("slug"):
+        return "Slug URL không được để trống."
+
+    if not payload.get("price") or payload.get("price") <= 0:
+        return "Giá bán sản phẩm không hợp lệ."
+
+    if payload.get("compare_at_price") and payload["compare_at_price"] <= payload["price"]:
+        return "Giá so sánh phải lớn hơn giá bán."
+
+    return None
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -354,7 +447,8 @@ def _product_data_from_form(form: dict) -> dict:
 # ═══════════════════════════════════════════════════════════════
 
 def _extract_image_urls() -> list[str]:
-    seen, result = set(), []
+    seen = set()
+    result = []
 
     for raw in _getlist("image_urls"):
         url = _clean_text(raw)
@@ -369,21 +463,31 @@ def _handle_images_on_save(product_id: str, form_dict: dict) -> None:
     uploaded = []
 
     for file in _filelist("image_files"):
-        if file and file.filename and _allowed_file(file.filename):
-            try:
-                url = ProductModel.upload_to_storage(
-                    file.read(),
-                    file.filename,
-                    file.content_type or "image/jpeg",
-                )
-                if url:
-                    uploaded.append(url)
-            except Exception as e:
-                logger.error("[products] Upload ảnh lỗi: %s", e, exc_info=True)
+        if not file or not file.filename:
+            continue
 
-    all_urls = list(dict.fromkeys(uploaded + _extract_image_urls()))
+        if not _allowed_file(file.filename):
+            logger.warning("[products] Bỏ qua file không hợp lệ: %s", file.filename)
+            continue
 
-    if not (all_urls or form_dict.get("_images_synced")):
+        try:
+            url = ProductModel.upload_to_storage(
+                file.read(),
+                file.filename,
+                file.content_type or "image/jpeg",
+            )
+            if url:
+                uploaded.append(url)
+
+        except Exception as e:
+            logger.error("[products] Upload ảnh lỗi: %s", e, exc_info=True)
+
+    external_urls = _extract_image_urls()
+    all_urls = list(dict.fromkeys(uploaded + external_urls))
+
+    # Nếu không upload/thay đổi ảnh, không sync để tránh xóa ảnh cũ ngoài ý muốn.
+    should_sync = bool(all_urls) or bool(form_dict.get("_images_synced"))
+    if not should_sync:
         return
 
     ProductModel.sync_images(product_id, all_urls)
@@ -394,13 +498,23 @@ def _handle_images_on_save(product_id: str, form_dict: dict) -> None:
         images[0] if images else None,
     )
 
-    if thumb:
-        _db_admin().table("products").update({"thumbnail_url": thumb["url"]}).eq("id", product_id).execute()
+    if thumb and thumb.get("url"):
+        (
+            _db_admin()
+            .table("products")
+            .update({"thumbnail_url": thumb["url"]})
+            .eq("id", product_id)
+            .execute()
+        )
 
 
 # ═══════════════════════════════════════════════════════════════
 # VARIANT HELPERS
 # ═══════════════════════════════════════════════════════════════
+
+def _get_indexed(values: list[Any], index: int, default: Any = "") -> Any:
+    return values[index] if index < len(values) else default
+
 
 def _save_product_variants(db, product_id: str) -> None:
     """
@@ -430,28 +544,28 @@ def _save_product_variants(db, product_id: str) -> None:
     total_stock = 0
     variants = []
 
+    # Form variant lấy size làm trục chính.
     for i, raw_size in enumerate(sizes):
         size = _clean_text(raw_size, 50)
         if not size:
             continue
 
-        color_name = _clean_text(colors[i] if i < len(colors) else "", 80) or "Mặc định"
-        color_hex = _clean_text(hexes[i] if i < len(hexes) else "#3b2414", 20)
+        color_name = _clean_text(_get_indexed(colors, i), 80) or "Mặc định"
+        color_hex = _clean_text(_get_indexed(hexes, i, "#3b2414"), 20)
 
         if not color_hex.startswith("#"):
             color_hex = "#3b2414"
 
-        stock = _safe_int(stocks[i] if i < len(stocks) else 0, default=0)
+        stock = _safe_int(_get_indexed(stocks, i, 0), default=0)
         total_stock += stock
 
-        price_override = _parse_vnd(price_overrides[i] if i < len(price_overrides) else "", default=0)
-        compare_at_price = _parse_vnd(compare_prices[i] if i < len(compare_prices) else "", default=0)
-        cost_price = _parse_vnd(cost_prices[i] if i < len(cost_prices) else "", default=0)
+        price_override = _parse_vnd(_get_indexed(price_overrides, i), default=0)
+        compare_at_price = _parse_vnd(_get_indexed(compare_prices, i), default=0)
+        cost_price = _parse_vnd(_get_indexed(cost_prices, i), default=0)
 
-        variant_sku = _clean_text(skus[i] if i < len(skus) else "", 80).upper()
-        variant_barcode = _clean_text(barcodes[i] if i < len(barcodes) else "", 80).upper()
+        variant_sku = _upper_or_none(_get_indexed(skus, i))
+        variant_barcode = _upper_or_none(_get_indexed(barcodes, i))
 
-        # Quan trọng: SKU/barcode trống phải là None, không lưu "" để tránh lỗi UNIQUE.
         variants.append({
             "product_id": product_id,
             "size": size,
@@ -461,8 +575,8 @@ def _save_product_variants(db, product_id: str) -> None:
             "price_override": price_override or None,
             "compare_at_price": compare_at_price or None,
             "cost_price": cost_price or None,
-            "sku": variant_sku or None,
-            "barcode": variant_barcode or None,
+            "sku": variant_sku,
+            "barcode": variant_barcode,
             "sort_order": i,
         })
 
@@ -487,9 +601,7 @@ def _sync_product_categories(db, product_id: str, form: dict) -> None:
         if created_id:
             category_ids.append(created_id)
 
-    category_ids = _unique_keep_order(category_ids)
-
-    ProductModel.sync_categories(product_id, category_ids)
+    ProductModel.sync_categories(product_id, _unique_keep_order(category_ids))
 
 
 def _sync_product_collections(db, product_id: str, form: dict) -> None:
@@ -503,9 +615,7 @@ def _sync_product_collections(db, product_id: str, form: dict) -> None:
         if created_id:
             collection_ids.append(created_id)
 
-    collection_ids = _unique_keep_order(collection_ids)
-
-    ProductModel.sync_collections(product_id, collection_ids)
+    ProductModel.sync_collections(product_id, _unique_keep_order(collection_ids))
 
 
 def _after_save_product(db, product_id: str, form: dict) -> None:
@@ -534,8 +644,8 @@ def products():
 
     query = db.table("products").select(
         "*, "
-        "product_categories(categories(id, name)), "
-        "collection_products(collections(id, name)), "
+        "product_categories(categories(id, name, slug)), "
+        "collection_products(collections(id, name, slug)), "
         "product_images(*), "
         "product_variants(*)",
         count="exact",
@@ -551,6 +661,8 @@ def products():
         query = query.eq("is_active", True).is_("deleted_at", "null")
     elif status == "hidden":
         query = query.eq("is_active", False).is_("deleted_at", "null")
+    elif status == "featured":
+        query = query.eq("is_featured", True).is_("deleted_at", "null")
     elif status == "deleted":
         query = query.filter("deleted_at", "not.is", "null")
     else:
@@ -587,33 +699,53 @@ def add_product():
     cats = CategoryModel.get_all()
     colles = CollectionModel.get_all(admin_mode=True)
     tag_options = _get_existing_tags()
+
     if request.method == "POST":
         form = _form()
         db = _db_admin()
-
         payload = _product_data_from_form(form)
 
-        if not payload["name"]:
-            flash("Tên sản phẩm không được để trống.", "danger")
-            return render_template("admin/product_form.html", product=None, cats=cats, colles=colles,tag_options=tag_options,)
-
-        if not payload["price"] or payload["price"] <= 0:
-            flash("Giá bán sản phẩm không hợp lệ.", "danger")
-            return render_template("admin/product_form.html", product=None, cats=cats, colles=colles, tag_options=tag_options,)
+        error = _validate_product_payload(payload)
+        if error:
+            flash(error, "danger")
+            return _render_product_form(
+                product=None,
+                cats=cats,
+                colles=colles,
+                tag_options=tag_options,
+                status_code=400,
+            )
 
         product = ProductModel.create(payload)
 
         if not product:
             flash("Không tạo được sản phẩm. Vui lòng kiểm tra dữ liệu hoặc database.", "danger")
-            return render_template("admin/product_form.html", product=None, cats=cats, colles=colles, tag_options=tag_options)
+            return _render_product_form(
+                product=None,
+                cats=cats,
+                colles=colles,
+                tag_options=tag_options,
+                status_code=400,
+            )
 
         product_id = product["id"]
-        _after_save_product(db, product_id, form)
+
+        try:
+            _after_save_product(db, product_id, form)
+        except Exception as e:
+            logger.error("[products] Lỗi xử lý dữ liệu sau khi tạo sản phẩm: %s", e, exc_info=True)
+            flash("Sản phẩm đã tạo nhưng có lỗi khi lưu ảnh / biến thể / danh mục.", "warning")
+            return redirect(url_for("admin.edit_product", pid=product_id))
 
         flash(f"Đã thêm sản phẩm: {payload['name']}", "success")
         return redirect(url_for("admin.products"))
 
-    return render_template("admin/product_form.html", product=None, cats=cats, colles=colles, tag_options=tag_options   )
+    return _render_product_form(
+        product=None,
+        cats=cats,
+        colles=colles,
+        tag_options=tag_options,
+    )
 
 
 @admin_bp.route("/products/edit/<pid>", methods=["GET", "POST"])
@@ -632,29 +764,47 @@ def edit_product(pid):
     if request.method == "POST":
         form = _form()
         db = _db_admin()
-
         payload = _product_data_from_form(form)
 
-        if not payload["name"]:
-            flash("Tên sản phẩm không được để trống.", "danger")
-            return render_template("admin/product_form.html", product=product, cats=cats, colles=colles,  tag_options=tag_options,)
-
-        if not payload["price"] or payload["price"] <= 0:
-            flash("Giá bán sản phẩm không hợp lệ.", "danger")
-            return render_template("admin/product_form.html", product=product, cats=cats, colles=colles, tag_options=tag_options,)
+        error = _validate_product_payload(payload)
+        if error:
+            flash(error, "danger")
+            return _render_product_form(
+                product=product,
+                cats=cats,
+                colles=colles,
+                tag_options=tag_options,
+                status_code=400,
+            )
 
         updated = ProductModel.update(pid, payload)
 
         if not updated:
             flash("Không lưu được sản phẩm. Vui lòng kiểm tra dữ liệu hoặc database.", "danger")
-            return render_template("admin/product_form.html", product=product, cats=cats, colles=colles, tag_options=tag_options)
+            return _render_product_form(
+                product=product,
+                cats=cats,
+                colles=colles,
+                tag_options=tag_options,
+                status_code=400,
+            )
 
-        _after_save_product(db, pid, form)
+        try:
+            _after_save_product(db, pid, form)
+        except Exception as e:
+            logger.error("[products] Lỗi xử lý dữ liệu sau khi cập nhật sản phẩm: %s", e, exc_info=True)
+            flash("Sản phẩm đã lưu nhưng có lỗi khi cập nhật ảnh / biến thể / danh mục.", "warning")
+            return redirect(url_for("admin.edit_product", pid=pid))
 
         flash("Lưu sản phẩm thành công.", "success")
         return redirect(url_for("admin.products"))
 
-    return render_template("admin/product_form.html", product=product, cats=cats, colles=colles, tag_options=tag_options)
+    return _render_product_form(
+        product=product,
+        cats=cats,
+        colles=colles,
+        tag_options=tag_options,
+    )
 
 
 @admin_bp.route("/products/delete/<pid>", methods=["POST"])
@@ -686,6 +836,7 @@ def upload_product_image_async():
             )
             if url:
                 return {"url": url}, 200
+
         except Exception as e:
             logger.error("[products] upload_product_image_async error: %s", e, exc_info=True)
             return {"error": str(e)}, 500

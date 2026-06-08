@@ -2,9 +2,13 @@
   app/templates/admin/partials/_admin_topbar.html
   ===============================================
   MMESTLINE Admin Topbar
-  - Không còn nút thu gọn desktop để tránh double với sidebar.
-  - Hamburger chỉ dùng cho mobile/tablet.
-  - Đồng bộ với mm_admin_nav.js qua data-admin-mobile-menu-toggle.
+
+  Nguyên tắc:
+  - Đây là topbar duy nhất cho desktop/mobile.
+  - Mobile/tablet dùng hamburger: data-admin-mobile-menu-toggle.
+  - Desktop thu gọn sidebar dùng nút trong _admin_sidebar.html.
+  - Không include _admin_mobile_bar.html nữa.
+  - Không dùng class Tailwind `flex lg:hidden` cho nút hamburger vì có thể bị .mm-icon-btn override.
 #}
 
 {% set page_title = 'MMESTLINE Workspace' %}
@@ -48,22 +52,33 @@
   {% set page_title = 'POS tại quầy' %}
 {% endif %}
 
-<header id="adminTopbar" class="mm-topbar">
+<header
+  id="adminTopbar"
+  class="mm-topbar"
+  role="banner"
+>
   <div class="mm-topbar-left">
-    {# Mobile menu only. Desktop collapse dùng nút trong sidebar. #}
+    {# Mobile / tablet only. CSS sẽ ẩn trên desktop bằng .mm-mobile-menu-btn #}
     <button
       type="button"
-      class="mm-icon-btn flex lg:hidden"
+      class="mm-icon-btn mm-mobile-menu-btn"
       data-admin-mobile-menu-toggle
       title="Mở menu"
       aria-label="Mở menu điều hướng"
+      aria-controls="mmAdminSidebar"
+      aria-expanded="false"
     >
-      <i class="fa-solid fa-bars"></i>
+      <i class="fa-solid fa-bars" aria-hidden="true"></i>
     </button>
 
-    <div class="min-w-0">
-      <p class="mm-topbar-kicker">{{ page_kicker }}</p>
-      <h1 class="mm-topbar-title">{{ page_title }}</h1>
+    <div class="mm-topbar-heading min-w-0">
+      <p class="mm-topbar-kicker">
+        {{ page_kicker }}
+      </p>
+
+      <h1 class="mm-topbar-title">
+        {{ page_title }}
+      </h1>
     </div>
   </div>
 
@@ -76,23 +91,25 @@
       aria-label="Thông báo"
       class="mm-icon-btn relative {{ 'is-active' if notification_active else '' }}"
     >
-      <i class="fa-solid fa-bell"></i>
+      <i class="fa-solid fa-bell" aria-hidden="true"></i>
 
       {% if admin_notification_count and admin_notification_count|int > 0 %}
-      <span class="mm-dot-badge">
-        {{ admin_notification_count if admin_notification_count < 100 else '99+' }}
-      </span>
+        <span class="mm-dot-badge" aria-label="{{ admin_notification_count }} thông báo">
+          {{ admin_notification_count if admin_notification_count|int < 100 else '99+' }}
+        </span>
       {% endif %}
     </a>
 
     {% if current_ep == 'admin.reports' %}
       <button
         type="button"
-        onclick="if (window.POSModal) POSModal.open()"
         class="mm-pos-btn"
+        onclick="window.POSModal && window.POSModal.open && window.POSModal.open()"
+        title="Mở POS quầy"
+        aria-label="Mở POS quầy"
       >
-        <i class="fa-solid fa-cash-register"></i>
-        <span>POS Quầy</span>
+        <i class="fa-solid fa-cash-register" aria-hidden="true"></i>
+        <span>POS quầy</span>
       </button>
     {% else %}
       <a
@@ -100,9 +117,11 @@
         data-nav
         data-prefetch
         class="mm-pos-btn"
+        title="POS quầy"
+        aria-label="POS quầy"
       >
-        <i class="fa-solid fa-cash-register"></i>
-        <span>POS Quầy</span>
+        <i class="fa-solid fa-cash-register" aria-hidden="true"></i>
+        <span>POS quầy</span>
       </a>
     {% endif %}
 
@@ -112,6 +131,8 @@
       class="mm-user-btn"
       aria-haspopup="true"
       aria-expanded="false"
+      aria-controls="adminUserDropdown"
+      title="Tài khoản quản trị"
     >
       <span class="mm-user-text">
         <strong>
@@ -123,22 +144,26 @@
         </strong>
 
         <small>
-          <span></span>
+          <span aria-hidden="true"></span>
           Online
         </small>
       </span>
 
-      <span class="mm-user-avatar">
+      <span class="mm-user-avatar" aria-hidden="true">
         {% if current_user is defined and current_user and current_user.full_name %}
           {{ current_user.full_name[0].upper() }}
         {% elif session.get('email') %}
           {{ session.get('email')[0].upper() }}
         {% else %}
-          A
+          S
         {% endif %}
       </span>
 
-      <i id="adminUserMenuChevron" class="fa-solid fa-chevron-down mm-chevron"></i>
+      <i
+        id="adminUserMenuChevron"
+        class="fa-solid fa-chevron-down mm-chevron"
+        aria-hidden="true"
+      ></i>
     </button>
   </div>
 </header>
