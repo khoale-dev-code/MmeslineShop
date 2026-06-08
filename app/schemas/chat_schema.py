@@ -1,18 +1,27 @@
 """
 app/schemas/chat_schema.py
-Định nghĩa cấu trúc dữ liệu cho Chatbot bằng Pydantic.
+===========================
+Schema dữ liệu cho MMESTLINE AI Chatbot.
+Tương thích Pydantic v1/v2.
 """
+
+from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any
 
 
-# --- 1. Model dành cho Request từ Frontend ---
 class ChatRequest(BaseModel):
-    session_id: str = Field(..., description="ID phiên chat để AI quản lý bộ nhớ (Conversation Memory)")
-    message: str = Field(..., description="Tin nhắn của người dùng gửi lên")
+    session_id: str = Field(
+        default="anonymous_session",
+        description="ID phiên chat để AI quản lý context hội thoại."
+    )
+    message: str = Field(
+        ...,
+        min_length=1,
+        max_length=1200,
+        description="Tin nhắn người dùng gửi lên."
+    )
 
 
-# --- 2. Model đại diện cho một sản phẩm gợi ý trong khung chat ---
 class ProductSuggestion(BaseModel):
     id: str
     name: str
@@ -21,33 +30,46 @@ class ProductSuggestion(BaseModel):
     slug: str
 
 
-# --- 3. Model Response cuối cùng mà Backend trả về cho giao diện (Frontend) ---
 class ChatResponse(BaseModel):
-    reply: str = Field(..., description="Câu trả lời tự nhiên của AI đã được xử lý")
-    intent: str = Field(..., description="Ý định cuối cùng được xác định (search_product, size_advice, outfit_suggestion, v.v.)")
-    products: Optional[List[ProductSuggestion]] = Field(default=[], description="Danh sách các sản phẩm lấy từ Database")
-    action_data: Optional[Dict[str, Any]] = Field(default={}, description="Dữ liệu bổ sung như thông số size hoặc thông tin đơn hàng")
+    reply: str = Field(
+        ...,
+        description="Câu trả lời hiển thị cho người dùng."
+    )
+    intent: str = Field(
+        default="general_chat",
+        description="Intent: general_chat, search_product, size_advice, outfit_suggestion, order_tracking, policy_info, promotion_info, error."
+    )
+    products: List[ProductSuggestion] = Field(
+        default_factory=list,
+        description="Danh sách sản phẩm gợi ý."
+    )
+    action_data: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Dữ liệu bổ sung như size, chiều cao/cân nặng, đơn hàng."
+    )
 
 
-# --- 4. Model dành riêng cho Gemini bóc tách dữ liệu (NLU) ---
-# Schema này giúp Gemini hiểu và phân loại tin nhắn một cách thông minh
 class ExtractedIntent(BaseModel):
-    reply: str = Field(..., description="Câu trả lời thân thiện, lịch sự, đúng phong cách sang trọng của GUA Maison.")
-    
-    # [QUAN TRỌNG] Đã bổ sung 'outfit_suggestion' vào danh sách phân loại ý định
-    intent: str = Field(..., description="Phân loại ý định: general_chat, search_product, size_advice, order_tracking, policy_info, promotion_info, outfit_suggestion")
-    
-    keywords: Optional[List[str]] = Field(
-        default=[],
-        description="Từ khóa ĐÃ DỊCH SANG LOẠI TRANG PHỤC. Ví dụ: khách nói 'đi du lịch' -> keywords: ['áo thun', 'quần short', 'oversize']. Đừng lấy nguyên văn từ khóa nếu nó mang tính hoàn cảnh."
+    reply: str = Field(
+        default="Mình có thể hỗ trợ bạn tìm sản phẩm, chọn size hoặc gợi ý phối đồ."
     )
-    
-    is_general_request: Optional[bool] = Field(
+
+    intent: str = Field(
+        default="general_chat",
+        description="general_chat, search_product, size_advice, order_tracking, policy_info, promotion_info, outfit_suggestion"
+    )
+
+    keywords: List[str] = Field(
+        default_factory=list,
+        description="Từ khóa sản phẩm đã được chuẩn hóa."
+    )
+
+    is_general_request: bool = Field(
         default=False,
-        description="Đặt là True nếu khách chỉ muốn xem mẫu chung chung như 'cho xem đồ', 'shop có gì mới', 'gợi ý mẫu hot'."
+        description="True nếu khách hỏi chung chung như xem đồ mới, mẫu hot."
     )
-    
-    height: Optional[int] = Field(default=None, description="Chiều cao khách hàng (cm)")
-    weight: Optional[int] = Field(default=None, description="Cân nặng khách hàng (kg)")
-    phone: Optional[str] = Field(default=None, description="Số điện thoại khách hàng trích xuất được")
-    order_code: Optional[str] = Field(default=None, description="Mã đơn hàng (Ví dụ: ORD123456 hoặc POS654321)")
+
+    height: Optional[int] = None
+    weight: Optional[int] = None
+    phone: Optional[str] = None
+    order_code: Optional[str] = None

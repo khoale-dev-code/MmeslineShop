@@ -1,6 +1,12 @@
 """
 app/__init__.py
 Application Factory - MMESTLINE 2026 Edition
+
+Cập nhật:
+- Luôn register chat_bp để endpoint /api/bot không bị 404.
+- ai_bp vẫn có thể bật/tắt bằng ENABLE_AI.
+- Context processor an toàn hơn.
+- Error template đồng bộ MMESTLINE green/gold.
 """
 
 import os
@@ -35,7 +41,7 @@ ERROR_TEMPLATE = """<!DOCTYPE html>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Cormorant:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap"
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap"
     rel="stylesheet"
   >
 
@@ -47,23 +53,23 @@ ERROR_TEMPLATE = """<!DOCTYPE html>
     }
 
     :root {
-      --mm-brown-950: #241207;
-      --mm-brown-900: #3b2414;
-      --mm-brown-800: #4c2d18;
-      --mm-caramel: #b98b62;
-      --mm-muted: #8a6a52;
-      --mm-line: #eadfd4;
-      --mm-cream: #fbf7f1;
-      --mm-soft: #fffaf5;
+      --mm-green: #1b4922;
+      --mm-green-dark: #123418;
+      --mm-gold: #c99e14;
+      --mm-ink: #101510;
+      --mm-muted: #687466;
+      --mm-line: rgba(27, 73, 34, .14);
+      --mm-cream: #fbfaf4;
+      --mm-soft: #f7f9f2;
     }
 
     body {
-      font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+      font-family: "DM Sans", system-ui, sans-serif;
       background:
-        radial-gradient(circle at top right, rgba(185, 139, 98, 0.22), transparent 34%),
-        radial-gradient(circle at bottom left, rgba(59, 36, 20, 0.12), transparent 36%),
-        linear-gradient(180deg, #fffaf5 0%, #fbf7f1 48%, #f6eee7 100%);
-      color: var(--mm-brown-950);
+        radial-gradient(circle at top right, rgba(201, 158, 20, .18), transparent 34%),
+        radial-gradient(circle at bottom left, rgba(27, 73, 34, .14), transparent 36%),
+        linear-gradient(180deg, #fff 0%, var(--mm-cream) 100%);
+      color: var(--mm-ink);
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -79,7 +85,7 @@ ERROR_TEMPLATE = """<!DOCTYPE html>
       width: 560px;
       height: 560px;
       transform: translate(-50%, -50%);
-      background: rgba(185, 139, 98, 0.22);
+      background: rgba(27, 73, 34, .13);
       border-radius: 999px;
       filter: blur(100px);
       pointer-events: none;
@@ -91,14 +97,14 @@ ERROR_TEMPLATE = """<!DOCTYPE html>
       z-index: 10;
       width: 100%;
       max-width: 660px;
-      background: rgba(255, 250, 245, 0.88);
+      background: rgba(255, 255, 255, .9);
       backdrop-filter: blur(22px);
-      border: 1px solid rgba(234, 223, 212, 0.9);
-      border-radius: 32px;
+      border: 1px solid var(--mm-line);
+      border-radius: 24px;
       padding: clamp(2.5rem, 6vw, 5rem);
       text-align: center;
-      box-shadow: 0 28px 80px -46px rgba(36, 18, 7, 0.62);
-      animation: revealUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      box-shadow: 0 28px 80px -46px rgba(27, 73, 34, .55);
+      animation: revealUp .7s cubic-bezier(.22, 1, .36, 1) forwards;
       opacity: 0;
     }
 
@@ -116,10 +122,10 @@ ERROR_TEMPLATE = """<!DOCTYPE html>
 
     .brand {
       margin-bottom: 1.5rem;
-      color: var(--mm-caramel);
-      font-size: 0.72rem;
+      color: var(--mm-gold);
+      font-size: .72rem;
       font-weight: 900;
-      letter-spacing: 0.24em;
+      letter-spacing: .24em;
       text-transform: uppercase;
     }
 
@@ -127,12 +133,13 @@ ERROR_TEMPLATE = """<!DOCTYPE html>
       width: 4.25rem;
       height: 4.25rem;
       border-radius: 1.35rem;
-      background: #f6eee7;
-      color: var(--mm-brown-800);
+      background: var(--mm-soft);
+      color: var(--mm-green);
       display: flex;
       align-items: center;
       justify-content: center;
       margin: 0 auto 1.5rem;
+      border: 1px solid var(--mm-line);
     }
 
     .icon-wrap svg {
@@ -141,26 +148,25 @@ ERROR_TEMPLATE = """<!DOCTYPE html>
     }
 
     .code {
-      font-family: "Cormorant", serif;
       font-size: clamp(5.4rem, 18vw, 9rem);
-      font-weight: 700;
-      line-height: 0.82;
-      letter-spacing: -0.04em;
-      color: var(--mm-brown-950);
+      font-weight: 900;
+      line-height: .82;
+      letter-spacing: -.075em;
+      color: var(--mm-green);
       margin-bottom: 1.2rem;
     }
 
     .title {
       font-size: clamp(1.15rem, 3vw, 1.7rem);
       font-weight: 900;
-      color: var(--mm-brown-950);
-      letter-spacing: -0.03em;
-      margin-bottom: 0.8rem;
+      color: var(--mm-ink);
+      letter-spacing: -.03em;
+      margin-bottom: .8rem;
     }
 
     .desc {
       color: var(--mm-muted);
-      font-size: 0.94rem;
+      font-size: .94rem;
       font-weight: 600;
       line-height: 1.75;
       max-width: 430px;
@@ -172,40 +178,41 @@ ERROR_TEMPLATE = """<!DOCTYPE html>
       align-items: center;
       justify-content: center;
       min-height: 48px;
-      background: var(--mm-brown-900);
+      background: var(--mm-green);
       color: #fff;
-      font-size: 0.84rem;
+      font-size: .78rem;
       font-weight: 900;
-      letter-spacing: 0.08em;
+      letter-spacing: .12em;
       text-transform: uppercase;
       padding: 0 2.1rem;
-      border-radius: 1rem;
+      border-radius: 14px;
       text-decoration: none;
-      box-shadow: 0 18px 36px -24px rgba(36, 18, 7, 0.8);
-      transition: background 0.2s ease, transform 0.2s ease;
+      box-shadow: 0 18px 36px -24px rgba(27, 73, 34, .8);
+      transition: background .2s ease, color .2s ease, transform .2s ease;
     }
 
     .btn-home:hover {
-      background: var(--mm-brown-950);
+      background: var(--mm-gold);
+      color: var(--mm-green-dark);
       transform: translateY(-2px);
     }
 
     .btn-home:active {
-      transform: scale(0.98);
+      transform: scale(.98);
     }
 
     .btn-debug {
       display: block;
       margin-top: 1.25rem;
-      font-size: 0.75rem;
+      font-size: .75rem;
       font-weight: 800;
-      color: var(--mm-caramel);
+      color: var(--mm-gold);
       text-decoration: underline;
       text-underline-offset: 3px;
     }
 
     .btn-debug:hover {
-      color: var(--mm-brown-900);
+      color: var(--mm-green);
     }
   </style>
 </head>
@@ -257,7 +264,7 @@ def create_app() -> Flask:
     # 2. Extensions
     csrf.init_app(flask_app)
 
-    # 3. Blueprints
+    # 3. Public Blueprints
     from app.controllers.auth_controller import auth_bp
     from app.controllers.product_controller import products_bp
     from app.controllers.cart_controller import cart_bp
@@ -281,39 +288,73 @@ def create_app() -> Flask:
     for bp in public_blueprints:
         flask_app.register_blueprint(bp)
 
-    if _env_enabled("ENABLE_ANALYTICS", "true"):
-        from app.controllers.analytics_controller import analytics_bp
-
-        flask_app.register_blueprint(analytics_bp)
-        logger.info("✅ Analytics blueprint enabled.")
-
-    if _env_enabled("ENABLE_AI", "false"):
+    # 4. Chatbot API luôn bật để /api/bot không bị 404
+    try:
         from app.controllers.chat_controller import chat_bp
-        from app.controllers.ai_controller import ai_bp
 
         flask_app.register_blueprint(chat_bp)
-        flask_app.register_blueprint(ai_bp)
-        logger.info("✅ AI / Chat blueprints enabled.")
+        logger.info("✅ Chat blueprint enabled at /api/bot.")
+    except Exception as e:
+        logger.error("❌ Không register được chat_bp: %s", e, exc_info=True)
 
+    # 5. AI nâng cao bật/tắt riêng
+    if _env_enabled("ENABLE_AI", "false"):
+        try:
+            from app.controllers.ai_controller import ai_bp
+
+            flask_app.register_blueprint(ai_bp)
+            logger.info("✅ AI blueprint enabled.")
+        except Exception as e:
+            logger.error("❌ Không register được ai_bp: %s", e, exc_info=True)
+    else:
+        logger.info("ℹ️ ENABLE_AI=false: chỉ bật Chat API cơ bản /api/bot.")
+
+    # 6. Analytics
+    if _env_enabled("ENABLE_ANALYTICS", "true"):
+        try:
+            from app.controllers.analytics_controller import analytics_bp
+
+            flask_app.register_blueprint(analytics_bp)
+            logger.info("✅ Analytics blueprint enabled.")
+        except Exception as e:
+            logger.error("❌ Không register được analytics_bp: %s", e, exc_info=True)
+
+    # 7. Sepay webhook nếu có
+    try:
+        from app.controllers.sepay_controller import sepay_bp
+
+        flask_app.register_blueprint(sepay_bp)
+        logger.info("✅ Sepay blueprint enabled.")
+    except Exception as e:
+        logger.info("ℹ️ Sepay blueprint chưa bật hoặc chưa tồn tại: %s", e)
+
+    # 8. Admin
     if _env_enabled("ENABLE_ADMIN", "true"):
-        from app.controllers.admin import admin_bp
-        from app.controllers.admin.admin_shipping_controller import admin_shipping_bp
-        from app.controllers.admin.admin_shipping_providers_controller import admin_providers_bp
+        try:
+            from app.controllers.admin import admin_bp
+            from app.controllers.admin.admin_shipping_controller import admin_shipping_bp
+            from app.controllers.admin.admin_shipping_providers_controller import admin_providers_bp
 
-        flask_app.register_blueprint(admin_bp)
-        flask_app.register_blueprint(admin_shipping_bp)
-        flask_app.register_blueprint(admin_providers_bp)
-        logger.info("✅ MMESTLINE admin blueprints enabled.")
+            flask_app.register_blueprint(admin_bp)
+            flask_app.register_blueprint(admin_shipping_bp)
+            flask_app.register_blueprint(admin_providers_bp)
+            logger.info("✅ MMESTLINE admin blueprints enabled.")
+        except Exception as e:
+            logger.error("❌ Không register được admin blueprints: %s", e, exc_info=True)
     else:
         logger.info("🚫 Admin blueprints disabled for faster storefront cold start.")
 
+    # 9. Debug
     if flask_app.config.get("DEBUG"):
-        from app.controllers.debug_controller import debug_bp
+        try:
+            from app.controllers.debug_controller import debug_bp
 
-        flask_app.register_blueprint(debug_bp)
-        logger.info("🛠️ Debug blueprint enabled. Development only.")
+            flask_app.register_blueprint(debug_bp)
+            logger.info("🛠️ Debug blueprint enabled. Development only.")
+        except Exception as e:
+            logger.warning("Không register được debug_bp: %s", e)
 
-    # 4. Context Processor
+    # 10. Context Processor
     @flask_app.context_processor
     def inject_globals() -> dict:
         cart_count = 0
@@ -382,9 +423,11 @@ def create_app() -> Flask:
             "system_settings": system_settings,
             "unread_notification_count": unread_notification_count,
             "admin_notification_count": unread_notification_count,
+            "shop_name": "MMESTLINE",
+            "shop_description": "MMESTLINE | Official Online Store",
         }
 
-    # 5. Error Handlers
+    # 11. Error Handlers
     def _error_response(code: int, title: str, desc: str):
         show_debug = flask_app.config.get("DEBUG", False)
 
