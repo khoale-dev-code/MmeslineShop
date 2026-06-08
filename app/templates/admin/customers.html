@@ -1,333 +1,844 @@
 {% extends "admin/admin_base.html" %}
-{% block title %}Khách hàng | GUA Admin{% endblock %}
-
-{% block extra_head %}
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
-<style>
-  body {
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    background-color: #f8fafc;
-  }
-
-  .gm-card {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 1.75rem;
-    box-shadow: 0 8px 30px -18px rgba(15, 23, 42, .22);
-  }
-
-  .gm-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: .35rem;
-    padding: .3rem .6rem;
-    border-radius: 999px;
-    font-size: .62rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: .12em;
-    white-space: nowrap;
-  }
-
-  .customer-row {
-    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
-  }
-
-  .customer-row:hover {
-    transform: translateY(-1px);
-    border-color: #cbd5e1;
-    box-shadow: 0 14px 30px -22px rgba(15, 23, 42, .35);
-  }
-
-  .line-clamp-1 {
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    -webkit-box-orient: vertical;
-  }
-</style>
-{% endblock %}
+{% block title %}Khách hàng | MMESTLINE Admin{% endblock %}
 
 {% block content %}
+
 {% set customer_list = customers if customers is defined else (users if users is defined else []) %}
 {% set q_value = q if q is defined else request.args.get('q', '') %}
 {% set total_count = customer_list|length %}
 {% set active_count = customer_list|rejectattr('is_suspended')|list|length %}
 {% set suspended_count = customer_list|selectattr('is_suspended')|list|length %}
+
 {% set total_points = namespace(value=0) %}
 {% set total_spent = namespace(value=0) %}
 
 {% for c in customer_list %}
-  {% set total_points.value = total_points.value + (c.points or 0) %}
-  {% set total_spent.value = total_spent.value + (c.total_spent or 0) %}
+  {% set total_points.value = total_points.value + ((c.points|default(0, true) or 0)|float) %}
+  {% set total_spent.value = total_spent.value + ((c.total_spent|default(0, true) or 0)|float) %}
 {% endfor %}
 
-<div class="max-w-screen-2xl mx-auto">
+<style>
+  :root {
+    --mm-green: #1b4922;
+    --mm-green-dark: #123418;
+    --mm-gold: #c99e14;
+    --mm-ink: #101510;
+    --mm-line: #e9e4da;
+    --mm-soft: #f8f7f2;
+    --mm-bg: #f5f6f1;
+    --mm-radius: 24px;
+  }
 
-  <div class="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-6 mb-8">
-    <div>
-      <p class="text-[10px] font-extrabold uppercase tracking-[0.24em] text-slate-400 mb-2">
-        Customer CRM
-      </p>
-      <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-950">
-        Quản lý khách hàng
-      </h1>
-      <p class="text-sm text-slate-500 mt-2 max-w-2xl">
-        Theo dõi hồ sơ khách hàng, điểm tích lũy, hạng thành viên, địa chỉ mặc định và lịch sử mua hàng.
-      </p>
-    </div>
+  .mm-customers-page {
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 0 0, rgba(201, 158, 20, .12), transparent 30%),
+      radial-gradient(circle at 100% 12%, rgba(27, 73, 34, .08), transparent 32%),
+      var(--mm-bg);
+  }
 
-    <form method="GET" action="{{ url_for('admin.customers') }}" class="w-full xl:w-[460px]">
-      <div class="relative">
-        <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 text-sm"></i>
-        <input
-          type="text"
-          name="q"
-          value="{{ q_value }}"
-          placeholder="Tìm tên, email hoặc số điện thoại..."
-          class="w-full bg-white border border-slate-200 rounded-2xl pl-11 pr-28 py-3 text-sm font-semibold focus:outline-none focus:border-slate-950 transition-all shadow-sm"
-        >
-        <button
-          type="submit"
-          class="absolute right-1.5 top-1.5 bottom-1.5 px-5 bg-slate-950 text-white rounded-xl text-xs font-extrabold uppercase tracking-widest hover:bg-slate-800 transition-all"
-        >
-          Tìm
-        </button>
-      </div>
-    </form>
-  </div>
+  .mm-customers-shell {
+    max-width: 1720px;
+    margin: 0 auto;
+  }
 
-  <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
-    <div class="gm-card p-5">
-      <p class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Tổng khách hàng</p>
-      <p class="text-3xl font-extrabold text-slate-950 mt-2">{{ total_count }}</p>
-    </div>
+  .mm-glass-card {
+    border: 1px solid rgba(27, 73, 34, .12);
+    background: rgba(255, 255, 255, .88);
+    border-radius: var(--mm-radius);
+    box-shadow: 0 24px 80px -62px rgba(16, 21, 16, .55);
+    backdrop-filter: blur(18px);
+  }
 
-    <div class="gm-card p-5">
-      <p class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Đang hoạt động</p>
-      <p class="text-3xl font-extrabold text-emerald-600 mt-2">{{ active_count }}</p>
-    </div>
+  .mm-soft-card {
+    border: 1px solid var(--mm-line);
+    background: #fff;
+    border-radius: var(--mm-radius);
+    box-shadow: 0 18px 54px -46px rgba(16, 21, 16, .5);
+  }
 
-    <div class="gm-card p-5">
-      <p class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Bị khóa</p>
-      <p class="text-3xl font-extrabold text-rose-500 mt-2">{{ suspended_count }}</p>
-    </div>
+  .mm-kicker {
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: rgba(27, 73, 34, .62);
+  }
 
-    <div class="gm-card p-5">
-      <p class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Tổng điểm</p>
-      <p class="text-3xl font-extrabold text-indigo-600 mt-2">{{ "{:,.0f}".format(total_points.value) }}</p>
-    </div>
-  </div>
+  .mm-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 9px;
+    font-weight: 950;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
 
-  {% if q_value %}
-  <div class="mb-5 flex items-center justify-between gap-3 rounded-2xl bg-indigo-50 border border-indigo-100 px-5 py-4">
-    <p class="text-sm font-bold text-indigo-800">
-      Đang tìm kiếm:
-      <span class="font-extrabold">"{{ q_value }}"</span>
-    </p>
+  .mm-table-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(27, 73, 34, .25) transparent;
+  }
 
-    <a
-      href="{{ url_for('admin.customers') }}"
-      class="text-xs font-extrabold uppercase tracking-widest text-indigo-600 hover:text-indigo-800"
-    >
-      Xóa lọc
-    </a>
-  </div>
-  {% endif %}
+  .mm-table-scroll::-webkit-scrollbar {
+    height: 10px;
+    width: 8px;
+  }
 
-  {% if customer_list %}
-  <div class="gm-card overflow-hidden">
+  .mm-table-scroll::-webkit-scrollbar-track {
+    background: #f2efe8;
+    border-radius: 999px;
+  }
 
-    <div class="hidden xl:grid grid-cols-12 gap-4 px-6 py-4 bg-slate-50 border-b border-slate-100 text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
-      <div class="col-span-4">Khách hàng</div>
-      <div class="col-span-2">Liên hệ</div>
-      <div class="col-span-2">Loyalty</div>
-      <div class="col-span-2">Địa chỉ mặc định</div>
-      <div class="col-span-1">Trạng thái</div>
-      <div class="col-span-1 text-right">Thao tác</div>
-    </div>
+  .mm-table-scroll::-webkit-scrollbar-thumb {
+    background: rgba(27, 73, 34, .26);
+    border-radius: 999px;
+    border: 2px solid #f2efe8;
+  }
 
-    <div class="divide-y divide-slate-100">
-      {% for customer in customer_list %}
-      {% set display_name = customer.full_name or customer.email or 'Khách hàng' %}
-      {% set initial = display_name[0].upper() if display_name else 'K' %}
-      {% set tier = customer.member_tier or 'MEMBER' %}
-      {% set default_address = customer.default_address if customer.default_address is defined else none %}
-      {% set spent = customer.total_spent or 0 %}
-      {% set points = customer.points or 0 %}
+  .mm-table-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(27, 73, 34, .42);
+  }
 
-      <article
-        class="customer-row grid grid-cols-1 xl:grid-cols-12 gap-4 px-5 xl:px-6 py-5 bg-white"
-        data-customer-name="{{ (display_name ~ ' ' ~ (customer.email or '') ~ ' ' ~ (customer.phone or ''))|lower|e }}"
-      >
+  .mm-table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
 
-        <div class="xl:col-span-4 flex items-start gap-4 min-w-0">
-          <div class="w-12 h-12 rounded-2xl bg-slate-950 text-white flex items-center justify-center font-black shrink-0 shadow-sm">
-            {{ initial }}
+  .mm-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #fbfaf6;
+    backdrop-filter: blur(12px);
+  }
+
+  .mm-sticky-left {
+    position: sticky;
+    left: 0;
+    z-index: 16;
+    background: #fff;
+    box-shadow: 16px 0 28px -28px rgba(16, 21, 16, .45);
+  }
+
+  thead .mm-sticky-left {
+    background: #fbfaf6;
+    z-index: 22;
+  }
+
+  .mm-sticky-right {
+    position: sticky;
+    right: 0;
+    z-index: 16;
+    background: #fff;
+    box-shadow: -16px 0 28px -28px rgba(16, 21, 16, .45);
+  }
+
+  thead .mm-sticky-right {
+    background: #fbfaf6;
+    z-index: 22;
+  }
+
+  .mm-customer-row {
+    transition: background .16s ease, opacity .16s ease;
+  }
+
+  .mm-customer-row:hover {
+    background: #fffdf8;
+  }
+
+  .mm-mobile-customer-card {
+    border: 1px solid rgba(27, 73, 34, .11);
+    border-radius: 26px;
+    background: rgba(255, 255, 255, .94);
+    box-shadow: 0 18px 56px -46px rgba(16, 21, 16, .55);
+    overflow: hidden;
+  }
+
+  .mm-density-compact .mm-row-cell {
+    padding-top: 14px !important;
+    padding-bottom: 14px !important;
+  }
+
+  .mm-density-compact .mm-avatar {
+    width: 42px !important;
+    height: 42px !important;
+    border-radius: 16px !important;
+  }
+
+  @media print {
+    .no-print,
+    .admin-sidebar,
+    .admin-topbar,
+    button,
+    form {
+      display: none !important;
+    }
+
+    .mm-customers-page {
+      background: #fff !important;
+    }
+
+    .mm-glass-card,
+    .mm-soft-card,
+    .mm-mobile-customer-card {
+      box-shadow: none !important;
+      border: 1px solid #ddd !important;
+      background: #fff !important;
+    }
+
+    .lg\:block {
+      display: block !important;
+    }
+
+    .lg\:hidden {
+      display: none !important;
+    }
+  }
+</style>
+
+<div class="mm-customers-page">
+  <div class="mm-customers-shell px-4 py-6 md:px-6 md:py-8 space-y-5">
+
+    {# HEADER #}
+    <section class="mm-glass-card p-5 md:p-6">
+      <div class="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+        <div class="min-w-0">
+          <div class="inline-flex items-center gap-2 rounded-full border border-[#dfe8dc] bg-[#f6faf4] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-[#1b4922]">
+            <span class="h-1.5 w-1.5 rounded-full bg-[#c99e14]"></span>
+            MMESTLINE Customer CRM
           </div>
 
-          <div class="min-w-0">
-            <div class="flex items-center gap-2 flex-wrap">
-              <h2 class="text-sm font-extrabold text-slate-950 line-clamp-1">
-                {{ display_name }}
-              </h2>
+          <div class="mt-4 flex flex-wrap items-center gap-3">
+            <h1 class="text-3xl font-black tracking-[-0.055em] text-[#101510] md:text-5xl">
+              Quản lý khách hàng
+            </h1>
 
-              {% if tier == 'BLACK' %}
-                <span class="gm-badge bg-slate-950 text-white">Black</span>
-              {% elif tier == 'GOLD' %}
-                <span class="gm-badge bg-amber-50 text-amber-700 border border-amber-100">Gold</span>
-              {% elif tier == 'SILVER' %}
-                <span class="gm-badge bg-slate-100 text-slate-600 border border-slate-200">Silver</span>
-              {% else %}
-                <span class="gm-badge bg-indigo-50 text-indigo-700 border border-indigo-100">Member</span>
-              {% endif %}
-            </div>
-
-            <p class="text-xs text-slate-400 font-mono mt-1 line-clamp-1">
-              ID: {{ customer.id }}
-            </p>
-
-            <p class="text-xs text-slate-400 mt-1">
-              Tham gia:
-              {{ customer.created_at[:10] if customer.created_at else 'Không rõ' }}
-            </p>
-          </div>
-        </div>
-
-        <div class="xl:col-span-2 space-y-1">
-          <p class="text-sm font-bold text-slate-700 line-clamp-1">
-            <i class="fa-regular fa-envelope text-slate-300 mr-1.5"></i>
-            {{ customer.email or 'Chưa có email' }}
-          </p>
-          <p class="text-sm font-bold text-slate-500">
-            <i class="fa-solid fa-phone text-slate-300 mr-1.5"></i>
-            {{ customer.phone or 'Chưa có SĐT' }}
-          </p>
-        </div>
-
-        <div class="xl:col-span-2">
-          <div class="grid grid-cols-2 xl:grid-cols-1 gap-2">
-            <div class="rounded-2xl bg-slate-50 border border-slate-100 px-3 py-2">
-              <p class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Điểm</p>
-              <p class="text-sm font-extrabold text-indigo-600 mt-0.5">{{ "{:,.0f}".format(points) }}</p>
-            </div>
-
-            <div class="rounded-2xl bg-slate-50 border border-slate-100 px-3 py-2">
-              <p class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Chi tiêu</p>
-              <p class="text-sm font-extrabold text-slate-800 mt-0.5">{{ "{:,.0f}".format(spent) }}đ</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="xl:col-span-2">
-          {% if default_address %}
-            <p class="text-sm font-bold text-slate-700 line-clamp-1">
-              {{ default_address.recipient_name or default_address.full_name or display_name }}
-            </p>
-            <p class="text-xs text-slate-500 leading-relaxed line-clamp-1 mt-1">
-              {{ default_address.phone or customer.phone or '' }}
-            </p>
-            <p class="text-xs text-slate-400 leading-relaxed line-clamp-1">
-              {{ default_address.address_line or default_address.address or default_address.street or 'Có địa chỉ mặc định' }}
-            </p>
-          {% else %}
-            <p class="text-sm font-bold text-slate-400">Chưa có địa chỉ</p>
-            <p class="text-xs text-slate-400 mt-1">Khách chưa đặt địa chỉ mặc định.</p>
-          {% endif %}
-        </div>
-
-        <div class="xl:col-span-1 flex xl:block items-center">
-          {% if customer.is_suspended %}
-            <span class="gm-badge bg-rose-50 text-rose-700 border border-rose-100">
-              <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-              Khóa
+            <span class="inline-flex items-center gap-2 rounded-full border border-[#eadfca] bg-white px-4 py-2 text-sm font-black text-[#1b4922] shadow-sm">
+              <i class="fa-solid fa-users text-[#c99e14]"></i>
+              {{ total_count }} khách
             </span>
-          {% else %}
-            <span class="gm-badge bg-emerald-50 text-emerald-700 border border-emerald-100">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              Active
-            </span>
-          {% endif %}
+          </div>
+
+          <p class="mt-3 max-w-3xl text-sm font-medium leading-6 text-stone-500">
+            Theo dõi hồ sơ khách hàng, điểm tích lũy, hạng thành viên, địa chỉ mặc định và lịch sử mua hàng WEB / POS.
+          </p>
         </div>
 
-        <div class="xl:col-span-1 flex xl:justify-end items-center gap-2">
-          <a
-            href="{{ url_for('admin.edit_customer', user_id=customer.id) }}"
-            class="w-10 h-10 rounded-2xl bg-slate-950 text-white flex items-center justify-center hover:bg-slate-800 transition-all"
-            title="Xem / chỉnh sửa khách hàng"
+        <div class="grid grid-cols-2 gap-2 sm:flex sm:items-center no-print">
+          <button
+            type="button"
+            onclick="window.location.reload()"
+            class="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-stone-200 bg-white px-4 text-sm font-black text-stone-700 transition hover:bg-stone-50"
           >
-            <i class="fa-solid fa-eye text-xs"></i>
+            <i class="fa-solid fa-rotate-right"></i>
+            Làm mới
+          </button>
+
+          <button
+            type="button"
+            id="btnDensityCustomers"
+            class="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-stone-200 bg-white px-4 text-sm font-black text-stone-700 transition hover:bg-stone-50"
+          >
+            <i class="fa-solid fa-table-list"></i>
+            Compact
+          </button>
+
+          <button
+            type="button"
+            onclick="window.print()"
+            class="col-span-2 inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#1b4922] px-5 text-sm font-black text-white shadow-[0_18px_44px_-28px_rgba(27,73,34,.75)] transition hover:bg-[#123418] sm:col-span-1"
+          >
+            <i class="fa-solid fa-print text-[#c99e14]"></i>
+            In danh sách
+          </button>
+        </div>
+      </div>
+
+      {# SUMMARY #}
+      <div class="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div class="rounded-3xl border border-[#dfe8dc] bg-[#f6faf4] p-4">
+          <p class="mm-kicker">Tổng khách</p>
+          <p class="mt-2 text-2xl font-black tracking-[-0.04em] text-[#101510]">{{ total_count }}</p>
+          <p class="mt-1 text-xs font-semibold text-stone-500">Theo bộ lọc hiện tại</p>
+        </div>
+
+        <div class="rounded-3xl border border-emerald-200 bg-emerald-50 p-4">
+          <p class="text-[10px] font-black uppercase tracking-[0.22em] text-emerald-700">Đang hoạt động</p>
+          <p class="mt-2 text-2xl font-black tracking-[-0.04em] text-emerald-700">{{ active_count }}</p>
+          <p class="mt-1 text-xs font-semibold text-emerald-700/70">Tài khoản active</p>
+        </div>
+
+        <div class="rounded-3xl border border-rose-200 bg-rose-50 p-4">
+          <p class="text-[10px] font-black uppercase tracking-[0.22em] text-rose-700">Bị khóa</p>
+          <p class="mt-2 text-2xl font-black tracking-[-0.04em] text-rose-700">{{ suspended_count }}</p>
+          <p class="mt-1 text-xs font-semibold text-rose-700/70">Tài khoản suspended</p>
+        </div>
+
+        <div class="rounded-3xl border border-amber-200 bg-amber-50 p-4">
+          <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">Tổng điểm</p>
+          <p class="mt-2 text-2xl font-black tracking-[-0.04em] text-amber-950">
+            {{ "{:,.0f}".format(total_points.value) }}
+          </p>
+          <p class="mt-1 text-xs font-semibold text-amber-700/70">
+            Tổng chi tiêu: {{ "{:,.0f}".format(total_spent.value) }}đ
+          </p>
+        </div>
+      </div>
+    </section>
+
+    {# FILTER #}
+    <section class="mm-soft-card sticky top-3 z-30 p-3 no-print">
+      <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div class="flex items-center gap-2 overflow-x-auto mm-table-scroll pb-1">
+          <a
+            href="{{ url_for('admin.customers') }}"
+            class="shrink-0 rounded-2xl px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.12em] transition-all
+              {% if not q_value %}
+                bg-[#1b4922] text-white shadow-[0_14px_32px_-22px_rgba(27,73,34,.75)]
+              {% else %}
+                text-stone-500 hover:bg-[#f6faf4] hover:text-[#1b4922]
+              {% endif %}"
+          >
+            <i class="fa-solid fa-layer-group mr-1.5 text-[10px] {% if not q_value %}text-[#c99e14]{% endif %}"></i>
+            Tất cả
           </a>
 
-          <form
-            method="POST"
-            action="{{ url_for('admin.delete_customer', user_id=customer.id) }}"
-            onsubmit="return confirm('Bạn có chắc muốn xóa khách hàng {{ display_name|e }}? Nếu khách đã có đơn hàng, thao tác có thể bị database chặn.');"
+          <button
+            type="button"
+            data-customer-filter="active"
+            class="shrink-0 rounded-2xl px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.12em] text-stone-500 transition-all hover:bg-[#f6faf4] hover:text-[#1b4922]"
           >
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button
-              type="submit"
-              class="w-10 h-10 rounded-2xl bg-rose-50 text-rose-500 border border-rose-100 flex items-center justify-center hover:bg-rose-600 hover:text-white hover:border-rose-600 transition-all"
-              title="Xóa khách hàng"
-            >
-              <i class="fa-solid fa-trash-can text-xs"></i>
-            </button>
-          </form>
+            <i class="fa-solid fa-circle-check mr-1.5 text-[10px]"></i>
+            Active
+          </button>
+
+          <button
+            type="button"
+            data-customer-filter="suspended"
+            class="shrink-0 rounded-2xl px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.12em] text-stone-500 transition-all hover:bg-rose-50 hover:text-rose-600"
+          >
+            <i class="fa-solid fa-ban mr-1.5 text-[10px]"></i>
+            Bị khóa
+          </button>
         </div>
 
-      </article>
-      {% endfor %}
-    </div>
-  </div>
+        <form
+          method="GET"
+          action="{{ url_for('admin.customers') }}"
+          class="grid w-full grid-cols-1 gap-2 md:grid-cols-[1fr_auto_auto] xl:w-[620px]"
+        >
+          <div class="relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-stone-400"></i>
 
-  {% else %}
-  <div class="gm-card p-12 md:p-16 text-center">
-    <div class="w-20 h-20 rounded-3xl bg-slate-50 border border-slate-100 flex items-center justify-center mx-auto text-slate-300 mb-5">
-      <i class="fa-regular fa-user text-3xl"></i>
-    </div>
+            <input
+              type="text"
+              name="q"
+              value="{{ q_value }}"
+              placeholder="Tìm tên, email hoặc số điện thoại..."
+              autocomplete="off"
+              class="h-11 w-full rounded-2xl border border-stone-200 bg-stone-50 pl-11 pr-4 text-sm font-semibold text-stone-900 outline-none transition-all placeholder:text-stone-400 focus:border-[#1b4922] focus:bg-white focus:ring-4 focus:ring-[#1b4922]/10"
+            >
+          </div>
 
-    <h2 class="text-xl font-extrabold text-slate-950">
+          {% if q_value %}
+            <a
+              href="{{ url_for('admin.customers') }}"
+              class="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-stone-200 bg-white px-4 text-sm font-black text-stone-600 transition hover:bg-stone-50"
+            >
+              <i class="fa-solid fa-xmark"></i>
+              Xóa lọc
+            </a>
+          {% endif %}
+
+          <button
+            type="submit"
+            class="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-stone-900 px-5 text-sm font-black text-white transition hover:bg-black"
+          >
+            <i class="fa-solid fa-filter"></i>
+            Tìm
+          </button>
+        </form>
+      </div>
+
       {% if q_value %}
-        Không tìm thấy khách hàng phù hợp
-      {% else %}
-        Chưa có khách hàng nào
+        <div class="mt-3 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-800">
+          Đang tìm kiếm:
+          <span class="font-black">"{{ q_value }}"</span>
+        </div>
       {% endif %}
-    </h2>
+    </section>
 
-    <p class="text-sm text-slate-500 mt-2 max-w-md mx-auto">
-      {% if q_value %}
-        Thử tìm bằng email, số điện thoại hoặc tên khác.
-      {% else %}
-        Khi khách đăng ký tài khoản hoặc mua hàng, danh sách sẽ hiển thị tại đây.
-      {% endif %}
-    </p>
+    {% if customer_list %}
 
-    {% if q_value %}
-    <a
-      href="{{ url_for('admin.customers') }}"
-      class="inline-flex items-center gap-2 mt-6 px-6 py-3 bg-slate-950 text-white rounded-full text-sm font-extrabold hover:bg-slate-800 transition-all"
-    >
-      Xem tất cả khách hàng
-    </a>
+      {# DESKTOP TABLE #}
+      <section class="mm-soft-card hidden overflow-hidden lg:block">
+        <div class="flex items-center justify-between gap-3 border-b border-stone-100 bg-white px-4 py-3 no-print">
+          <div>
+            <p class="text-sm font-black text-[#101510]">Danh sách khách hàng</p>
+            <p class="mt-0.5 text-xs font-semibold text-stone-400">
+              Kéo ngang hoặc dùng nút điều hướng để xem các cột.
+            </p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              data-scroll-customers="-520"
+              class="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-stone-200 bg-white text-stone-600 transition hover:bg-stone-50"
+              title="Cuộn sang trái"
+            >
+              <i class="fa-solid fa-arrow-left"></i>
+            </button>
+
+            <button
+              type="button"
+              data-scroll-customers="520"
+              class="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-stone-200 bg-white text-stone-600 transition hover:bg-stone-50"
+              title="Cuộn sang phải"
+            >
+              <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+
+        <div id="customersTableWrap" class="mm-table-scroll overflow-x-auto">
+          <table id="customersTable" class="mm-table w-full min-w-[1360px] text-left">
+            <thead>
+              <tr class="border-b border-stone-100">
+                <th class="mm-sticky-left w-[360px] px-5 py-4 text-[10px] font-black uppercase tracking-[0.18em] text-stone-400">
+                  Khách hàng
+                </th>
+
+                <th class="w-[280px] px-5 py-4 text-[10px] font-black uppercase tracking-[0.18em] text-stone-400">
+                  Liên hệ
+                </th>
+
+                <th class="w-[220px] px-5 py-4 text-[10px] font-black uppercase tracking-[0.18em] text-stone-400">
+                  Loyalty
+                </th>
+
+                <th class="w-[300px] px-5 py-4 text-[10px] font-black uppercase tracking-[0.18em] text-stone-400">
+                  Địa chỉ mặc định
+                </th>
+
+                <th class="w-[150px] px-5 py-4 text-center text-[10px] font-black uppercase tracking-[0.18em] text-stone-400">
+                  Trạng thái
+                </th>
+
+                <th class="mm-sticky-right w-[132px] px-5 py-4 text-center text-[10px] font-black uppercase tracking-[0.18em] text-stone-400">
+                  Thao tác
+                </th>
+              </tr>
+            </thead>
+
+            <tbody class="divide-y divide-stone-50 text-sm">
+              {% for customer in customer_list %}
+                {% set display_name = customer.full_name or customer.email or 'Khách hàng' %}
+                {% set initial = display_name[0].upper() if display_name else 'K' %}
+                {% set tier = customer.member_tier or 'MEMBER' %}
+                {% set default_address = customer.default_address if customer.default_address is defined else none %}
+                {% set spent = (customer.total_spent or 0)|float %}
+                {% set points = (customer.points or 0)|float %}
+                {% set customer_text = (display_name ~ ' ' ~ (customer.email or '') ~ ' ' ~ (customer.phone or ''))|lower %}
+
+                <tr
+                  class="mm-customer-row"
+                  data-customer-row
+                  data-customer-status="{{ 'suspended' if customer.is_suspended else 'active' }}"
+                  data-customer-search="{{ customer_text|e }}"
+                >
+                  <td class="mm-sticky-left mm-row-cell px-5 py-5 align-top">
+                    <div class="flex items-start gap-4">
+                      <div class="mm-avatar flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-[#1b4922] text-base font-black text-white shadow-sm">
+                        {{ initial }}
+                      </div>
+
+                      <div class="min-w-0">
+                        <div class="flex flex-wrap items-center gap-2">
+                          <a
+                            href="{{ url_for('admin.edit_customer', user_id=customer.id) }}"
+                            class="line-clamp-1 text-sm font-black text-[#101510] transition hover:text-[#1b4922]"
+                          >
+                            {{ display_name }}
+                          </a>
+
+                          {% if tier == 'BLACK' %}
+                            <span class="mm-badge bg-stone-950 text-white">
+                              <i class="fa-solid fa-gem text-[#c99e14]"></i>
+                              Black
+                            </span>
+                          {% elif tier == 'GOLD' %}
+                            <span class="mm-badge border border-amber-200 bg-amber-50 text-amber-700">
+                              <i class="fa-solid fa-crown"></i>
+                              Gold
+                            </span>
+                          {% elif tier == 'SILVER' %}
+                            <span class="mm-badge border border-slate-200 bg-slate-50 text-slate-600">
+                              <i class="fa-solid fa-medal"></i>
+                              Silver
+                            </span>
+                          {% else %}
+                            <span class="mm-badge border border-[#dfe8dc] bg-[#f6faf4] text-[#1b4922]">
+                              <i class="fa-solid fa-user"></i>
+                              Member
+                            </span>
+                          {% endif %}
+                        </div>
+
+                        <p class="mt-1 line-clamp-1 font-mono text-xs font-semibold text-stone-400">
+                          ID: {{ customer.id }}
+                        </p>
+
+                        <p class="mt-1 text-xs font-semibold text-stone-400">
+                          Tham gia:
+                          {{ customer.created_at[:10] if customer.created_at else 'Không rõ' }}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+
+                  <td class="mm-row-cell px-5 py-5 align-top">
+                    <div class="space-y-2">
+                      <p class="line-clamp-1 text-sm font-bold text-stone-700">
+                        <i class="fa-regular fa-envelope mr-2 text-stone-300"></i>
+                        {{ customer.email or 'Chưa có email' }}
+                      </p>
+
+                      <p class="text-sm font-bold text-stone-500">
+                        <i class="fa-solid fa-phone mr-2 text-stone-300"></i>
+                        {{ customer.phone or 'Chưa có SĐT' }}
+                      </p>
+                    </div>
+                  </td>
+
+                  <td class="mm-row-cell px-5 py-5 align-top">
+                    <div class="grid grid-cols-2 gap-2">
+                      <div class="rounded-2xl border border-[#dfe8dc] bg-[#f6faf4] px-3 py-2">
+                        <p class="text-[10px] font-black uppercase tracking-widest text-[#1b4922]/70">Điểm</p>
+                        <p class="mt-1 text-sm font-black text-[#1b4922]">{{ "{:,.0f}".format(points) }}</p>
+                      </div>
+
+                      <div class="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2">
+                        <p class="text-[10px] font-black uppercase tracking-widest text-amber-700/70">Chi tiêu</p>
+                        <p class="mt-1 text-sm font-black text-amber-950">{{ "{:,.0f}".format(spent) }}đ</p>
+                      </div>
+                    </div>
+                  </td>
+
+                  <td class="mm-row-cell px-5 py-5 align-top">
+                    {% if default_address %}
+                      <p class="line-clamp-1 text-sm font-black text-[#101510]">
+                        {{ default_address.recipient_name or default_address.full_name or display_name }}
+                      </p>
+
+                      <p class="mt-1 line-clamp-1 text-xs font-semibold text-stone-500">
+                        {{ default_address.phone or customer.phone or '' }}
+                      </p>
+
+                      <p class="mt-1 line-clamp-1 text-xs font-semibold text-stone-400">
+                        {{ default_address.address_line or default_address.address or default_address.street or 'Có địa chỉ mặc định' }}
+                      </p>
+                    {% else %}
+                      <p class="text-sm font-black text-stone-400">Chưa có địa chỉ</p>
+                      <p class="mt-1 text-xs font-semibold text-stone-400">Khách chưa đặt địa chỉ mặc định.</p>
+                    {% endif %}
+                  </td>
+
+                  <td class="mm-row-cell px-5 py-5 text-center align-top">
+                    {% if customer.is_suspended %}
+                      <span class="mm-badge border border-rose-200 bg-rose-50 text-rose-700">
+                        <span class="h-1.5 w-1.5 rounded-full bg-rose-500"></span>
+                        Khóa
+                      </span>
+                    {% else %}
+                      <span class="mm-badge border border-emerald-200 bg-emerald-50 text-emerald-700">
+                        <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                        Active
+                      </span>
+                    {% endif %}
+                  </td>
+
+                  <td class="mm-sticky-right mm-row-cell px-5 py-5 text-center align-top">
+                    <div class="flex items-center justify-center gap-2">
+                      <a
+                        href="{{ url_for('admin.edit_customer', user_id=customer.id) }}"
+                        class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-[#1b4922] text-white shadow-sm transition hover:bg-[#123418]"
+                        title="Xem / chỉnh sửa khách hàng"
+                      >
+                        <i class="fa-solid fa-eye text-xs"></i>
+                      </a>
+
+                      <form
+                        method="POST"
+                        action="{{ url_for('admin.delete_customer', user_id=customer.id) }}"
+                        onsubmit="return confirm('Bạn có chắc muốn xóa khách hàng {{ display_name|e }}? Nếu khách đã có đơn hàng, thao tác có thể bị database chặn.');"
+                      >
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <button
+                          type="submit"
+                          class="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-rose-100 bg-rose-50 text-rose-500 transition hover:border-rose-600 hover:bg-rose-600 hover:text-white"
+                          title="Xóa khách hàng"
+                        >
+                          <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="border-t border-stone-100 px-4 py-2 text-center text-[11px] font-bold uppercase tracking-widest text-stone-400 no-print">
+          <i class="fa-solid fa-arrows-left-right mr-1"></i>
+          Có thể kéo ngang để xem đầy đủ thông tin khách hàng
+        </div>
+      </section>
+
+      {# MOBILE CARDS #}
+      <section class="space-y-3 lg:hidden">
+        {% for customer in customer_list %}
+          {% set display_name = customer.full_name or customer.email or 'Khách hàng' %}
+          {% set initial = display_name[0].upper() if display_name else 'K' %}
+          {% set tier = customer.member_tier or 'MEMBER' %}
+          {% set default_address = customer.default_address if customer.default_address is defined else none %}
+          {% set spent = (customer.total_spent or 0)|float %}
+          {% set points = (customer.points or 0)|float %}
+          {% set customer_text = (display_name ~ ' ' ~ (customer.email or '') ~ ' ' ~ (customer.phone or ''))|lower %}
+
+          <article
+            class="mm-mobile-customer-card"
+            data-customer-row
+            data-customer-status="{{ 'suspended' if customer.is_suspended else 'active' }}"
+            data-customer-search="{{ customer_text|e }}"
+          >
+            <div class="flex items-start justify-between gap-3 border-b border-stone-100 p-4">
+              <div class="flex min-w-0 items-start gap-3">
+                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#1b4922] text-base font-black text-white">
+                  {{ initial }}
+                </div>
+
+                <div class="min-w-0">
+                  <a
+                    href="{{ url_for('admin.edit_customer', user_id=customer.id) }}"
+                    class="line-clamp-1 font-black text-[#101510]"
+                  >
+                    {{ display_name }}
+                  </a>
+
+                  <p class="mt-1 line-clamp-1 text-xs font-semibold text-stone-500">
+                    {{ customer.email or 'Chưa có email' }}
+                  </p>
+
+                  <div class="mt-2 flex flex-wrap items-center gap-2">
+                    {% if tier == 'BLACK' %}
+                      <span class="mm-badge bg-stone-950 text-white">Black</span>
+                    {% elif tier == 'GOLD' %}
+                      <span class="mm-badge border border-amber-200 bg-amber-50 text-amber-700">Gold</span>
+                    {% elif tier == 'SILVER' %}
+                      <span class="mm-badge border border-slate-200 bg-slate-50 text-slate-600">Silver</span>
+                    {% else %}
+                      <span class="mm-badge border border-[#dfe8dc] bg-[#f6faf4] text-[#1b4922]">Member</span>
+                    {% endif %}
+
+                    {% if customer.is_suspended %}
+                      <span class="mm-badge border border-rose-200 bg-rose-50 text-rose-700">Khóa</span>
+                    {% else %}
+                      <span class="mm-badge border border-emerald-200 bg-emerald-50 text-emerald-700">Active</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+
+              <a
+                href="{{ url_for('admin.edit_customer', user_id=customer.id) }}"
+                class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#1b4922] text-white"
+                title="Xem khách hàng"
+              >
+                <i class="fa-solid fa-arrow-right -rotate-45 text-xs"></i>
+              </a>
+            </div>
+
+            <div class="p-4">
+              <div class="grid grid-cols-2 gap-3 rounded-2xl bg-stone-50 p-3 text-xs">
+                <div>
+                  <p class="font-black uppercase tracking-widest text-stone-400">Điểm</p>
+                  <p class="mt-1 font-black text-[#1b4922]">{{ "{:,.0f}".format(points) }}</p>
+                </div>
+
+                <div>
+                  <p class="font-black uppercase tracking-widest text-stone-400">Chi tiêu</p>
+                  <p class="mt-1 font-black text-[#101510]">{{ "{:,.0f}".format(spent) }}đ</p>
+                </div>
+
+                <div>
+                  <p class="font-black uppercase tracking-widest text-stone-400">SĐT</p>
+                  <p class="mt-1 font-semibold text-stone-700">{{ customer.phone or 'Chưa có' }}</p>
+                </div>
+
+                <div>
+                  <p class="font-black uppercase tracking-widest text-stone-400">Tham gia</p>
+                  <p class="mt-1 font-semibold text-stone-700">{{ customer.created_at[:10] if customer.created_at else 'Không rõ' }}</p>
+                </div>
+              </div>
+
+              <div class="mt-3 rounded-2xl border border-stone-100 bg-white p-3">
+                <p class="text-[10px] font-black uppercase tracking-widest text-stone-400">Địa chỉ mặc định</p>
+
+                {% if default_address %}
+                  <p class="mt-1 line-clamp-1 text-sm font-black text-[#101510]">
+                    {{ default_address.recipient_name or default_address.full_name or display_name }}
+                  </p>
+
+                  <p class="mt-1 line-clamp-2 text-xs font-semibold leading-5 text-stone-500">
+                    {{ default_address.address_line or default_address.address or default_address.street or 'Có địa chỉ mặc định' }}
+                  </p>
+                {% else %}
+                  <p class="mt-1 text-xs font-semibold text-stone-400">Chưa có địa chỉ mặc định.</p>
+                {% endif %}
+              </div>
+
+              <div class="mt-3 grid grid-cols-[1fr_44px] gap-2">
+                <a
+                  href="{{ url_for('admin.edit_customer', user_id=customer.id) }}"
+                  class="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#1b4922] text-sm font-black text-white"
+                >
+                  Xem hồ sơ
+                  <i class="fa-solid fa-arrow-right"></i>
+                </a>
+
+                <form
+                  method="POST"
+                  action="{{ url_for('admin.delete_customer', user_id=customer.id) }}"
+                  onsubmit="return confirm('Bạn có chắc muốn xóa khách hàng {{ display_name|e }}? Nếu khách đã có đơn hàng, thao tác có thể bị database chặn.');"
+                >
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                  <button
+                    type="submit"
+                    class="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-rose-100 bg-rose-50 text-rose-500"
+                    title="Xóa khách hàng"
+                  >
+                    <i class="fa-solid fa-trash-can text-xs"></i>
+                  </button>
+                </form>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </section>
+
+    {% else %}
+      <section class="mm-soft-card p-12 text-center md:p-16">
+        <div class="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl border border-[#dfe8dc] bg-[#f6faf4] text-[#1b4922]">
+          <i class="fa-regular fa-user text-3xl"></i>
+        </div>
+
+        <h2 class="mt-5 text-xl font-black text-[#101510]">
+          {% if q_value %}
+            Không tìm thấy khách hàng phù hợp
+          {% else %}
+            Chưa có khách hàng nào
+          {% endif %}
+        </h2>
+
+        <p class="mx-auto mt-2 max-w-md text-sm font-medium leading-6 text-stone-500">
+          {% if q_value %}
+            Thử tìm bằng email, số điện thoại hoặc tên khác.
+          {% else %}
+            Khi khách đăng ký tài khoản hoặc mua hàng, danh sách sẽ hiển thị tại đây.
+          {% endif %}
+        </p>
+
+        {% if q_value %}
+          <a
+            href="{{ url_for('admin.customers') }}"
+            class="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#1b4922] px-5 text-sm font-black text-white transition hover:bg-[#123418]"
+          >
+            <i class="fa-solid fa-layer-group text-[#c99e14]"></i>
+            Xem tất cả khách hàng
+          </a>
+        {% endif %}
+      </section>
     {% endif %}
   </div>
-  {% endif %}
 </div>
-{% endblock %}
 
-{% block extra_scripts %}
 <script>
-(function () {
-  const searchInput = document.querySelector('input[name="q"]');
+  document.addEventListener("DOMContentLoaded", function () {
+    const table = document.getElementById("customersTable");
+    const tableWrap = document.getElementById("customersTableWrap");
+    const densityBtn = document.getElementById("btnDensityCustomers");
+    const searchInput = document.querySelector('input[name="q"]');
+    const filterButtons = Array.from(document.querySelectorAll("[data-customer-filter]"));
+    const rows = Array.from(document.querySelectorAll("[data-customer-row]"));
 
-  if (searchInput) {
-    searchInput.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape') {
-        this.value = '';
-      }
+    function applyClientFilter(type) {
+      rows.forEach(function (row) {
+        const status = row.getAttribute("data-customer-status");
+        const shouldShow =
+          !type ||
+          type === "all" ||
+          status === type;
+
+        row.classList.toggle("hidden", !shouldShow);
+      });
+
+      filterButtons.forEach(function (btn) {
+        const active = btn.getAttribute("data-customer-filter") === type;
+
+        btn.classList.toggle("bg-[#1b4922]", active);
+        btn.classList.toggle("text-white", active);
+        btn.classList.toggle("shadow-[0_14px_32px_-22px_rgba(27,73,34,.75)]", active);
+      });
+    }
+
+    filterButtons.forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        const type = btn.getAttribute("data-customer-filter");
+        const active = btn.classList.contains("bg-[#1b4922]");
+
+        applyClientFilter(active ? "all" : type);
+      });
     });
-  }
-})();
+
+    document.querySelectorAll("[data-scroll-customers]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        if (!tableWrap) return;
+
+        const delta = Number(btn.getAttribute("data-scroll-customers") || 0);
+
+        tableWrap.scrollBy({
+          left: delta,
+          behavior: "smooth"
+        });
+      });
+    });
+
+    if (densityBtn && table) {
+      densityBtn.addEventListener("click", function () {
+        table.classList.toggle("mm-density-compact");
+
+        const compact = table.classList.contains("mm-density-compact");
+        densityBtn.innerHTML = compact
+          ? '<i class="fa-solid fa-up-right-and-down-left-from-center"></i> Comfort'
+          : '<i class="fa-solid fa-table-list"></i> Compact';
+      });
+    }
+
+    if (searchInput) {
+      searchInput.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") {
+          this.value = "";
+        }
+      });
+    }
+  });
 </script>
-{% endblock %}  
+{% endblock %}

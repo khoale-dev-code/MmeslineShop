@@ -1,337 +1,1101 @@
 {% extends "admin/admin_base.html" %}
-{% block title %}Quản lý Đơn hàng | GUA Admin{% endblock %}
+{% block title %}Quản lý Đơn hàng | MMESTLINE Admin{% endblock %}
 
 {% block content %}
-<div class="max-w-screen-2xl mx-auto px-4 md:px-6 py-8 space-y-8">
 
-  {# ── 1. HEADER TRANG ── #}
-  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-    <div>
-      <div class="flex items-center gap-3 mb-1">
-        <h1 class="text-3xl font-bold tracking-tight text-stone-900 font-serif">Đơn hàng</h1>
-        <span class="px-3 py-1 bg-white border border-stone-200 text-stone-600 rounded-full text-xs font-semibold shadow-sm">
-          {{ total }}
-        </span>
+{% set current_q = current_q|default(request.args.get('q', ''), true) or '' %}
+{% set current_status = current_status|default(request.args.get('status', ''), true) or '' %}
+{% set orders = orders|default([], true) %}
+{% set total = total|default(0, true) %}
+{% set page = page|default(1, true) %}
+{% set total_pages = total_pages|default(1, true) %}
+
+<style>
+  :root {
+    --mm-green: #1b4922;
+    --mm-green-dark: #123418;
+    --mm-gold: #c99e14;
+    --mm-ink: #101510;
+    --mm-muted: #737373;
+    --mm-line: #e9e4da;
+    --mm-soft: #f8f7f2;
+    --mm-card: #ffffff;
+    --mm-bg: #f5f6f1;
+    --mm-radius: 24px;
+  }
+
+  .mm-orders-page {
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 0 0, rgba(201, 158, 20, .11), transparent 30%),
+      radial-gradient(circle at 100% 12%, rgba(27, 73, 34, .08), transparent 32%),
+      var(--mm-bg);
+  }
+
+  .mm-orders-shell {
+    max-width: 1720px;
+    margin: 0 auto;
+  }
+
+  .mm-glass-card {
+    border: 1px solid rgba(27, 73, 34, .12);
+    background: rgba(255, 255, 255, .86);
+    border-radius: var(--mm-radius);
+    box-shadow: 0 24px 80px -62px rgba(16, 21, 16, .55);
+    backdrop-filter: blur(18px);
+  }
+
+  .mm-soft-card {
+    border: 1px solid var(--mm-line);
+    background: #fff;
+    border-radius: var(--mm-radius);
+    box-shadow: 0 18px 54px -46px rgba(16, 21, 16, .5);
+  }
+
+  .mm-kicker {
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: rgba(27, 73, 34, .62);
+  }
+
+  .mm-tabs-scroll,
+  .mm-table-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(27, 73, 34, .25) transparent;
+  }
+
+  .mm-tabs-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mm-table-scroll::-webkit-scrollbar {
+    height: 10px;
+  }
+
+  .mm-table-scroll::-webkit-scrollbar-track {
+    background: #f2efe8;
+    border-radius: 999px;
+  }
+
+  .mm-table-scroll::-webkit-scrollbar-thumb {
+    background: rgba(27, 73, 34, .26);
+    border-radius: 999px;
+    border: 2px solid #f2efe8;
+  }
+
+  .mm-table-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(27, 73, 34, .42);
+  }
+
+  .mm-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    display: inline-block;
+  }
+
+  .mm-table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .mm-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #fbfaf6;
+    backdrop-filter: blur(12px);
+  }
+
+  .mm-table tbody tr {
+    transition: background .16s ease, box-shadow .16s ease;
+  }
+
+  .mm-table tbody tr:hover {
+    background: #fffdf8;
+  }
+
+  .mm-sticky-left {
+    position: sticky;
+    left: 0;
+    z-index: 16;
+    background: #fff;
+    box-shadow: 16px 0 28px -28px rgba(16, 21, 16, .45);
+  }
+
+  thead .mm-sticky-left {
+    background: #fbfaf6;
+    z-index: 22;
+  }
+
+  .mm-sticky-right {
+    position: sticky;
+    right: 0;
+    z-index: 16;
+    background: #fff;
+    box-shadow: -16px 0 28px -28px rgba(16, 21, 16, .45);
+  }
+
+  thead .mm-sticky-right {
+    background: #fbfaf6;
+    z-index: 22;
+  }
+
+  .mm-density-compact .mm-row-cell {
+    padding-top: 14px !important;
+    padding-bottom: 14px !important;
+  }
+
+  .mm-density-compact .mm-product-thumb {
+    width: 44px !important;
+    height: 58px !important;
+  }
+
+  .mm-mobile-card {
+    border: 1px solid rgba(27, 73, 34, .11);
+    border-radius: 26px;
+    background: rgba(255, 255, 255, .92);
+    box-shadow: 0 18px 56px -46px rgba(16, 21, 16, .55);
+    overflow: hidden;
+  }
+
+  .mm-bulk-bar {
+    animation: mmBulkIn .22s cubic-bezier(.16, 1, .3, 1);
+  }
+
+  @keyframes mmBulkIn {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .mm-scroll-hint {
+    background: linear-gradient(90deg, rgba(255,255,255,0), #fff 34%, #fff 66%, rgba(255,255,255,0));
+  }
+
+  @media (max-width: 1023px) {
+    .mm-orders-shell {
+      padding-bottom: 80px;
+    }
+  }
+
+  @media print {
+    .no-print,
+    #bulkActions,
+    .admin-sidebar,
+    .admin-topbar,
+    button,
+    form {
+      display: none !important;
+    }
+
+    .mm-orders-page {
+      background: #fff !important;
+    }
+
+    .mm-glass-card,
+    .mm-soft-card,
+    .mm-mobile-card {
+      box-shadow: none !important;
+      border: 1px solid #ddd !important;
+      background: #fff !important;
+    }
+
+    .lg\:block {
+      display: block !important;
+    }
+
+    .lg\:hidden {
+      display: none !important;
+    }
+  }
+</style>
+
+<div class="mm-orders-page">
+  <div class="mm-orders-shell px-4 py-6 md:px-6 md:py-8 space-y-5">
+
+    {% set tabs = [
+      ('', 'Tất cả', 'fa-layer-group'),
+      ('pending', 'Chờ xác nhận', 'fa-clock'),
+      ('confirmed', 'Chờ lấy hàng', 'fa-clipboard-check'),
+      ('packed', 'Đóng gói', 'fa-box'),
+      ('shipped', 'Đang giao', 'fa-truck-fast'),
+      ('shipping', 'Vận chuyển', 'fa-route'),
+      ('delivered', 'Đã giao', 'fa-circle-check'),
+      ('completed', 'Hoàn tất', 'fa-badge-check'),
+      ('cancelled', 'Đã hủy', 'fa-ban'),
+      ('failed', 'Thất bại', 'fa-triangle-exclamation'),
+      ('returned', 'Hoàn hàng', 'fa-rotate-left')
+    ] %}
+
+    {% set status_map = {
+      'pending': {'label': 'Chờ xác nhận', 'class': 'bg-amber-50 text-amber-700 border-amber-200', 'dot': 'bg-amber-500'},
+      'confirmed': {'label': 'Đã xác nhận', 'class': 'bg-blue-50 text-blue-700 border-blue-200', 'dot': 'bg-blue-500'},
+      'packed': {'label': 'Đã đóng gói', 'class': 'bg-indigo-50 text-indigo-700 border-indigo-200', 'dot': 'bg-indigo-500'},
+      'shipped': {'label': 'Đang giao', 'class': 'bg-purple-50 text-purple-700 border-purple-200', 'dot': 'bg-purple-500'},
+      'shipping': {'label': 'Đang vận chuyển', 'class': 'bg-purple-50 text-purple-700 border-purple-200', 'dot': 'bg-purple-500'},
+      'delivered': {'label': 'Đã giao', 'class': 'bg-emerald-50 text-emerald-700 border-emerald-200', 'dot': 'bg-emerald-500'},
+      'completed': {'label': 'Hoàn tất', 'class': 'bg-emerald-50 text-emerald-700 border-emerald-200', 'dot': 'bg-emerald-500'},
+      'cancelled': {'label': 'Đã hủy', 'class': 'bg-stone-100 text-stone-500 border-stone-200', 'dot': 'bg-stone-400'},
+      'failed': {'label': 'Thất bại', 'class': 'bg-red-50 text-red-700 border-red-200', 'dot': 'bg-red-500'},
+      'returned': {'label': 'Hoàn hàng', 'class': 'bg-rose-50 text-rose-700 border-rose-200', 'dot': 'bg-rose-500'}
+    } %}
+
+    {# HEADER #}
+    <section class="mm-glass-card p-5 md:p-6">
+      <div class="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+        <div class="min-w-0">
+          <div class="inline-flex items-center gap-2 rounded-full border border-[#dfe8dc] bg-[#f6faf4] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-[#1b4922]">
+            <span class="h-1.5 w-1.5 rounded-full bg-[#c99e14]"></span>
+            MMESTLINE Order Center
+          </div>
+
+          <div class="mt-4 flex flex-wrap items-center gap-3">
+            <h1 class="text-3xl font-black tracking-[-0.055em] text-[#101510] md:text-5xl">
+              Quản lý đơn hàng
+            </h1>
+
+            <span class="inline-flex items-center gap-2 rounded-full border border-[#eadfca] bg-white px-4 py-2 text-sm font-black text-[#1b4922] shadow-sm">
+              <i class="fa-solid fa-box text-[#c99e14]"></i>
+              {{ total }} đơn
+            </span>
+          </div>
+
+          <p class="mt-3 max-w-3xl text-sm font-medium leading-6 text-stone-500">
+            Bảng điều phối đơn hàng WEB / POS, thanh toán, vận chuyển, VAT, giao hàng sau và nhân viên xử lý theo phong cách dashboard hiện đại.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 sm:flex sm:items-center no-print">
+          <button
+            type="button"
+            id="btnRefreshOrders"
+            onclick="window.location.reload()"
+            class="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-stone-200 bg-white px-4 text-sm font-black text-stone-700 transition hover:bg-stone-50"
+          >
+            <i class="fa-solid fa-rotate-right"></i>
+            Làm mới
+          </button>
+
+          <button
+            type="button"
+            id="btnDensity"
+            class="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-stone-200 bg-white px-4 text-sm font-black text-stone-700 transition hover:bg-stone-50"
+          >
+            <i class="fa-solid fa-table-list"></i>
+            Compact
+          </button>
+
+          <button
+            type="button"
+            id="btnExportOrders"
+            class="col-span-2 inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#1b4922] px-5 text-sm font-black text-white shadow-[0_18px_44px_-28px_rgba(27,73,34,.75)] transition hover:bg-[#123418] sm:col-span-1"
+          >
+            <i class="fa-solid fa-file-csv text-[#c99e14]"></i>
+            Xuất CSV
+          </button>
+        </div>
       </div>
-      <p class="text-sm text-stone-500">Quản lý, điều phối và xử lý giao dịch từ mọi kênh bán hàng.</p>
-    </div>
-    <div class="flex items-center gap-3">
-      <button class="inline-flex items-center gap-2 bg-white border border-stone-200 text-stone-700 px-5 py-2.5 rounded-2xl text-sm font-semibold hover:bg-stone-50 transition-all shadow-sm">
-        <i class="fa-solid fa-file-excel"></i> Xuất Excel
-      </button>
-    </div>
-  </div>
 
-  {# ── 2. THANH CÔNG CỤ (TABS + SEARCH) ── #}
-  <div class="bg-white border border-stone-100 rounded-[2rem] p-2 flex flex-col xl:flex-row items-center justify-between gap-4 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
-    
-    {# Tabs Trạng thái #}
-    <div class="flex items-center gap-1 overflow-x-auto no-scrollbar w-full xl:w-auto pl-2">
-      {% set tabs = [
-        ('', 'Tất cả'),
-        ('pending', 'Chờ xác nhận'),
-        ('confirmed', 'Chờ lấy hàng'),
-        ('packed', 'Đã đóng gói'),
-        ('shipped', 'Đang giao'),
-        ('completed', 'Hoàn tất'),
-        ('cancelled', 'Đã hủy'),
-        ('failed', 'Giao thất bại'),
-        ('returned', 'Hoàn hàng')
-      ] %}
-      
-      {% for val, label in tabs %}
-      <a href="{{ url_for('admin.orders', status=val, q=request.args.get('q','')) }}"
-         class="shrink-0 px-5 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all
-         {% if current_status == val or (not current_status and not val) %}
-           bg-stone-900 text-white shadow-md
-         {% else %}
-           text-stone-500 hover:bg-stone-50 hover:text-stone-900
-         {% endif %}">
-        {{ label }}
-      </a>
-      {% endfor %}
-    </div>
+      {# SUMMARY CARDS #}
+      <div class="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div class="rounded-3xl border border-[#dfe8dc] bg-[#f6faf4] p-4">
+          <p class="mm-kicker">Tổng đơn</p>
+          <p class="mt-2 text-2xl font-black tracking-[-0.04em] text-[#101510]">{{ total }}</p>
+          <p class="mt-1 text-xs font-semibold text-stone-500">Theo bộ lọc hiện tại</p>
+        </div>
 
-    {# Form Tìm kiếm #}
-    <form action="{{ url_for('admin.orders') }}" method="GET" class="relative w-full xl:w-[360px] shrink-0 pr-2">
-      <input type="hidden" name="status" value="{{ current_status or '' }}">
-      <i class="fa-solid fa-magnifying-glass absolute left-5 top-1/2 -translate-y-1/2 text-stone-400"></i>
-      <input type="text" name="q" value="{{ request.args.get('q', '') }}"
-             placeholder="Mã đơn, Tên KH, Số điện thoại..."
-             class="w-full pl-11 pr-4 py-2.5 bg-stone-50 border-none rounded-full text-sm font-medium text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-300 transition-all">
-    </form>
-  </div>
+        <div class="rounded-3xl border border-amber-200 bg-amber-50 p-4">
+          <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">Đang xem</p>
+          <p class="mt-2 text-lg font-black text-amber-900">
+            {% if current_status %}
+              {{ status_map.get(current_status, {'label': current_status}).label }}
+            {% else %}
+              Tất cả đơn
+            {% endif %}
+          </p>
+          <p class="mt-1 text-xs font-semibold text-amber-700/70">Trạng thái</p>
+        </div>
 
-  {# ── THANH THAO TÁC HÀNG LOẠT (BULK ACTIONS) ── #}
-  <div id="bulk-actions" class="hidden items-center gap-3 w-full p-3 bg-stone-900 border border-stone-800 rounded-2xl shadow-xl transition-all duration-300">
-    <span class="px-4 py-1 text-xs font-medium text-stone-400 border-r border-stone-700">Đã chọn: <span id="selected-count" class="text-white font-bold">0</span> đơn hàng</span>
-    <button class="px-5 py-2 bg-stone-800 text-white rounded-xl text-xs font-semibold hover:bg-stone-700 transition-colors border border-stone-700">
-      <i class="fa-solid fa-print mr-1"></i> In phiếu giao
-    </button>
-    <button class="px-5 py-2 bg-white text-stone-900 rounded-xl text-xs font-semibold hover:bg-stone-200 transition-colors shadow-sm">
-      <i class="fa-solid fa-check-double mr-1"></i> Xác nhận loạt
-    </button>
-  </div>
+        <div class="rounded-3xl border border-blue-200 bg-blue-50 p-4">
+          <p class="text-[10px] font-black uppercase tracking-[0.22em] text-blue-700">Tìm kiếm</p>
+          <p class="mt-2 truncate text-lg font-black text-blue-950">
+            {{ current_q if current_q else 'Không có' }}
+          </p>
+          <p class="mt-1 text-xs font-semibold text-blue-700/70">Từ khóa hiện tại</p>
+        </div>
 
-  {# ── 3. BẢNG DỮ LIỆU ĐƠN HÀNG ── #}
-  <div class="bg-white border border-stone-100 rounded-3xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] overflow-hidden">
-    <div class="overflow-x-auto no-scrollbar">
-      <table class="w-full text-left border-collapse min-w-[1150px]">
-        <thead>
-          <tr class="bg-stone-50/50 border-b border-stone-100">
-            <th class="px-6 py-4 w-12 text-center">
-              <input type="checkbox" id="checkAll" class="w-4 h-4 border-stone-300 rounded text-stone-900 focus:ring-stone-900 cursor-pointer accent-stone-900">
-            </th>
-            <th class="px-6 py-4 text-[11px] font-semibold uppercase tracking-widest text-stone-500 w-40">Mã đơn / Kênh</th>
-            <th class="px-6 py-4 text-[11px] font-semibold uppercase tracking-widest text-stone-500 w-72">Sản phẩm</th>
-            <th class="px-6 py-4 text-[11px] font-semibold uppercase tracking-widest text-stone-500">Khách hàng</th>
-            <th class="px-6 py-4 text-[11px] font-semibold uppercase tracking-widest text-stone-500">Thanh toán</th>
-            <th class="px-6 py-4 text-center text-[11px] font-semibold uppercase tracking-widest text-stone-500">Tiến độ</th>
-            <th class="px-6 py-4 text-right text-[11px] font-semibold uppercase tracking-widest text-stone-500 w-36">Tổng tiền</th>
-            <th class="px-6 py-4 text-center text-[11px] font-semibold uppercase tracking-widest text-stone-500 w-20">Thao tác</th>
-          </tr>
-        </thead>
-        <tbody class="text-sm divide-y divide-stone-50">
-          {% for o in orders %}
-          <tr class="hover:bg-stone-50/80 transition-colors group {% if o.status in ['cancelled', 'returned'] %}opacity-60 grayscale-[30%]{% endif %}">
-            
-            {# Checkbox #}
-            <td class="px-6 py-4 text-center align-top pt-6">
-              <input type="checkbox" value="{{ o.id }}" class="order-checkbox w-4 h-4 border-stone-300 rounded text-stone-900 focus:ring-stone-900 cursor-pointer accent-stone-900">
-            </td>
+        <div class="rounded-3xl border border-stone-200 bg-white p-4">
+          <p class="mm-kicker">Trang</p>
+          <p class="mt-2 text-lg font-black text-[#101510]">{{ page }} / {{ total_pages }}</p>
+          <p class="mt-1 text-xs font-semibold text-stone-500">Phân trang</p>
+        </div>
+      </div>
+    </section>
 
-            {# ID & Kênh bán #}
-            <td class="px-6 py-4 align-top pt-5">
-              <a href="{{ url_for('admin.order_detail', order_id=o.id) }}" class="text-sm font-bold text-stone-900 hover:text-blue-600 transition-colors">
-                #{{ o.code or o.id[:8]|upper }}
-              </a>
-              <div class="mt-2.5 flex flex-col items-start gap-2">
-                {% if o.sales_channel == 'pos' %}
-                  <span class="inline-flex items-center gap-1.5 bg-stone-100 text-stone-600 px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest rounded-lg">
-                    <i class="fa-solid fa-store"></i> POS
+    {# FILTERS #}
+    <section class="mm-soft-card sticky top-3 z-30 p-3 no-print">
+      <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div class="mm-tabs-scroll flex w-full items-center gap-1 overflow-x-auto px-1 pb-1 xl:w-auto">
+          {% for val, label, icon in tabs %}
+            {% set is_active = (current_status == val) or (not current_status and not val) %}
+
+            <a
+              href="{{ url_for('admin.orders', status=val, q=current_q) }}"
+              class="shrink-0 rounded-2xl px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.12em] transition-all
+                {% if is_active %}
+                  bg-[#1b4922] text-white shadow-[0_14px_32px_-22px_rgba(27,73,34,.75)]
+                {% else %}
+                  text-stone-500 hover:bg-[#f6faf4] hover:text-[#1b4922]
+                {% endif %}"
+            >
+              <i class="fa-solid {{ icon }} mr-1.5 text-[10px] {% if is_active %}text-[#c99e14]{% endif %}"></i>
+              {{ label }}
+            </a>
+          {% endfor %}
+        </div>
+
+        <form
+          action="{{ url_for('admin.orders') }}"
+          method="GET"
+          class="grid w-full grid-cols-1 gap-2 md:grid-cols-[1fr_auto_auto] xl:w-[620px]"
+        >
+          <input type="hidden" name="status" value="{{ current_status }}">
+
+          <div class="relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-stone-400"></i>
+
+            <input
+              type="text"
+              name="q"
+              value="{{ current_q }}"
+              placeholder="Mã đơn, tên khách, số điện thoại..."
+              class="h-11 w-full rounded-2xl border border-stone-200 bg-stone-50 pl-11 pr-4 text-sm font-semibold text-stone-900 outline-none transition-all placeholder:text-stone-400 focus:border-[#1b4922] focus:bg-white focus:ring-4 focus:ring-[#1b4922]/10"
+            >
+          </div>
+
+          {% if current_q or current_status %}
+            <a
+              href="{{ url_for('admin.orders') }}"
+              class="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-stone-200 bg-white px-4 text-sm font-black text-stone-600 transition hover:bg-stone-50"
+            >
+              <i class="fa-solid fa-xmark"></i>
+              Xóa lọc
+            </a>
+          {% endif %}
+
+          <button
+            type="submit"
+            class="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-stone-900 px-5 text-sm font-black text-white transition hover:bg-black"
+          >
+            <i class="fa-solid fa-filter"></i>
+            Lọc
+          </button>
+        </form>
+      </div>
+    </section>
+
+    {# BULK ACTIONS #}
+    <section
+      id="bulkActions"
+      class="mm-bulk-bar hidden items-center justify-between gap-3 rounded-3xl border border-[#1b4922]/20 bg-[#101510] p-3 shadow-2xl no-print"
+    >
+      <div class="flex min-w-0 items-center gap-3">
+        <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-[#c99e14]">
+          <i class="fa-solid fa-check-double"></i>
+        </span>
+
+        <p class="text-sm font-bold text-white">
+          Đã chọn <span id="selectedCount" class="text-[#c99e14]">0</span> đơn hàng
+        </p>
+      </div>
+
+      <div class="flex shrink-0 items-center gap-2">
+        <button
+          type="button"
+          id="btnPrintSelected"
+          class="hidden rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-black uppercase tracking-widest text-white transition hover:bg-white/10 sm:inline-flex"
+        >
+          <i class="fa-solid fa-print mr-1"></i>
+          In phiếu
+        </button>
+
+        <button
+          type="button"
+          id="btnBulkConfirm"
+          class="rounded-2xl bg-white px-4 py-2 text-xs font-black uppercase tracking-widest text-[#101510] transition hover:bg-[#c99e14]"
+        >
+          <i class="fa-solid fa-clipboard-check mr-1"></i>
+          Xác nhận
+        </button>
+      </div>
+    </section>
+
+    {# DESKTOP / TABLET TABLE #}
+    <section class="mm-soft-card hidden overflow-hidden lg:block">
+      <div class="flex items-center justify-between gap-3 border-b border-stone-100 bg-white px-4 py-3 no-print">
+        <div>
+          <p class="text-sm font-black text-[#101510]">Danh sách đơn hàng</p>
+          <p class="mt-0.5 text-xs font-semibold text-stone-400">
+            Kéo ngang hoặc dùng nút điều hướng để xem các cột.
+          </p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            data-scroll-orders="-520"
+            class="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-stone-200 bg-white text-stone-600 transition hover:bg-stone-50"
+            title="Cuộn sang trái"
+          >
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+
+          <button
+            type="button"
+            data-scroll-orders="520"
+            class="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-stone-200 bg-white text-stone-600 transition hover:bg-stone-50"
+            title="Cuộn sang phải"
+          >
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <div id="ordersTableWrap" class="mm-table-scroll overflow-x-auto">
+        <table id="ordersTable" class="mm-table w-full min-w-[1420px] text-left">
+          <thead>
+            <tr class="border-b border-stone-100">
+              <th class="mm-sticky-left w-[280px] px-5 py-4">
+                <div class="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="checkAll"
+                    class="h-4 w-4 cursor-pointer rounded border-stone-300 accent-[#1b4922]"
+                  >
+                  <span class="text-[10px] font-black uppercase tracking-[0.18em] text-stone-400">
+                    Đơn hàng
+                  </span>
+                </div>
+              </th>
+
+              <th class="w-[360px] px-5 py-4 text-[10px] font-black uppercase tracking-[0.18em] text-stone-400">
+                Sản phẩm
+              </th>
+
+              <th class="w-[230px] px-5 py-4 text-[10px] font-black uppercase tracking-[0.18em] text-stone-400">
+                Khách hàng
+              </th>
+
+              <th class="w-[190px] px-5 py-4 text-[10px] font-black uppercase tracking-[0.18em] text-stone-400">
+                Thanh toán
+              </th>
+
+              <th class="w-[190px] px-5 py-4 text-[10px] font-black uppercase tracking-[0.18em] text-stone-400">
+                Nhân viên
+              </th>
+
+              <th class="w-[180px] px-5 py-4 text-center text-[10px] font-black uppercase tracking-[0.18em] text-stone-400">
+                Tiến độ
+              </th>
+
+              <th class="w-[150px] px-5 py-4 text-right text-[10px] font-black uppercase tracking-[0.18em] text-stone-400">
+                Tổng tiền
+              </th>
+
+              <th class="mm-sticky-right w-[96px] px-5 py-4 text-center text-[10px] font-black uppercase tracking-[0.18em] text-stone-400">
+                Thao tác
+              </th>
+            </tr>
+          </thead>
+
+          <tbody class="divide-y divide-stone-50 text-sm">
+            {% for o in orders %}
+              {% set order_code = o.code or (o.id|string)[:8]|upper %}
+              {% set status_data = status_map.get(o.status, {
+                'label': o.status or 'N/A',
+                'class': 'bg-stone-50 text-stone-500 border-stone-200',
+                'dot': 'bg-stone-400'
+              }) %}
+
+              {% set is_bad_order = o.status in ['cancelled', 'returned', 'failed'] %}
+              {% set items = o.order_items|default([], true) %}
+              {% set first_item = items[0] if items and items|length > 0 else none %}
+              {% set prod_info = first_item.get('products') if first_item else {} %}
+              {% if not prod_info %}
+                {% set prod_info = {} %}
+              {% endif %}
+
+              {% set shipping = o.shipping_address if o.shipping_address is mapping else {} %}
+              {% set user_info = o.users if o.users is mapping else {} %}
+
+              {% set c_name = o.customer_name or user_info.get('full_name') or shipping.get('full_name') or 'Khách lẻ' %}
+              {% set c_phone = o.customer_phone or user_info.get('phone') or shipping.get('phone') or '' %}
+              {% set cashier_name = o.cashier_name or o.staff_name or '' %}
+              {% set sales_channel = o.sales_channel or o.source or 'web' %}
+              {% set delivery_later = o.delivery_later %}
+              {% set vat_enabled = o.vat_enabled %}
+              {% set order_note = o.order_notes or o.order_note or '' %}
+              {% set total_amount = (o.total_amount or 0)|float %}
+              {% set cash_received = (o.cash_received or 0)|float %}
+
+              <tr class="{% if is_bad_order %}opacity-70{% endif %}">
+                <td class="mm-sticky-left mm-row-cell px-5 py-5 align-top">
+                  <div class="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      value="{{ o.id }}"
+                      class="order-checkbox mt-1 h-4 w-4 cursor-pointer rounded border-stone-300 accent-[#1b4922]"
+                    >
+
+                    <div class="min-w-0">
+                      <a
+                        href="{{ url_for('admin.order_detail', order_id=o.id) }}"
+                        class="font-black text-stone-950 transition hover:text-[#1b4922]"
+                      >
+                        #{{ order_code }}
+                      </a>
+
+                      <div class="mt-2 flex flex-wrap items-center gap-2">
+                        {% if sales_channel == 'pos' %}
+                          <span class="inline-flex items-center gap-1.5 rounded-xl border border-[#dfe8dc] bg-[#f6faf4] px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-[#1b4922]">
+                            <i class="fa-solid fa-cash-register text-[#c99e14]"></i>
+                            POS
+                          </span>
+                        {% else %}
+                          <span class="inline-flex items-center gap-1.5 rounded-xl bg-stone-900 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-white">
+                            <i class="fa-solid fa-globe"></i>
+                            WEB
+                          </span>
+                        {% endif %}
+
+                        {% if delivery_later %}
+                          <span class="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-blue-700">
+                            <i class="fa-solid fa-calendar-check"></i>
+                            Giao sau
+                          </span>
+                        {% endif %}
+
+                        {% if vat_enabled %}
+                          <span class="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-amber-700">
+                            VAT
+                          </span>
+                        {% endif %}
+                      </div>
+
+                      {% if o.created_at and 'T' in o.created_at %}
+                        {% set dt_parts = o.created_at.split('T') %}
+                        {% set ymd = dt_parts[0].split('-') %}
+                        <p class="mt-2 text-[11px] font-semibold text-stone-400">
+                          {{ ymd[2] }}/{{ ymd[1] }}/{{ ymd[0] }}
+                          ·
+                          {{ dt_parts[1].split('+')[0].split('.')[0][:5] }}
+                        </p>
+                      {% elif o.created_at %}
+                        <p class="mt-2 text-[11px] font-semibold text-stone-400">
+                          {{ o.created_at }}
+                        </p>
+                      {% endif %}
+                    </div>
+                  </div>
+                </td>
+
+                <td class="mm-row-cell px-5 py-5 align-top">
+                  {% if first_item %}
+                    <div class="flex items-start gap-4">
+                      <div class="mm-product-thumb h-[76px] w-14 shrink-0 overflow-hidden rounded-2xl border border-stone-100 bg-stone-50 shadow-sm">
+                        <img
+                          src="{{ prod_info.get('thumbnail_url') or 'https://placehold.co/120x160?text=MM' }}"
+                          alt=""
+                          loading="lazy"
+                          class="h-full w-full object-cover object-top"
+                        >
+                      </div>
+
+                      <div class="min-w-0 flex-1 pt-0.5">
+                        <p class="line-clamp-2 text-sm font-black leading-snug text-stone-950">
+                          {{ prod_info.get('name') or first_item.get('product_name') or 'Sản phẩm' }}
+                        </p>
+
+                        <div class="mt-2 flex flex-wrap items-center gap-2">
+                          <span class="rounded-lg bg-stone-100 px-2 py-1 text-[10px] font-black text-stone-600">
+                            SL: {{ first_item.get('quantity') or first_item.quantity or 0 }}
+                          </span>
+
+                          {% if items|length > 1 %}
+                            <span class="rounded-lg bg-blue-50 px-2 py-1 text-[10px] font-black text-blue-700">
+                              +{{ items|length - 1 }} sản phẩm khác
+                            </span>
+                          {% endif %}
+                        </div>
+
+                        {% if order_note %}
+                          <p class="mt-2 line-clamp-1 text-[11px] font-medium text-stone-400">
+                            <i class="fa-regular fa-note-sticky mr-1"></i>
+                            {{ order_note }}
+                          </p>
+                        {% endif %}
+                      </div>
+                    </div>
+                  {% else %}
+                    <span class="text-xs italic text-stone-400">Không có dữ liệu sản phẩm</span>
+                  {% endif %}
+                </td>
+
+                <td class="mm-row-cell px-5 py-5 align-top">
+                  <div class="flex items-center gap-2">
+                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-stone-100 text-xs font-black text-stone-600">
+                      {{ (c_name[0] if c_name else 'K')|upper }}
+                    </span>
+
+                    <div class="min-w-0">
+                      <p class="max-w-[170px] truncate text-sm font-black text-stone-950">
+                        {{ c_name }}
+                      </p>
+
+                      <p class="mt-0.5 text-xs font-semibold text-stone-500">
+                        {{ c_phone or '---' }}
+                      </p>
+                    </div>
+                  </div>
+
+                  {% if o.user_id %}
+                    <span class="mt-3 inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-amber-700">
+                      <i class="fa-solid fa-crown"></i>
+                      Thành viên
+                    </span>
+                  {% endif %}
+                </td>
+
+                <td class="mm-row-cell px-5 py-5 align-top">
+                  {% if o.payment_status == 'paid' %}
+                    <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-emerald-700">
+                      <i class="fa-solid fa-check"></i>
+                      Đã thanh toán
+                    </span>
+                  {% else %}
+                    <span class="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-amber-700">
+                      <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+                      Chờ thu
+                    </span>
+                  {% endif %}
+
+                  <p class="mt-2 text-[11px] font-black uppercase tracking-widest text-stone-400">
+                    {{ o.payment_method or '---' }}
+                  </p>
+
+                  {% if cash_received > 0 %}
+                    <p class="mt-1 text-[11px] font-semibold text-stone-500">
+                      Nhận: {{ "{:,.0f}".format(cash_received) }}đ
+                    </p>
+                  {% endif %}
+                </td>
+
+                <td class="mm-row-cell px-5 py-5 align-top">
+                  {% if cashier_name %}
+                    <div class="flex items-center gap-2">
+                      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#1b4922] text-[10px] font-black text-white">
+                        {{ cashier_name[0]|upper }}
+                      </span>
+
+                      <div class="min-w-0">
+                        <p class="max-w-[145px] truncate text-xs font-black text-stone-900">
+                          {{ cashier_name }}
+                        </p>
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-stone-400">
+                          Thu ngân
+                        </p>
+                      </div>
+                    </div>
+                  {% else %}
+                    <span class="text-xs text-stone-400">---</span>
+                  {% endif %}
+                </td>
+
+                <td class="mm-row-cell px-5 py-5 text-center align-top">
+                  <span class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-widest {{ status_data.class }}">
+                    <span class="mm-status-dot {{ status_data.dot }}"></span>
+                    {{ status_data.label }}
+                  </span>
+                </td>
+
+                <td class="mm-row-cell px-5 py-5 text-right align-top">
+                  <p class="text-[15px] font-black tabular-nums text-stone-950">
+                    {{ "{:,.0f}".format(total_amount) }}đ
+                  </p>
+
+                  <p class="mt-1 text-[10px] font-semibold text-stone-400">
+                    {{ items|length }} sản phẩm
+                  </p>
+                </td>
+
+                <td class="mm-sticky-right mm-row-cell px-5 py-5 text-center align-top">
+                  <a
+                    href="{{ url_for('admin.order_detail', order_id=o.id) }}"
+                    title="Chi tiết / xử lý"
+                    class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-stone-50 text-stone-500 shadow-sm transition hover:bg-[#1b4922] hover:text-white"
+                  >
+                    <i class="fa-solid fa-arrow-right -rotate-45"></i>
+                  </a>
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="8" class="px-6 py-24 text-center">
+                  <div class="flex flex-col items-center justify-center gap-4">
+                    <div class="flex h-20 w-20 items-center justify-center rounded-full bg-[#f6faf4] text-[#1b4922]">
+                      <i class="fa-solid fa-box-open text-3xl"></i>
+                    </div>
+
+                    <div>
+                      <p class="text-base font-black text-stone-800">Không tìm thấy đơn hàng</p>
+                      <p class="mt-1 text-sm font-medium text-stone-500">Thử đổi bộ lọc hoặc từ khóa tìm kiếm.</p>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mm-scroll-hint border-t border-stone-100 px-4 py-2 text-center text-[11px] font-bold uppercase tracking-widest text-stone-400 no-print">
+        <i class="fa-solid fa-arrows-left-right mr-1"></i>
+        Có thể kéo ngang để xem đầy đủ cột
+      </div>
+    </section>
+
+    {# MOBILE CARDS #}
+    <section class="space-y-3 lg:hidden">
+      {% for o in orders %}
+        {% set order_code = o.code or (o.id|string)[:8]|upper %}
+        {% set status_data = status_map.get(o.status, {
+          'label': o.status or 'N/A',
+          'class': 'bg-stone-50 text-stone-500 border-stone-200',
+          'dot': 'bg-stone-400'
+        }) %}
+
+        {% set items = o.order_items|default([], true) %}
+        {% set first_item = items[0] if items and items|length > 0 else none %}
+        {% set prod_info = first_item.get('products') if first_item else {} %}
+        {% if not prod_info %}
+          {% set prod_info = {} %}
+        {% endif %}
+
+        {% set shipping = o.shipping_address if o.shipping_address is mapping else {} %}
+        {% set user_info = o.users if o.users is mapping else {} %}
+
+        {% set c_name = o.customer_name or user_info.get('full_name') or shipping.get('full_name') or 'Khách lẻ' %}
+        {% set c_phone = o.customer_phone or user_info.get('phone') or shipping.get('phone') or '' %}
+        {% set cashier_name = o.cashier_name or o.staff_name or '' %}
+        {% set sales_channel = o.sales_channel or o.source or 'web' %}
+        {% set total_amount = (o.total_amount or 0)|float %}
+
+        <article class="mm-mobile-card">
+          <div class="flex items-start justify-between gap-3 border-b border-stone-100 p-4">
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  value="{{ o.id }}"
+                  class="order-checkbox h-4 w-4 rounded border-stone-300 accent-[#1b4922]"
+                >
+
+                <a
+                  href="{{ url_for('admin.order_detail', order_id=o.id) }}"
+                  class="font-black text-stone-950"
+                >
+                  #{{ order_code }}
+                </a>
+              </div>
+
+              <div class="mt-2 flex flex-wrap items-center gap-2">
+                {% if sales_channel == 'pos' %}
+                  <span class="rounded-xl border border-[#dfe8dc] bg-[#f6faf4] px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-[#1b4922]">
+                    POS
                   </span>
                 {% else %}
-                  <span class="inline-flex items-center gap-1.5 bg-stone-900 text-white px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest rounded-lg shadow-sm">
-                    <i class="fa-solid fa-globe"></i> WEB
+                  <span class="rounded-xl bg-stone-900 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-white">
+                    WEB
                   </span>
                 {% endif %}
-                
-                {% if o.created_at and 'T' in o.created_at %}
-                  {% set dt_parts = o.created_at.split('T') %}
-                  {% set ymd = dt_parts[0].split('-') %}
-                  <span class="text-[10px] font-medium text-stone-500">
-                    {{ ymd[2] }}/{{ ymd[1] }} - {{ dt_parts[1].split('+')[0].split('.')[0][:5] }}
-                  </span>
-                {% endif %}
-              </div>
-            </td>
 
-            {# Sản phẩm #}
-            <td class="px-6 py-4 align-top pt-5">
-              {% if o.order_items and o.order_items|length > 0 %}
-                {% set first_item = o.order_items[0] %}
-                {% set prod_info = first_item.get('products') or {} %}
-                
-                <div class="flex items-start gap-4">
-                  <div class="w-14 h-[72px] bg-stone-50 border border-stone-100 overflow-hidden shrink-0 rounded-xl shadow-sm">
-                    <img src="{{ prod_info.get('thumbnail_url') or 'https://placehold.co/100x133' }}" class="w-full h-full object-cover">
-                  </div>
-                  <div class="flex-1 min-w-0 pt-0.5">
-                    <p class="text-sm font-bold text-stone-900 line-clamp-2 leading-snug">
-                      {{ prod_info.get('name', 'Sản phẩm (Đã xóa)') }}
-                    </p>
-                    
-                    {% if o.order_items|length > 1 %}
-                      <p class="text-[10px] font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-md inline-block mt-2">
-                        +{{ o.order_items|length - 1 }} sản phẩm khác
-                      </p>
-                    {% else %}
-                      <p class="text-[11px] font-medium text-stone-500 mt-1.5">
-                        Số lượng: <span class="font-bold text-stone-900">{{ first_item.quantity }}</span>
-                      </p>
+                <span class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-widest {{ status_data.class }}">
+                  <span class="mm-status-dot {{ status_data.dot }}"></span>
+                  {{ status_data.label }}
+                </span>
+              </div>
+            </div>
+
+            <div class="text-right">
+              <p class="text-base font-black text-stone-950">
+                {{ "{:,.0f}".format(total_amount) }}đ
+              </p>
+
+              {% if o.payment_status == 'paid' %}
+                <p class="mt-1 text-[10px] font-black uppercase tracking-widest text-emerald-600">Đã thanh toán</p>
+              {% else %}
+                <p class="mt-1 text-[10px] font-black uppercase tracking-widest text-amber-600">Chờ thu</p>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="p-4">
+            {% if first_item %}
+              <div class="flex gap-3">
+                <div class="h-[86px] w-16 shrink-0 overflow-hidden rounded-2xl border border-stone-100 bg-stone-50">
+                  <img
+                    src="{{ prod_info.get('thumbnail_url') or 'https://placehold.co/120x160?text=MM' }}"
+                    alt=""
+                    loading="lazy"
+                    class="h-full w-full object-cover object-top"
+                  >
+                </div>
+
+                <div class="min-w-0 flex-1">
+                  <p class="line-clamp-2 text-sm font-black leading-snug text-stone-950">
+                    {{ prod_info.get('name') or first_item.get('product_name') or 'Sản phẩm' }}
+                  </p>
+
+                  <p class="mt-2 text-xs font-semibold text-stone-500">
+                    {{ items|length }} sản phẩm · SL đầu: {{ first_item.get('quantity') or first_item.quantity or 0 }}
+                  </p>
+
+                  <div class="mt-3 flex flex-wrap gap-2">
+                    {% if o.delivery_later %}
+                      <span class="rounded-lg bg-blue-50 px-2 py-1 text-[9px] font-black text-blue-700">Giao sau</span>
+                    {% endif %}
+
+                    {% if o.vat_enabled %}
+                      <span class="rounded-lg bg-amber-50 px-2 py-1 text-[9px] font-black text-amber-700">VAT</span>
+                    {% endif %}
+
+                    {% if cashier_name %}
+                      <span class="rounded-lg bg-[#f6faf4] px-2 py-1 text-[9px] font-black text-[#1b4922]">
+                        NV: {{ cashier_name }}
+                      </span>
                     {% endif %}
                   </div>
                 </div>
-              {% else %}
-                <span class="text-xs text-stone-400 italic">Không có dữ liệu SP</span>
-              {% endif %}
-            </td>
-
-            {# Khách hàng (Cập nhật hiển thị Member) #}
-            <td class="px-6 py-4 align-top pt-5">
-              {% set c_name = o.customer_name %}
-              {% if not c_name and o.users %} {% set c_name = o.users.full_name %} {% endif %}
-              {% if not c_name and o.shipping_address %} {% set c_name = o.shipping_address.get('full_name') %} {% endif %}
-              
-              {% set c_phone = o.customer_phone %}
-              {% if not c_phone and o.users %} {% set c_phone = o.users.phone %} {% endif %}
-              {% if not c_phone and o.shipping_address %} {% set c_phone = o.shipping_address.get('phone') %} {% endif %}
-
-              <div class="flex items-center gap-1.5">
-                  <p class="font-bold text-stone-900 text-sm truncate max-w-[160px]">{{ c_name or 'Khách lẻ' }}</p>
-                  {% if o.user_id %}
-                      <span class="text-amber-500" title="Thành viên có tài khoản"><i class="fa-solid fa-crown text-[10px]"></i></span>
-                  {% endif %}
               </div>
-              <p class="text-xs font-medium text-stone-500 mt-1">{{ c_phone or '---' }}</p>
-            </td>
-
-            {# Thanh toán #}
-            <td class="px-6 py-4 align-top pt-5">
-              {% if o.payment_status == 'paid' %}
-                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-bold uppercase tracking-wider">
-                  <i class="fa-solid fa-check"></i> Đã thanh toán
-                </span>
-              {% else %}
-                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 rounded-full text-[10px] font-bold uppercase tracking-wider">
-                  <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Chờ thu tiền
-                </span>
-              {% endif %}
-              <p class="text-[11px] font-semibold text-stone-500 mt-2 uppercase tracking-wider pl-1">{{ o.payment_method }}</p>
-            </td>
-
-            {# Trạng thái Tiến độ #}
-            <td class="px-6 py-4 align-top pt-5 text-center">
-              {% set s_map = {
-                'pending': ('Chờ xác nhận', 'bg-amber-50 text-amber-700'),
-                'confirmed': ('Đã xác nhận', 'bg-blue-50 text-blue-700'),
-                'packed': ('Đã đóng gói', 'bg-indigo-50 text-indigo-700'),
-                'shipped': ('Đang giao', 'bg-purple-50 text-purple-700'),
-                'completed': ('Hoàn tất', 'bg-emerald-50 text-emerald-700'),
-                'delivered': ('Đã giao', 'bg-emerald-50 text-emerald-700'),
-                'cancelled': ('Đã hủy', 'bg-stone-100 text-stone-500'),
-                'failed': ('Thất bại', 'bg-red-50 text-red-700'),
-                'returned': ('Hoàn hàng', 'bg-rose-50 text-rose-700')
-              } %}
-              {% set st = s_map.get(o.status, ('N/A', 'bg-stone-50 text-stone-500')) %}
-              <span class="inline-block px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest {{ st[1] }}">
-                {{ st[0] }}
-              </span>
-            </td>
-
-            {# Tổng tiền & Tích Điểm #}
-            <td class="px-6 py-4 text-right align-top pt-5">
-              <p class="font-bold text-stone-900 text-[15px] tabular-nums">{{ "{:,.0f}".format(o.total_amount) }} <span class="text-xs font-normal text-stone-500 underline decoration-stone-300">đ</span></p>
-              <p class="text-[10px] font-medium text-stone-500 mt-1.5 mb-2">{{ o.order_items|length }} sản phẩm</p>
-              
-              {# Hiển thị Huy hiệu Điểm (Earned / Redeemed) #}
-              {% if o.earned_points or o.redeemed_points %}
-              <div class="flex flex-col items-end gap-1.5">
-                  {% if o.redeemed_points %}
-                  <span class="inline-flex items-center gap-1.5 text-[9px] font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md border border-rose-100 shadow-sm" title="Khách đã dùng điểm để giảm giá">
-                      <i class="fa-solid fa-star text-[8px]"></i> -{{ o.redeemed_points }} Pts
-                  </span>
-                  {% endif %}
-                  {% if o.earned_points %}
-                  <span class="inline-flex items-center gap-1.5 text-[9px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100 shadow-sm" title="Đã tích điểm cho tài khoản này">
-                      <i class="fa-solid fa-gem text-[8px]"></i> +{{ o.earned_points }} Pts
-                  </span>
-                  {% endif %}
+            {% else %}
+              <div class="rounded-2xl border border-stone-100 bg-stone-50 p-4 text-center text-xs font-semibold text-stone-400">
+                Không có dữ liệu sản phẩm
               </div>
-              {% endif %}
-            </td>
+            {% endif %}
 
-            {# Thao tác #}
-            <td class="px-6 py-4 text-center align-top pt-5">
-              <a href="{{ url_for('admin.order_detail', order_id=o.id) }}" title="Chi tiết / Xử lý"
-                 class="inline-flex w-10 h-10 rounded-full bg-stone-50 text-stone-500 items-center justify-center hover:bg-black hover:text-white transition-all shadow-sm">
-                <i class="fa-solid fa-arrow-right -rotate-45"></i>
-              </a>
-            </td>
-          </tr>
-          {% else %}
-          <tr>
-            <td colspan="8" class="px-6 py-24 text-center">
-              <div class="flex flex-col items-center justify-center gap-4">
-                <div class="w-16 h-16 rounded-full bg-stone-50 flex items-center justify-center text-stone-300">
-                  <i class="fa-solid fa-box-open text-2xl"></i>
-                </div>
-                <p class="text-sm font-semibold text-stone-500">Không có đơn hàng nào khớp với tìm kiếm.</p>
+            <div class="mt-4 grid grid-cols-2 gap-3 rounded-2xl bg-stone-50 p-3 text-xs">
+              <div>
+                <p class="font-black uppercase tracking-widest text-stone-400">Khách hàng</p>
+                <p class="mt-1 truncate font-black text-stone-900">{{ c_name }}</p>
+                <p class="mt-0.5 font-semibold text-stone-500">{{ c_phone or '---' }}</p>
               </div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
 
-  {# ── 4. PHÂN TRANG (PAGINATION) - Pill Style ── #}
-  {% if total_pages > 1 %}
-  <div class="flex items-center justify-center gap-2 mt-8 mb-4">
-    {% if page > 1 %}
-    <a href="{{ url_for('admin.orders', page=page-1, status=current_status, q=request.args.get('q','')) }}" 
-       class="w-10 h-10 flex items-center justify-center rounded-full border border-stone-200 bg-white text-stone-500 hover:text-black hover:border-black transition-all shadow-sm">
-      <i class="fa-solid fa-chevron-left text-sm"></i>
-    </a>
-    {% endif %}
-    
-    {% for pg in range(1, total_pages+1) %}
-      {% if pg == page %}
-        <span class="w-10 h-10 flex items-center justify-center rounded-full bg-black text-white text-sm font-bold shadow-md">{{ pg }}</span>
-      {% elif pg == 1 or pg == total_pages or (pg >= page-2 and pg <= page+2) %}
-        <a href="{{ url_for('admin.orders', page=pg, status=current_status, q=request.args.get('q','')) }}" 
-           class="w-10 h-10 flex items-center justify-center rounded-full border border-stone-200 bg-white text-stone-600 text-sm font-semibold hover:text-black hover:border-black transition-all shadow-sm">
-          {{ pg }}
-        </a>
-      {% elif pg == page-3 or pg == page+3 %}
-        <span class="w-10 h-10 flex items-center justify-center text-stone-400 font-bold">…</span>
-      {% endif %}
-    {% endfor %}
-    
-    {% if page < total_pages %}
-    <a href="{{ url_for('admin.orders', page=page+1, status=current_status, q=request.args.get('q','')) }}" 
-       class="w-10 h-10 flex items-center justify-center rounded-full border border-stone-200 bg-white text-stone-500 hover:text-black hover:border-black transition-all shadow-sm">
-      <i class="fa-solid fa-chevron-right text-sm"></i>
-    </a>
+              <div>
+                <p class="font-black uppercase tracking-widest text-stone-400">Thanh toán</p>
+                <p class="mt-1 font-black uppercase text-stone-900">{{ o.payment_method or '---' }}</p>
+                {% if o.created_at and 'T' in o.created_at %}
+                  {% set dt_parts = o.created_at.split('T') %}
+                  {% set ymd = dt_parts[0].split('-') %}
+                  <p class="mt-0.5 font-semibold text-stone-500">
+                    {{ ymd[2] }}/{{ ymd[1] }} · {{ dt_parts[1].split('+')[0].split('.')[0][:5] }}
+                  </p>
+                {% endif %}
+              </div>
+            </div>
+
+            <a
+              href="{{ url_for('admin.order_detail', order_id=o.id) }}"
+              class="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#1b4922] text-sm font-black text-white"
+            >
+              Xem / xử lý đơn
+              <i class="fa-solid fa-arrow-right"></i>
+            </a>
+          </div>
+        </article>
+      {% else %}
+        <div class="rounded-3xl border border-stone-200 bg-white p-10 text-center">
+          <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#f6faf4] text-[#1b4922]">
+            <i class="fa-solid fa-box-open text-2xl"></i>
+          </div>
+
+          <p class="mt-4 text-sm font-black text-stone-800">Không có đơn hàng nào</p>
+          <p class="mt-1 text-xs font-medium text-stone-500">Thử đổi trạng thái hoặc từ khóa tìm kiếm.</p>
+        </div>
+      {% endfor %}
+    </section>
+
+    {# PAGINATION #}
+    {% if total_pages and total_pages > 1 %}
+      <nav class="flex flex-wrap items-center justify-center gap-2 pt-3 pb-6 no-print">
+        {% if page > 1 %}
+          <a
+            href="{{ url_for('admin.orders', page=page-1, status=current_status, q=current_q) }}"
+            class="flex h-10 min-w-10 items-center justify-center rounded-full border border-stone-200 bg-white px-3 text-stone-500 shadow-sm transition hover:border-[#1b4922] hover:text-[#1b4922]"
+          >
+            <i class="fa-solid fa-chevron-left text-xs"></i>
+          </a>
+        {% endif %}
+
+        {% for pg in range(1, total_pages + 1) %}
+          {% if pg == page %}
+            <span class="flex h-10 min-w-10 items-center justify-center rounded-full bg-[#1b4922] px-3 text-sm font-black text-white shadow-md">
+              {{ pg }}
+            </span>
+          {% elif pg == 1 or pg == total_pages or (pg >= page - 2 and pg <= page + 2) %}
+            <a
+              href="{{ url_for('admin.orders', page=pg, status=current_status, q=current_q) }}"
+              class="flex h-10 min-w-10 items-center justify-center rounded-full border border-stone-200 bg-white px-3 text-sm font-black text-stone-600 shadow-sm transition hover:border-[#1b4922] hover:text-[#1b4922]"
+            >
+              {{ pg }}
+            </a>
+          {% elif pg == page - 3 or pg == page + 3 %}
+            <span class="flex h-10 min-w-10 items-center justify-center text-stone-400">…</span>
+          {% endif %}
+        {% endfor %}
+
+        {% if page < total_pages %}
+          <a
+            href="{{ url_for('admin.orders', page=page+1, status=current_status, q=current_q) }}"
+            class="flex h-10 min-w-10 items-center justify-center rounded-full border border-stone-200 bg-white px-3 text-stone-500 shadow-sm transition hover:border-[#1b4922] hover:text-[#1b4922]"
+          >
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+          </a>
+        {% endif %}
+      </nav>
     {% endif %}
   </div>
-  {% endif %}
-
 </div>
 
-<style>
-  .no-scrollbar::-webkit-scrollbar { display: none; }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-</style>
-
 <script>
-// Logic Checkbox Thao tác hàng loạt (Bulk Actions)
-document.addEventListener('DOMContentLoaded', function() {
-    const checkAll = document.getElementById('checkAll');
-    const checkboxes = document.querySelectorAll('.order-checkbox');
-    const bulkActions = document.getElementById('bulk-actions');
-    const selectedCount = document.getElementById('selected-count');
+  document.addEventListener("DOMContentLoaded", function () {
+    const table = document.getElementById("ordersTable");
+    const tableWrap = document.getElementById("ordersTableWrap");
+    const checkAll = document.getElementById("checkAll");
+    const checkboxes = Array.from(document.querySelectorAll(".order-checkbox"));
+    const bulkActions = document.getElementById("bulkActions");
+    const selectedCount = document.getElementById("selectedCount");
+    const exportBtn = document.getElementById("btnExportOrders");
+    const printSelectedBtn = document.getElementById("btnPrintSelected");
+    const bulkConfirmBtn = document.getElementById("btnBulkConfirm");
+    const densityBtn = document.getElementById("btnDensity");
+
+    function getVisibleCheckboxes() {
+      return checkboxes.filter(function (cb) {
+        return !cb.disabled && cb.offsetParent !== null;
+      });
+    }
+
+    function getCheckedBoxes() {
+      return checkboxes.filter(function (cb) {
+        return cb.checked;
+      });
+    }
 
     function updateBulkActions() {
-        const checkedCount = document.querySelectorAll('.order-checkbox:checked').length;
-        if (checkedCount > 0) {
-            bulkActions.classList.remove('hidden');
-            bulkActions.classList.add('flex');
-            selectedCount.textContent = checkedCount;
-        } else {
-            bulkActions.classList.add('hidden');
-            bulkActions.classList.remove('flex');
-        }
+      const checked = getCheckedBoxes();
+      const count = checked.length;
+
+      if (bulkActions) {
+        bulkActions.classList.toggle("hidden", count === 0);
+        bulkActions.classList.toggle("flex", count > 0);
+      }
+
+      if (selectedCount) {
+        selectedCount.textContent = String(count);
+      }
+
+      if (checkAll) {
+        const visibleCheckboxes = getVisibleCheckboxes();
+        const visibleChecked = visibleCheckboxes.filter(function (cb) {
+          return cb.checked;
+        });
+
+        checkAll.checked = visibleCheckboxes.length > 0 && visibleChecked.length === visibleCheckboxes.length;
+        checkAll.indeterminate = visibleChecked.length > 0 && visibleChecked.length < visibleCheckboxes.length;
+      }
     }
 
-    if(checkAll) {
-        checkAll.addEventListener('change', function() {
-            checkboxes.forEach(cb => {
-                if(!cb.disabled) cb.checked = this.checked;
-            });
-            updateBulkActions();
+    if (checkAll) {
+      checkAll.addEventListener("change", function () {
+        getVisibleCheckboxes().forEach(function (cb) {
+          cb.checked = checkAll.checked;
         });
+
+        updateBulkActions();
+      });
     }
 
-    checkboxes.forEach(cb => {
-        cb.addEventListener('change', function() {
-            const activeCheckboxes = document.querySelectorAll('.order-checkbox:not([disabled])');
-            const allChecked = document.querySelectorAll('.order-checkbox:checked').length === activeCheckboxes.length;
-            if(checkAll) checkAll.checked = allChecked && activeCheckboxes.length > 0;
-            updateBulkActions();
-        });
+    checkboxes.forEach(function (cb) {
+      cb.addEventListener("change", updateBulkActions);
     });
-});
+
+    document.querySelectorAll("[data-scroll-orders]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        if (!tableWrap) return;
+
+        const delta = Number(btn.getAttribute("data-scroll-orders") || 0);
+
+        tableWrap.scrollBy({
+          left: delta,
+          behavior: "smooth"
+        });
+      });
+    });
+
+    if (densityBtn && table) {
+      densityBtn.addEventListener("click", function () {
+        table.classList.toggle("mm-density-compact");
+
+        const compact = table.classList.contains("mm-density-compact");
+        densityBtn.innerHTML = compact
+          ? '<i class="fa-solid fa-up-right-and-down-left-from-center"></i> Comfort'
+          : '<i class="fa-solid fa-table-list"></i> Compact';
+      });
+    }
+
+    if (exportBtn) {
+      exportBtn.addEventListener("click", function () {
+        const params = new URLSearchParams(window.location.search);
+
+        /*
+          Không dùng url_for('admin.orders_export') trực tiếp để tránh BuildError
+          nếu route export chưa được load. Nếu đã cập nhật orders.py như bản trước,
+          đường dẫn này sẽ tải CSV bình thường.
+        */
+        const prefix = "{{ request.script_root }}";
+        window.location.href = `${prefix}/admin/orders/export?${params.toString()}`;
+      });
+    }
+
+    if (printSelectedBtn) {
+      printSelectedBtn.addEventListener("click", function () {
+        const checked = getCheckedBoxes();
+
+        if (!checked.length) {
+          alert("Vui lòng chọn ít nhất một đơn hàng.");
+          return;
+        }
+
+        window.print();
+      });
+    }
+
+    if (bulkConfirmBtn) {
+      bulkConfirmBtn.addEventListener("click", function () {
+        alert("Chức năng xác nhận hàng loạt chưa được bật ở backend.");
+      });
+    }
+
+    updateBulkActions();
+  });
 </script>
 {% endblock %}
