@@ -14,7 +14,7 @@
 {% set path = request.path %}
 {% set shop_name = 'MMÉSTLINE' %}
 {% set is_homepage = path == '/' or path == '/home' %}
-
+{% set is_voucher_page = path.startswith('/vouchers') or path.startswith('/voucher') or path.startswith('/coupons') %}
 {% set categories_nav = global_categories|default([], true) %}
 {% set collections_nav = global_collections|default([], true) %}
 
@@ -306,6 +306,14 @@
           </div>
         </div>
       </div>
+      
+     <a
+        href="/vouchers"
+        data-nav
+        class="mm-nav-link {{ 'is-active' if is_voucher_page else '' }}"
+      >
+        Voucher
+      </a>
 
       <a
         href="/contact"
@@ -538,6 +546,10 @@
           {% endif %}
         </div>
       </div>
+
+      <a href="/vouchers" data-nav class="block text-sm font-black uppercase tracking-[.18em] {{ 'text-[#241207]' if is_voucher_page else 'text-[#75543f]' }}">
+       Voucher
+      </a>
 
       <a href="/contact" data-nav class="block text-sm font-black uppercase tracking-[.18em] {{ 'text-[#241207]' if path.startswith('/contact') else 'text-[#75543f]' }}">
         Contact

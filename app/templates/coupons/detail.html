@@ -1,197 +1,566 @@
 {% extends "base.html" %}
-{% block title %}Đặc quyền {{ coupon.code }} | GUA Maison{% endblock %}
+{% block title %}Voucher {{ coupon.code }} | MMÉSTLINE{% endblock %}
 
 {% block extra_head %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Manrope:wght@400;500;600;700;800&family=Libre+Barcode+39+Extended+Text&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+39+Extended+Text&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
 <style>
   :root {
-    --ink: #0e0e0e;
-    --paper: #f8fafc; /* Đồng bộ nền với trang danh sách */
-    --warm: #6d1f1f;
+    --mm-brown: #4a2f20;
+    --mm-brown-dark: #241207;
+    --mm-brown-soft: #75543f;
+    --mm-cream: #fffaf5;
+    --mm-paper: #fbf7f1;
+    --mm-white: #ffffff;
+    --mm-line: #eadfd4;
+    --mm-gold: #c99e14;
+    --mm-muted: #8a6a52;
+    --mm-shadow: 0 30px 90px -64px rgba(36, 18, 7, .65);
+    --mm-ease: cubic-bezier(.16, 1, .3, 1);
   }
 
   body {
-    background-color: var(--paper);
-    color: var(--ink);
-    font-family: 'Manrope', sans-serif;
+    background: var(--mm-paper);
+    color: var(--mm-brown-dark);
+    font-family: "Plus Jakarta Sans", sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
 
-  .font-serif { font-family: 'Lora', Georgia, serif; }
-  .font-barcode { font-family: 'Libre Barcode 39 Extended Text', cursive; }
-
-  @keyframes flyIn {
-    from { opacity: 0; transform: translateY(30px) scale(0.98); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-  }
-  .fly-in { animation: flyIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-
-  /* Hiệu ứng xé vé chuẩn xác hơn */
-  .ticket-dash {
-    border-top: 2px dashed rgba(0, 0, 0, 0.06);
+  .voucher-detail-page {
     position: relative;
+    min-height: 100vh;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 0 0, rgba(201, 158, 20, .12), transparent 28%),
+      radial-gradient(circle at 100% 10%, rgba(74, 47, 32, .12), transparent 34%),
+      linear-gradient(180deg, #fffaf5 0%, #fbf7f1 48%, #fffaf5 100%);
   }
-  .ticket-dash::before, .ticket-dash::after {
-    content: ''; position: absolute; top: -14px;
-    width: 28px; height: 28px; background-color: var(--paper);
-    border-radius: 50%; z-index: 10;
+
+  .voucher-detail-page::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: .035;
+    z-index: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.8'/%3E%3C/svg%3E");
   }
-  .ticket-dash::before { left: -14px; box-shadow: inset -1px 0 0 rgba(0,0,0,0.05); }
-  .ticket-dash::after { right: -14px; box-shadow: inset 1px 0 0 rgba(0,0,0,0.05); }
+
+  .voucher-shell {
+    position: relative;
+    z-index: 1;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+
+  .font-editorial {
+    font-family: "Playfair Display", serif;
+  }
+
+  .font-barcode {
+    font-family: "Libre Barcode 39 Extended Text", cursive;
+  }
+
+  .voucher-glass {
+    border: 1px solid rgba(234, 223, 212, .9);
+    background: rgba(255, 250, 245, .84);
+    box-shadow: var(--mm-shadow);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+
+  .voucher-ticket {
+    position: relative;
+    border: 1px solid var(--mm-line);
+    background: var(--mm-white);
+    box-shadow: var(--mm-shadow);
+  }
+
+  .voucher-ticket::before,
+  .voucher-ticket::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--mm-line);
+    border-radius: 999px;
+    background: var(--mm-paper);
+    transform: translateX(-50%);
+    z-index: 4;
+  }
+
+  .voucher-ticket::before {
+    top: -15px;
+  }
+
+  .voucher-ticket::after {
+    bottom: -15px;
+  }
+
+  .voucher-ticket-inner {
+    border: 1px solid rgba(234, 223, 212, .76);
+    background:
+      linear-gradient(135deg, rgba(255, 250, 245, .75), #fff 45%),
+      #fff;
+  }
+
+  .voucher-cut {
+    position: relative;
+    border-top: 1px dashed rgba(117, 84, 63, .32);
+  }
+
+  .voucher-cut::before,
+  .voucher-cut::after {
+    content: "";
+    position: absolute;
+    top: -15px;
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--mm-line);
+    border-radius: 999px;
+    background: var(--mm-paper);
+    z-index: 6;
+  }
+
+  .voucher-cut::before {
+    left: -16px;
+  }
+
+  .voucher-cut::after {
+    right: -16px;
+  }
+
+  .voucher-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--mm-brown-soft);
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: .28em;
+    text-transform: uppercase;
+  }
+
+  .voucher-kicker::before {
+    content: "";
+    display: block;
+    width: 34px;
+    height: 1px;
+    background: var(--mm-gold);
+  }
+
+  .voucher-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .voucher-copy-btn {
+    color: #fff;
+    background: var(--mm-brown-dark);
+    box-shadow: 0 22px 62px -38px rgba(36, 18, 7, .82);
+    transition: transform .22s var(--mm-ease), background .22s var(--mm-ease), box-shadow .22s var(--mm-ease);
+  }
+
+  .voucher-copy-btn:hover {
+    transform: translateY(-2px);
+    background: var(--mm-brown);
+    box-shadow: 0 28px 70px -42px rgba(36, 18, 7, .9);
+  }
+
+  .voucher-copy-btn.is-copied {
+    background: #166534;
+  }
+
+  .voucher-toast {
+    border: 1px solid rgba(234, 223, 212, .24);
+    background: rgba(36, 18, 7, .94);
+    color: #fff;
+    box-shadow: 0 24px 70px -45px rgba(36, 18, 7, .75);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    transition: opacity .35s var(--mm-ease), transform .35s var(--mm-ease);
+  }
+
+  @keyframes voucherRise {
+    from {
+      opacity: 0;
+      transform: translateY(26px) scale(.985);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .voucher-rise {
+    animation: voucherRise .58s var(--mm-ease) both;
+  }
+
+  @media (min-width: 1024px) {
+    .voucher-ticket::before,
+    .voucher-ticket::after {
+      top: 50%;
+      bottom: auto;
+      transform: translateY(-50%);
+    }
+
+    .voucher-ticket::before {
+      left: -15px;
+    }
+
+    .voucher-ticket::after {
+      left: auto;
+      right: -15px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .voucher-rise,
+    .voucher-copy-btn,
+    .voucher-copy-btn:hover,
+    .voucher-toast {
+      animation: none !important;
+      transition: none !important;
+      transform: none !important;
+    }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="min-h-screen py-24 px-4 sm:px-6 flex flex-col items-center justify-center selection:bg-[#0e0e0e] selection:text-white relative overflow-hidden">
 
-  {# Hiệu ứng ánh sáng nền (Glow) #}
-  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none z-0"></div>
+{% set code = coupon.code or '' %}
+{% set c_type = coupon.discount_type or 'fixed' %}
+{% set value = (coupon.discount_value or 0)|float %}
+{% set min_order = (coupon.min_order_value or 0)|float %}
+{% set max_discount = coupon.max_discount %}
+{% set min_points = (coupon.min_loyalty_points or 0)|float %}
+{% set desc = coupon.description or 'Đặc quyền dành riêng cho khách hàng MMÉSTLINE.' %}
 
-  {# Nút Trở lại #}
-  <div class="w-full max-w-[440px] mb-8 relative z-10">
-    <a href="/promotions" class="inline-flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.2em] text-stone-500 hover:text-[#0e0e0e] transition-colors hover:-translate-x-1 duration-300 fly-in">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg>
-      Danh sách ưu đãi
-    </a>
-  </div>
+<div class="voucher-detail-page px-4 pb-20 pt-[calc(var(--header-h,72px)+36px)] selection:bg-[#4a2f20] selection:text-white sm:px-6 lg:px-8">
 
-  {# ── CARD VÉ CHÍNH ── #}
-  <div class="w-full max-w-[440px] bg-white rounded-3xl shadow-2xl shadow-black/5 fly-in relative z-10 border border-stone-100 flex flex-col" style="animation-delay: 0.1s;">
+  <div class="voucher-shell">
+    <div class="mb-8 flex items-center justify-between gap-4">
+      <a
+        href="/vouchers"
+        class="voucher-rise inline-flex items-center gap-3 rounded-full border border-[#eadfd4] bg-white/70 px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#75543f] shadow-sm backdrop-blur transition hover:border-[#4a2f20] hover:text-[#241207]"
+      >
+        <i class="fa-solid fa-arrow-left"></i>
+        Danh sách voucher
+      </a>
 
-    {# 1. HEADER (Brand & Badge) #}
-    <div class="bg-[#0e0e0e] text-white px-8 py-5 flex items-center justify-between rounded-t-3xl relative overflow-hidden">
-      <div class="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/4"></div>
-      <div class="flex items-center gap-3 relative z-10">
-        <i class="fa-solid fa-gem text-amber-200 text-sm"></i>
-        <span class="text-[11px] font-bold tracking-[0.25em] uppercase mt-0.5 text-stone-100">GUA Exclusive</span>
-      </div>
-      <span class="text-[9px] font-bold tracking-[0.2em] uppercase border border-white/20 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-md relative z-10">
-        VOUCHER
-      </span>
+      <a
+        href="/shop"
+        class="voucher-rise hidden items-center gap-3 rounded-full bg-[#241207] px-5 py-2.5 text-[10px] font-black uppercase tracking-[0.18em] text-white shadow-[0_20px_55px_-38px_rgba(36,18,7,.75)] transition hover:bg-[#4a2f20] sm:inline-flex"
+        style="animation-delay:.04s"
+      >
+        Mua sắm
+        <i class="fa-solid fa-arrow-right"></i>
+      </a>
     </div>
 
-    {# 2. BODY (Giá trị & Điều kiện) #}
-    <div class="p-8 md:p-10">
-      
-      {# Mức giảm giá #}
-      <div class="mb-8">
-        <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-stone-400 mb-2">Đặc quyền ưu đãi</p>
-        <h1 class="font-serif text-6xl md:text-7xl leading-none text-[#0e0e0e] tracking-tighter">
-          {% if coupon.discount_type == 'percent' %}
-            {{ coupon.discount_value | int }}<span class="text-4xl ml-1 font-sans text-stone-400">%</span>
-          {% elif coupon.discount_type == 'free_shipping' %}
-            <span class="text-4xl tracking-tight uppercase">Freeship</span>
+    <section class="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_420px] lg:items-start">
+
+      <div class="voucher-rise voucher-glass rounded-[34px] p-5 md:p-7 lg:min-h-[680px]" style="animation-delay:.08s">
+        <div class="flex h-full flex-col overflow-hidden rounded-[28px] border border-[#eadfd4] bg-white">
+          {% if coupon.image_url %}
+            <div class="relative h-[340px] overflow-hidden bg-[#f1e8df] md:h-[420px] lg:flex-1">
+              <img
+                src="{{ coupon.image_url }}"
+                alt="{{ code }}"
+                loading="eager"
+                fetchpriority="high"
+                class="h-full w-full object-cover object-center"
+              >
+              <div class="absolute inset-0 bg-gradient-to-t from-[#241207]/55 via-[#241207]/12 to-transparent"></div>
+
+              <div class="absolute bottom-6 left-6 right-6">
+                <p class="voucher-kicker text-white/80">
+                  MMÉSTLINE Offer
+                </p>
+
+                <h1 class="font-editorial mt-4 text-[clamp(2.45rem,5vw,5.8rem)] leading-[.95] tracking-[-0.055em] text-white">
+                  Voucher <em class="italic text-[#f7d57a]">Privilege</em>
+                </h1>
+              </div>
+            </div>
           {% else %}
-            {{ "{:,.0f}".format(coupon.discount_value).replace(',', '.') }}<span class="text-xl font-sans font-bold ml-1 text-stone-400">₫</span>
+            <div class="relative flex min-h-[420px] flex-col justify-end overflow-hidden bg-[#241207] p-6 text-white lg:flex-1">
+              <div class="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-[#c99e14]/20 blur-3xl"></div>
+              <div class="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-white/10 blur-3xl"></div>
+
+              <p class="voucher-kicker text-white/75">
+                MMÉSTLINE Offer
+              </p>
+
+              <h1 class="font-editorial relative z-10 mt-4 text-[clamp(2.45rem,5vw,5.8rem)] leading-[.95] tracking-[-0.055em] text-white">
+                Voucher <em class="italic text-[#f7d57a]">Privilege</em>
+              </h1>
+            </div>
           {% endif %}
-        </h1>
+
+          <div class="grid grid-cols-1 gap-3 border-t border-[#eadfd4] bg-[#fffaf5] p-4 md:grid-cols-3">
+            <div class="rounded-3xl border border-[#eadfd4] bg-white p-4">
+              <p class="text-[9px] font-black uppercase tracking-[0.22em] text-[#8a6a52]">Kênh áp dụng</p>
+              <p class="mt-2 text-sm font-black text-[#241207]">
+                {% if coupon.applicable_channel == 'web' %}
+                  Website
+                {% elif coupon.applicable_channel == 'pos' %}
+                  Tại quầy
+                {% else %}
+                  Mọi kênh
+                {% endif %}
+              </p>
+            </div>
+
+            <div class="rounded-3xl border border-[#eadfd4] bg-white p-4">
+              <p class="text-[9px] font-black uppercase tracking-[0.22em] text-[#8a6a52]">Đơn tối thiểu</p>
+              <p class="mt-2 text-sm font-black text-[#241207]">{{ "{:,.0f}".format(min_order) }}đ</p>
+            </div>
+
+            <div class="rounded-3xl border border-[#eadfd4] bg-white p-4">
+              <p class="text-[9px] font-black uppercase tracking-[0.22em] text-[#8a6a52]">Điểm yêu cầu</p>
+              <p class="mt-2 text-sm font-black text-[#241207]">
+                {% if min_points > 0 %}
+                  {{ "{:,.0f}".format(min_points) }} PTS
+                {% else %}
+                  Không yêu cầu
+                {% endif %}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <p class="text-[13px] font-medium leading-[1.8] text-stone-600 mb-6">
-        {{ coupon.description or 'Quyền lợi áp dụng cho các hành khách thân thiết của GUA Maison.' }}
-      </p>
+      <aside class="voucher-rise voucher-ticket rounded-[34px] p-1" style="animation-delay:.14s">
+        <div class="voucher-ticket-inner overflow-hidden rounded-[30px]">
 
-      {# Tags điều kiện mới (Kênh & Điểm) #}
-      <div class="flex flex-wrap gap-2 mb-8">
-          {% if coupon.applicable_channel == 'web' %}
-              <span class="px-3 py-1.5 rounded-lg border border-stone-200 text-[10px] font-bold text-stone-700 uppercase tracking-wider flex items-center gap-1.5 bg-stone-50"><i class="fa-solid fa-globe text-stone-400"></i> Chỉ Website</span>
-          {% elif coupon.applicable_channel == 'pos' %}
-              <span class="px-3 py-1.5 rounded-lg border border-stone-200 text-[10px] font-bold text-stone-700 uppercase tracking-wider flex items-center gap-1.5 bg-stone-50"><i class="fa-solid fa-store text-stone-400"></i> Chỉ Tại Quầy</span>
-          {% else %}
-              <span class="px-3 py-1.5 rounded-lg border border-stone-200 text-[10px] font-bold text-stone-500 uppercase tracking-wider bg-stone-50">Áp dụng Mọi Kênh</span>
-          {% endif %}
-          
-          {% if coupon.min_loyalty_points and coupon.min_loyalty_points > 0 %}
-              <span class="px-3 py-1.5 rounded-lg border border-amber-200 text-[10px] font-bold text-amber-600 uppercase tracking-wider flex items-center gap-1.5 bg-amber-50">
-                  <i class="fa-solid fa-star"></i> Từ {{ coupon.min_loyalty_points }} Điểm
+          <div class="bg-[#241207] px-7 py-6 text-white">
+            <div class="flex items-center justify-between gap-4">
+              <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-[#f7d57a]">
+                  <i class="fa-solid fa-ticket"></i>
+                </span>
+
+                <div>
+                  <p class="text-[9px] font-black uppercase tracking-[0.24em] text-white/45">MMÉSTLINE</p>
+                  <p class="mt-1 text-xs font-black uppercase tracking-[0.18em] text-white">Voucher Detail</p>
+                </div>
+              </div>
+
+              <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.18em] text-white">
+                Active
               </span>
-          {% endif %}
-      </div>
+            </div>
+          </div>
 
-      {# Lưới thông số (Min, Max, Dates) #}
-      <div class="bg-stone-50 rounded-2xl p-6 border border-stone-100 space-y-5">
-        <div class="flex justify-between items-center pb-4 border-b border-stone-200 border-dashed">
-          <div>
-            <p class="text-[9px] font-bold uppercase tracking-[0.2em] text-stone-400 mb-1">Đơn tối thiểu</p>
-            <p class="text-xs font-bold text-[#0e0e0e]">{{ "{:,.0f}".format(coupon.min_order_value or 0).replace(',', '.') }} ₫</p>
-          </div>
-          <div class="text-right">
-            <p class="text-[9px] font-bold uppercase tracking-[0.2em] text-stone-400 mb-1">Giảm tối đa</p>
-            <p class="text-xs font-bold text-rose-600">{{ "{:,.0f}".format(coupon.max_discount).replace(',', '.') ~ " ₫" if coupon.max_discount else 'Không giới hạn' }}</p>
-          </div>
-        </div>
-
-        <div class="flex justify-between items-center">
-          <div>
-            <p class="text-[9px] font-bold uppercase tracking-[0.2em] text-stone-400 mb-1">Khởi hành</p>
-            <p class="text-[11px] font-bold text-[#0e0e0e] uppercase">{{ coupon.starts_at[:10] | replace('-', '/') if coupon.starts_at else 'Ngay lập tức' }}</p>
-          </div>
-          <div class="px-4 text-stone-300">
-             <i class="fa-solid fa-arrow-right-long"></i>
-          </div>
-          <div class="text-right">
-            <p class="text-[9px] font-bold uppercase tracking-[0.2em] text-stone-400 mb-1">Hết hạn</p>
-            <p class="text-[11px] font-bold uppercase {% if not coupon.expires_at %}text-[#0e0e0e]{% else %}text-rose-600{% endif %}">
-              {{ coupon.expires_at[:10] | replace('-', '/') if coupon.expires_at else 'Vĩnh viễn' }}
+          <div class="p-7 md:p-8">
+            <p class="text-[10px] font-black uppercase tracking-[0.22em] text-[#8a6a52]">
+              Giá trị ưu đãi
             </p>
+
+            <div class="mt-4">
+              <h2 class="font-editorial text-[clamp(4rem,9vw,6.5rem)] leading-none tracking-[-0.075em] text-[#241207]">
+                {% if c_type == 'percent' %}
+                  {{ value|int }}<span class="ml-1 font-sans text-3xl font-black text-[#8a6a52]">%</span>
+                {% elif c_type == 'free_shipping' %}
+                  <span class="text-[clamp(2.6rem,6vw,4.6rem)] uppercase tracking-[-0.055em]">Freeship</span>
+                {% else %}
+                  {{ "{:,.0f}".format(value) }}<span class="ml-1 font-sans text-xl font-black text-[#8a6a52]">₫</span>
+                {% endif %}
+              </h2>
+            </div>
+
+            <p class="mt-6 text-sm font-medium leading-7 text-[#8a6a52]">
+              {{ desc }}
+            </p>
+
+            <div class="mt-7 flex flex-wrap gap-2">
+              {% if c_type == 'percent' %}
+                <span class="voucher-chip border border-[#eadfd4] bg-[#fffaf5] text-[#75543f]">
+                  <i class="fa-solid fa-percent"></i>
+                  Giảm theo %
+                </span>
+              {% elif c_type == 'free_shipping' %}
+                <span class="voucher-chip border border-[#eadfd4] bg-[#fffaf5] text-[#75543f]">
+                  <i class="fa-solid fa-truck-fast"></i>
+                  Miễn phí giao hàng
+                </span>
+              {% else %}
+                <span class="voucher-chip border border-[#eadfd4] bg-[#fffaf5] text-[#75543f]">
+                  <i class="fa-solid fa-coins"></i>
+                  Giảm tiền trực tiếp
+                </span>
+              {% endif %}
+
+              {% if coupon.applicable_channel == 'web' %}
+                <span class="voucher-chip bg-[#f7f1ea] text-[#75543f]">
+                  <i class="fa-solid fa-globe"></i>
+                  Website
+                </span>
+              {% elif coupon.applicable_channel == 'pos' %}
+                <span class="voucher-chip bg-[#f7f1ea] text-[#75543f]">
+                  <i class="fa-solid fa-store"></i>
+                  POS
+                </span>
+              {% else %}
+                <span class="voucher-chip bg-[#f7f1ea] text-[#75543f]">
+                  <i class="fa-solid fa-layer-group"></i>
+                  Mọi kênh
+                </span>
+              {% endif %}
+            </div>
+
+            <div class="mt-8 rounded-[26px] border border-[#eadfd4] bg-[#fffaf5] p-5">
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <p class="text-[9px] font-black uppercase tracking-[0.22em] text-[#b49a86]">Giảm tối đa</p>
+                  <p class="mt-2 text-sm font-black text-[#241207]">
+                    {% if max_discount %}
+                      {{ "{:,.0f}".format((max_discount or 0)|float) }}đ
+                    {% else %}
+                      Không giới hạn
+                    {% endif %}
+                  </p>
+                </div>
+
+                <div>
+                  <p class="text-[9px] font-black uppercase tracking-[0.22em] text-[#b49a86]">Đơn tối thiểu</p>
+                  <p class="mt-2 text-sm font-black text-[#241207]">{{ "{:,.0f}".format(min_order) }}đ</p>
+                </div>
+
+                <div>
+                  <p class="text-[9px] font-black uppercase tracking-[0.22em] text-[#b49a86]">Bắt đầu</p>
+                  <p class="mt-2 text-sm font-black text-[#241207]">
+                    {{ coupon.starts_at[:10]|replace('-', '/') if coupon.starts_at else 'Ngay lập tức' }}
+                  </p>
+                </div>
+
+                <div>
+                  <p class="text-[9px] font-black uppercase tracking-[0.22em] text-[#b49a86]">Hết hạn</p>
+                  <p class="mt-2 text-sm font-black {% if coupon.expires_at %}text-rose-700{% else %}text-[#241207]{% endif %}">
+                    {{ coupon.expires_at[:10]|replace('-', '/') if coupon.expires_at else 'Vĩnh viễn' }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="voucher-cut bg-white p-7 text-center md:p-8">
+            <p class="text-[9px] font-black uppercase tracking-[0.24em] text-[#b49a86]">Mã voucher</p>
+
+            <p class="mt-2 break-all text-4xl font-black uppercase tracking-[0.12em] text-[#241207]">
+              {{ code }}
+            </p>
+
+            <div class="mx-auto mt-6 inline-flex rounded-3xl border border-[#eadfd4] bg-white p-3 shadow-sm">
+              <img
+                src="/api/coupons/qr/{{ code }}"
+                alt="QR Code {{ code }}"
+                class="h-28 w-28 mix-blend-multiply"
+              >
+            </div>
+
+            <p class="font-barcode mt-5 w-full overflow-hidden px-4 text-6xl text-[#d8c9ba] select-none pointer-events-none">
+              *{{ code }}*
+            </p>
+
+            <button
+              type="button"
+              onclick="copyDetailCode('{{ code }}', this)"
+              class="voucher-copy-btn mt-6 inline-flex h-13 w-full items-center justify-center gap-3 rounded-2xl px-6 py-4 text-[11px] font-black uppercase tracking-[0.18em]"
+            >
+              <i class="fa-regular fa-copy"></i>
+              Sao chép mã
+            </button>
+
+            <a
+              href="/shop"
+              class="mt-3 inline-flex h-12 w-full items-center justify-center gap-3 rounded-2xl border border-[#eadfd4] bg-[#fffaf5] px-6 text-[11px] font-black uppercase tracking-[0.18em] text-[#4a2f20] transition hover:border-[#4a2f20]"
+            >
+              Dùng ngay
+              <i class="fa-solid fa-arrow-right"></i>
+            </a>
           </div>
         </div>
-      </div>
-    </div>
-
-    {# 3. STUB (ĐƯỜNG XÉ VÉ & QR CODE) #}
-    <div class="ticket-dash bg-white p-8 md:p-10 flex flex-col items-center text-center mt-auto rounded-b-3xl">
-
-      <p class="text-[9px] font-bold uppercase tracking-[0.2em] text-stone-400 mb-2">Mã định danh (CODE)</p>
-      <p class="font-black text-4xl text-[#0e0e0e] tracking-[0.1em] mb-6">{{ coupon.code }}</p>
-
-      <div class="bg-white p-3 border border-stone-200 rounded-xl inline-block mb-6 shadow-sm">
-        <img src="/api/coupons/qr/{{ coupon.code }}" alt="QR Code" class="w-24 h-24 mix-blend-multiply">
-      </div>
-
-      <p class="font-barcode text-6xl text-stone-200 overflow-hidden w-full px-4 mb-8 select-none pointer-events-none">*{{ coupon.code }}*</p>
-
-      <button onclick="copyDetailCode('{{ coupon.code }}', this)"
-        class="w-full bg-[#0e0e0e] text-[#ffffff] px-6 py-4 rounded-xl text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-indigo-600 hover:-translate-y-1 transition-all duration-300 flex items-center justify-center gap-3 shadow-lg shadow-black/10">
-        <i class="fa-regular fa-copy"></i> Sao chép mã
-      </button>
-
-    </div>
-
+      </aside>
+    </section>
   </div>
 </div>
 
-{# ── TOAST THÔNG BÁO ── #}
-<div id="toast-msg"
-  class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-emerald-600 text-white px-8 py-4 rounded-full text-[10px] font-bold tracking-[0.15em] uppercase opacity-0 translate-y-4 pointer-events-none transition-all duration-300 z-50 shadow-2xl flex items-center gap-2">
-</div>
+<div
+  id="toast-msg"
+  class="voucher-toast pointer-events-none fixed bottom-7 left-1/2 z-[160] flex -translate-x-1/2 translate-y-4 items-center gap-3 rounded-full px-6 py-4 text-[10px] font-black uppercase tracking-[0.16em] opacity-0"
+></div>
+{% endblock %}
 
 {% block extra_scripts %}
 <script>
   function copyDetailCode(code, btn) {
-    navigator.clipboard.writeText(code).then(() => {
-      const originalHTML = btn.innerHTML;
-      
-      // Đổi trạng thái Nút
-      btn.innerHTML = "<i class='fa-solid fa-check'></i> Đã lưu mã";
-      btn.classList.replace('bg-[#0e0e0e]', 'bg-emerald-600');
-      btn.classList.add('shadow-emerald-600/30');
+    const toast = document.getElementById("toast-msg");
+    const originalHTML = btn ? btn.innerHTML : "";
 
-      // Đổi trạng thái Toast
-      const toast = document.getElementById('toast-msg');
-      toast.innerHTML = `<i class="fa-solid fa-circle-check text-sm"></i> Đã sao chép: ${code}`;
-      toast.classList.remove('opacity-0', 'translate-y-4');
+    function showCopiedUI() {
+      if (btn) {
+        btn.innerHTML = "<i class='fa-solid fa-check'></i> Đã lưu mã";
+        btn.classList.add("is-copied");
+      }
 
-      // Reset sau 2.5s
-      setTimeout(() => {
-        btn.innerHTML = originalHTML;
-        btn.classList.replace('bg-emerald-600', 'bg-[#0e0e0e]');
-        btn.classList.remove('shadow-emerald-600/30');
-        toast.classList.add('opacity-0', 'translate-y-4');
-      }, 2500);
-    }).catch(() => alert('Trình duyệt không hỗ trợ, vui lòng copy thủ công.'));
+      if (toast) {
+        toast.innerHTML = '<i class="fa-solid fa-check text-emerald-300"></i> Đã sao chép: <span class="text-white">' + code + '</span>';
+        toast.classList.remove("opacity-0", "translate-y-4");
+      }
+
+      window.setTimeout(function () {
+        if (btn) {
+          btn.innerHTML = originalHTML;
+          btn.classList.remove("is-copied");
+        }
+
+        if (toast) {
+          toast.classList.add("opacity-0", "translate-y-4");
+        }
+      }, 2300);
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(code).then(showCopiedUI).catch(function () {
+        fallbackCopy(code, showCopiedUI);
+      });
+    } else {
+      fallbackCopy(code, showCopiedUI);
+    }
+  }
+
+  function fallbackCopy(text, callback) {
+    const input = document.createElement("textarea");
+    input.value = text;
+    input.setAttribute("readonly", "");
+    input.style.position = "fixed";
+    input.style.left = "-9999px";
+    document.body.appendChild(input);
+    input.select();
+
+    try {
+      document.execCommand("copy");
+      callback();
+    } catch (error) {
+      alert("Vui lòng tự sao chép mã: " + text);
+    } finally {
+      document.body.removeChild(input);
+    }
   }
 </script>
-{% endblock %}
 {% endblock %}

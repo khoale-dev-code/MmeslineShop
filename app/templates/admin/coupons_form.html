@@ -1,388 +1,895 @@
 {% extends "admin/admin_base.html" %}
-{% block title %}{{ 'Chỉnh sửa' if coupon else 'Tạo mới' }} Khuyến mãi | GUA Admin{% endblock %}
+{% block title %}{{ 'Chỉnh sửa' if coupon else 'Tạo mới' }} Voucher | MMESTLINE Admin{% endblock %}
 
 {% block extra_head %}
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Libre+Barcode+39+Extended+Text&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Libre+Barcode+39+Extended+Text&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
 <style>
-    :root { --font-jakarta: 'Plus Jakarta Sans', sans-serif; }
-    body { font-family: var(--font-jakarta); background-color: #f8fafc; }
-    
-    .modern-card {
-        background: #ffffff;
-        border: 1px solid #f1f5f9;
-        border-radius: 1.5rem;
-        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+  :root {
+    --mm-brown: #4a2f20;
+    --mm-brown-dark: #241207;
+    --mm-brown-soft: #75543f;
+    --mm-gold: #c99e14;
+    --mm-cream: #fffaf5;
+    --mm-paper: #f5f1eb;
+    --mm-line: #eadfd4;
+    --mm-muted: #8a6a52;
+    --mm-radius: 26px;
+    --mm-shadow: 0 24px 80px -62px rgba(36, 18, 7, .58);
+  }
+
+  body {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    background: var(--mm-paper);
+  }
+
+  .mm-voucher-form-page {
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 0 0, rgba(201, 158, 20, .12), transparent 30%),
+      radial-gradient(circle at 100% 12%, rgba(74, 47, 32, .11), transparent 34%),
+      var(--mm-paper);
+  }
+
+  .mm-voucher-shell {
+    max-width: 1480px;
+    margin: 0 auto;
+  }
+
+  .mm-glass-card {
+    border: 1px solid rgba(234, 223, 212, .96);
+    background: rgba(255, 250, 245, .88);
+    border-radius: var(--mm-radius);
+    box-shadow: var(--mm-shadow);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+
+  .mm-soft-card {
+    border: 1px solid var(--mm-line);
+    background: #fff;
+    border-radius: var(--mm-radius);
+    box-shadow: 0 18px 54px -46px rgba(36, 18, 7, .5);
+  }
+
+  .mm-kicker {
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: rgba(74, 47, 32, .68);
+  }
+
+  .mm-field {
+    width: 100%;
+    min-height: 48px;
+    border: 1px solid var(--mm-line);
+    border-radius: 16px;
+    background: #fffaf5;
+    padding: 0 16px;
+    color: var(--mm-brown-dark);
+    font-size: 14px;
+    font-weight: 700;
+    outline: none;
+    transition: border-color .18s ease, background .18s ease, box-shadow .18s ease;
+  }
+
+  .mm-field:focus {
+    border-color: var(--mm-brown);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(74, 47, 32, .11);
+  }
+
+  .mm-field:disabled {
+    cursor: not-allowed;
+    opacity: .55;
+    background: #f3ece5;
+  }
+
+  .mm-label {
+    display: block;
+    margin-bottom: 8px;
+    color: #8a6a52;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+  }
+
+  .mm-help {
+    margin-top: 8px;
+    color: #8a6a52;
+    font-size: 11px;
+    font-weight: 650;
+    line-height: 1.6;
+  }
+
+  .mm-section-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .mm-section-icon {
+    display: inline-flex;
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+    background: #fffaf5;
+    color: var(--mm-brown);
+    border: 1px solid var(--mm-line);
+  }
+
+  .mm-toggle-line {
+    display: flex;
+    cursor: pointer;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid var(--mm-line);
+    border-radius: 18px;
+    background: #fffaf5;
+    padding: 14px 16px;
+    transition: border-color .18s ease, background .18s ease;
+  }
+
+  .mm-toggle-line:hover {
+    border-color: rgba(74, 47, 32, .34);
+    background: #fff;
+  }
+
+  .mm-ticket-preview {
+    position: sticky;
+    top: 24px;
+  }
+
+  .mm-ticket-card {
+    overflow: hidden;
+    border: 1px solid var(--mm-line);
+    border-radius: 30px;
+    background: #fff;
+    box-shadow: 0 26px 80px -58px rgba(36, 18, 7, .75);
+  }
+
+  .mm-ticket-head {
+    position: relative;
+    overflow: hidden;
+    background: #241207;
+    color: #fff;
+  }
+
+  .mm-ticket-head::after {
+    content: "";
+    position: absolute;
+    right: -60px;
+    top: -70px;
+    width: 180px;
+    height: 180px;
+    border-radius: 999px;
+    background: rgba(201, 158, 20, .18);
+    filter: blur(26px);
+  }
+
+  .mm-ticket-cut {
+    position: relative;
+    border-top: 1px dashed rgba(117, 84, 63, .35);
+    background: #fffaf5;
+  }
+
+  .mm-ticket-cut::before,
+  .mm-ticket-cut::after {
+    content: "";
+    position: absolute;
+    top: -13px;
+    width: 26px;
+    height: 26px;
+    border: 1px solid var(--mm-line);
+    border-radius: 50%;
+    background: var(--mm-paper);
+  }
+
+  .mm-ticket-cut::before {
+    left: -14px;
+  }
+
+  .mm-ticket-cut::after {
+    right: -14px;
+  }
+
+  .font-barcode {
+    font-family: "Libre Barcode 39 Extended Text", cursive;
+  }
+
+  .mm-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    border-radius: 999px;
+    padding: 7px 11px;
+    font-size: 9px;
+    font-weight: 950;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .mm-mobile-preview {
+    display: none;
+  }
+
+  @media (max-width: 1023px) {
+    .mm-ticket-preview {
+      position: static;
     }
-    
-    .glass-nav { 
-        background: rgba(248, 250, 252, 0.85); 
-        backdrop-filter: blur(16px); 
-        -webkit-backdrop-filter: blur(16px); 
+
+    .mm-desktop-preview {
+      display: none;
     }
-    
-    .font-barcode { font-family: 'Libre Barcode 39 Extended Text', cursive; }
-    
-    .ticket-preview { position: sticky; top: 120px; }
-    
-    .ticket-card {
-        background: white;
-        border-radius: 1.5rem;
-        box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.08);
-        overflow: hidden;
-        border: 1px solid #f1f5f9;
+
+    .mm-mobile-preview {
+      display: block;
     }
-    
-    .ticket-dash {
-        border-top: 2px dashed #e2e8f0;
-        position: relative;
+  }
+
+  @media print {
+    .no-print,
+    .admin-sidebar,
+    .admin-topbar,
+    button,
+    form {
+      display: none !important;
     }
-    .ticket-dash::before, .ticket-dash::after {
-        content: ''; position: absolute; top: -10px;
-        width: 20px; height: 20px; background: #f8fafc;
-        border-radius: 50%;
+
+    .mm-voucher-form-page {
+      background: #fff !important;
     }
-    .ticket-dash::before { left: -10px; box-shadow: inset -1px 0 0 #f1f5f9; }
-    .ticket-dash::after { right: -10px; box-shadow: inset 1px 0 0 #f1f5f9; }
+
+    .mm-glass-card,
+    .mm-soft-card,
+    .mm-ticket-card {
+      box-shadow: none !important;
+      border: 1px solid #ddd !important;
+      background: #fff !important;
+    }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="min-h-screen pb-20 font-sans text-slate-800 selection:bg-indigo-500 selection:text-white">
 
-    <div class="glass-nav sticky top-0 z-30 border-b border-slate-200/60 mb-8">
-        <div class="max-w-[1200px] mx-auto px-6 lg:px-12 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-                <h1 class="text-2xl font-bold tracking-tight text-slate-900">
-                    {{ 'Cập nhật' if coupon else 'Khởi tạo' }} Voucher
-                </h1>
-                <div class="flex items-center gap-2 mt-1">
-                    <a href="{{ url_for('admin.coupons') }}" class="text-slate-500 hover:text-indigo-600 text-xs font-semibold transition-colors">Khuyến mãi</a>
-                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
-                    <span class="text-indigo-600 text-xs font-semibold">{{ 'Chỉnh sửa' if coupon else 'Tạo mới' }}</span>
-                </div>
-            </div>
-            <div class="flex gap-3">
-                <a href="{{ url_for('admin.coupons') }}" class="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm">
-                    Hủy bỏ
-                </a>
-                <button form="couponForm" type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl text-sm font-semibold shadow-sm shadow-indigo-200 transition-all flex items-center gap-2">
-                    <i class="fa-solid fa-save"></i> Lưu dữ liệu
-                </button>
-            </div>
-        </div>
-    </div>
+{% set is_edit = true if coupon else false %}
+{% set coupon_code = coupon.code if coupon and coupon.code else '' %}
+{% set coupon_desc = coupon.description if coupon and coupon.description else '' %}
+{% set coupon_type = coupon.discount_type if coupon and coupon.discount_type else 'percent' %}
+{% set coupon_value = coupon.discount_value|int if coupon and coupon.discount_value else '' %}
+{% set coupon_min = coupon.min_order_value|int if coupon and coupon.min_order_value else '' %}
+{% set coupon_max = coupon.max_discount|int if coupon and coupon.max_discount else '' %}
+{% set coupon_channel = coupon.applicable_channel if coupon and coupon.applicable_channel else 'all' %}
+{% set coupon_points = coupon.min_loyalty_points|int if coupon and coupon.min_loyalty_points else 0 %}
+{% set coupon_usage_limit = coupon.usage_limit|int if coupon and coupon.usage_limit else '' %}
+{% set coupon_image = coupon.image_url if coupon and coupon.image_url else '' %}
+{% set coupon_active = coupon.is_active if coupon and coupon.is_active is defined else true %}
 
-    <main class="max-w-[1200px] mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div class="lg:col-span-7 space-y-6">
-            <form id="couponForm" method="POST" class="space-y-6">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<div class="mm-voucher-form-page">
+  <div class="mm-voucher-shell px-4 py-6 md:px-6 md:py-8 space-y-5">
 
-                <div class="modern-card p-6 md:p-8">
-                    <h2 class="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-                        <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center"><i class="fa-solid fa-tag"></i></div>
-                        01. Định danh chương trình
-                    </h2>
-                    <div class="space-y-5">
-                        <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-2">Mã khuyến mãi <span class="text-rose-500">*</span></label>
-                            <input type="text" name="code" id="inputCode" value="{{ coupon.code if coupon else '' }}"
-                                class="w-full bg-slate-50 border border-slate-200 text-base font-bold uppercase tracking-widest rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-300"
-                                placeholder="VD: SUMMER26" required>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-2">Mô tả đặc quyền</label>
-                            <input type="text" name="description" id="inputDesc" value="{{ coupon.description or '' }}"
-                                class="w-full bg-slate-50 border border-slate-200 text-sm font-medium rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400"
-                                placeholder="VD: Giảm giá đặc biệt mùa hè">
-                        </div>
-                    </div>
-                </div>
+    <section class="mm-glass-card p-5 md:p-6">
+      <div class="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+        <div class="min-w-0">
+          <div class="inline-flex items-center gap-2 rounded-full border border-[#eadfd4] bg-white/70 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-[#4a2f20]">
+            <span class="h-1.5 w-1.5 rounded-full bg-[#c99e14]"></span>
+            MMESTLINE Promotion Studio
+          </div>
 
-                <div class="modern-card p-6 md:p-8">
-                    <h2 class="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-                        <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center"><i class="fa-solid fa-coins"></i></div>
-                        02. Cài đặt giá trị
-                    </h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-2">Loại ưu đãi</label>
-                            <select name="discount_type" id="inputType" class="w-full bg-slate-50 border border-slate-200 text-sm font-semibold rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all">
-                                <option value="percent" {% if coupon and coupon.discount_type == 'percent' %}selected{% endif %}>Chiết khấu %</option>
-                                <option value="fixed" {% if coupon and coupon.discount_type == 'fixed' %}selected{% endif %}>Giảm tiền</option>
-                                <option value="free_shipping" {% if coupon and coupon.discount_type == 'free_shipping' %}selected{% endif %}>Freeship</option>
-                            </select>
-                        </div>
-                        <div id="wrapValue">
-                            <label class="block text-sm font-bold text-slate-700 mb-2">Mức giảm <span id="labelValueUnit" class="text-slate-400 font-medium"></span></label>
-                            <input type="number" name="discount_value" id="inputValue" value="{{ coupon.discount_value | int if coupon and coupon.discount_value else '' }}"
-                                class="w-full bg-slate-50 border border-slate-200 text-base font-bold text-indigo-600 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all disabled:opacity-50 disabled:bg-slate-100">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-2">Đơn tối thiểu (₫)</label>
-                            <input type="number" name="min_order_value" id="inputMin" value="{{ coupon.min_order_value | int if coupon and coupon.min_order_value else '' }}"
-                                class="w-full bg-slate-50 border border-slate-200 text-sm font-medium rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all">
-                        </div>
-                        <div id="wrapMax">
-                            <label class="block text-sm font-bold text-slate-700 mb-2">Giảm tối đa (₫)</label>
-                            <input type="number" name="max_discount" id="inputMax" value="{{ coupon.max_discount | int if coupon and coupon.max_discount else '' }}"
-                                class="w-full bg-slate-50 border border-slate-200 text-sm font-medium rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all disabled:opacity-50 disabled:bg-slate-100">
-                        </div>
-                    </div>
-                </div>
+          <div class="mt-4 flex flex-wrap items-center gap-3">
+            <h1 class="text-3xl font-black tracking-[-0.055em] text-[#241207] md:text-5xl">
+              {{ 'Cập nhật Voucher' if is_edit else 'Tạo Voucher mới' }}
+            </h1>
 
-                <div class="modern-card p-6 md:p-8">
-                    <h2 class="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-                        <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center"><i class="fa-regular fa-clock"></i></div>
-                        03. Khung thời gian
-                    </h2>
-                    <label class="flex items-center gap-3 p-4 mb-5 border border-slate-200 rounded-xl cursor-pointer hover:border-indigo-500 transition-colors group bg-slate-50/50">
-                        <input type="checkbox" id="noLimit" class="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500" {% if coupon and not coupon.expires_at %}checked{% endif %}>
-                        <span class="text-sm font-bold text-slate-900">Vĩnh viễn (Không có ngày kết thúc)</span>
-                    </label>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-2">Thời gian bắt đầu</label>
-                            <input type="datetime-local" name="starts_at" id="inputStart" value="{{ coupon.starts_at[:16] if coupon and coupon.starts_at else '' }}"
-                                class="w-full bg-slate-50 border border-slate-200 text-sm font-medium rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-2">Thời gian kết thúc</label>
-                            <input type="datetime-local" name="expires_at" id="inputExpiry" value="{{ coupon.expires_at[:16] if coupon and coupon.expires_at else '' }}"
-                                class="w-full bg-slate-50 border border-slate-200 text-sm font-medium rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all disabled:opacity-50 disabled:bg-slate-100 disabled:cursor-not-allowed">
-                        </div>
-                    </div>
-                </div>
+            <span class="inline-flex items-center gap-2 rounded-full border border-[#eadfd4] bg-white px-4 py-2 text-xs font-black uppercase tracking-widest text-[#75543f] shadow-sm">
+              <i class="fa-solid fa-ticket text-[#c99e14]"></i>
+              {{ 'Edit mode' if is_edit else 'Create mode' }}
+            </span>
+          </div>
 
-                {# ĐIỀU KIỆN MỞ RỘNG (KÊNH & ĐIỂM) #}
-                <div class="modern-card p-6 md:p-8">
-                    <h2 class="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-                        <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 flex items-center justify-center"><i class="fa-solid fa-sliders"></i></div>
-                        04. Điều kiện mở rộng
-                    </h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-2">Kênh áp dụng</label>
-                            <select name="applicable_channel" id="inputChannel" class="w-full bg-slate-50 border border-slate-200 text-sm font-semibold rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all">
-                                <option value="all" {% if coupon and coupon.applicable_channel == 'all' %}selected{% endif %}>Tất cả các kênh</option>
-                                <option value="web" {% if coupon and coupon.applicable_channel == 'web' %}selected{% endif %}>Chỉ mua trên Website</option>
-                                <option value="pos" {% if coupon and coupon.applicable_channel == 'pos' %}selected{% endif %}>Chỉ mua tại Quầy (POS)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-2">Điểm thành viên yêu cầu</label>
-                            <input type="number" name="min_loyalty_points" id="inputPoints" value="{{ coupon.min_loyalty_points | int if coupon and coupon.min_loyalty_points else '0' }}" min="0" placeholder="VD: 100"
-                                class="w-full bg-slate-50 border border-slate-200 text-sm font-medium rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all">
-                            <p class="text-[10px] font-medium text-slate-500 mt-2">Khách cần đạt mức điểm này để thấy và sử dụng mã ưu đãi.</p>
-                        </div>
-                    </div>
-                </div>
-
-            </form>
+          <p class="mt-3 max-w-3xl text-sm font-medium leading-6 text-[#8a6a52]">
+            Thiết lập mã ưu đãi, điều kiện áp dụng, kênh sử dụng, điểm thành viên và thời hạn hiển thị trên storefront.
+          </p>
         </div>
 
-        <div class="lg:col-span-5 hidden lg:block">
-            <div class="ticket-preview">
-                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 text-center mb-4">
-                    Live Preview
+        <div class="grid grid-cols-2 gap-2 sm:flex sm:items-center no-print">
+          <a
+            href="{{ url_for('admin.coupons') }}"
+            class="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-[#eadfd4] bg-white px-5 text-sm font-black text-[#75543f] transition hover:bg-[#fffaf5]"
+          >
+            <i class="fa-solid fa-arrow-left"></i>
+            Quay lại
+          </a>
+
+          <button
+            form="couponForm"
+            type="submit"
+            class="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#241207] px-5 text-sm font-black text-white shadow-[0_18px_44px_-28px_rgba(36,18,7,.75)] transition hover:bg-[#4a2f20]"
+          >
+            <i class="fa-solid fa-floppy-disk text-[#c99e14]"></i>
+            Lưu voucher
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <main class="grid grid-cols-1 gap-5 lg:grid-cols-12">
+
+      <section class="space-y-5 lg:col-span-7 xl:col-span-8">
+        <form id="couponForm" method="POST" class="space-y-5">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <div class="mm-soft-card p-5 md:p-6">
+            <div class="mm-section-title">
+              <div class="mm-section-icon">
+                <i class="fa-solid fa-fingerprint"></i>
+              </div>
+
+              <div>
+                <p class="mm-kicker">Step 01</p>
+                <h2 class="mt-1 text-lg font-black text-[#241207]">Định danh chương trình</h2>
+              </div>
+            </div>
+
+            <div class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <label class="mm-label">Mã khuyến mãi <span class="text-rose-500">*</span></label>
+                <input
+                  type="text"
+                  name="code"
+                  id="inputCode"
+                  value="{{ coupon_code }}"
+                  class="mm-field uppercase tracking-[0.16em]"
+                  placeholder="VD: SUMMER26"
+                  required
+                >
+                <p class="mm-help">Nên viết liền, không dấu, dễ nhớ. Ví dụ: MMEST20, FREESHIP.</p>
+              </div>
+
+              <div>
+                <label class="mm-label">Trạng thái</label>
+                <label class="mm-toggle-line h-12">
+                  <input
+                    type="checkbox"
+                    name="is_active"
+                    value="1"
+                    class="h-4 w-4 rounded border-[#eadfd4] text-[#4a2f20] focus:ring-[#4a2f20]"
+                    {% if coupon_active %}checked{% endif %}
+                  >
+                  <span class="text-sm font-black text-[#241207]">Cho phép hiển thị và sử dụng</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="mt-4">
+              <label class="mm-label">Mô tả đặc quyền</label>
+              <input
+                type="text"
+                name="description"
+                id="inputDesc"
+                value="{{ coupon_desc }}"
+                class="mm-field"
+                placeholder="VD: Giảm giá đặc biệt cho bộ sưu tập mới"
+              >
+            </div>
+
+            <div class="mt-4">
+              <label class="mm-label">Ảnh banner voucher</label>
+              <input
+                type="url"
+                name="image_url"
+                id="inputImage"
+                value="{{ coupon_image }}"
+                class="mm-field"
+                placeholder="https://..."
+              >
+              <p class="mm-help">Dùng cho card voucher ở storefront. Có thể để trống nếu chưa có ảnh.</p>
+            </div>
+          </div>
+
+          <div class="mm-soft-card p-5 md:p-6">
+            <div class="mm-section-title">
+              <div class="mm-section-icon">
+                <i class="fa-solid fa-coins"></i>
+              </div>
+
+              <div>
+                <p class="mm-kicker">Step 02</p>
+                <h2 class="mt-1 text-lg font-black text-[#241207]">Giá trị ưu đãi</h2>
+              </div>
+            </div>
+
+            <div class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <label class="mm-label">Loại ưu đãi</label>
+                <select name="discount_type" id="inputType" class="mm-field">
+                  <option value="percent" {% if coupon_type == 'percent' %}selected{% endif %}>Giảm theo phần trăm</option>
+                  <option value="fixed" {% if coupon_type == 'fixed' %}selected{% endif %}>Giảm tiền trực tiếp</option>
+                  <option value="free_shipping" {% if coupon_type == 'free_shipping' %}selected{% endif %}>Miễn phí vận chuyển</option>
+                </select>
+              </div>
+
+              <div id="wrapValue">
+                <label class="mm-label">
+                  Mức giảm
+                  <span id="labelValueUnit" class="normal-case tracking-normal text-[#8a6a52]"></span>
+                </label>
+                <input
+                  type="number"
+                  name="discount_value"
+                  id="inputValue"
+                  value="{{ coupon_value }}"
+                  class="mm-field"
+                  min="0"
+                  placeholder="VD: 20"
+                >
+              </div>
+
+              <div>
+                <label class="mm-label">Đơn tối thiểu</label>
+                <input
+                  type="number"
+                  name="min_order_value"
+                  id="inputMin"
+                  value="{{ coupon_min }}"
+                  class="mm-field"
+                  min="0"
+                  placeholder="VD: 500000"
+                >
+              </div>
+
+              <div id="wrapMax">
+                <label class="mm-label">Giảm tối đa</label>
+                <input
+                  type="number"
+                  name="max_discount"
+                  id="inputMax"
+                  value="{{ coupon_max }}"
+                  class="mm-field"
+                  min="0"
+                  placeholder="VD: 100000"
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="mm-soft-card p-5 md:p-6">
+            <div class="mm-section-title">
+              <div class="mm-section-icon">
+                <i class="fa-regular fa-clock"></i>
+              </div>
+
+              <div>
+                <p class="mm-kicker">Step 03</p>
+                <h2 class="mt-1 text-lg font-black text-[#241207]">Thời gian & giới hạn</h2>
+              </div>
+            </div>
+
+            <label class="mm-toggle-line mt-6">
+              <input
+                type="checkbox"
+                id="noLimit"
+                class="h-4 w-4 rounded border-[#eadfd4] text-[#4a2f20] focus:ring-[#4a2f20]"
+                {% if coupon and not coupon.expires_at %}checked{% endif %}
+              >
+              <span>
+                <span class="block text-sm font-black text-[#241207]">Vĩnh viễn</span>
+                <span class="mt-0.5 block text-xs font-semibold text-[#8a6a52]">Không đặt ngày kết thúc cho voucher này.</span>
+              </span>
+            </label>
+
+            <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <label class="mm-label">Thời gian bắt đầu</label>
+                <input
+                  type="datetime-local"
+                  name="starts_at"
+                  id="inputStart"
+                  value="{{ coupon.starts_at[:16] if coupon and coupon.starts_at else '' }}"
+                  class="mm-field"
+                >
+              </div>
+
+              <div>
+                <label class="mm-label">Thời gian kết thúc</label>
+                <input
+                  type="datetime-local"
+                  name="expires_at"
+                  id="inputExpiry"
+                  value="{{ coupon.expires_at[:16] if coupon and coupon.expires_at else '' }}"
+                  class="mm-field"
+                >
+              </div>
+
+              <div>
+                <label class="mm-label">Giới hạn lượt dùng</label>
+                <input
+                  type="number"
+                  name="usage_limit"
+                  id="inputUsageLimit"
+                  value="{{ coupon_usage_limit }}"
+                  class="mm-field"
+                  min="0"
+                  placeholder="Để trống hoặc 0 là không giới hạn"
+                >
+              </div>
+
+              <div>
+                <label class="mm-label">Kênh áp dụng</label>
+                <select name="applicable_channel" id="inputChannel" class="mm-field">
+                  <option value="all" {% if coupon_channel == 'all' %}selected{% endif %}>Tất cả các kênh</option>
+                  <option value="web" {% if coupon_channel == 'web' %}selected{% endif %}>Chỉ mua trên Website</option>
+                  <option value="pos" {% if coupon_channel == 'pos' %}selected{% endif %}>Chỉ mua tại Quầy POS</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="mm-soft-card p-5 md:p-6">
+            <div class="mm-section-title">
+              <div class="mm-section-icon">
+                <i class="fa-solid fa-user-shield"></i>
+              </div>
+
+              <div>
+                <p class="mm-kicker">Step 04</p>
+                <h2 class="mt-1 text-lg font-black text-[#241207]">Điều kiện thành viên</h2>
+              </div>
+            </div>
+
+            <div class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <label class="mm-label">Điểm thành viên yêu cầu</label>
+                <input
+                  type="number"
+                  name="min_loyalty_points"
+                  id="inputPoints"
+                  value="{{ coupon_points }}"
+                  min="0"
+                  class="mm-field"
+                  placeholder="VD: 100"
+                >
+                <p class="mm-help">Khách cần đạt mức điểm này để thấy hoặc sử dụng mã ưu đãi.</p>
+              </div>
+
+              <div class="rounded-[22px] border border-[#eadfd4] bg-[#fffaf5] p-4">
+                <p class="mm-kicker">Gợi ý</p>
+                <p class="mt-2 text-sm font-bold leading-6 text-[#75543f]">
+                  Với voucher dành cho khách VIP, hãy đặt điểm yêu cầu từ 300 PTS trở lên để tăng cảm giác đặc quyền.
                 </p>
-                <div class="ticket-card">
-                    <div class="bg-indigo-600 text-white px-6 py-5 flex justify-between items-center">
-                        <div class="flex items-center gap-3">
-                            <i class="fa-solid fa-gift text-lg"></i>
-                            <span class="text-sm font-bold tracking-widest uppercase">GUA Exclusive</span>
-                        </div>
-                        <span id="previewBadge" class="text-[10px] font-bold uppercase bg-white/20 px-2.5 py-1 rounded-lg backdrop-blur-sm">
-                            VOUCHER
-                        </span>
-                    </div>
-
-                    <div class="p-8 bg-white">
-                        <p class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Giá trị thẻ</p>
-                        <h3 id="previewValue" class="text-5xl font-extrabold text-slate-900 mb-4 tracking-tight">0%</h3>
-                        <p id="previewDesc" class="text-sm font-medium text-slate-500 line-clamp-2 min-h-[40px]">Mô tả ưu đãi...</p>
-
-                        <div class="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-slate-100">
-                            <div>
-                                <p class="text-[10px] uppercase font-bold text-slate-400">Min Order</p>
-                                <p id="previewMin" class="text-sm font-bold text-slate-900 mt-1">0 ₫</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] uppercase font-bold text-slate-400">Max Discount</p>
-                                <p id="previewMax" class="text-sm font-bold text-indigo-600 mt-1">Không giới hạn</p>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-slate-50">
-                            <div>
-                                <p class="text-[10px] uppercase font-bold text-slate-400">Kênh áp dụng</p>
-                                <p id="previewChannel" class="text-xs font-bold text-slate-900 mt-1">Tất cả</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] uppercase font-bold text-slate-400">Điểm yêu cầu</p>
-                                <p id="previewPoints" class="text-xs font-bold text-amber-500 mt-1">0 Pts</p>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4 mt-4">
-                            <div>
-                                <p class="text-[10px] uppercase font-bold text-slate-400">Khởi hành</p>
-                                <p id="previewStart" class="text-xs font-bold text-slate-700 mt-1">---</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] uppercase font-bold text-slate-400">Hết hạn</p>
-                                <p id="previewExpiry" class="text-xs font-bold text-rose-500 mt-1">---</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="ticket-dash p-6 bg-slate-50 flex flex-col items-center text-center">
-                        <p class="text-[10px] font-bold uppercase text-slate-400 mb-2 tracking-widest">Mã Nhập</p>
-                        <div class="bg-white border border-slate-200 rounded-xl px-6 py-3 shadow-sm mb-4">
-                            <p id="previewCode" class="text-xl font-bold tracking-widest text-slate-900">------</p>
-                        </div>
-                        <img id="previewQR" src="/api/coupons/qr/GUA" class="w-20 h-20 opacity-30 mb-2 rounded-lg bg-white p-1 border border-slate-200">
-                        <p id="previewBarcode" class="font-barcode text-5xl text-slate-300">*GUA*</p>
-                    </div>
-                </div>
+              </div>
             </div>
+          </div>
+
+          <div class="no-print flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <a
+              href="{{ url_for('admin.coupons') }}"
+              class="inline-flex h-12 items-center justify-center rounded-2xl border border-[#eadfd4] bg-white px-6 text-sm font-black text-[#75543f] transition hover:bg-[#fffaf5]"
+            >
+              Hủy bỏ
+            </a>
+
+            <button
+              type="submit"
+              class="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#241207] px-6 text-sm font-black text-white shadow-[0_18px_44px_-28px_rgba(36,18,7,.75)] transition hover:bg-[#4a2f20]"
+            >
+              <i class="fa-solid fa-floppy-disk text-[#c99e14]"></i>
+              Lưu voucher
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <aside class="lg:col-span-5 xl:col-span-4">
+        <div class="mm-ticket-preview">
+          <div class="mb-3 flex items-center justify-between">
+            <div>
+              <p class="mm-kicker">Live preview</p>
+              <p class="mt-1 text-sm font-black text-[#241207]">Xem trước voucher</p>
+            </div>
+
+            <span class="hidden rounded-full border border-[#eadfd4] bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-[#8a6a52] sm:inline-flex">
+              2026 UI
+            </span>
+          </div>
+
+          <div class="mm-ticket-card">
+            <div class="mm-ticket-head px-6 py-5">
+              <div class="relative z-10 flex items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                  <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-[#c99e14]">
+                    <i class="fa-solid fa-gift"></i>
+                  </span>
+
+                  <div>
+                    <p class="text-[9px] font-black uppercase tracking-[0.22em] text-white/45">MMESTLINE</p>
+                    <p class="mt-1 text-xs font-black uppercase tracking-[0.16em] text-white">Voucher Studio</p>
+                  </div>
+                </div>
+
+                <span id="previewBadge" class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.16em] text-white">
+                  Giảm %
+                </span>
+              </div>
+            </div>
+
+            <div class="bg-white p-6">
+              <p class="text-[10px] font-black uppercase tracking-[0.22em] text-[#8a6a52]">Giá trị ưu đãi</p>
+
+              <h3 id="previewValue" class="mt-3 text-5xl font-black tracking-[-0.06em] text-[#241207]">
+                0%
+              </h3>
+
+              <p id="previewDesc" class="mt-4 min-h-[44px] text-sm font-semibold leading-6 text-[#8a6a52]">
+                Mô tả ưu đãi...
+              </p>
+
+              <div class="mt-5 flex flex-wrap gap-2">
+                <span id="previewChannel" class="mm-chip border border-[#eadfd4] bg-[#fffaf5] text-[#75543f]">
+                  <i class="fa-solid fa-layer-group"></i>
+                  Tất cả
+                </span>
+
+                <span id="previewPoints" class="mm-chip border border-amber-200 bg-amber-50 text-amber-700">
+                  <i class="fa-solid fa-star"></i>
+                  Mọi KH
+                </span>
+              </div>
+
+              <div class="mt-6 grid grid-cols-2 gap-3 rounded-[22px] border border-[#eadfd4] bg-[#fffaf5] p-4">
+                <div>
+                  <p class="text-[9px] font-black uppercase tracking-[0.18em] text-[#b49a86]">Đơn tối thiểu</p>
+                  <p id="previewMin" class="mt-1 text-sm font-black text-[#241207]">0đ</p>
+                </div>
+
+                <div>
+                  <p class="text-[9px] font-black uppercase tracking-[0.18em] text-[#b49a86]">Giảm tối đa</p>
+                  <p id="previewMax" class="mt-1 text-sm font-black text-[#241207]">Không giới hạn</p>
+                </div>
+
+                <div>
+                  <p class="text-[9px] font-black uppercase tracking-[0.18em] text-[#b49a86]">Bắt đầu</p>
+                  <p id="previewStart" class="mt-1 text-xs font-black text-[#241207]">Tức thì</p>
+                </div>
+
+                <div>
+                  <p class="text-[9px] font-black uppercase tracking-[0.18em] text-[#b49a86]">Hết hạn</p>
+                  <p id="previewExpiry" class="mt-1 text-xs font-black text-rose-700">---</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="mm-ticket-cut px-6 py-6 text-center">
+              <p class="text-[9px] font-black uppercase tracking-[0.22em] text-[#8a6a52]">Mã voucher</p>
+
+              <div class="mt-3 inline-flex rounded-2xl border border-[#eadfd4] bg-white px-6 py-3 shadow-sm">
+                <p id="previewCode" class="text-xl font-black uppercase tracking-[0.16em] text-[#241207]">
+                  ------
+                </p>
+              </div>
+
+              <div class="mt-5 flex flex-col items-center">
+                <img
+                  id="previewQR"
+                  src="/api/coupons/qr/GUA"
+                  alt="QR preview"
+                  class="h-24 w-24 rounded-2xl border border-[#eadfd4] bg-white p-2 opacity-30"
+                >
+
+                <p id="previewBarcode" class="font-barcode mt-2 max-w-full overflow-hidden text-5xl text-[#d8c9ba]">
+                  *GUA*
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
+      </aside>
     </main>
+  </div>
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-    const form = document.getElementById('couponForm');
+  document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("couponForm");
+
+    if (!form) return;
 
     const inputs = {
-        code: document.getElementById('inputCode'),
-        desc: document.getElementById('inputDesc'),
-        type: document.getElementById('inputType'),
-        value: document.getElementById('inputValue'),
-        min: document.getElementById('inputMin'),
-        max: document.getElementById('inputMax'),
-        start: document.getElementById('inputStart'),
-        expiry: document.getElementById('inputExpiry'),
-        noLimit: document.getElementById('noLimit'),
-        channel: document.getElementById('inputChannel'),
-        points: document.getElementById('inputPoints'),
-        qr: document.getElementById('previewQR')
+      code: document.getElementById("inputCode"),
+      desc: document.getElementById("inputDesc"),
+      image: document.getElementById("inputImage"),
+      type: document.getElementById("inputType"),
+      value: document.getElementById("inputValue"),
+      min: document.getElementById("inputMin"),
+      max: document.getElementById("inputMax"),
+      start: document.getElementById("inputStart"),
+      expiry: document.getElementById("inputExpiry"),
+      noLimit: document.getElementById("noLimit"),
+      channel: document.getElementById("inputChannel"),
+      points: document.getElementById("inputPoints"),
+      qr: document.getElementById("previewQR")
     };
 
-    const wraps = {
-        value: document.getElementById('wrapValue'),
-        max: document.getElementById('wrapMax'),
-        label: document.getElementById('labelValueUnit')
+    const preview = {
+      code: document.getElementById("previewCode"),
+      barcode: document.getElementById("previewBarcode"),
+      desc: document.getElementById("previewDesc"),
+      badge: document.getElementById("previewBadge"),
+      value: document.getElementById("previewValue"),
+      min: document.getElementById("previewMin"),
+      max: document.getElementById("previewMax"),
+      start: document.getElementById("previewStart"),
+      expiry: document.getElementById("previewExpiry"),
+      channel: document.getElementById("previewChannel"),
+      points: document.getElementById("previewPoints")
     };
 
-    const previews = {
-        code: document.getElementById('previewCode'),
-        barcode: document.getElementById('previewBarcode'),
-        desc: document.getElementById('previewDesc'),
-        badge: document.getElementById('previewBadge'),
-        value: document.getElementById('previewValue'),
-        min: document.getElementById('previewMin'),
-        max: document.getElementById('previewMax'),
-        start: document.getElementById('previewStart'),
-        expiry: document.getElementById('previewExpiry'),
-        channel: document.getElementById('previewChannel'),
-        points: document.getElementById('previewPoints')
-    };
+    const labelValueUnit = document.getElementById("labelValueUnit");
 
-    function formatVND(number) {
-        if (!number || isNaN(number)) return '0';
-        return parseInt(number).toLocaleString('vi-VN');
+    function formatVND(value) {
+      const number = Number(value || 0);
+
+      if (!number || Number.isNaN(number)) return "0";
+
+      return number.toLocaleString("vi-VN");
     }
 
-    function formatDateTime(str) {
-        if (!str) return '---';
-        const d = new Date(str.replace('T', ' '));
-        return d.toLocaleDateString('vi-VN') + ' ' +
-            d.toLocaleTimeString('vi-VN', {
-                hour: '2-digit',
-                minute: '2-digit'
-            });
+    function formatDateTime(value) {
+      if (!value) return "---";
+
+      const date = new Date(value);
+
+      if (Number.isNaN(date.getTime())) return "---";
+
+      return date.toLocaleDateString("vi-VN") + " " + date.toLocaleTimeString("vi-VN", {
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    }
+
+    function normalizeCode(value) {
+      return String(value || "")
+        .trim()
+        .toUpperCase()
+        .replace(/\s+/g, "");
+    }
+
+    function setText(el, text) {
+      if (el) el.textContent = text;
+    }
+
+    function setHTML(el, html) {
+      if (el) el.innerHTML = html;
     }
 
     function updateLogic() {
-        const type = inputs.type.value;
+      const type = inputs.type ? inputs.type.value : "percent";
 
-        if (type === 'percent') {
-            wraps.label.innerText = '(%)';
-            inputs.value.disabled = false;
-            inputs.max.disabled = false;
-        } else if (type === 'fixed') {
-            wraps.label.innerText = '(₫)';
-            inputs.value.disabled = false;
-            inputs.max.value = '';
-            inputs.max.disabled = true;
+      if (labelValueUnit) {
+        if (type === "percent") labelValueUnit.textContent = "(%)";
+        else if (type === "fixed") labelValueUnit.textContent = "(₫)";
+        else labelValueUnit.textContent = "";
+      }
+
+      if (inputs.value) {
+        if (type === "free_shipping") {
+          inputs.value.value = "";
+          inputs.value.disabled = true;
         } else {
-            wraps.label.innerText = '';
-            inputs.value.value = '';
-            inputs.value.disabled = true;
-            inputs.max.disabled = false;
+          inputs.value.disabled = false;
         }
+      }
 
+      if (inputs.max) {
+        if (type === "fixed") {
+          inputs.max.value = "";
+          inputs.max.disabled = true;
+        } else {
+          inputs.max.disabled = false;
+        }
+      }
+
+      if (inputs.expiry && inputs.noLimit) {
         if (inputs.noLimit.checked) {
-            inputs.expiry.value = '';
-            inputs.expiry.disabled = true;
+          inputs.expiry.value = "";
+          inputs.expiry.disabled = true;
         } else {
-            inputs.expiry.disabled = false;
+          inputs.expiry.disabled = false;
         }
+      }
     }
 
     function updatePreview() {
-        const code = inputs.code.value.toUpperCase() || '------';
-        previews.code.innerText = code;
-        previews.barcode.innerText = `*${code}*`;
+      const code = normalizeCode(inputs.code ? inputs.code.value : "") || "------";
+      const type = inputs.type ? inputs.type.value : "percent";
+      const value = inputs.value ? inputs.value.value : "";
+      const desc = inputs.desc && inputs.desc.value ? inputs.desc.value : "Chưa nhập mô tả ưu đãi...";
 
-        if (code.length >= 3) {
-            inputs.qr.src = `/api/coupons/qr/${code}`;
-            inputs.qr.style.opacity = '1';
+      setText(preview.code, code);
+      setText(preview.barcode, "*" + code + "*");
+      setText(preview.desc, desc);
+
+      if (inputs.qr) {
+        if (code.length >= 3 && code !== "------") {
+          inputs.qr.src = "/api/coupons/qr/" + encodeURIComponent(code);
+          inputs.qr.style.opacity = "1";
         } else {
-            inputs.qr.style.opacity = '.3';
+          inputs.qr.src = "/api/coupons/qr/GUA";
+          inputs.qr.style.opacity = ".3";
         }
+      }
 
-        previews.desc.innerText = inputs.desc.value || 'Chưa nhập mô tả ưu đãi...';
+      if (type === "percent") {
+        setHTML(preview.value, (value || "0") + '<span class="ml-1 text-2xl text-[#8a6a52]">%</span>');
+        setText(preview.badge, "Giảm %");
+      } else if (type === "fixed") {
+        setHTML(preview.value, formatVND(value) + '<span class="ml-1 text-xl text-[#8a6a52]">₫</span>');
+        setText(preview.badge, "Giảm tiền");
+      } else {
+        setHTML(preview.value, '<span class="text-4xl uppercase">Freeship</span>');
+        setText(preview.badge, "Freeship");
+      }
 
-        const type = inputs.type.value;
-        const value = inputs.value.value;
+      setText(preview.min, inputs.min && inputs.min.value ? formatVND(inputs.min.value) + "đ" : "0đ");
+      setText(preview.max, inputs.max && inputs.max.value ? formatVND(inputs.max.value) + "đ" : "Không giới hạn");
+      setText(preview.start, inputs.start && inputs.start.value ? formatDateTime(inputs.start.value) : "Tức thì");
 
-        if (type === 'percent') {
-            previews.value.innerHTML = `${value || 0}<span class="text-3xl ml-1 text-slate-500 font-bold">%</span>`;
-            previews.badge.innerText = 'GIẢM %';
-        } else if (type === 'fixed') {
-            previews.value.innerHTML = `${formatVND(value)}<span class="text-xl ml-2 text-slate-500 font-bold">₫</span>`;
-            previews.badge.innerText = 'GIẢM TIỀN';
-        } else {
-            previews.value.innerHTML = `<span class="text-4xl">FREESHIP</span>`;
-            previews.badge.innerText = 'VẬN CHUYỂN';
-        }
+      if (inputs.noLimit && inputs.noLimit.checked) {
+        setText(preview.expiry, "Vĩnh viễn");
+      } else {
+        setText(preview.expiry, inputs.expiry && inputs.expiry.value ? formatDateTime(inputs.expiry.value) : "---");
+      }
 
-        previews.min.innerText = inputs.min.value ? `${formatVND(inputs.min.value)} ₫` : '0 ₫';
-        previews.max.innerText = inputs.max.value ? `${formatVND(inputs.max.value)} ₫` : 'Không giới hạn';
-        previews.start.innerText = inputs.start.value ? formatDateTime(inputs.start.value) : 'Tức thì';
-        previews.expiry.innerText = inputs.noLimit.checked ? 'Vĩnh viễn' : (inputs.expiry.value ? formatDateTime(inputs.expiry.value) : '---');
-        
-        // Update new fields
-        let channelText = "Tất cả";
-        if (inputs.channel.value === 'web') channelText = "Chỉ Website";
-        if (inputs.channel.value === 'pos') channelText = "Chỉ tại Quầy";
-        previews.channel.innerText = channelText;
-        
-        previews.points.innerText = inputs.points.value > 0 ? `${inputs.points.value} Pts` : 'Mọi KH';
+      let channelText = "Tất cả";
+      let channelIcon = "fa-layer-group";
+
+      if (inputs.channel && inputs.channel.value === "web") {
+        channelText = "Website";
+        channelIcon = "fa-globe";
+      }
+
+      if (inputs.channel && inputs.channel.value === "pos") {
+        channelText = "POS";
+        channelIcon = "fa-store";
+      }
+
+      setHTML(preview.channel, '<i class="fa-solid ' + channelIcon + '"></i>' + channelText);
+
+      const pointsValue = Number(inputs.points && inputs.points.value ? inputs.points.value : 0);
+
+      if (pointsValue > 0) {
+        setHTML(preview.points, '<i class="fa-solid fa-star"></i>' + formatVND(pointsValue) + " PTS");
+      } else {
+        setHTML(preview.points, '<i class="fa-solid fa-star"></i>Mọi KH');
+      }
     }
 
     function syncPreview() {
-        updateLogic();
-        updatePreview();
+      updateLogic();
+      updatePreview();
     }
 
-    ['input', 'change'].forEach(evt => {
-        form.addEventListener(evt, syncPreview);
-    });
+    form.addEventListener("input", syncPreview);
+    form.addEventListener("change", syncPreview);
+
+    if (inputs.code) {
+      inputs.code.addEventListener("blur", function () {
+        inputs.code.value = normalizeCode(inputs.code.value);
+        syncPreview();
+      });
+    }
 
     syncPreview();
+  });
 </script>
 {% endblock %}

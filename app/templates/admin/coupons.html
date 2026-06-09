@@ -1,263 +1,869 @@
 {% extends "admin/admin_base.html" %}
-{% block title %}Quản lý Voucher | GUA Admin{% endblock %}
-
-{% block extra_head %}
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<style>
-    :root { --font-jakarta: 'Plus Jakarta Sans', sans-serif; }
-    body { font-family: var(--font-jakarta); background-color: #f8fafc; }
-    
-    .modern-card {
-        background: #ffffff;
-        border: 1px solid #f1f5f9;
-        border-radius: 1.5rem;
-        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
-    }
-    
-    .glass-nav { 
-        background: rgba(248, 250, 252, 0.85); 
-        backdrop-filter: blur(16px); 
-        -webkit-backdrop-filter: blur(16px); 
-    }
-    
-    .fade-up { opacity: 0; animation: fadeUpAnim 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    @keyframes fadeUpAnim { 
-        from { opacity: 0; transform: translateY(20px); } 
-        to { opacity: 1; transform: translateY(0); } 
-    }
-    
-    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
-
-    /* Toggle Switches */
-    .toggle-switch {
-        width: 44px; height: 24px; background-color: #e2e8f0; border-radius: 999px;
-        position: relative; cursor: pointer; transition: background-color 0.3s;
-    }
-    .toggle-switch.active { background-color: #4f46e5; }
-    .toggle-switch::before {
-        content: ''; position: absolute; width: 18px; height: 18px;
-        background-color: white; border-radius: 50%;
-        top: 3px; left: 3px; transition: transform 0.3s;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .toggle-switch.active::before { transform: translateX(20px); }
-</style>
-{% endblock %}
+{% block title %}Quản lý Voucher | MMESTLINE Admin{% endblock %}
 
 {% block content %}
-<div class="min-h-screen pb-16 font-sans text-slate-800 selection:bg-indigo-500 selection:text-white">
 
-    {# ── STICKY TOP BAR ── #}
-    <div class="glass-nav sticky top-0 z-30 border-b border-slate-200/60">
-        <div class="max-w-[1400px] mx-auto px-6 lg:px-12 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-                <h1 class="text-2xl font-bold tracking-tight text-slate-900">Danh mục Voucher</h1>
-                <div class="flex items-center gap-2 mt-1">
-                    <a href="/admin/" class="text-slate-500 hover:text-indigo-600 text-xs font-semibold transition-colors">Dashboard</a>
-                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
-                    <span class="text-indigo-600 text-xs font-semibold">Khuyến mãi</span>
-                </div>
-            </div>
-            <div class="flex items-center gap-3">
-                <a href="{{ url_for('admin.add_coupon') }}" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-sm shadow-indigo-200 transition-all flex items-center gap-2">
-                    <i class="fa-solid fa-plus"></i> Khởi tạo mã mới
-                </a>
-            </div>
+{% set coupons = coupons|default([], true) %}
+{% set now = now|default('', true) %}
+{% set page = page|default(1, true) %}
+{% set total_pages = total_pages|default(1, true) %}
+{% set filter_mode = filter_mode|default(request.args.get('filter', 'all'), true) or 'all' %}
+
+{% set total_count = coupons|length %}
+{% set active_count = namespace(value=0) %}
+{% set expired_count = namespace(value=0) %}
+{% set percent_count = namespace(value=0) %}
+{% set fixed_count = namespace(value=0) %}
+{% set freeship_count = namespace(value=0) %}
+
+{% for c in coupons %}
+  {% set is_expired_count = c.expires_at is not none and now and c.expires_at < now %}
+  {% if c.is_active and not is_expired_count %}
+    {% set active_count.value = active_count.value + 1 %}
+  {% endif %}
+  {% if is_expired_count %}
+    {% set expired_count.value = expired_count.value + 1 %}
+  {% endif %}
+  {% if c.discount_type == 'percent' %}
+    {% set percent_count.value = percent_count.value + 1 %}
+  {% elif c.discount_type == 'free_shipping' %}
+    {% set freeship_count.value = freeship_count.value + 1 %}
+  {% else %}
+    {% set fixed_count.value = fixed_count.value + 1 %}
+  {% endif %}
+{% endfor %}
+
+<style>
+  :root {
+    --mm-brown: #4a2f20;
+    --mm-brown-dark: #241207;
+    --mm-brown-soft: #75543f;
+    --mm-gold: #c99e14;
+    --mm-cream: #fffaf5;
+    --mm-paper: #f5f1eb;
+    --mm-line: #eadfd4;
+    --mm-ink: #101510;
+    --mm-muted: #8a6a52;
+    --mm-radius: 24px;
+  }
+
+  .mm-voucher-admin-page {
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 0 0, rgba(201, 158, 20, .12), transparent 30%),
+      radial-gradient(circle at 100% 12%, rgba(74, 47, 32, .11), transparent 34%),
+      var(--mm-paper);
+  }
+
+  .mm-voucher-admin-shell {
+    max-width: 1720px;
+    margin: 0 auto;
+  }
+
+  .mm-glass-card {
+    border: 1px solid rgba(234, 223, 212, .96);
+    background: rgba(255, 250, 245, .88);
+    border-radius: var(--mm-radius);
+    box-shadow: 0 24px 80px -62px rgba(36, 18, 7, .58);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+
+  .mm-soft-card {
+    border: 1px solid var(--mm-line);
+    background: #fff;
+    border-radius: var(--mm-radius);
+    box-shadow: 0 18px 54px -46px rgba(36, 18, 7, .5);
+  }
+
+  .mm-kicker {
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: rgba(74, 47, 32, .68);
+  }
+
+  .mm-table-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(74, 47, 32, .28) transparent;
+  }
+
+  .mm-table-scroll::-webkit-scrollbar {
+    height: 10px;
+    width: 8px;
+  }
+
+  .mm-table-scroll::-webkit-scrollbar-track {
+    background: #f2ebe3;
+    border-radius: 999px;
+  }
+
+  .mm-table-scroll::-webkit-scrollbar-thumb {
+    background: rgba(74, 47, 32, .28);
+    border-radius: 999px;
+    border: 2px solid #f2ebe3;
+  }
+
+  .mm-table-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(74, 47, 32, .48);
+  }
+
+  .mm-table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .mm-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #fffaf5;
+    backdrop-filter: blur(12px);
+  }
+
+  .mm-sticky-left {
+    position: sticky;
+    left: 0;
+    z-index: 16;
+    background: #fff;
+    box-shadow: 16px 0 28px -28px rgba(36, 18, 7, .45);
+  }
+
+  thead .mm-sticky-left {
+    background: #fffaf5;
+    z-index: 22;
+  }
+
+  .mm-sticky-right {
+    position: sticky;
+    right: 0;
+    z-index: 16;
+    background: #fff;
+    box-shadow: -16px 0 28px -28px rgba(36, 18, 7, .45);
+  }
+
+  thead .mm-sticky-right {
+    background: #fffaf5;
+    z-index: 22;
+  }
+
+  .mm-row {
+    transition: background .16s ease, opacity .16s ease;
+  }
+
+  .mm-row:hover {
+    background: #fffdf8;
+  }
+
+  .mm-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 9px;
+    font-weight: 950;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .mm-toggle {
+    width: 46px;
+    height: 26px;
+    border-radius: 999px;
+    position: relative;
+    cursor: pointer;
+    background: #e7ded5;
+    transition: background .2s ease, box-shadow .2s ease;
+  }
+
+  .mm-toggle::before {
+    content: "";
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    left: 3px;
+    top: 3px;
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(36, 18, 7, .18);
+    transition: transform .2s cubic-bezier(.16, 1, .3, 1);
+  }
+
+  .mm-toggle.active {
+    background: var(--mm-brown-dark);
+    box-shadow: 0 14px 28px -20px rgba(36, 18, 7, .8);
+  }
+
+  .mm-toggle.active::before {
+    transform: translateX(20px);
+  }
+
+  .mm-mobile-voucher-card {
+    border: 1px solid rgba(234, 223, 212, .96);
+    border-radius: 26px;
+    background: rgba(255, 255, 255, .94);
+    box-shadow: 0 18px 56px -46px rgba(36, 18, 7, .55);
+    overflow: hidden;
+  }
+
+  .mm-density-compact .mm-row-cell {
+    padding-top: 14px !important;
+    padding-bottom: 14px !important;
+  }
+
+  .mm-density-compact .mm-thumb {
+    width: 48px !important;
+    height: 42px !important;
+  }
+
+  @media print {
+    .no-print,
+    .admin-sidebar,
+    .admin-topbar,
+    button,
+    form {
+      display: none !important;
+    }
+
+    .mm-voucher-admin-page {
+      background: #fff !important;
+    }
+
+    .mm-glass-card,
+    .mm-soft-card,
+    .mm-mobile-voucher-card {
+      box-shadow: none !important;
+      border: 1px solid #ddd !important;
+      background: #fff !important;
+    }
+
+    .lg\:block {
+      display: block !important;
+    }
+
+    .lg\:hidden {
+      display: none !important;
+    }
+  }
+</style>
+
+<div class="mm-voucher-admin-page">
+  <div class="mm-voucher-admin-shell px-4 py-6 md:px-6 md:py-8 space-y-5">
+
+    <section class="mm-glass-card p-5 md:p-6">
+      <div class="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+        <div class="min-w-0">
+          <div class="inline-flex items-center gap-2 rounded-full border border-[#eadfd4] bg-white/70 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-[#4a2f20]">
+            <span class="h-1.5 w-1.5 rounded-full bg-[#c99e14]"></span>
+            MMESTLINE Promotion Center
+          </div>
+
+          <div class="mt-4 flex flex-wrap items-center gap-3">
+            <h1 class="text-3xl font-black tracking-[-0.055em] text-[#241207] md:text-5xl">
+              Quản lý Voucher
+            </h1>
+
+            <span class="inline-flex items-center gap-2 rounded-full border border-[#eadfd4] bg-white px-4 py-2 text-sm font-black text-[#4a2f20] shadow-sm">
+              <i class="fa-solid fa-ticket text-[#c99e14]"></i>
+              {{ total_count }} mã
+            </span>
+          </div>
+
+          <p class="mt-3 max-w-3xl text-sm font-medium leading-6 text-[#8a6a52]">
+            Quản lý mã giảm giá, freeship, điều kiện áp dụng, kênh sử dụng, điểm thành viên, thời hạn và trạng thái hiển thị trên storefront.
+          </p>
         </div>
-    </div>
 
-    <div class="max-w-[1400px] mx-auto px-6 lg:px-12 mt-8 fade-up">
-        
-        {# CỤM LỌC (FILTERS) #}
-        <div class="flex flex-wrap items-center gap-2 mb-6 border-b border-slate-200 pb-2">
-            {% for key, label in [('all','Tất cả mã'),('active','Đang hoạt động'),('expired','Đã hết hạn'),('percent','Chiết khấu %'),('fixed','Giảm tiền')] %}
-            <a href="?filter={{ key }}" class="px-4 py-2 text-sm font-semibold rounded-lg transition-colors {% if request.args.get('filter','all') == key %}bg-indigo-50 text-indigo-600{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-50{% endif %}">
-                {{ label }}
+        <div class="grid grid-cols-2 gap-2 sm:flex sm:items-center no-print">
+          <button
+            type="button"
+            onclick="window.location.reload()"
+            class="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-[#eadfd4] bg-white px-4 text-sm font-black text-[#75543f] transition hover:bg-[#fffaf5]"
+          >
+            <i class="fa-solid fa-rotate-right"></i>
+            Làm mới
+          </button>
+
+          <button
+            type="button"
+            id="btnDensityCoupons"
+            class="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-[#eadfd4] bg-white px-4 text-sm font-black text-[#75543f] transition hover:bg-[#fffaf5]"
+          >
+            <i class="fa-solid fa-table-list"></i>
+            Compact
+          </button>
+
+          <a
+            href="{{ url_for('admin.add_coupon') }}"
+            class="col-span-2 inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#241207] px-5 text-sm font-black text-white shadow-[0_18px_44px_-28px_rgba(36,18,7,.75)] transition hover:bg-[#4a2f20] sm:col-span-1"
+          >
+            <i class="fa-solid fa-plus text-[#c99e14]"></i>
+            Tạo voucher
+          </a>
+        </div>
+      </div>
+
+      <div class="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <div class="rounded-3xl border border-[#eadfd4] bg-white p-4">
+          <p class="mm-kicker">Tổng mã</p>
+          <p class="mt-2 text-2xl font-black tracking-[-0.04em] text-[#241207]">{{ total_count }}</p>
+          <p class="mt-1 text-xs font-semibold text-[#8a6a52]">Theo bộ lọc hiện tại</p>
+        </div>
+
+        <div class="rounded-3xl border border-emerald-200 bg-emerald-50 p-4">
+          <p class="text-[10px] font-black uppercase tracking-[0.22em] text-emerald-700">Đang hoạt động</p>
+          <p class="mt-2 text-2xl font-black tracking-[-0.04em] text-emerald-700">{{ active_count.value }}</p>
+          <p class="mt-1 text-xs font-semibold text-emerald-700/70">Đang bật</p>
+        </div>
+
+        <div class="rounded-3xl border border-rose-200 bg-rose-50 p-4">
+          <p class="text-[10px] font-black uppercase tracking-[0.22em] text-rose-700">Đã hết hạn</p>
+          <p class="mt-2 text-2xl font-black tracking-[-0.04em] text-rose-700">{{ expired_count.value }}</p>
+          <p class="mt-1 text-xs font-semibold text-rose-700/70">Cần kiểm tra</p>
+        </div>
+
+        <div class="rounded-3xl border border-amber-200 bg-amber-50 p-4">
+          <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">Giảm %</p>
+          <p class="mt-2 text-2xl font-black tracking-[-0.04em] text-amber-950">{{ percent_count.value }}</p>
+          <p class="mt-1 text-xs font-semibold text-amber-700/70">Percent coupon</p>
+        </div>
+
+        <div class="rounded-3xl border border-blue-200 bg-blue-50 p-4">
+          <p class="text-[10px] font-black uppercase tracking-[0.22em] text-blue-700">Freeship</p>
+          <p class="mt-2 text-2xl font-black tracking-[-0.04em] text-blue-950">{{ freeship_count.value }}</p>
+          <p class="mt-1 text-xs font-semibold text-blue-700/70">Free shipping</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="mm-soft-card sticky top-3 z-30 p-3 no-print">
+      <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div class="mm-table-scroll flex w-full items-center gap-1 overflow-x-auto pb-1 xl:w-auto">
+          {% for key, label, icon in [
+            ('all','Tất cả mã','fa-layer-group'),
+            ('active','Đang hoạt động','fa-circle-check'),
+            ('expired','Đã hết hạn','fa-clock-rotate-left'),
+            ('percent','Giảm %','fa-percent'),
+            ('fixed','Giảm tiền','fa-coins')
+          ] %}
+            <a
+              href="?filter={{ key }}"
+              class="shrink-0 rounded-2xl px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.12em] transition-all
+                {% if request.args.get('filter','all') == key %}
+                  bg-[#241207] text-white shadow-[0_14px_32px_-22px_rgba(36,18,7,.75)]
+                {% else %}
+                  text-[#8a6a52] hover:bg-[#fffaf5] hover:text-[#241207]
+                {% endif %}"
+            >
+              <i class="fa-solid {{ icon }} mr-1.5 text-[10px] {% if request.args.get('filter','all') == key %}text-[#c99e14]{% endif %}"></i>
+              {{ label }}
             </a>
-            {% endfor %}
+          {% endfor %}
         </div>
 
-        {# BẢNG DỮ LIỆU CHÍNH #}
-        <div class="modern-card overflow-hidden">
-            <div class="overflow-x-auto custom-scrollbar">
-                <table class="w-full text-left border-collapse min-w-[1000px]">
-                    <thead>
-                        <tr class="bg-slate-50/50 border-b border-slate-100">
-                            <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-slate-500 w-[24%]">Chương trình</th>
-                            <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-slate-500 w-[16%]">Mức ưu đãi</th>
-                            <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-slate-500 w-[22%]">Điều kiện áp dụng</th>
-                            <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-slate-500 w-[18%]">Thời hạn</th>
-                            <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-slate-500 text-center w-[10%]">Trạng thái</th>
-                            <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-slate-500 text-right w-[10%]">Thao tác</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        {% for c in coupons %}
-                        {% set is_expired = c.expires_at is not none and c.expires_at < now %}
-                        <tr class="hover:bg-slate-50/50 transition-colors group">
-                            
-                            {# 1. CỘT: CHƯƠNG TRÌNH #}
-                            <td class="py-5 px-6 align-top">
-                                <div class="flex items-start gap-4">
-                                    {% if c.image_url %}
-                                    <div class="w-16 h-12 shrink-0 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden hidden sm:block">
-                                        <img src="{{ c.image_url }}" alt="Banner" class="w-full h-full object-cover">
-                                    </div>
-                                    {% else %}
-                                    <div class="w-12 h-12 shrink-0 rounded-lg bg-indigo-50 text-indigo-500 flex items-center justify-center hidden sm:flex">
-                                        <i class="fa-solid fa-ticket text-xl"></i>
-                                    </div>
-                                    {% endif %}
-                                    <div>
-                                        <div class="inline-flex items-center justify-center px-3 py-1 rounded-lg bg-slate-100 border border-slate-200 text-sm font-bold tracking-widest text-slate-900 mb-1">
-                                            {{ c.code }}
-                                        </div>
-                                        <p class="text-xs font-medium text-slate-500 line-clamp-2">{{ c.description or 'Chưa có mô tả' }}</p>
-                                    </div>
-                                </div>
-                            </td>
+        <div class="flex items-center justify-end gap-2">
+          <button
+            type="button"
+            data-scroll-coupons="-520"
+            class="hidden h-10 w-10 items-center justify-center rounded-2xl border border-[#eadfd4] bg-white text-[#75543f] transition hover:bg-[#fffaf5] lg:inline-flex"
+            title="Cuộn sang trái"
+          >
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
 
-                            {# 2. CỘT: MỨC ƯU ĐÃI #}
-                            <td class="py-5 px-6 align-top">
-                                <div class="text-xl font-bold text-indigo-600 flex items-baseline gap-1">
-                                    {% if c.discount_type == 'percent' %}
-                                        {{ c.discount_value | int }}<span class="text-sm font-bold text-slate-900">%</span>
-                                    {% elif c.discount_type == 'fixed' %}
-                                        {{ '{:,.0f}'.format(c.discount_value) | replace(',', '.') }}<span class="text-sm font-bold text-slate-900">₫</span>
-                                    {% else %}
-                                        <span class="text-sm font-bold tracking-widest text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-100">FREESHIP</span>
-                                    {% endif %}
-                                </div>
-                                {% if c.max_discount and c.max_discount > 0 %}
-                                    <p class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Max: {{ '{:,.0f}'.format(c.max_discount) | replace(',', '.') }} ₫</p>
-                                {% endif %}
-                            </td>
-
-                            {# 3. CỘT: ĐIỀU KIỆN ÁP DỤNG (ĐÃ CẬP NHẬT KÊNH & ĐIỂM) #}
-                            <td class="py-5 px-6 align-top">
-                                <div class="flex flex-col gap-2.5">
-                                    <p class="text-xs font-bold text-slate-700">Min Order: <span class="text-slate-900">{{ '{:,.0f}'.format(c.min_order_value or 0) | replace(',', '.') }} ₫</span></p>
-                                    
-                                    {# Huy hiệu Kênh & Điểm Loyalty #}
-                                    <div class="flex flex-wrap gap-1.5">
-                                        {% if c.applicable_channel == 'web' %}
-                                            <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-slate-800 text-white uppercase tracking-wider shadow-sm">Chỉ WEB</span>
-                                        {% elif c.applicable_channel == 'pos' %}
-                                            <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-700 border border-blue-200 uppercase tracking-wider shadow-sm">Chỉ POS</span>
-                                        {% else %}
-                                            <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-stone-100 text-stone-600 border border-stone-200 uppercase tracking-wider shadow-sm">Mọi kênh</span>
-                                        {% endif %}
-                                        
-                                        {% if c.min_loyalty_points and c.min_loyalty_points > 0 %}
-                                            <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-600 border border-amber-200 uppercase tracking-wider flex items-center gap-1 shadow-sm" title="Yêu cầu điểm thành viên tối thiểu">
-                                                <i class="fa-solid fa-star text-[8px]"></i> >= {{ c.min_loyalty_points }} Pts
-                                            </span>
-                                        {% endif %}
-                                    </div>
-                                    
-                                    {# Thanh Process Bar cho lượt dùng #}
-                                    <div class="mt-1.5">
-                                        <div class="w-full max-w-[140px] h-1.5 bg-slate-100 rounded-full overflow-hidden relative mb-1.5">
-                                            {% set used = c.used_count | default(0) %}
-                                            {% set limit = c.usage_limit or 0 %}
-                                            {% set pct = ((used / limit) * 100) if limit > 0 else 0 %}
-                                            <div class="absolute top-0 left-0 h-full bg-indigo-500 rounded-full" style="width: {{ pct if pct <= 100 else 100 }}%;"></div>
-                                        </div>
-                                        
-                                        <p class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
-                                            Đã dùng: <span class="text-slate-900">{{ used }}</span> / {{ limit if limit > 0 else '∞' }}
-                                        </p>
-                                    </div>
-                                </div>
-                            </td>
-
-                            {# 4. CỘT: THỜI HẠN #}
-                            <td class="py-5 px-6 align-top">
-                                <div class="flex flex-col gap-2">
-                                    {% if c.starts_at %}
-                                        <p class="text-[11px] font-semibold text-slate-500 flex justify-between">
-                                            <span>Từ:</span> <span class="text-slate-900 font-bold">{{ c.starts_at[:10] | replace('-', '.') }}</span>
-                                        </p>
-                                    {% endif %}
-                                    
-                                    <p class="text-[11px] font-semibold text-slate-500 flex justify-between items-center">
-                                        <span>Đến:</span>
-                                        <span class="font-bold {% if is_expired %}text-rose-500 px-2 py-0.5 bg-rose-50 rounded border border-rose-100{% else %}text-slate-900{% endif %}">
-                                            {{ c.expires_at[:10] | replace('-', '.') if c.expires_at else 'Vĩnh viễn' }}
-                                        </span>
-                                    </p>
-                                </div>
-                            </td>
-
-                            {# 5. CỘT: TRẠNG THÁI (TOGGLE) #}
-                            <td class="py-5 px-6 align-top text-center">
-                                <form action="{{ url_for('admin.toggle_coupon', coupon_id=c.id) }}" method="POST" class="inline-block m-0">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="toggle-switch {% if c.is_active and not is_expired %}active{% endif %}" aria-label="Toggle Status"></button>
-                                </form>
-                            </td>
-
-                            {# 6. CỘT: THAO TÁC #}
-                            <td class="py-5 px-6 align-top text-right">
-                                <div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <a href="{{ url_for('admin.edit_coupon', coupon_id=c.id) }}" class="w-8 h-8 rounded-lg bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-indigo-50 hover:text-indigo-600 transition-colors shadow-sm" title="Sửa khuyến mãi">
-                                        <i class="fa-solid fa-pen"></i>
-                                    </a>
-                                    <form action="{{ url_for('admin.delete_coupon', coupon_id=c.id) }}" method="POST" class="m-0" onsubmit="return confirm('Bạn có chắc chắn muốn xóa vĩnh viễn voucher này?')">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="w-8 h-8 rounded-lg bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-rose-50 hover:text-rose-600 transition-colors shadow-sm" title="Xóa khuyến mãi">
-                                            <i class="fa-solid fa-trash-can"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="6" class="py-24 text-center">
-                                <div class="w-20 h-20 mx-auto bg-slate-50 rounded-2xl flex items-center justify-center mb-4 border border-slate-100">
-                                    <i class="fa-solid fa-ticket text-3xl text-slate-300"></i>
-                                </div>
-                                <p class="text-sm font-bold text-slate-900 mb-1">Chưa có dữ liệu khuyến mãi</p>
-                                <p class="text-xs text-slate-500 mb-6">Bạn có thể tạo mã voucher đầu tiên để bắt đầu chiến dịch.</p>
-                                <a href="{{ url_for('admin.add_coupon') }}" class="inline-flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-indigo-600 transition-colors shadow-sm">
-                                    <i class="fa-solid fa-plus"></i> Tạo mã mới
-                                </a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+          <button
+            type="button"
+            data-scroll-coupons="520"
+            class="hidden h-10 w-10 items-center justify-center rounded-2xl border border-[#eadfd4] bg-white text-[#75543f] transition hover:bg-[#fffaf5] lg:inline-flex"
+            title="Cuộn sang phải"
+          >
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
         </div>
-        
-        {# PHÂN TRANG (Nếu danh sách dài) #}
-        {% if total_pages > 1 %}
-        <div class="flex justify-center mt-8">
-            <div class="flex items-center gap-1 bg-white p-1 rounded-xl shadow-sm border border-slate-100">
-                {% if page > 1 %}
-                    <a href="?page={{ page - 1 }}&filter={{ filter_mode }}" class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-900"><i class="fa-solid fa-chevron-left text-xs"></i></a>
-                {% endif %}
-                
-                {% for p in range(1, total_pages + 1) %}
-                    {% if p == page %}
-                        <span class="w-8 h-8 flex items-center justify-center rounded-lg bg-indigo-600 text-white font-bold text-xs shadow-sm">{{ p }}</span>
+      </div>
+    </section>
+
+    {% if coupons %}
+
+      <section class="mm-soft-card hidden overflow-hidden lg:block">
+        <div class="flex items-center justify-between gap-3 border-b border-[#eadfd4] bg-white px-4 py-3 no-print">
+          <div>
+            <p class="text-sm font-black text-[#241207]">Danh sách voucher</p>
+            <p class="mt-0.5 text-xs font-semibold text-[#8a6a52]">
+              Kéo ngang hoặc dùng nút điều hướng để xem đầy đủ điều kiện và thao tác.
+            </p>
+          </div>
+
+          <a
+            href="{{ url_for('admin.add_coupon') }}"
+            class="inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-[#eadfd4] bg-[#fffaf5] px-4 text-xs font-black uppercase tracking-widest text-[#4a2f20] transition hover:border-[#4a2f20]"
+          >
+            <i class="fa-solid fa-plus"></i>
+            Tạo mã mới
+          </a>
+        </div>
+
+        <div id="couponsTableWrap" class="mm-table-scroll overflow-x-auto">
+          <table id="couponsTable" class="mm-table w-full min-w-[1360px] text-left">
+            <thead>
+              <tr class="border-b border-[#eadfd4]">
+                <th class="mm-sticky-left w-[360px] px-5 py-4 text-[10px] font-black uppercase tracking-[0.18em] text-[#8a6a52]">
+                  Chương trình
+                </th>
+
+                <th class="w-[190px] px-5 py-4 text-[10px] font-black uppercase tracking-[0.18em] text-[#8a6a52]">
+                  Mức ưu đãi
+                </th>
+
+                <th class="w-[320px] px-5 py-4 text-[10px] font-black uppercase tracking-[0.18em] text-[#8a6a52]">
+                  Điều kiện áp dụng
+                </th>
+
+                <th class="w-[220px] px-5 py-4 text-[10px] font-black uppercase tracking-[0.18em] text-[#8a6a52]">
+                  Thời hạn
+                </th>
+
+                <th class="w-[140px] px-5 py-4 text-center text-[10px] font-black uppercase tracking-[0.18em] text-[#8a6a52]">
+                  Trạng thái
+                </th>
+
+                <th class="mm-sticky-right w-[132px] px-5 py-4 text-center text-[10px] font-black uppercase tracking-[0.18em] text-[#8a6a52]">
+                  Thao tác
+                </th>
+              </tr>
+            </thead>
+
+            <tbody class="divide-y divide-[#f3ece5] text-sm">
+              {% for c in coupons %}
+                {% set is_expired = c.expires_at is not none and now and c.expires_at < now %}
+                {% set used = c.used_count|default(0, true) or 0 %}
+                {% set limit = c.usage_limit or 0 %}
+                {% set pct = ((used / limit) * 100) if limit > 0 else 0 %}
+                {% set min_order = (c.min_order_value or 0)|float %}
+                {% set discount_value = (c.discount_value or 0)|float %}
+
+                <tr class="mm-row {% if is_expired %}opacity-70{% endif %}">
+                  <td class="mm-sticky-left mm-row-cell px-5 py-5 align-top">
+                    <div class="flex items-start gap-4">
+                      {% if c.image_url %}
+                        <div class="mm-thumb hidden h-14 w-18 shrink-0 overflow-hidden rounded-2xl border border-[#eadfd4] bg-[#fffaf5] sm:block">
+                          <img src="{{ c.image_url }}" alt="{{ c.code }}" loading="lazy" class="h-full w-full object-cover">
+                        </div>
+                      {% else %}
+                        <div class="mm-thumb hidden h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[#eadfd4] bg-[#fffaf5] text-[#4a2f20] sm:flex">
+                          <i class="fa-solid fa-ticket text-xl"></i>
+                        </div>
+                      {% endif %}
+
+                      <div class="min-w-0">
+                        <div class="flex flex-wrap items-center gap-2">
+                          <span class="inline-flex rounded-xl border border-[#eadfd4] bg-[#fffaf5] px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-[#241207]">
+                            {{ c.code }}
+                          </span>
+
+                          {% if is_expired %}
+                            <span class="mm-badge border border-rose-200 bg-rose-50 text-rose-700">Hết hạn</span>
+                          {% elif c.is_active %}
+                            <span class="mm-badge border border-emerald-200 bg-emerald-50 text-emerald-700">Active</span>
+                          {% else %}
+                            <span class="mm-badge border border-stone-200 bg-stone-50 text-stone-500">Tắt</span>
+                          {% endif %}
+                        </div>
+
+                        <p class="mt-2 line-clamp-2 max-w-[260px] text-xs font-semibold leading-5 text-[#8a6a52]">
+                          {{ c.description or 'Chưa có mô tả' }}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+
+                  <td class="mm-row-cell px-5 py-5 align-top">
+                    {% if c.discount_type == 'percent' %}
+                      <p class="text-2xl font-black tracking-[-0.04em] text-[#4a2f20]">
+                        {{ discount_value|int }}<span class="text-sm text-[#8a6a52]">%</span>
+                      </p>
+                    {% elif c.discount_type == 'fixed' %}
+                      <p class="text-xl font-black tracking-[-0.04em] text-[#4a2f20]">
+                        {{ "{:,.0f}".format(discount_value) }}<span class="text-sm text-[#8a6a52]">đ</span>
+                      </p>
                     {% else %}
-                        <a href="?page={{ p }}&filter={{ filter_mode }}" class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-600 hover:bg-slate-50 text-xs font-bold">{{ p }}</a>
+                      <span class="mm-badge border border-blue-200 bg-blue-50 text-blue-700">
+                        <i class="fa-solid fa-truck-fast"></i>
+                        Freeship
+                      </span>
                     {% endif %}
-                {% endfor %}
-                
-                {% if page < total_pages %}
-                    <a href="?page={{ page + 1 }}&filter={{ filter_mode }}" class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-900"><i class="fa-solid fa-chevron-right text-xs"></i></a>
-                {% endif %}
-            </div>
+
+                    {% if c.max_discount and c.max_discount > 0 %}
+                      <p class="mt-2 text-[10px] font-black uppercase tracking-widest text-[#8a6a52]">
+                        Max: {{ "{:,.0f}".format((c.max_discount or 0)|float) }}đ
+                      </p>
+                    {% endif %}
+                  </td>
+
+                  <td class="mm-row-cell px-5 py-5 align-top">
+                    <div class="space-y-3">
+                      <p class="text-xs font-black text-[#241207]">
+                        Đơn tối thiểu:
+                        <span class="text-[#4a2f20]">{{ "{:,.0f}".format(min_order) }}đ</span>
+                      </p>
+
+                      <div class="flex flex-wrap gap-2">
+                        {% if c.applicable_channel == 'web' %}
+                          <span class="mm-badge bg-[#241207] text-white">
+                            <i class="fa-solid fa-globe text-[#c99e14]"></i>
+                            Chỉ WEB
+                          </span>
+                        {% elif c.applicable_channel == 'pos' %}
+                          <span class="mm-badge border border-blue-200 bg-blue-50 text-blue-700">
+                            <i class="fa-solid fa-store"></i>
+                            Chỉ POS
+                          </span>
+                        {% else %}
+                          <span class="mm-badge border border-[#eadfd4] bg-[#fffaf5] text-[#75543f]">
+                            <i class="fa-solid fa-layer-group"></i>
+                            Mọi kênh
+                          </span>
+                        {% endif %}
+
+                        {% if c.min_loyalty_points and c.min_loyalty_points > 0 %}
+                          <span class="mm-badge border border-amber-200 bg-amber-50 text-amber-700" title="Yêu cầu điểm thành viên tối thiểu">
+                            <i class="fa-solid fa-star"></i>
+                            >= {{ c.min_loyalty_points }} PTS
+                          </span>
+                        {% endif %}
+                      </div>
+
+                      <div>
+                        <div class="h-2 w-full max-w-[170px] overflow-hidden rounded-full bg-[#f1e8df]">
+                          <div class="h-full rounded-full bg-gradient-to-r from-[#4a2f20] to-[#c99e14]" style="width: {{ pct if pct <= 100 else 100 }}%;"></div>
+                        </div>
+
+                        <p class="mt-1.5 text-[10px] font-black uppercase tracking-widest text-[#8a6a52]">
+                          Đã dùng:
+                          <span class="text-[#241207]">{{ used }}</span>
+                          /
+                          {{ limit if limit > 0 else '∞' }}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+
+                  <td class="mm-row-cell px-5 py-5 align-top">
+                    <div class="space-y-2">
+                      {% if c.starts_at %}
+                        <div class="flex max-w-[170px] items-center justify-between gap-3 text-xs font-bold">
+                          <span class="text-[#8a6a52]">Từ</span>
+                          <span class="text-[#241207]">{{ c.starts_at[:10]|replace('-', '.') }}</span>
+                        </div>
+                      {% endif %}
+
+                      <div class="flex max-w-[170px] items-center justify-between gap-3 text-xs font-bold">
+                        <span class="text-[#8a6a52]">Đến</span>
+                        <span class="{% if is_expired %}rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-rose-700{% else %}text-[#241207]{% endif %}">
+                          {{ c.expires_at[:10]|replace('-', '.') if c.expires_at else 'Vĩnh viễn' }}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+
+                  <td class="mm-row-cell px-5 py-5 text-center align-top">
+                    <form action="{{ url_for('admin.toggle_coupon', coupon_id=c.id) }}" method="POST" class="inline-block m-0">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button
+                        type="submit"
+                        class="mm-toggle {% if c.is_active and not is_expired %}active{% endif %}"
+                        aria-label="Bật/tắt voucher {{ c.code }}"
+                      ></button>
+                    </form>
+
+                    <p class="mt-2 text-[9px] font-black uppercase tracking-widest {% if c.is_active and not is_expired %}text-emerald-700{% elif is_expired %}text-rose-700{% else %}text-stone-400{% endif %}">
+                      {% if is_expired %}
+                        Hết hạn
+                      {% elif c.is_active %}
+                        Đang bật
+                      {% else %}
+                        Đang tắt
+                      {% endif %}
+                    </p>
+                  </td>
+
+                  <td class="mm-sticky-right mm-row-cell px-5 py-5 text-center align-top">
+                    <div class="flex items-center justify-center gap-2">
+                      <a
+                        href="{{ url_for('admin.edit_coupon', coupon_id=c.id) }}"
+                        class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-[#241207] text-white shadow-sm transition hover:bg-[#4a2f20]"
+                        title="Sửa voucher"
+                      >
+                        <i class="fa-solid fa-pen text-xs"></i>
+                      </a>
+
+                      <form
+                        action="{{ url_for('admin.delete_coupon', coupon_id=c.id) }}"
+                        method="POST"
+                        class="m-0"
+                        onsubmit="return confirm('Bạn có chắc chắn muốn xóa vĩnh viễn voucher {{ c.code|e }}?')"
+                      >
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <button
+                          type="submit"
+                          class="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-rose-100 bg-rose-50 text-rose-500 transition hover:border-rose-600 hover:bg-rose-600 hover:text-white"
+                          title="Xóa voucher"
+                        >
+                          <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
+
+        <div class="border-t border-[#eadfd4] px-4 py-2 text-center text-[11px] font-bold uppercase tracking-widest text-[#8a6a52] no-print">
+          <i class="fa-solid fa-arrows-left-right mr-1"></i>
+          Có thể kéo ngang để xem đầy đủ thông tin voucher
+        </div>
+      </section>
+
+      <section class="space-y-3 lg:hidden">
+        {% for c in coupons %}
+          {% set is_expired = c.expires_at is not none and now and c.expires_at < now %}
+          {% set used = c.used_count|default(0, true) or 0 %}
+          {% set limit = c.usage_limit or 0 %}
+          {% set pct = ((used / limit) * 100) if limit > 0 else 0 %}
+          {% set min_order = (c.min_order_value or 0)|float %}
+          {% set discount_value = (c.discount_value or 0)|float %}
+
+          <article class="mm-mobile-voucher-card">
+            <div class="flex items-start justify-between gap-3 border-b border-[#eadfd4] p-4">
+              <div class="flex min-w-0 items-start gap-3">
+                {% if c.image_url %}
+                  <div class="h-14 w-16 shrink-0 overflow-hidden rounded-2xl border border-[#eadfd4] bg-[#fffaf5]">
+                    <img src="{{ c.image_url }}" alt="{{ c.code }}" loading="lazy" class="h-full w-full object-cover">
+                  </div>
+                {% else %}
+                  <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[#eadfd4] bg-[#fffaf5] text-[#4a2f20]">
+                    <i class="fa-solid fa-ticket text-xl"></i>
+                  </div>
+                {% endif %}
+
+                <div class="min-w-0">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span class="rounded-xl border border-[#eadfd4] bg-[#fffaf5] px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-[#241207]">
+                      {{ c.code }}
+                    </span>
+
+                    {% if is_expired %}
+                      <span class="mm-badge border border-rose-200 bg-rose-50 text-rose-700">Hết hạn</span>
+                    {% elif c.is_active %}
+                      <span class="mm-badge border border-emerald-200 bg-emerald-50 text-emerald-700">Active</span>
+                    {% else %}
+                      <span class="mm-badge border border-stone-200 bg-stone-50 text-stone-500">Tắt</span>
+                    {% endif %}
+                  </div>
+
+                  <p class="mt-2 line-clamp-2 text-xs font-semibold leading-5 text-[#8a6a52]">
+                    {{ c.description or 'Chưa có mô tả' }}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-4">
+              <div class="grid grid-cols-2 gap-3 rounded-2xl bg-[#fffaf5] p-3 text-xs">
+                <div>
+                  <p class="font-black uppercase tracking-widest text-[#8a6a52]">Ưu đãi</p>
+                  <p class="mt-1 font-black text-[#4a2f20]">
+                    {% if c.discount_type == 'percent' %}
+                      {{ discount_value|int }}%
+                    {% elif c.discount_type == 'fixed' %}
+                      {{ "{:,.0f}".format(discount_value) }}đ
+                    {% else %}
+                      FREESHIP
+                    {% endif %}
+                  </p>
+                </div>
+
+                <div>
+                  <p class="font-black uppercase tracking-widest text-[#8a6a52]">Đơn tối thiểu</p>
+                  <p class="mt-1 font-black text-[#241207]">{{ "{:,.0f}".format(min_order) }}đ</p>
+                </div>
+
+                <div>
+                  <p class="font-black uppercase tracking-widest text-[#8a6a52]">Đã dùng</p>
+                  <p class="mt-1 font-black text-[#241207]">{{ used }} / {{ limit if limit > 0 else '∞' }}</p>
+                </div>
+
+                <div>
+                  <p class="font-black uppercase tracking-widest text-[#8a6a52]">Hết hạn</p>
+                  <p class="mt-1 font-black {% if is_expired %}text-rose-700{% else %}text-[#241207]{% endif %}">
+                    {{ c.expires_at[:10]|replace('-', '.') if c.expires_at else 'Vĩnh viễn' }}
+                  </p>
+                </div>
+              </div>
+
+              <div class="mt-3 flex flex-wrap gap-2">
+                {% if c.applicable_channel == 'web' %}
+                  <span class="mm-badge bg-[#241207] text-white">Chỉ WEB</span>
+                {% elif c.applicable_channel == 'pos' %}
+                  <span class="mm-badge border border-blue-200 bg-blue-50 text-blue-700">Chỉ POS</span>
+                {% else %}
+                  <span class="mm-badge border border-[#eadfd4] bg-[#fffaf5] text-[#75543f]">Mọi kênh</span>
+                {% endif %}
+
+                {% if c.min_loyalty_points and c.min_loyalty_points > 0 %}
+                  <span class="mm-badge border border-amber-200 bg-amber-50 text-amber-700">
+                    >= {{ c.min_loyalty_points }} PTS
+                  </span>
+                {% endif %}
+              </div>
+
+              <div class="mt-4 h-2 overflow-hidden rounded-full bg-[#f1e8df]">
+                <div class="h-full rounded-full bg-gradient-to-r from-[#4a2f20] to-[#c99e14]" style="width: {{ pct if pct <= 100 else 100 }}%;"></div>
+              </div>
+
+              <div class="mt-4 grid grid-cols-[1fr_44px_44px] gap-2">
+                <form action="{{ url_for('admin.toggle_coupon', coupon_id=c.id) }}" method="POST" class="m-0">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button
+                    type="submit"
+                    class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-[#eadfd4] bg-[#fffaf5] text-xs font-black uppercase tracking-widest text-[#4a2f20]"
+                  >
+                    {% if c.is_active and not is_expired %}
+                      Tắt mã
+                    {% else %}
+                      Bật mã
+                    {% endif %}
+                  </button>
+                </form>
+
+                <a
+                  href="{{ url_for('admin.edit_coupon', coupon_id=c.id) }}"
+                  class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#241207] text-white"
+                  title="Sửa voucher"
+                >
+                  <i class="fa-solid fa-pen text-xs"></i>
+                </a>
+
+                <form
+                  action="{{ url_for('admin.delete_coupon', coupon_id=c.id) }}"
+                  method="POST"
+                  class="m-0"
+                  onsubmit="return confirm('Bạn có chắc chắn muốn xóa vĩnh viễn voucher {{ c.code|e }}?')"
+                >
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button
+                    type="submit"
+                    class="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-rose-100 bg-rose-50 text-rose-500"
+                    title="Xóa voucher"
+                  >
+                    <i class="fa-solid fa-trash-can text-xs"></i>
+                  </button>
+                </form>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </section>
+
+    {% else %}
+      <section class="mm-soft-card p-12 text-center md:p-16">
+        <div class="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl border border-[#eadfd4] bg-[#fffaf5] text-[#4a2f20]">
+          <i class="fa-solid fa-ticket text-3xl"></i>
+        </div>
+
+        <h2 class="mt-5 text-xl font-black text-[#241207]">
+          Chưa có dữ liệu khuyến mãi
+        </h2>
+
+        <p class="mx-auto mt-2 max-w-md text-sm font-medium leading-6 text-[#8a6a52]">
+          Bạn có thể tạo voucher đầu tiên để bắt đầu chiến dịch khuyến mãi trên website và POS.
+        </p>
+
+        <a
+          href="{{ url_for('admin.add_coupon') }}"
+          class="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#241207] px-5 text-sm font-black text-white transition hover:bg-[#4a2f20]"
+        >
+          <i class="fa-solid fa-plus text-[#c99e14]"></i>
+          Tạo mã mới
+        </a>
+      </section>
+    {% endif %}
+
+    {% if total_pages and total_pages > 1 %}
+      <nav class="flex items-center justify-center gap-2 pt-3 pb-6 no-print">
+        {% if page > 1 %}
+          <a
+            href="?page={{ page - 1 }}&filter={{ filter_mode }}"
+            class="flex h-10 min-w-10 items-center justify-center rounded-full border border-[#eadfd4] bg-white px-3 text-[#8a6a52] shadow-sm transition hover:border-[#4a2f20] hover:text-[#241207]"
+          >
+            <i class="fa-solid fa-chevron-left text-xs"></i>
+          </a>
         {% endif %}
-        
-    </div>
+
+        {% for p in range(1, total_pages + 1) %}
+          {% if p == page %}
+            <span class="flex h-10 min-w-10 items-center justify-center rounded-full bg-[#241207] px-3 text-sm font-black text-white shadow-md">
+              {{ p }}
+            </span>
+          {% else %}
+            <a
+              href="?page={{ p }}&filter={{ filter_mode }}"
+              class="flex h-10 min-w-10 items-center justify-center rounded-full border border-[#eadfd4] bg-white px-3 text-sm font-black text-[#75543f] shadow-sm transition hover:border-[#4a2f20] hover:text-[#241207]"
+            >
+              {{ p }}
+            </a>
+          {% endif %}
+        {% endfor %}
+
+        {% if page < total_pages %}
+          <a
+            href="?page={{ page + 1 }}&filter={{ filter_mode }}"
+            class="flex h-10 min-w-10 items-center justify-center rounded-full border border-[#eadfd4] bg-white px-3 text-[#8a6a52] shadow-sm transition hover:border-[#4a2f20] hover:text-[#241207]"
+          >
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+          </a>
+        {% endif %}
+      </nav>
+    {% endif %}
+  </div>
 </div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const table = document.getElementById("couponsTable");
+    const tableWrap = document.getElementById("couponsTableWrap");
+    const densityBtn = document.getElementById("btnDensityCoupons");
+
+    document.querySelectorAll("[data-scroll-coupons]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        if (!tableWrap) return;
+
+        const delta = Number(btn.getAttribute("data-scroll-coupons") || 0);
+
+        tableWrap.scrollBy({
+          left: delta,
+          behavior: "smooth"
+        });
+      });
+    });
+
+    if (densityBtn && table) {
+      densityBtn.addEventListener("click", function () {
+        table.classList.toggle("mm-density-compact");
+
+        const compact = table.classList.contains("mm-density-compact");
+
+        densityBtn.innerHTML = compact
+          ? '<i class="fa-solid fa-up-right-and-down-left-from-center"></i> Comfort'
+          : '<i class="fa-solid fa-table-list"></i> Compact';
+      });
+    }
+  });
+</script>
 {% endblock %}
