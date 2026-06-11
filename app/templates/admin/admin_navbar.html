@@ -1,7 +1,7 @@
 {#
   app/templates/admin/admin_navbar.html
   ===================================
-  MMESTLINE Admin Navigation Shell
+  GUAMAISON Admin Navigation Shell
 
   Nguyên tắc:
   - Chỉ include 1 sidebar + 1 topbar + 1 dropdown.
@@ -40,8 +40,8 @@
 {% set can_manage_permissions = is_admin %}
 {% set can_view_audit_logs = is_admin %}
 
-{% set display_shop_name = display_shop_name|default('MMESTLINE') %}
-{% set brand_logo = admin_logo_url if admin_logo_url is defined else url_for('static', filename='images/mmestlinelogo.svg') %}
+{% set display_shop_name = display_shop_name|default('GUAMAISON') %}
+{% set brand_logo = admin_logo_url if admin_logo_url is defined else url_for('static', filename='images/logo.png') %}
 
 {# ═══════════════════════════════════════════════════════
    ACTIVE STATES

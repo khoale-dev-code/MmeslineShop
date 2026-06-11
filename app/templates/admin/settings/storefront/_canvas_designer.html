@@ -1,0 +1,871 @@
+{# app/templates/admin/settings/storefront/_canvas_designer.html #}
+
+{% set sf = sf | default(storefront | default({}, true), true) %}
+{% set _canvas = sf.homepage_canvas | default({}, true) %}
+
+<section
+  class="sfb-panel sfc-panel"
+  id="sfcDesignerRoot"
+  data-sfb-panel="canvas"
+  data-stored-canvas='{{ _canvas | tojson | forceescape }}'
+>
+  <input
+    type="hidden"
+    id="homepage_canvas"
+    name="homepage_canvas"
+    value=""
+  >
+
+  <div class="sfc-hero">
+    <div>
+      <p class="sfb-kicker">
+        <i class="fa-solid fa-object-group"></i>
+        Canvas Designer
+      </p>
+
+ 
+  <h3>Thiết kế trang chủ dạng Canva</h3>
+
+  <p>
+    Tạo màn hình desktop, thả các khung media vào canvas, kéo để đổi vị trí,
+    kéo góc để chỉnh kích thước, sau đó thêm ảnh/video bằng dấu cộng, kéo-thả file hoặc dán URL ngay trong khung.
+    Cách này giúp shop tự thiết kế bố cục ảnh linh hoạt hơn kiểu block dọc thông thường.
+  </p>
+</div>
+
+<div class="sfc-hero-actions">
+  <button type="button" class="sfb-mini-btn" data-sfc-action="add-media-frame">
+    <i class="fa-solid fa-plus"></i>
+    Thêm khung
+  </button>
+
+  <button type="button" class="sfb-mini-btn" data-sfc-action="toggle-grid">
+    <i class="fa-solid fa-border-all"></i>
+    Lưới
+  </button>
+
+  <button type="button" class="sfb-mini-btn" data-sfc-action="toggle-snap">
+    <i class="fa-solid fa-magnet"></i>
+    Snap
+  </button>
+
+  <button type="button" class="sfb-mini-btn" data-sfc-action="fit-screen">
+    <i class="fa-solid fa-maximize"></i>
+    Fit màn hình
+  </button>
+
+  <button type="button" class="sfb-mini-btn" data-sfc-action="preview-canvas">
+    <i class="fa-solid fa-eye"></i>
+    Preview
+  </button>
+
+  <button type="button" class="sfb-mini-btn sfb-mini-danger" data-sfc-action="clear-canvas">
+    <i class="fa-solid fa-trash-can"></i>
+    Xóa canvas
+  </button>
+</div>
+ 
+
+  </div>
+
+  <div class="sfc-layout">
+    <aside class="sfc-sidebar">
+      <div class="sfb-card sfc-card">
+        <div class="sfb-card-head">
+          <div class="sfb-panel-title-row">
+            <div>
+              <p class="sfb-kicker">
+                <i class="fa-solid fa-toolbox"></i>
+                Tools
+              </p>
+
+ 
+          <h3 class="sfb-card-title">Công cụ thiết kế</h3>
+
+          <p class="sfb-desc">
+            Chọn loại khung muốn thêm vào canvas. Mỗi khung có thể kéo, resize, chèn ảnh/video hoặc link riêng.
+          </p>
+        </div>
+
+        <div class="sfb-panel-badge">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          Canva Style
+        </div>
+      </div>
+    </div>
+
+    <div class="sfb-card-body">
+      <div class="sfc-tool-grid">
+        <button type="button" class="sfc-tool-card" data-sfc-add="media">
+          <i class="fa-solid fa-image"></i>
+          <strong>Khung ảnh/video</strong>
+          <span>Ô media tự do, có dấu cộng và URL.</span>
+        </button>
+
+        <button type="button" class="sfc-tool-card" data-sfc-add="hero">
+          <i class="fa-solid fa-panorama"></i>
+          <strong>Hero lớn</strong>
+          <span>Khung lớn đầu trang cho campaign.</span>
+        </button>
+
+        <button type="button" class="sfc-tool-card" data-sfc-add="banner">
+          <i class="fa-solid fa-rectangle-ad"></i>
+          <strong>Banner ngang</strong>
+          <span>Khung ngang cho sale, voucher, collection.</span>
+        </button>
+
+        <button type="button" class="sfc-tool-card" data-sfc-add="square">
+          <i class="fa-solid fa-square"></i>
+          <strong>Ô vuông</strong>
+          <span>Phù hợp ảnh sản phẩm hoặc category.</span>
+        </button>
+
+        <button type="button" class="sfc-tool-card" data-sfc-add="portrait">
+          <i class="fa-solid fa-mobile-screen"></i>
+          <strong>Ô dọc 4:5</strong>
+          <span>Phù hợp lookbook, model, outfit.</span>
+        </button>
+
+        <button type="button" class="sfc-tool-card" data-sfc-add="video">
+          <i class="fa-solid fa-circle-play"></i>
+          <strong>Khung video</strong>
+          <span>Dùng cho video thương hiệu hoặc sản phẩm.</span>
+        </button>
+
+        <button type="button" class="sfc-tool-card" data-sfc-add="text">
+          <i class="fa-solid fa-font"></i>
+          <strong>Khung chữ</strong>
+          <span>Tiêu đề, mô tả, slogan hoặc note.</span>
+        </button>
+
+        <button type="button" class="sfc-tool-card" data-sfc-add="button">
+          <i class="fa-solid fa-hand-pointer"></i>
+          <strong>Nút CTA</strong>
+          <span>Nút dẫn đến shop hoặc collection.</span>
+        </button>
+      </div>
+
+      <div class="sfc-help-box">
+        <i class="fa-solid fa-circle-info"></i>
+        <div>
+          <strong>Cách thao tác</strong>
+          <p>
+            Bấm thêm khung, kéo khung trong canvas để đổi vị trí.
+            Kéo góc dưới bên phải để chỉnh kích thước. Bấm dấu cộng trong khung để thêm media,
+            hoặc dán URL ngay dưới dấu cộng trong từng khung.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sfb-card sfc-card sfb-mt">
+    <div class="sfb-card-head">
+      <p class="sfb-kicker">
+        <i class="fa-solid fa-table-cells-large"></i>
+        Layout Templates
+      </p>
+
+      <h3 class="sfb-card-title">Mẫu bố cục nhanh</h3>
+
+      <p class="sfb-desc">
+        Chọn một mẫu để tạo nhanh nhiều khung, sau đó kéo chỉnh lại như Canva.
+      </p>
+    </div>
+
+    <div class="sfb-card-body">
+      <div class="sfc-template-list">
+        <button type="button" class="sfc-template-card" data-sfc-template="hero-three">
+          <span class="sfc-template-thumb sfc-template-hero-three">
+            <i></i><i></i><i></i>
+          </span>
+          <strong>Hero + 3 ô ảnh</strong>
+          <small>Phù hợp trang chủ thời trang.</small>
+        </button>
+
+        <button type="button" class="sfc-template-card" data-sfc-template="shopee-grid">
+          <span class="sfc-template-thumb sfc-template-shopee-grid">
+            <i></i><i></i><i></i><i></i><i></i>
+          </span>
+          <strong>Grid campaign</strong>
+          <small>Gần kiểu layout banner Shopee.</small>
+        </button>
+
+        <button type="button" class="sfc-template-card" data-sfc-template="lookbook">
+          <span class="sfc-template-thumb sfc-template-lookbook">
+            <i></i><i></i><i></i>
+          </span>
+          <strong>Lookbook</strong>
+          <small>Ảnh dọc, ảnh model, outfit.</small>
+        </button>
+
+        <button type="button" class="sfc-template-card" data-sfc-template="video-banner">
+          <span class="sfc-template-thumb sfc-template-video">
+            <i></i><i></i>
+          </span>
+          <strong>Video + banner</strong>
+          <small>Phù hợp brand story.</small>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sfb-card sfc-card sfb-mt">
+    <div class="sfb-card-head">
+      <p class="sfb-kicker">
+        <i class="fa-solid fa-display"></i>
+        Desktop Size
+      </p>
+
+      <h3 class="sfb-card-title">Kích thước canvas</h3>
+    </div>
+
+    <div class="sfb-card-body">
+      <div class="sfb-field">
+        <label class="sfb-label" for="sfcPreset">Preset màn hình</label>
+
+        <select id="sfcPreset" class="sfb-select" data-sfc-canvas-preset>
+          <option value="1440x900">Desktop 1440 × 900</option>
+          <option value="1920x1080">Desktop 1920 × 1080</option>
+          <option value="1366x768">Laptop 1366 × 768</option>
+          <option value="1200x900">Container 1200 × 900</option>
+          <option value="1080x1350">Vertical Campaign 1080 × 1350</option>
+          <option value="custom">Tùy chỉnh</option>
+        </select>
+      </div>
+
+      <div class="sfc-size-grid">
+        <div class="sfb-field">
+          <label class="sfb-label" for="sfcCanvasWidth">Rộng</label>
+          <input
+            id="sfcCanvasWidth"
+            class="sfb-input"
+            type="number"
+            min="320"
+            max="2560"
+            value="1440"
+            data-sfc-canvas-width
+          >
+        </div>
+
+        <div class="sfb-field">
+          <label class="sfb-label" for="sfcCanvasHeight">Cao</label>
+          <input
+            id="sfcCanvasHeight"
+            class="sfb-input"
+            type="number"
+            min="320"
+            max="4000"
+            value="900"
+            data-sfc-canvas-height
+          >
+        </div>
+      </div>
+
+      <div class="sfc-size-grid">
+        <div class="sfb-field">
+          <label class="sfb-label" for="sfcCanvasBg">Màu nền</label>
+          <input
+            id="sfcCanvasBg"
+            class="sfb-input"
+            type="text"
+            value="#fffaf5"
+            placeholder="#fffaf5"
+            data-sfc-canvas-bg
+          >
+        </div>
+
+        <div class="sfb-field">
+          <label class="sfb-label" for="sfcCanvasRadius">Bo góc canvas</label>
+          <input
+            id="sfcCanvasRadius"
+            class="sfb-input"
+            type="number"
+            min="0"
+            max="80"
+            value="28"
+            data-sfc-canvas-radius
+          >
+        </div>
+      </div>
+
+      <div class="sfc-size-grid">
+        <div class="sfb-field">
+          <label class="sfb-label" for="sfcGridSize">Grid size</label>
+          <input
+            id="sfcGridSize"
+            class="sfb-input"
+            type="number"
+            min="4"
+            max="80"
+            value="20"
+            data-sfc-grid-size
+          >
+        </div>
+
+        <div class="sfb-field">
+          <label class="sfb-label" for="sfcCanvasPadding">Padding</label>
+          <input
+            id="sfcCanvasPadding"
+            class="sfb-input"
+            type="number"
+            min="0"
+            max="160"
+            value="0"
+            data-sfc-canvas-padding
+          >
+        </div>
+      </div>
+
+      <div class="sfc-toggle-list">
+        <label class="sfc-toggle-line">
+          <span>
+            <strong>Bật canvas designer</strong>
+            <small>Khi bật, frontend có thể ưu tiên render homepage_canvas.</small>
+          </span>
+
+          <label class="sfb-switch">
+            <input type="checkbox" id="sfcCanvasEnabled" checked data-sfc-canvas-enabled>
+            <span></span>
+          </label>
+        </label>
+
+        <label class="sfc-toggle-line">
+          <span>
+            <strong>Hiển thị lưới</strong>
+            <small>Giúp canh khung chính xác hơn.</small>
+          </span>
+
+          <label class="sfb-switch">
+            <input type="checkbox" id="sfcGridEnabled" checked data-sfc-grid-enabled>
+            <span></span>
+          </label>
+        </label>
+
+        <label class="sfc-toggle-line">
+          <span>
+            <strong>Snap to grid</strong>
+            <small>Kéo khung sẽ tự bám theo lưới.</small>
+          </span>
+
+          <label class="sfb-switch">
+            <input type="checkbox" id="sfcSnapEnabled" checked data-sfc-snap-enabled>
+            <span></span>
+          </label>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="sfb-card sfc-card sfb-mt">
+    <div class="sfb-card-head">
+      <p class="sfb-kicker">
+        <i class="fa-solid fa-layer-group"></i>
+        Layers
+      </p>
+
+      <h3 class="sfb-card-title">Danh sách khung</h3>
+    </div>
+
+    <div class="sfb-card-body">
+      <div class="sfc-layer-tools">
+        <button type="button" class="sfb-mini-btn" data-sfc-action="select-all">
+          <i class="fa-solid fa-check-double"></i>
+          Chọn tất cả
+        </button>
+
+        <button type="button" class="sfb-mini-btn" data-sfc-action="unlock-all">
+          <i class="fa-solid fa-lock-open"></i>
+          Mở khóa
+        </button>
+      </div>
+
+      <div id="sfcLayerList" class="sfc-layer-list">
+        <div class="sfc-empty-state">
+          <i class="fa-solid fa-layer-group"></i>
+          <p>Chưa có khung nào</p>
+          <small>Bấm thêm khung để bắt đầu thiết kế.</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<main class="sfc-stage-wrap">
+  <div class="sfb-card sfc-stage-card">
+    <div class="sfb-card-head">
+      <div class="sfb-card-head-row">
+        <div>
+          <p class="sfb-kicker">
+            <i class="fa-solid fa-desktop"></i>
+            Desktop Canvas
+          </p>
+
+          <h3 class="sfb-card-title">Màn hình thiết kế desktop</h3>
+
+          <p class="sfb-desc">
+            Đây là vùng thiết kế chính. Kéo thả khung, resize khung và chèn ảnh/video trực tiếp vào từng khung.
+          </p>
+        </div>
+
+        <div class="sfc-stage-actions">
+          <button type="button" class="sfb-mini-btn" data-sfc-action="undo">
+            <i class="fa-solid fa-rotate-left"></i>
+          </button>
+
+          <button type="button" class="sfb-mini-btn" data-sfc-action="redo">
+            <i class="fa-solid fa-rotate-right"></i>
+          </button>
+
+          <button type="button" class="sfb-mini-btn" data-sfc-action="zoom-out">
+            <i class="fa-solid fa-magnifying-glass-minus"></i>
+          </button>
+
+          <span class="sfc-zoom-pill" id="sfcZoomLabel">100%</span>
+
+          <button type="button" class="sfb-mini-btn" data-sfc-action="zoom-in">
+            <i class="fa-solid fa-magnifying-glass-plus"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sfb-card-body">
+      <div class="sfc-stage-toolbar">
+        <div>
+          <i class="fa-solid fa-arrows-up-down-left-right"></i>
+          <span>Kéo để di chuyển</span>
+        </div>
+
+        <div>
+          <i class="fa-solid fa-up-right-and-down-left-from-center"></i>
+          <span>Kéo góc để resize</span>
+        </div>
+
+        <div>
+          <i class="fa-solid fa-plus"></i>
+          <span>Bấm + để thêm media</span>
+        </div>
+
+        <div>
+          <i class="fa-solid fa-link"></i>
+          <span>Dán URL ngay trong khung</span>
+        </div>
+      </div>
+
+      <div class="sfc-viewport" id="sfcCanvasViewport">
+        <div
+          class="sfc-desktop-canvas is-grid"
+          id="sfcDesktopCanvas"
+          style="width: 1440px; height: 900px;"
+        >
+          <div class="sfc-canvas-bg"></div>
+
+          <div class="sfc-safe-area" id="sfcSafeArea">
+            <span>Safe area</span>
+          </div>
+
+          <div class="sfc-frame-layer" id="sfcFrameLayer">
+            <div class="sfc-empty-canvas-hint" id="sfcEmptyCanvasHint">
+              <i class="fa-solid fa-object-group"></i>
+              <strong>Canvas đang trống</strong>
+              <p>Chọn một công cụ bên trái để thêm khung ảnh, video hoặc chữ.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sfc-stage-foot">
+        <div>
+          <strong>Gợi ý:</strong>
+          đặt Hero lớn ở trên, sau đó thêm các ô banner, ảnh sản phẩm hoặc video campaign.
+        </div>
+
+        <div>
+          <span id="sfcCanvasMeta">1440 × 900</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<aside class="sfc-properties">
+  <div class="sfb-card sfc-card">
+    <div class="sfb-card-head">
+      <div class="sfb-panel-title-row">
+        <div>
+          <p class="sfb-kicker">
+            <i class="fa-solid fa-sliders"></i>
+            Properties
+          </p>
+
+          <h3 class="sfb-card-title">Chỉnh khung đang chọn</h3>
+
+          <p class="sfb-desc">
+            Chỉnh vị trí, kích thước, bo góc, media URL, link, layer và kiểu fit ảnh/video.
+          </p>
+        </div>
+
+        <div class="sfb-panel-badge">
+          <i class="fa-solid fa-pen-to-square"></i>
+          Edit
+        </div>
+      </div>
+    </div>
+
+    <div class="sfb-card-body">
+      <div id="sfcPropertiesEmpty" class="sfc-empty-state sfc-properties-empty">
+        <i class="fa-solid fa-hand-pointer"></i>
+        <p>Chưa chọn khung</p>
+        <small>Bấm vào một khung trong canvas để chỉnh thông tin.</small>
+      </div>
+
+      <div id="sfcPropertiesForm" class="sfc-properties-form sfb-hidden">
+        <div class="sfc-selected-box">
+          <div class="sfc-selected-icon">
+            <i class="fa-solid fa-object-ungroup"></i>
+          </div>
+
+          <div>
+            <p class="sfb-kicker">Selected Frame</p>
+            <h4 id="sfcSelectedTitle">Khung media</h4>
+            <small id="sfcSelectedId">frame_...</small>
+          </div>
+        </div>
+
+        <div class="sfc-action-row sfc-action-row-top">
+          <button type="button" class="sfb-mini-btn" data-sfc-action="duplicate-selected">
+            <i class="fa-solid fa-copy"></i>
+            Nhân bản
+          </button>
+
+          <button type="button" class="sfb-mini-btn" data-sfc-action="lock-selected">
+            <i class="fa-solid fa-lock"></i>
+            Khóa
+          </button>
+
+          <button type="button" class="sfb-mini-btn sfb-mini-danger" data-sfc-action="delete-selected">
+            <i class="fa-solid fa-trash-can"></i>
+            Xóa
+          </button>
+        </div>
+
+        <div class="sfc-properties-section">
+          <div class="sfc-properties-section-title">
+            <i class="fa-solid fa-ruler-combined"></i>
+            <span>Vị trí & kích thước</span>
+          </div>
+
+          <div class="sfc-prop-grid-2">
+            <div class="sfb-field">
+              <label class="sfb-label" for="sfcFrameX">X</label>
+              <input id="sfcFrameX" class="sfb-input" type="number" data-sfc-prop="x">
+            </div>
+
+            <div class="sfb-field">
+              <label class="sfb-label" for="sfcFrameY">Y</label>
+              <input id="sfcFrameY" class="sfb-input" type="number" data-sfc-prop="y">
+            </div>
+
+            <div class="sfb-field">
+              <label class="sfb-label" for="sfcFrameW">Rộng</label>
+              <input id="sfcFrameW" class="sfb-input" type="number" min="40" data-sfc-prop="w">
+            </div>
+
+            <div class="sfb-field">
+              <label class="sfb-label" for="sfcFrameH">Cao</label>
+              <input id="sfcFrameH" class="sfb-input" type="number" min="40" data-sfc-prop="h">
+            </div>
+          </div>
+
+          <div class="sfc-prop-grid-2">
+            <div class="sfb-field">
+              <label class="sfb-label" for="sfcFrameRadius">Bo góc</label>
+              <input id="sfcFrameRadius" class="sfb-input" type="number" min="0" max="120" data-sfc-prop="radius">
+            </div>
+
+            <div class="sfb-field">
+              <label class="sfb-label" for="sfcFrameZ">Layer Z</label>
+              <input id="sfcFrameZ" class="sfb-input" type="number" min="0" max="999" data-sfc-prop="z">
+            </div>
+          </div>
+        </div>
+
+        <div class="sfc-properties-section">
+          <div class="sfc-properties-section-title">
+            <i class="fa-solid fa-photo-film"></i>
+            <span>Media</span>
+          </div>
+
+          <div class="sfb-field">
+            <label class="sfb-label" for="sfcFrameType">Loại khung</label>
+            <select id="sfcFrameType" class="sfb-select" data-sfc-prop="type">
+              <option value="media">Media</option>
+              <option value="image">Image</option>
+              <option value="video">Video</option>
+              <option value="text">Text</option>
+              <option value="button">Button</option>
+            </select>
+          </div>
+
+          <div class="sfb-field">
+            <label class="sfb-label" for="sfcFrameMediaType">Loại media</label>
+            <select id="sfcFrameMediaType" class="sfb-select" data-sfc-prop="media_type">
+              <option value="auto">Tự nhận diện</option>
+              <option value="image">Ảnh</option>
+              <option value="video">Video</option>
+            </select>
+          </div>
+
+          <div class="sfb-field">
+            <label class="sfb-label" for="sfcFrameMediaUrl">URL ảnh/video</label>
+
+            <div class="sfb-media-row">
+              <input
+                id="sfcFrameMediaUrl"
+                class="sfb-input"
+                type="text"
+                placeholder="Dán URL ảnh/video..."
+                data-sfc-prop="media_url"
+              >
+
+              <button type="button" class="sfb-btn sfb-btn-soft" data-sfc-action="upload-selected-media">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+                Tải lên
+              </button>
+            </div>
+
+            <p class="sfb-help">
+              Có thể dán URL ảnh, video .mp4/.webm hoặc upload từ máy.
+            </p>
+          </div>
+
+          <div class="sfb-field">
+            <label class="sfb-label" for="sfcFrameLink">Link khi bấm vào khung</label>
+            <input
+              id="sfcFrameLink"
+              class="sfb-input"
+              type="text"
+              placeholder="/shop hoặc /collections/summer"
+              data-sfc-prop="link"
+            >
+          </div>
+
+          <div class="sfc-prop-grid-2">
+            <div class="sfb-field">
+              <label class="sfb-label" for="sfcFrameFit">Cách fit media</label>
+              <select id="sfcFrameFit" class="sfb-select" data-sfc-prop="fit">
+                <option value="cover">Cover - phủ kín</option>
+                <option value="contain">Contain - giữ nguyên</option>
+                <option value="fill">Fill - kéo đầy</option>
+              </select>
+            </div>
+
+            <div class="sfb-field">
+              <label class="sfb-label" for="sfcFrameOpacity">Độ mờ</label>
+              <input
+                id="sfcFrameOpacity"
+                class="sfb-input"
+                type="number"
+                min="0"
+                max="100"
+                value="100"
+                data-sfc-prop="opacity"
+              >
+            </div>
+          </div>
+        </div>
+
+        <div class="sfc-properties-section">
+          <div class="sfc-properties-section-title">
+            <i class="fa-solid fa-font"></i>
+            <span>Text & style</span>
+          </div>
+
+          <div class="sfb-field">
+            <label class="sfb-label" for="sfcFrameTitle">Tiêu đề / Alt text</label>
+            <input
+              id="sfcFrameTitle"
+              class="sfb-input"
+              type="text"
+              placeholder="Ví dụ: Summer Collection"
+              data-sfc-prop="title"
+            >
+          </div>
+
+          <div class="sfb-field">
+            <label class="sfb-label" for="sfcFrameText">Text trong khung</label>
+            <textarea
+              id="sfcFrameText"
+              class="sfb-textarea"
+              placeholder="Dùng cho khung chữ hoặc nút CTA..."
+              data-sfc-prop="text"
+            ></textarea>
+          </div>
+
+          <div class="sfc-prop-grid-2">
+            <div class="sfb-field">
+              <label class="sfb-label" for="sfcFrameTextColor">Màu chữ</label>
+              <input
+                id="sfcFrameTextColor"
+                class="sfb-input"
+                type="text"
+                placeholder="#241207"
+                data-sfc-prop="text_color"
+              >
+            </div>
+
+            <div class="sfb-field">
+              <label class="sfb-label" for="sfcFrameBgColor">Màu nền</label>
+              <input
+                id="sfcFrameBgColor"
+                class="sfb-input"
+                type="text"
+                placeholder="transparent"
+                data-sfc-prop="bg_color"
+              >
+            </div>
+
+            <div class="sfb-field">
+              <label class="sfb-label" for="sfcFrameFontSize">Cỡ chữ</label>
+              <input
+                id="sfcFrameFontSize"
+                class="sfb-input"
+                type="number"
+                min="8"
+                max="120"
+                placeholder="24"
+                data-sfc-prop="font_size"
+              >
+            </div>
+
+            <div class="sfb-field">
+              <label class="sfb-label" for="sfcFrameAlign">Căn chữ</label>
+              <select id="sfcFrameAlign" class="sfb-select" data-sfc-prop="align">
+                <option value="left">Trái</option>
+                <option value="center">Giữa</option>
+                <option value="right">Phải</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="sfc-properties-section">
+          <div class="sfc-properties-section-title">
+            <i class="fa-solid fa-layer-group"></i>
+            <span>Layer actions</span>
+          </div>
+
+          <div class="sfc-action-row">
+            <button type="button" class="sfb-mini-btn" data-sfc-action="bring-forward">
+              <i class="fa-solid fa-arrow-up"></i>
+              Lên layer
+            </button>
+
+            <button type="button" class="sfb-mini-btn" data-sfc-action="send-backward">
+              <i class="fa-solid fa-arrow-down"></i>
+              Xuống layer
+            </button>
+
+            <button type="button" class="sfb-mini-btn" data-sfc-action="align-left">
+              <i class="fa-solid fa-align-left"></i>
+              Trái
+            </button>
+
+            <button type="button" class="sfb-mini-btn" data-sfc-action="align-center">
+              <i class="fa-solid fa-align-center"></i>
+              Giữa
+            </button>
+
+            <button type="button" class="sfb-mini-btn" data-sfc-action="align-right">
+              <i class="fa-solid fa-align-right"></i>
+              Phải
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <input
+        type="file"
+        id="sfcMediaUploadInput"
+        class="sfb-hidden"
+        accept="image/*,video/mp4,video/webm"
+      >
+    </div>
+  </div>
+
+  <div class="sfb-card sfc-card sfb-mt">
+    <div class="sfb-card-head">
+      <p class="sfb-kicker">
+        <i class="fa-solid fa-floppy-disk"></i>
+        Output
+      </p>
+
+      <h3 class="sfb-card-title">Dữ liệu canvas</h3>
+    </div>
+
+    <div class="sfb-card-body">
+      <div class="sfc-output-list">
+        <div>
+          <span>Tổng khung</span>
+          <strong id="sfcTotalFrames">0</strong>
+        </div>
+
+        <div>
+          <span>Canvas</span>
+          <strong id="sfcCanvasSizeText">1440×900</strong>
+        </div>
+
+        <div>
+          <span>Zoom</span>
+          <strong id="sfcZoomText">100%</strong>
+        </div>
+
+        <div>
+          <span>Trạng thái</span>
+          <strong id="sfcSaveStateText">Chưa lưu</strong>
+        </div>
+      </div>
+
+      <div class="sfc-mini-note">
+        <i class="fa-solid fa-circle-info"></i>
+        <p>
+          Dữ liệu sẽ được lưu vào <b>storefront.homepage_canvas</b>.
+          Sau khi thiết kế xong, bấm <b>Lưu giao diện</b> ở thanh trên.
+        </p>
+      </div>
+    </div>
+  </div>
+</aside>
+ 
+
+  </div>
+
+  <div class="sfc-preview-modal" id="sfcPreviewModal" hidden>
+    <div class="sfc-preview-backdrop" data-sfc-action="close-preview"></div>
+
+ 
+<div class="sfc-preview-dialog">
+  <div class="sfc-preview-head">
+    <div>
+      <p class="sfb-kicker">
+        <i class="fa-solid fa-eye"></i>
+        Preview
+      </p>
+
+      <h3>Xem trước Canvas Designer</h3>
+    </div>
+
+    <button type="button" class="sfb-mini-btn" data-sfc-action="close-preview">
+      <i class="fa-solid fa-xmark"></i>
+      Đóng
+    </button>
+  </div>
+
+  <div class="sfc-preview-body">
+    <div id="sfcPreviewMount" class="sfc-preview-mount"></div>
+  </div>
+</div>
+
+  </div>
+</section>

@@ -10,9 +10,9 @@
 
   {% set general_settings = system_settings.get('general', {}) if system_settings is defined and system_settings else {} %}
   {% set support_email = general_settings.get('email') %}
-  {% set display_shop_name = display_shop_name|default('MMESTLINE') %}
-  {% set admin_logo_url = admin_logo_url if admin_logo_url is defined else url_for('static', filename='images/mmestlinelogo.svg') %}
-  {% set favicon_url = favicon_url if favicon_url is defined else url_for('static', filename='images/favicon.png') %}
+  {% set display_shop_name = display_shop_name|default('GUAMAISON') %}
+  {% set admin_logo_url = admin_logo_url if admin_logo_url is defined else url_for('static', filename='images/logo.svg') %}
+  {% set favicon_url = favicon_url if favicon_url is defined else admin_logo_url %}
 
   <title>
     {% block title %}
@@ -20,7 +20,7 @@
     {% endblock %}
   </title>
 
-  <link rel="icon" href="{{ favicon_url }}" type="image/png">
+  <link rel="icon" href="{{ favicon_url }}?v=GUAMAISON-2026" type="image/svg+xml">
 
   {# Apply collapsed sớm để tránh giật layout khi reload. #}
   <script>
@@ -61,9 +61,9 @@
               mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
             },
             boxShadow: {
-              soft: '0 14px 38px -28px rgb(36 18 7 / 0.38)',
-              card: '0 12px 34px -28px rgb(36 18 7 / 0.32)',
-              float: '0 28px 80px -44px rgb(36 18 7 / 0.62)'
+              soft: '0 14px 38px -28px rgb(11 33 16 / 0.38)',
+              card: '0 12px 34px -28px rgb(11 33 16 / 0.32)',
+              float: '0 28px 80px -44px rgb(11 33 16 / 0.62)'
             }
           }
         }
@@ -79,28 +79,61 @@
     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
   >
 
-  <link rel="stylesheet" href="{{ url_for('static', filename='admin/css/mm_admin_nav.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/css/mm_admin_nav.css') }}?v=GUAMAISON-green-gold-2026">
 
   <style>
     :root {
-      --mm-brown-950: #241207;
-      --mm-brown-900: #3b2414;
-      --mm-brown-800: #4c2d18;
-      --mm-brown-700: #5f3b1e;
-      --mm-caramel: #b98b62;
-      --mm-muted: #9b7b63;
-      --mm-sand: #ead8c8;
-      --mm-cream: #fbf7f1;
-      --mm-soft: #fffaf5;
-      --mm-card: #fffdf9;
-      --mm-line: #eadfd4;
+      /* GUAMAISON MAIN THEME */
+      --gm-green: #1b4922;
+      --gm-green-950: #0b2110;
+      --gm-green-900: #123418;
+      --gm-green-800: #163c1d;
+      --gm-green-700: #1b4922;
+      --gm-green-600: #245a2b;
+
+      --gm-gold: #c99e14;
+      --gm-gold-700: #a78310;
+      --gm-gold-600: #c99e14;
+      --gm-gold-500: #d9b01d;
+      --gm-gold-soft: rgba(201, 158, 20, .16);
+      --gm-gold-softer: rgba(201, 158, 20, .08);
+
+      --gm-ink: #101510;
+      --gm-muted: #667263;
+      --gm-subtle: #8a9485;
+      --gm-paper: #fbfaf4;
+      --gm-cream: #f7f9f2;
+      --gm-soft: #ffffff;
+      --gm-card: #fffefa;
+      --gm-line: rgba(27, 73, 34, .13);
+
+      --gm-shadow-soft: 0 14px 38px -28px rgba(11, 33, 16, .38);
+      --gm-shadow-card: 0 12px 34px -28px rgba(11, 33, 16, .32);
+      --gm-shadow-float: 0 28px 80px -44px rgba(11, 33, 16, .62);
+
+      /*
+        Backward compatibility:
+        mm_admin_nav.css cũ có thể đang dùng biến brown.
+        Map các biến cũ sang green/gold để navbar đồng bộ màu.
+      */
+      --mm-brown-950: var(--gm-green-950);
+      --mm-brown-900: var(--gm-green-900);
+      --mm-brown-800: var(--gm-green-800);
+      --mm-brown-700: var(--gm-green-700);
+      --mm-caramel: var(--gm-gold);
+      --mm-muted: var(--gm-muted);
+      --mm-sand: rgba(201, 158, 20, .18);
+      --mm-cream: var(--gm-paper);
+      --mm-soft: #fffefa;
+      --mm-card: var(--gm-card);
+      --mm-line: var(--gm-line);
 
       --admin-sidebar-width: 300px;
       --admin-sidebar-mini-width: 92px;
       --admin-topbar-height: 76px;
       --admin-topbar-mobile-height: 68px;
       --admin-content-ml: var(--admin-sidebar-width);
-      --admin-bg: #fbf7f1;
+      --admin-bg: var(--gm-paper);
 
       --mm-admin-sidebar-w: var(--admin-sidebar-width);
       --mm-admin-sidebar-collapsed-w: var(--admin-sidebar-mini-width);
@@ -121,13 +154,14 @@
     body {
       min-height: 100%;
       background:
-        radial-gradient(circle at top left, rgba(185, 139, 98, 0.14), transparent 34%),
-        linear-gradient(180deg, #fbf7f1 0%, #f7eee6 52%, #fbf7f1 100%);
+        radial-gradient(circle at top left, rgba(201, 158, 20, .16), transparent 34%),
+        radial-gradient(circle at 92% 4%, rgba(27, 73, 34, .12), transparent 30%),
+        linear-gradient(180deg, #fbfaf4 0%, #f7f9f2 52%, #ffffff 100%);
     }
 
     body {
       margin: 0;
-      color: var(--mm-brown-950);
+      color: var(--gm-ink);
       font-family: "Plus Jakarta Sans", system-ui, sans-serif;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
@@ -137,25 +171,26 @@
 
     ::selection {
       color: #fff;
-      background: var(--mm-brown-800);
+      background: var(--gm-green);
     }
 
     ::-webkit-scrollbar {
-      width: 7px;
-      height: 7px;
+      width: 8px;
+      height: 8px;
     }
 
     ::-webkit-scrollbar-track {
-      background: #f8efe7;
+      background: #edf2e9;
     }
 
     ::-webkit-scrollbar-thumb {
-      background: #c9ad97;
+      background: rgba(27, 73, 34, .32);
       border-radius: 999px;
+      border: 2px solid #edf2e9;
     }
 
     ::-webkit-scrollbar-thumb:hover {
-      background: #a77e5f;
+      background: var(--gm-gold);
     }
 
     a {
@@ -183,9 +218,9 @@
     .admin-footer {
       margin-left: 0;
       transition:
-        margin-left 0.22s cubic-bezier(0.16, 1, 0.3, 1),
-        padding-top 0.2s ease,
-        background-color 0.2s ease;
+        margin-left .22s cubic-bezier(.16, 1, .3, 1),
+        padding-top .2s ease,
+        background-color .2s ease;
     }
 
     .admin-main {
@@ -210,8 +245,8 @@
     .mm-admin-sidebar {
       width: var(--admin-sidebar-width) !important;
       transition:
-        width 0.22s cubic-bezier(0.16, 1, 0.3, 1),
-        transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+        width .22s cubic-bezier(.16, 1, .3, 1),
+        transform .24s cubic-bezier(.16, 1, .3, 1);
     }
 
     body.mm-sidebar-collapsed .mm-admin-sidebar,
@@ -319,8 +354,8 @@
       opacity: 0;
       transform: translateY(18px);
       transition:
-        opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
-        transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        opacity .5s cubic-bezier(.16, 1, .3, 1),
+        transform .5s cubic-bezier(.16, 1, .3, 1);
     }
 
     .reveal.active {
@@ -330,22 +365,23 @@
 
     .card-hover {
       transition:
-        transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
-        box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1),
-        border-color 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+        transform .22s cubic-bezier(.16, 1, .3, 1),
+        box-shadow .22s cubic-bezier(.16, 1, .3, 1),
+        border-color .22s cubic-bezier(.16, 1, .3, 1);
     }
 
     .card-hover:hover {
       transform: translateY(-3px);
-      box-shadow: 0 22px 44px -34px rgb(36 18 7 / 0.42);
+      border-color: rgba(201, 158, 20, .34);
+      box-shadow: var(--gm-shadow-float);
     }
 
     .btn-admin {
       transition:
-        transform 0.16s ease,
-        box-shadow 0.16s ease,
-        background-color 0.16s ease,
-        border-color 0.16s ease;
+        transform .16s ease,
+        box-shadow .16s ease,
+        background-color .16s ease,
+        border-color .16s ease;
     }
 
     .btn-admin:hover {
@@ -353,19 +389,19 @@
     }
 
     .mm-footer-link {
-      color: var(--mm-muted);
-      font-weight: 700;
-      transition: color 0.16s ease;
+      color: var(--gm-muted);
+      font-weight: 800;
+      transition: color .16s ease;
     }
 
     .mm-footer-link:hover {
-      color: var(--mm-brown-800);
+      color: var(--gm-green);
     }
 
     .mm-toast {
-      background: rgba(255, 250, 245, 0.96);
-      border: 1px solid var(--mm-line);
-      box-shadow: 0 28px 80px -44px rgb(36 18 7 / 0.62);
+      background: rgba(255, 254, 250, .96);
+      border: 1px solid var(--gm-line);
+      box-shadow: var(--gm-shadow-float);
       backdrop-filter: blur(18px);
     }
 
@@ -374,58 +410,102 @@
     }
 
     .mm-toast-warning {
-      border-color: #fde68a;
+      border-color: rgba(201, 158, 20, .42);
     }
 
     .mm-toast-error {
       border-color: #fecdd3;
     }
 
-  .mm-skip-link {
-  position: fixed;
-  left: 16px;
-  top: 16px;
-  z-index: 10000;
+    .mm-skip-link {
+      position: fixed;
+      left: 16px;
+      top: 16px;
+      z-index: 10000;
 
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  border: 0;
-  overflow: hidden;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      border: 0;
+      overflow: hidden;
 
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-  white-space: nowrap;
+      clip: rect(0 0 0 0);
+      clip-path: inset(50%);
+      white-space: nowrap;
 
-  background: #3b2414;
-  color: #fff;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 900;
-  pointer-events: none;
-}
+      background: var(--gm-green);
+      color: #fff;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+      pointer-events: none;
+    }
 
-.mm-skip-link:focus,
-.mm-skip-link:focus-visible {
-  width: auto;
-  height: auto;
-  padding: 10px 16px;
-  overflow: visible;
+    .mm-skip-link:focus,
+    .mm-skip-link:focus-visible {
+      width: auto;
+      height: auto;
+      padding: 10px 16px;
+      overflow: visible;
 
-  clip: auto;
-  clip-path: none;
-  white-space: normal;
-  pointer-events: auto;
-  outline: 3px solid rgba(185, 139, 98, 0.35);
-}
+      clip: auto;
+      clip-path: none;
+      white-space: normal;
+      pointer-events: auto;
+      outline: 3px solid rgba(201, 158, 20, .42);
+    }
+
+    /*
+      Override nhẹ cho các component admin cũ nếu đang dùng màu nâu hardcode.
+      Giúp toàn bộ UI đồng bộ green/gold mà không cần sửa quá nhiều file con.
+    */
+    .text-\[\#241207\],
+    .text-\[\#3b2414\],
+    .text-\[\#4c2d18\],
+    .text-\[\#5f3b1e\] {
+      color: var(--gm-green-950) !important;
+    }
+
+    .text-\[\#9b7b63\],
+    .text-\[\#9a7a62\] {
+      color: var(--gm-muted) !important;
+    }
+
+    .text-\[\#b98b62\],
+    .text-\[\#b98558\],
+    .text-\[\#9a5a2f\] {
+      color: var(--gm-gold) !important;
+    }
+
+    .bg-\[\#3b2414\],
+    .bg-\[\#4c2d18\],
+    .bg-\[\#5f3b1e\],
+    .bg-\[\#3b1d0f\] {
+      background-color: var(--gm-green) !important;
+    }
+
+    .bg-\[\#b98b62\],
+    .bg-\[\#b98558\] {
+      background-color: var(--gm-gold) !important;
+    }
+
+    .bg-\[\#fbf7f1\],
+    .bg-\[\#fffaf5\],
+    .bg-\[\#fffdf9\] {
+      background-color: var(--gm-card) !important;
+    }
+
+    .border-\[\#eadfd4\] {
+      border-color: var(--gm-line) !important;
+    }
 
     @media (prefers-reduced-motion: reduce) {
       *,
       *::before,
       *::after {
         scroll-behavior: auto !important;
-        transition-duration: 0.01ms !important;
-        animation-duration: 0.01ms !important;
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important;
         animation-iteration-count: 1 !important;
       }
     }
@@ -439,9 +519,9 @@
   data-admin-logo="{{ admin_logo_url }}"
   data-shop-name="{{ display_shop_name }}"
 >
- <a href="#adminContent" class="mm-skip-link" aria-label="Bỏ qua menu và vào nội dung chính">
-  Bỏ qua menu và vào nội dung
-</a>
+  <a href="#adminContent" class="mm-skip-link" aria-label="Bỏ qua menu và vào nội dung chính">
+    Bỏ qua menu và vào nội dung
+  </a>
 
   {% include "admin/admin_navbar.html" %}
 
@@ -457,12 +537,12 @@
 
   <footer
     id="adminFooter"
-    class="admin-footer border-t border-[#eadfd4] bg-[#fffaf5]/86 backdrop-blur-xl mt-auto"
+    class="admin-footer border-t border-[var(--gm-line)] bg-white/86 backdrop-blur-xl mt-auto"
   >
     <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 text-xs">
 
-        <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 text-[#9b7b63]">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 text-[var(--gm-muted)]">
           <div class="inline-flex items-center gap-2">
             <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
             <span class="font-bold">
@@ -473,9 +553,9 @@
           {% if pending_returns is defined and pending_returns > 0 %}
           <a
             href="{{ url_for('admin.return_requests', status='pending') }}"
-            class="inline-flex items-center gap-1.5 text-[#9a5a2f] font-extrabold hover:text-[#5f3b1e] transition-colors"
+            class="inline-flex items-center gap-1.5 text-[var(--gm-gold)] font-extrabold hover:text-[var(--gm-green)] transition-colors"
           >
-            <span class="flex h-2 w-2 rounded-full bg-[#b98b62] animate-pulse"></span>
+            <span class="flex h-2 w-2 rounded-full bg-[var(--gm-gold)] animate-pulse"></span>
             {{ pending_returns }} yêu cầu đổi/trả chờ duyệt
           </a>
           {% endif %}
@@ -483,7 +563,7 @@
           {% if admin_notification_count is defined and admin_notification_count > 0 %}
           <a
             href="{{ url_for('admin.notifications_index') }}"
-            class="inline-flex items-center gap-1.5 text-[#5f3b1e] font-extrabold hover:text-[#241207] transition-colors"
+            class="inline-flex items-center gap-1.5 text-[var(--gm-green)] font-extrabold hover:text-[var(--gm-green-950)] transition-colors"
           >
             <i class="fa-solid fa-bell text-[10px]"></i>
             {{ admin_notification_count }} thông báo đang bật
@@ -491,16 +571,16 @@
           {% endif %}
         </div>
 
-        <p class="text-[#9b7b63]">
+        <p class="text-[var(--gm-muted)]">
           © 2026
-          <span class="font-extrabold text-[#3b2414]">
+          <span class="font-extrabold text-[var(--gm-green-950)]">
             {{ display_shop_name }}
           </span>.
           Phát triển bởi
-          <span class="font-semibold text-[#5f3b1e]">Lê Trần Đăng Khoa</span>
+          <span class="font-semibold text-[var(--gm-green)]">Lê Trần Đăng Khoa</span>
         </p>
 
-        <div class="text-[#9b7b63] flex items-center gap-4 sm:gap-5">
+        <div class="text-[var(--gm-muted)] flex items-center gap-4 sm:gap-5">
           {% if support_email %}
             <a href="mailto:{{ support_email }}" class="mm-footer-link">
               Hỗ trợ
@@ -533,7 +613,7 @@
         {% for category, message in messages %}
           {% set is_success = category == 'success' %}
           {% set is_warning = category in ['warning', 'info'] %}
-          {% set icon = 'fa-circle-check text-emerald-500' if is_success else ('fa-circle-info text-amber-500' if is_warning else 'fa-circle-exclamation text-rose-500') %}
+          {% set icon = 'fa-circle-check text-emerald-500' if is_success else ('fa-circle-info text-[var(--gm-gold)]' if is_warning else 'fa-circle-exclamation text-rose-500') %}
           {% set toast_type = 'mm-toast-success' if is_success else ('mm-toast-warning' if is_warning else 'mm-toast-error') %}
 
           <div
@@ -541,12 +621,12 @@
             role="status"
             aria-live="polite"
           >
-            <div class="w-9 h-9 rounded-2xl bg-[#fbf4ed] flex items-center justify-center shrink-0">
+            <div class="w-9 h-9 rounded-2xl bg-[var(--gm-gold-softer)] flex items-center justify-center shrink-0">
               <i class="fa-solid {{ icon }} text-lg"></i>
             </div>
 
             <div class="min-w-0 flex-1 pt-0.5">
-              <p class="text-sm font-extrabold text-[#3b2414] leading-snug">
+              <p class="text-sm font-extrabold text-[var(--gm-green-950)] leading-snug">
                 {{ message }}
               </p>
             </div>
@@ -554,7 +634,7 @@
             <button
               type="button"
               onclick="this.closest('.mm-admin-toast').remove()"
-              class="w-7 h-7 flex items-center justify-center text-[#9b7b63] hover:bg-[#f6eee7] hover:text-[#3b2414] rounded-full transition-colors shrink-0"
+              class="w-7 h-7 flex items-center justify-center text-[var(--gm-muted)] hover:bg-[var(--gm-gold-softer)] hover:text-[var(--gm-green)] rounded-full transition-colors shrink-0"
               aria-label="Đóng thông báo"
             >
               <i class="fa-solid fa-xmark text-sm"></i>
@@ -639,17 +719,17 @@
         initToasts();
         initReveal();
 
-        var shopName = document.body.getAttribute("data-shop-name") || "MMESTLINE";
+        var shopName = document.body.getAttribute("data-shop-name") || "GUAMAISON";
 
         console.log(
           "%c" + shopName + " Admin Dashboard loaded",
-          "color:#5f3b1e;font-weight:800;"
+          "color:#1b4922;font-weight:900;"
         );
       });
     })();
   </script>
 
-  <script src="{{ url_for('static', filename='admin/js/mm_admin_nav.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='admin/js/mm_admin_nav.js') }}?v=GUAMAISON-green-gold-2026" defer></script>
 
   {% block extra_scripts %}{% endblock %}
 </body>

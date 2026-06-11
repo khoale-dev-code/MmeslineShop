@@ -2,13 +2,13 @@
 
 {% block title %}
   {% if keyword %}
-    {{ keyword }} — MMESTLINE
+    {{ keyword }} — GUAMAISON
   {% elif category %}
-    {{ category|replace('-', ' ')|title }} — MMESTLINE
+    {{ category|replace('-', ' ')|title }} — GUAMAISON
   {% elif collection %}
-    {{ collection|replace('-', ' ')|title }} — MMESTLINE
+    {{ collection|replace('-', ' ')|title }} — GUAMAISON
   {% else %}
-    Shop All — MMESTLINE
+    Shop All — GUAMAISON
   {% endif %}
 {% endblock %}
 
@@ -529,7 +529,7 @@
     {% else %}
       <img
         src="{{ shop_banner }}"
-        alt="MMESTLINE Campaign"
+        alt="GUAMAISON Campaign"
         width="1920"
         height="1080"
         loading="eager"
@@ -540,7 +540,7 @@
 
     <div class="mm-hero-inner">
       <div>
-        <p class="mm-kicker">MMESTLINE — Official Store</p>
+        <p class="mm-kicker">GUAMAISON — Official Store</p>
 
         <h1 class="mm-title">
           {% if keyword %}
@@ -654,7 +654,7 @@
             {% set _ = imgs.insert(0, product.thumbnail_url) %}
           {% endif %}
 
-          {% set img1 = imgs[0] if imgs else 'https://placehold.co/800x1067/f4ece5/241207?text=MMESTLINE' %}
+          {% set img1 = imgs[0] if imgs else 'https://placehold.co/800x1067/f4ece5/241207?text=GUAMAISON' %}
           {% set img2 = imgs[1] if imgs|length > 1 else img1 %}
 
           {% set category_names = [] %}
@@ -687,7 +687,7 @@
             {% endif %}
           {% endif %}
 
-          {% set display_cat = category_names[0] if category_names else 'MMESTLINE' %}
+          {% set display_cat = category_names[0] if category_names else 'GUAMAISON' %}
 
           {% set size_list = [] %}
           {% set color_list = [] %}
@@ -983,7 +983,7 @@
 
       <div class="mm-qv-content">
         <div class="mm-qv-main-info">
-          <p id="qvCat" class="mm-qv-kicker">MMESTLINE</p>
+          <p id="qvCat" class="mm-qv-kicker">GUAMAISON</p>
 
           <h2 id="qvTitle" class="mm-qv-title"></h2>
 

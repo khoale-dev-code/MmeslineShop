@@ -1,13 +1,13 @@
 """
 app/services/email_service.py
 =============================
-MMESTLINE Email Service
+GUAMAISON Email Service
 
 Gửi email qua Gmail SMTP hoặc SMTP server tùy cấu hình.
 
 Yêu cầu .env:
     MAIL_SENDER_EMAIL=your_email@gmail.com
-    MAIL_SENDER_NAME=MMESTLINE
+    MAIL_SENDER_NAME=GUAMAISON
     MAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx
     MAIL_SMTP_HOST=smtp.gmail.com
     MAIL_SMTP_PORT=587
@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 # CONFIG
 # ═══════════════════════════════════════════════════════════════
 
-BRAND_NAME = "MMESTLINE"
+BRAND_NAME = "GUAMAISON"
 BRAND_GREEN = "#1b4922"
 BRAND_GREEN_DARK = "#123418"
 BRAND_GOLD = "#c99e14"
@@ -212,7 +212,7 @@ def _build_email_shell(
                 <tr>
                   <td>
                     <p style="margin:0 0 5px;font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:900;letter-spacing:.22em;text-transform:uppercase;color:{BRAND_GREEN};">
-                      MMESTLINE
+                      GUAMAISON
                     </p>
 
                     <p style="margin:0 0 4px;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:600;color:{BRAND_MUTED};line-height:1.6;">
@@ -220,7 +220,7 @@ def _build_email_shell(
                     </p>
 
                     <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:700;color:rgba(27,73,34,.42);">
-                      &copy; 2026 MMESTLINE. All rights reserved.
+                      &copy; 2026 GUAMAISON. All rights reserved.
                     </p>
                   </td>
 
@@ -263,7 +263,7 @@ def _build_reset_email_html(first_name: str, reset_link: str) -> str:
           </p>
 
           <p style="margin:0 0 30px;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:500;color:{BRAND_MUTED};line-height:1.85;">
-            MMESTLINE nhận được yêu cầu đặt lại mật khẩu cho tài khoản gắn với địa chỉ email này.
+            GUAMAISON nhận được yêu cầu đặt lại mật khẩu cho tài khoản gắn với địa chỉ email này.
             Nhấn vào nút bên dưới để thiết lập mật khẩu mới.
           </p>
 
@@ -301,18 +301,18 @@ def _build_reset_email_html(first_name: str, reset_link: str) -> str:
     """
 
     return _build_email_shell(
-        title="Khôi phục mật khẩu – MMESTLINE",
-        preheader="Đặt lại mật khẩu MMESTLINE của bạn. Liên kết hết hạn sau 1 giờ.",
+        title="Khôi phục mật khẩu – GUAMAISON",
+        preheader="Đặt lại mật khẩu GUAMAISON của bạn. Liên kết hết hạn sau 1 giờ.",
         body_html=body_html,
     )
 
 
 def _build_reset_email_text(first_name: str, reset_link: str) -> str:
-    return f"""MMESTLINE - Khôi phục mật khẩu
+    return f"""GUAMAISON - Khôi phục mật khẩu
 
 Xin chào {first_name},
 
-MMESTLINE nhận được yêu cầu đặt lại mật khẩu cho tài khoản gắn với email này.
+GUAMAISON nhận được yêu cầu đặt lại mật khẩu cho tài khoản gắn với email này.
 
 Bạn có thể đặt lại mật khẩu tại liên kết sau:
 {reset_link}
@@ -320,7 +320,7 @@ Bạn có thể đặt lại mật khẩu tại liên kết sau:
 Lưu ý: Liên kết này sẽ hết hạn sau 1 giờ.
 Nếu bạn không thực hiện yêu cầu này, hãy bỏ qua email này.
 
-MMESTLINE
+GUAMAISON
 Email tự động — vui lòng không trả lời email này.
 """
 
@@ -439,7 +439,7 @@ def send_password_reset_email(
 
     first_name = _first_name(recipient_name)
 
-    subject = "[MMESTLINE] Khôi phục mật khẩu của bạn"
+    subject = "[GUAMAISON] Khôi phục mật khẩu của bạn"
     html_body = _build_reset_email_html(first_name, reset_link)
     text_body = _build_reset_email_text(first_name, reset_link)
 
@@ -457,8 +457,8 @@ def send_test_email(recipient_email: str) -> bool:
     Có thể dùng trong debug/admin.
     """
     body_html = _build_email_shell(
-        title="Kiểm tra email – MMESTLINE",
-        preheader="Email kiểm tra cấu hình SMTP MMESTLINE.",
+        title="Kiểm tra email – GUAMAISON",
+        preheader="Email kiểm tra cấu hình SMTP GUAMAISON.",
         body_html=f"""
           <tr>
             <td style="padding:38px 34px;background:#ffffff;">
@@ -471,22 +471,22 @@ def send_test_email(recipient_email: str) -> bool:
               </h1>
 
               <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:600;color:{BRAND_MUTED};line-height:1.8;">
-                Nếu bạn nhận được email này, cấu hình SMTP của MMESTLINE đang hoạt động bình thường.
+                Nếu bạn nhận được email này, cấu hình SMTP của GUAMAISON đang hoạt động bình thường.
               </p>
             </td>
           </tr>
         """,
     )
 
-    body_text = """MMESTLINE SMTP Test
+    body_text = """GUAMAISON SMTP Test
 
 Email service hoạt động.
-Nếu bạn nhận được email này, cấu hình SMTP của MMESTLINE đang hoạt động bình thường.
+Nếu bạn nhận được email này, cấu hình SMTP của GUAMAISON đang hoạt động bình thường.
 """
 
     return _send_email(
         recipient_email=recipient_email,
-        subject="[MMESTLINE] Kiểm tra cấu hình email",
+        subject="[GUAMAISON] Kiểm tra cấu hình email",
         html_body=body_html,
         text_body=body_text,
     )

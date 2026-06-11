@@ -43,16 +43,6 @@
       <em class="fa-solid fa-arrow-up-right-from-square"></em>
     </a>
 
-    <a href="{{ url_for('admin.notifications_index') }}" data-nav data-prefetch class="mm-dropdown-item">
-      <span>
-        <i class="fa-solid fa-bell"></i>
-      </span>
-      <strong>Thông báo quản trị</strong>
-
-      {% if admin_notification_count > 0 %}
-      <b>{{ admin_notification_count if admin_notification_count < 100 else '99+' }}</b>
-      {% endif %}
-    </a>
 
     <div class="mm-dropdown-line"></div>
 

@@ -1,7 +1,7 @@
 """
 app/controllers/ai_controller.py
 ================================
-MMESTLINE – Styling Lab / Outfit Recommendation API
+GUAMAISON – Styling Lab / Outfit Recommendation API
 
 Endpoints:
 - GET  /styling-lab
@@ -81,7 +81,7 @@ _SHAPE_AFFINITY: dict[str, list[float]] = {
     "hourglass": [0.80, 0.95, 0.75, 0.90],
 }
 
-_PLACEHOLDER_IMG = "https://placehold.co/600x800/f7f9f2/1b4922?text=MMESTLINE"
+_PLACEHOLDER_IMG = "https://placehold.co/600x800/f7f9f2/1b4922?text=GUAMAISON"
 
 _SUPABASE_CACHE: dict[str, tuple[float, list[dict[str, Any]]]] = {}
 _CACHE_TTL = 60
@@ -340,7 +340,7 @@ def _analyze_image(image_b64: str) -> dict[str, Any] | None:
     engine_url = current_app.config.get("AI_ENGINE_URL", "")
 
     if not engine_url:
-        logger.info("[MMESTLINE AI] AI_ENGINE_URL chưa cấu hình, bỏ qua phân tích ảnh.")
+        logger.info("[GUAMAISON AI] AI_ENGINE_URL chưa cấu hình, bỏ qua phân tích ảnh.")
         return None
 
     clean_b64 = _strip_data_uri(image_b64)
@@ -357,13 +357,13 @@ def _analyze_image(image_b64: str) -> dict[str, Any] | None:
         )
 
         if resp.status_code != 200:
-            logger.warning("[MMESTLINE AI] /analyze-style HTTP %s: %s", resp.status_code, resp.text[:300])
+            logger.warning("[GUAMAISON AI] /analyze-style HTTP %s: %s", resp.status_code, resp.text[:300])
             return None
 
         result = resp.json() or {}
 
         logger.info(
-            "[MMESTLINE AI] analyze-style OK shape=%s vibe=%s conf=%s",
+            "[GUAMAISON AI] analyze-style OK shape=%s vibe=%s conf=%s",
             (result.get("body") or {}).get("shape"),
             result.get("suggested_vibe"),
             result.get("confidence"),
@@ -372,11 +372,11 @@ def _analyze_image(image_b64: str) -> dict[str, Any] | None:
         return result
 
     except requests.exceptions.Timeout:
-        logger.warning("[MMESTLINE AI] /analyze-style timeout.")
+        logger.warning("[GUAMAISON AI] /analyze-style timeout.")
         return None
 
     except Exception as e:
-        logger.error("[MMESTLINE AI] Lỗi analyze-style: %s", e, exc_info=True)
+        logger.error("[GUAMAISON AI] Lỗi analyze-style: %s", e, exc_info=True)
         return None
 
 
@@ -450,7 +450,7 @@ def _get_category_name(product: dict[str, Any]) -> str:
     category = product.get("categories") or product.get("category")
 
     if isinstance(category, dict):
-        return category.get("name") or category.get("label") or "MMESTLINE"
+        return category.get("name") or category.get("label") or "GUAMAISON"
 
     if isinstance(category, str):
         return category
@@ -459,7 +459,7 @@ def _get_category_name(product: dict[str, Any]) -> str:
     if isinstance(category_list, list) and category_list:
         first = category_list[0]
         if isinstance(first, dict):
-            return first.get("name") or "MMESTLINE"
+            return first.get("name") or "GUAMAISON"
 
     product_categories = product.get("product_categories") or []
     if isinstance(product_categories, list) and product_categories:
@@ -467,9 +467,9 @@ def _get_category_name(product: dict[str, Any]) -> str:
         if isinstance(first_row, dict):
             nested = first_row.get("categories")
             if isinstance(nested, dict):
-                return nested.get("name") or "MMESTLINE"
+                return nested.get("name") or "GUAMAISON"
 
-    return "MMESTLINE"
+    return "GUAMAISON"
 
 
 def _short_reason(product: dict[str, Any], vibe: str) -> str:
@@ -517,7 +517,7 @@ def _normalise_product(
 
     return {
         "id": str(product.get("id") or ""),
-        "name": str(product.get("name") or "Sản phẩm MMESTLINE"),
+        "name": str(product.get("name") or "Sản phẩm GUAMAISON"),
         "category": category_name,
         "price": price,
         "match_score": score,
@@ -546,7 +546,7 @@ def _query_products_by_slug(slug: str) -> list[dict[str, Any]]:
     except TypeError:
         pass
     except Exception as e:
-        logger.warning("[MMESTLINE AI] get_all category_slug=%s lỗi: %s", slug, e)
+        logger.warning("[GUAMAISON AI] get_all category_slug=%s lỗi: %s", slug, e)
 
     try:
         result = ProductModel.get_all(
@@ -558,7 +558,7 @@ def _query_products_by_slug(slug: str) -> list[dict[str, Any]]:
     except TypeError:
         pass
     except Exception as e:
-        logger.warning("[MMESTLINE AI] get_all category=%s lỗi: %s", slug, e)
+        logger.warning("[GUAMAISON AI] get_all category=%s lỗi: %s", slug, e)
 
     try:
         result = ProductModel.get_all(
@@ -597,7 +597,7 @@ def _query_products_by_slug(slug: str) -> list[dict[str, Any]]:
         return filtered
 
     except Exception as e:
-        logger.error("[MMESTLINE AI] fallback get_all lỗi: %s", e, exc_info=True)
+        logger.error("[GUAMAISON AI] fallback get_all lỗi: %s", e, exc_info=True)
         return []
 
 
@@ -627,7 +627,7 @@ def _fetch_supabase(vibe: str) -> list[dict[str, Any]]:
 
             collected.append(item)
 
-        logger.info("[MMESTLINE AI] vibe=%s slug=%s -> %d sản phẩm", vibe, slug, len(items))
+        logger.info("[GUAMAISON AI] vibe=%s slug=%s -> %d sản phẩm", vibe, slug, len(items))
 
         if len(collected) >= 8:
             break
@@ -711,7 +711,7 @@ def styling_lab_page():
 def recommend_outfit_health():
     return jsonify({
         "status": "online",
-        "service": "MMESTLINE Styling Lab",
+        "service": "GUAMAISON Styling Lab",
         "endpoint": "/api/recommend_outfit",
         "vibes": list(STYLE_PROFILES.keys()),
         "ai_engine_configured": bool(current_app.config.get("AI_ENGINE_URL")),
@@ -779,7 +779,7 @@ def recommend_outfit():
         }), 200
 
     except Exception as e:
-        logger.error("[MMESTLINE AI] recommend_outfit lỗi: %s", e, exc_info=True)
+        logger.error("[GUAMAISON AI] recommend_outfit lỗi: %s", e, exc_info=True)
 
         return _response_error(
             "Không thể xử lý yêu cầu. Vui lòng thử lại sau.",

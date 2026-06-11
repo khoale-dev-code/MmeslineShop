@@ -1,5 +1,5 @@
 {% extends "admin/admin_base.html" %}
-{% block title %}Chi tiết đơn #{{ order.code or order.id[:8]|upper }} | MMESTLINE Admin{% endblock %}
+{% block title %}Chi tiết đơn #{{ order.code or order.id[:8]|upper }} | GUAMAISON Admin{% endblock %}
 
 {% block content %}
 
@@ -307,7 +307,7 @@
 
   {# Print Header #}
   <section class="mm-print-only">
-    <h1 style="font-size: 24px; font-weight: 800;">MMESTLINE - HÓA ĐƠN #{{ order_code }}</h1>
+    <h1 style="font-size: 24px; font-weight: 800;">GUAMAISON - HÓA ĐƠN #{{ order_code }}</h1>
     <p>Ngày tạo: {{ order.created_at[:16].replace('T', ' ') if order.created_at else '' }}</p>
   </section>
 

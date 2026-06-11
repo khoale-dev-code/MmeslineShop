@@ -398,7 +398,7 @@ def vnpay_return():
 
             _safe_clear_cart(order_user_id or session.get("user_id"))
 
-            flash("🎉 Thanh toán thành công! Cảm ơn bạn đã ủng hộ MMESTLINE.", "success")
+            flash("🎉 Thanh toán thành công! Cảm ơn bạn đã ủng hộ GUAMAISON.", "success")
             return _safe_redirect_success(order_id)
 
         # VNPay failed/cancelled.

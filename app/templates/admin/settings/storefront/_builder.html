@@ -1,0 +1,328 @@
+{# app/templates/admin/settings/storefront/_builder.html #}
+
+<section class="sfb-panel" data-sfb-panel="layout" hidden>
+  <div class="sfb-builder-intro">
+    <div>
+      <p class="sfb-kicker">
+        <i class="fa-solid fa-grip"></i>
+        Builder Workspace
+      </p>
+
+      <h3>Dựng bố cục trang chủ bằng block</h3>
+
+      <p>
+        Chọn module bên trái, thêm vào canvas ở giữa, sau đó chỉnh nội dung ở panel bên phải.
+        Mỗi block là một instance độc lập nên có thể thêm nhiều Hero, nhiều Banner, nhiều Lưới ảnh hoặc nhiều nhóm Sản phẩm.
+      </p>
+    </div>
+
+    <div class="sfb-builder-intro-actions">
+      <button type="button" class="sfb-mini-btn" data-sfb-action="toggle-all">
+        <i class="fa-solid fa-eye"></i>
+        Bật/tắt tất cả
+      </button>
+
+      <button type="button" class="sfb-mini-btn" data-sfb-action="reset-layout">
+        <i class="fa-solid fa-arrow-rotate-left"></i>
+        Mẫu mặc định
+      </button>
+
+      <button type="button" class="sfb-mini-btn sfb-mini-danger" data-sfb-action="clear-layout">
+        <i class="fa-solid fa-broom"></i>
+        Xóa canvas
+      </button>
+    </div>
+  </div>
+
+  <div class="sfb-builder-grid sfb-builder-grid-upgraded">
+
+    <aside class="sfb-side-sticky">
+      <div class="sfb-card sfb-builder-panel">
+        <div class="sfb-card-head">
+          <div class="sfb-panel-title-row">
+            <div>
+              <p class="sfb-kicker">
+                <i class="fa-solid fa-cubes"></i>
+                Module Library
+              </p>
+
+              <h3 class="sfb-card-title">Thư viện block</h3>
+
+              <p class="sfb-desc">
+                Bấm dấu cộng để thêm block. Có thể thêm nhiều block cùng loại như Shopee.
+              </p>
+            </div>
+
+            <div class="sfb-panel-badge">
+              <i class="fa-solid fa-plus"></i>
+              Add
+            </div>
+          </div>
+        </div>
+
+        <div class="sfb-card-body">
+          <div class="sfb-builder-help-box">
+            <i class="fa-solid fa-circle-info"></i>
+            <div>
+              <strong>Cách dùng</strong>
+              <p>
+                Chọn block phù hợp: Hero cho banner lớn, Product Grid cho sản phẩm,
+                Image Grid cho nhiều ảnh kéo thả, CTA cho kêu gọi hành động.
+              </p>
+            </div>
+          </div>
+
+          <div class="sfb-module-category-list">
+            <span><i class="fa-solid fa-panorama"></i> Hero</span>
+            <span><i class="fa-solid fa-image"></i> Banner</span>
+            <span><i class="fa-solid fa-shirt"></i> Product</span>
+            <span><i class="fa-solid fa-border-all"></i> Image Grid</span>
+          </div>
+
+          <div class="sfb-module-list" id="sfbModuleList"></div>
+
+          <div class="sfb-builder-mini-guide">
+            <div>
+              <i class="fa-solid fa-copy"></i>
+              <span>Nhân bản block để tạo nhanh bố cục giống nhau.</span>
+            </div>
+
+            <div>
+              <i class="fa-solid fa-eye-slash"></i>
+              <span>Tắt block để ẩn khỏi trang chủ nhưng không mất dữ liệu.</span>
+            </div>
+
+            <div>
+              <i class="fa-solid fa-arrows-up-down"></i>
+              <span>Kéo thả để thay đổi vị trí hiển thị.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="sfb-card sfb-builder-panel">
+        <div class="sfb-card-head">
+          <div class="sfb-card-head-row">
+            <div>
+              <p class="sfb-kicker">
+                <i class="fa-solid fa-window-maximize"></i>
+                Canvas
+              </p>
+
+              <h3 class="sfb-card-title">Bố cục trang chủ</h3>
+
+              <p class="sfb-desc">
+                Đây là thứ tự thật sẽ được lưu vào <b>storefront.homepage_layout</b>.
+                Block nằm trên sẽ hiển thị trước ngoài trang chủ.
+              </p>
+            </div>
+
+            <div class="sfb-canvas-tools">
+              <button type="button" class="sfb-mini-btn" data-sfb-action="toggle-all">
+                <i class="fa-solid fa-eye"></i>
+                Bật/tắt
+              </button>
+
+              <button type="button" class="sfb-mini-btn" data-sfb-action="reset-layout">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                Reset mẫu
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="sfb-card-body">
+          <div class="sfb-canvas-status">
+            <div>
+              <i class="fa-solid fa-arrow-down-wide-short"></i>
+              <span>Kéo grip để đổi thứ tự block</span>
+            </div>
+
+            <div>
+              <i class="fa-solid fa-toggle-on"></i>
+              <span>Dùng công tắc để bật/tắt block</span>
+            </div>
+
+            <div>
+              <i class="fa-solid fa-sliders"></i>
+              <span>Chọn block để chỉnh chi tiết bên phải</span>
+            </div>
+          </div>
+
+          <div class="sfb-canvas-frame">
+            <div class="sfb-canvas-ruler">
+              <span>Top</span>
+              <span>Homepage layout</span>
+              <span>Bottom</span>
+            </div>
+
+            <div class="sfb-canvas" id="sfbCanvas"></div>
+          </div>
+
+          <div class="sfb-layout-suggestions">
+            <p class="sfb-kicker">
+              <i class="fa-solid fa-lightbulb"></i>
+              Gợi ý bố cục
+            </p>
+
+            <div class="sfb-layout-suggestion-list">
+              <span>Hero → Product Grid → Banner → Image Grid → CTA</span>
+              <span>Hero → Hero mini → Sale Products → Video → Benefits</span>
+              <span>Campaign Banner → Product Grid → Split Banner → Collection</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sfb-card sfb-mt sfb-builder-panel">
+        <div class="sfb-card-head">
+          <p class="sfb-kicker">
+            <i class="fa-solid fa-list-check"></i>
+            Checklist
+          </p>
+
+          <h3 class="sfb-card-title">Kiểm tra trước khi lưu</h3>
+        </div>
+
+        <div class="sfb-card-body">
+          <div class="sfb-builder-checklist">
+            <div>
+              <i class="fa-solid fa-check"></i>
+              <p>Hero đầu trang đã có ảnh/video rõ nét và link đúng.</p>
+            </div>
+
+            <div>
+              <i class="fa-solid fa-check"></i>
+              <p>Block sản phẩm đã chọn đúng nguồn: featured, latest, sale hoặc manual.</p>
+            </div>
+
+            <div>
+              <i class="fa-solid fa-check"></i>
+              <p>Lưới ảnh đã chỉnh đúng số cột desktop/tablet/mobile.</p>
+            </div>
+
+            <div>
+              <i class="fa-solid fa-check"></i>
+              <p>Các banner đều có link về sản phẩm, collection hoặc trang shop.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <aside class="sfb-side-sticky">
+      <div class="sfb-card sfb-builder-panel">
+        <div class="sfb-card-head">
+          <div class="sfb-panel-title-row">
+            <div>
+              <p class="sfb-kicker">
+                <i class="fa-solid fa-sliders"></i>
+                Properties
+              </p>
+
+              <h3 class="sfb-card-title">Chỉnh block đang chọn</h3>
+
+              <p class="sfb-desc">
+                Panel này thay đổi theo từng loại block: Hero, Product Grid, Image Grid, Banner, Video hoặc CTA.
+              </p>
+            </div>
+
+            <div class="sfb-panel-badge">
+              <i class="fa-solid fa-pen-to-square"></i>
+              Edit
+            </div>
+          </div>
+        </div>
+
+        <div class="sfb-card-body">
+          <div id="sfbProperties">
+            <div class="sfb-empty-canvas sfb-properties-empty">
+              <div>
+                <i class="fa-solid fa-hand-pointer sfb-empty-icon"></i>
+                <p>Chọn một block trong canvas</p>
+                <small>
+                  Sau khi chọn, bạn có thể chỉnh tiêu đề, media, link, số sản phẩm,
+                  số cột, tỉ lệ ảnh và các cấu hình riêng của block.
+                </small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sfb-card sfb-mt sfb-builder-panel">
+        <div class="sfb-card-head">
+          <div class="sfb-panel-title-row">
+            <div>
+              <p class="sfb-kicker">
+                <i class="fa-solid fa-mobile-screen-button"></i>
+                Mobile Preview
+              </p>
+
+              <h3 class="sfb-card-title">Thứ tự trên mobile</h3>
+
+              <p class="sfb-desc">
+                Xem nhanh thứ tự block khi khách truy cập bằng điện thoại.
+              </p>
+            </div>
+
+            <div class="sfb-panel-badge">
+              <i class="fa-solid fa-mobile-screen"></i>
+              Preview
+            </div>
+          </div>
+        </div>
+
+        <div class="sfb-card-body">
+          <div class="sfb-phone-wrap">
+            <div class="sfb-phone">
+              <div class="sfb-phone-top">
+                <span></span>
+              </div>
+
+              <div class="sfb-phone-screen" id="sfbPhonePreview"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sfb-card sfb-mt sfb-builder-panel">
+        <div class="sfb-card-head">
+          <p class="sfb-kicker">
+            <i class="fa-solid fa-circle-question"></i>
+            Ghi nhớ
+          </p>
+
+          <h3 class="sfb-card-title">Nguyên tắc dựng layout</h3>
+        </div>
+
+        <div class="sfb-card-body">
+          <div class="sfb-builder-rules">
+            <div>
+              <span>01</span>
+              <p>Không nên để quá nhiều Hero liên tiếp nếu ảnh quá cao.</p>
+            </div>
+
+            <div>
+              <span>02</span>
+              <p>Nên xen kẽ Banner và Product Grid để tăng khả năng mua hàng.</p>
+            </div>
+
+            <div>
+              <span>03</span>
+              <p>Lưới ảnh nên dùng ảnh cùng tone màu để giao diện chuyên nghiệp hơn.</p>
+            </div>
+
+            <div>
+              <span>04</span>
+              <p>Trước khi rời trang, luôn bấm Lưu giao diện.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+</section>

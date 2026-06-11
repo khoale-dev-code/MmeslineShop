@@ -1,5 +1,5 @@
 {% extends "admin/admin_base.html" %}
-{% block title %}Sản phẩm | MMESTLINE Admin{% endblock %}
+{% block title %}Sản phẩm | GUAMAISON Admin{% endblock %}
 
 {% block extra_head %}
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -9,23 +9,317 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
 
 <style>
-  .no-scrollbar::-webkit-scrollbar { display: none; }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  :root {
+    --gua-green: #1b4922;
+    --gua-green-950: #0b2110;
+    --gua-green-900: #123418;
+    --gua-gold: #c99e14;
+    --gua-gold-600: #d8ad1d;
+    --gua-paper: #fbfaf4;
+    --gua-card: #fffefa;
+    --gua-line: rgba(27, 73, 34, .14);
+    --gua-muted: #667263;
+    --gua-ink: #101510;
+    --gua-green-soft: rgba(27, 73, 34, .08);
+    --gua-gold-soft: rgba(201, 158, 20, .16);
+    --gua-shadow: 0 20px 58px -44px rgba(11, 33, 16, .58);
+    --gua-shadow-lg: 0 28px 76px -48px rgba(11, 33, 16, .76);
+    --gua-ease: cubic-bezier(.16, 1, .3, 1);
+  }
 
-  .mm-line-clamp-1 {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .mm-line-clamp-1,
+  .mm-line-clamp-2 {
     display: -webkit-box;
-    -webkit-line-clamp: 1;
-    line-clamp: 1;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
 
+  .mm-line-clamp-1 {
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+  }
+
   .mm-line-clamp-2 {
-    display: -webkit-box;
     -webkit-line-clamp: 2;
     line-clamp: 2;
-    -webkit-box-orient: vertical;
+  }
+
+  .gua-products-page {
+    color: var(--gua-ink);
+  }
+
+  .gua-hero {
+    position: relative;
     overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 34px;
+    background:
+      radial-gradient(circle at 12% 14%, rgba(201, 158, 20, .34), transparent 30%),
+      radial-gradient(circle at 92% 8%, rgba(255, 255, 255, .16), transparent 26%),
+      linear-gradient(135deg, #0b2110 0%, #123418 46%, #1b4922 100%);
+    color: #fff;
+    box-shadow: 0 34px 90px -56px rgba(11, 33, 16, .92);
+  }
+
+  .gua-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: .16;
+    background-image:
+      linear-gradient(rgba(255,255,255,.10) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.10) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: linear-gradient(to bottom, black, transparent 88%);
+    pointer-events: none;
+  }
+
+  .gua-hero::after {
+    content: "";
+    position: absolute;
+    right: -130px;
+    bottom: -170px;
+    width: 380px;
+    height: 380px;
+    border-radius: 999px;
+    background: rgba(201, 158, 20, .22);
+    filter: blur(22px);
+    pointer-events: none;
+  }
+
+  .gua-card {
+    border: 1px solid var(--gua-line);
+    border-radius: 28px;
+    background: rgba(255, 255, 255, .94);
+    box-shadow: var(--gua-shadow);
+    backdrop-filter: blur(16px);
+  }
+
+  .gua-card-hover {
+    transition:
+      transform .18s var(--gua-ease),
+      box-shadow .18s var(--gua-ease),
+      border-color .18s var(--gua-ease),
+      background .18s var(--gua-ease);
+  }
+
+  .gua-card-hover:hover {
+    transform: translateY(-3px);
+    border-color: rgba(201, 158, 20, .34);
+    background: #fff;
+    box-shadow: var(--gua-shadow-lg);
+  }
+
+  .gua-btn-primary {
+    display: inline-flex;
+    min-height: 48px;
+    align-items: center;
+    justify-content: center;
+    gap: .65rem;
+    border-radius: 18px;
+    background: var(--gua-gold);
+    color: var(--gua-green-950);
+    padding: 0 1.25rem;
+    font-size: 12px;
+    font-weight: 950;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    box-shadow: 0 20px 42px -30px rgba(201, 158, 20, .8);
+    transition: transform .16s var(--gua-ease), background .16s ease;
+  }
+
+  .gua-btn-primary:hover {
+    transform: translateY(-1px);
+    background: var(--gua-gold-600);
+  }
+
+  .gua-btn-ghost {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    gap: .55rem;
+    border: 1px solid rgba(255,255,255,.16);
+    border-radius: 16px;
+    background: rgba(255,255,255,.10);
+    color: #fff;
+    padding: 0 1rem;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    transition: background .16s ease, transform .16s ease;
+  }
+
+  .gua-btn-ghost:hover {
+    transform: translateY(-1px);
+    background: rgba(255,255,255,.16);
+  }
+
+  .gua-kicker {
+    color: var(--gua-gold);
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .24em;
+    text-transform: uppercase;
+  }
+
+  .gua-muted {
+    color: var(--gua-muted);
+  }
+
+  .gua-stat-icon {
+    display: flex;
+    height: 48px;
+    width: 48px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 18px;
+    background: var(--gua-green-soft);
+    color: var(--gua-green);
+  }
+
+  .gua-stat-icon.is-gold {
+    background: var(--gua-gold-soft);
+    color: var(--gua-green-950);
+  }
+
+  .gua-filter-input {
+    height: 48px;
+    width: 100%;
+    border-radius: 18px;
+    border: 1px solid var(--gua-line);
+    background: #fff;
+    padding-left: 44px;
+    padding-right: 16px;
+    color: var(--gua-green-950);
+    font-size: 14px;
+    font-weight: 800;
+    outline: none;
+    transition: border-color .16s ease, box-shadow .16s ease;
+  }
+
+  .gua-filter-input::placeholder {
+    color: rgba(102, 114, 99, .62);
+  }
+
+  .gua-filter-input:focus {
+    border-color: rgba(201, 158, 20, .46);
+    box-shadow: 0 0 0 4px rgba(201, 158, 20, .13);
+  }
+
+  .gua-filter-pill {
+    display: inline-flex;
+    height: 40px;
+    flex-shrink: 0;
+    align-items: center;
+    gap: .5rem;
+    border-radius: 999px;
+    padding: 0 1rem;
+    color: var(--gua-muted);
+    font-size: 12px;
+    font-weight: 950;
+    transition: background .16s ease, color .16s ease, transform .16s ease;
+  }
+
+  .gua-filter-pill:hover {
+    transform: translateY(-1px);
+    background: var(--gua-green-soft);
+    color: var(--gua-green);
+  }
+
+  .gua-filter-pill.is-active {
+    background: var(--gua-green);
+    color: #fff;
+    box-shadow: 0 16px 32px -26px rgba(27, 73, 34, .72);
+  }
+
+  .gua-table-card {
+    overflow: hidden;
+    border: 1px solid var(--gua-line);
+    border-radius: 30px;
+    background: rgba(255, 255, 255, .96);
+    box-shadow: var(--gua-shadow);
+  }
+
+  .gua-table-head {
+    border-bottom: 1px solid var(--gua-line);
+    background: rgba(27, 73, 34, .035);
+  }
+
+  .gua-table-row {
+    border-bottom: 1px solid rgba(27, 73, 34, .08);
+    transition: background .14s ease;
+  }
+
+  .gua-table-row:hover {
+    background: rgba(201, 158, 20, .055);
+  }
+
+  .gua-chip {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    border: 1px solid var(--gua-line);
+    background: #fff;
+    padding: .28rem .65rem;
+    color: var(--gua-green);
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  .gua-chip-gold {
+    border-color: rgba(201, 158, 20, .26);
+    background: var(--gua-gold-soft);
+    color: var(--gua-green-950);
+  }
+
+  .gua-action-btn {
+    display: flex;
+    height: 36px;
+    width: 36px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: var(--gua-green-soft);
+    color: var(--gua-green);
+    transition: background .16s ease, color .16s ease, transform .16s ease;
+  }
+
+  .gua-action-btn:hover {
+    transform: translateY(-1px);
+    background: var(--gua-green);
+    color: #fff;
+  }
+
+  .gua-action-btn.is-danger:hover {
+    background: #be123c;
+    color: #fff;
+  }
+
+  .gua-product-card {
+    overflow: hidden;
+    border: 1px solid var(--gua-line);
+    border-radius: 30px;
+    background: #fff;
+    box-shadow: var(--gua-shadow);
+    transition: transform .18s var(--gua-ease), box-shadow .18s var(--gua-ease), border-color .18s var(--gua-ease);
+  }
+
+  .gua-product-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(201, 158, 20, .34);
+    box-shadow: var(--gua-shadow-lg);
   }
 
   .bc-inline svg {
@@ -39,14 +333,14 @@
     position: fixed;
     z-index: 9999;
     min-width: 270px;
-    border: 1px solid #eadfd4;
+    border: 1px solid var(--gua-line);
     border-radius: 24px;
     background: #ffffff;
-    box-shadow: 0 24px 70px -34px rgba(36, 18, 7, 0.55);
+    box-shadow: 0 28px 90px -42px rgba(11, 33, 16, .75);
     padding: 22px;
     opacity: 0;
-    transform: translateY(10px) scale(0.98);
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translateY(10px) scale(.98);
+    transition: all .2s var(--gua-ease);
   }
 
   .barcode-popup.visible {
@@ -62,7 +356,9 @@
   }
 
   @media print {
-    body * { visibility: hidden; }
+    body * {
+      visibility: hidden;
+    }
 
     #barcode-print-area,
     #barcode-print-area * {
@@ -109,47 +405,43 @@
   {% endif %}
 {% endfor %}
 
-<div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 space-y-6 text-[#241207]">
+<div class="gua-products-page max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 space-y-6">
 
-  <!-- HEADER -->
-  <section class="relative overflow-hidden rounded-[2rem] border border-[#eadfd4] bg-gradient-to-br from-[#fffaf5] via-[#fbf7f1] to-[#f4e8dc] shadow-[0_24px_70px_-52px_rgba(36,18,7,0.65)]">
-    <div class="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[#b98b62]/20 blur-3xl"></div>
-    <div class="absolute -left-24 bottom-0 h-72 w-72 rounded-full bg-[#3b2414]/10 blur-3xl"></div>
-
-    <div class="relative p-6 lg:p-8">
-      <div class="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-6">
+  <section class="gua-hero">
+    <div class="relative z-10 p-6 lg:p-8">
+      <div class="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-7">
         <div class="min-w-0">
           <a
             href="{{ url_for('admin.dashboard') }}"
-            class="inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.14em] text-[#9b7b63] hover:text-[#241207] transition-colors"
+            class="gua-btn-ghost"
           >
             <i class="fa-solid fa-arrow-left"></i>
             Workspace
           </a>
 
-          <p class="mt-6 text-[10px] font-black uppercase tracking-[0.24em] text-[#b98b62]">
-            MMESTLINE Catalog
+          <p class="mt-7 text-[10px] font-black uppercase tracking-[0.24em] text-white/58">
+            GUAMAISON Catalog
           </p>
 
           <div class="mt-2 flex flex-wrap items-center gap-3">
-            <h1 class="text-[34px] sm:text-5xl lg:text-[56px] font-black tracking-[-0.06em] leading-none text-[#241207]">
+            <h1 class="text-[40px] sm:text-6xl lg:text-[68px] font-black tracking-[-0.07em] leading-none text-white">
               Sản phẩm
             </h1>
 
-            <span class="inline-flex h-9 items-center rounded-full border border-[#eadfd4] bg-white/75 px-4 text-sm font-black text-[#5f3b1e] shadow-sm">
+            <span class="inline-flex h-10 items-center rounded-full border border-white/14 bg-white/10 px-4 text-sm font-black text-white backdrop-blur">
               {{ total }} sản phẩm
             </span>
           </div>
 
-          <p class="mt-4 max-w-3xl text-sm font-semibold leading-7 text-[#8a6a52]">
-            Quản lý hình ảnh, giá bán, giá so sánh, tồn kho, SKU, barcode, danh mục, bộ sưu tập và trạng thái hiển thị ngoài storefront.
+          <p class="mt-5 max-w-3xl text-sm font-semibold leading-7 text-white/70">
+            Quản lý hình ảnh, giá bán, tồn kho, SKU, barcode, danh mục, bộ sưu tập và trạng thái hiển thị ngoài storefront.
           </p>
         </div>
 
         <div class="flex flex-col sm:flex-row gap-3">
           <a
             href="{{ url_for('admin.add_product') }}"
-            class="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[#3b2414] px-5 text-xs font-black uppercase tracking-[0.12em] text-white shadow-[0_18px_36px_-26px_rgba(36,18,7,0.82)] transition-all hover:-translate-y-0.5 hover:bg-[#241207]"
+            class="gua-btn-primary"
           >
             <i class="fa-solid fa-plus"></i>
             Thêm sản phẩm
@@ -159,46 +451,44 @@
     </div>
   </section>
 
-  <!-- STATS -->
   <section class="grid grid-cols-2 lg:grid-cols-5 gap-3 lg:gap-4">
     {% set stats = [
-      ('fa-box-open', total, 'Tổng sản phẩm', 'bg-[#f6eee7] text-[#3b2414]'),
-      ('fa-store', ns.active, 'Đang bán', 'bg-emerald-50 text-emerald-700'),
-      ('fa-star', ns.featured, 'Nổi bật', 'bg-amber-50 text-amber-700'),
-      ('fa-arrow-trend-down', ns.low_stock, 'Sắp hết', 'bg-orange-50 text-orange-700'),
-      ('fa-triangle-exclamation', ns.out_stock, 'Hết hàng', 'bg-rose-50 text-rose-700')
+      ('fa-box-open', total, 'Tổng sản phẩm', 'gold'),
+      ('fa-store', ns.active, 'Đang bán', 'green'),
+      ('fa-star', ns.featured, 'Nổi bật', 'gold'),
+      ('fa-arrow-trend-down', ns.low_stock, 'Sắp hết', 'warning'),
+      ('fa-triangle-exclamation', ns.out_stock, 'Hết hàng', 'danger')
     ] %}
 
-    {% for icon, number, label, color in stats %}
-    <div class="rounded-[1.7rem] border border-[#eadfd4] bg-[#fffaf5]/90 p-4 lg:p-5 shadow-[0_18px_50px_-44px_rgba(36,18,7,0.55)]">
+    {% for icon, number, label, tone in stats %}
+    <article class="gua-card gua-card-hover p-4 lg:p-5">
       <div class="flex items-center gap-3">
-        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl {{ color }}">
+        <div class="gua-stat-icon {% if tone == 'gold' %}is-gold{% elif tone == 'warning' %}bg-orange-50 text-orange-700{% elif tone == 'danger' %}bg-rose-50 text-rose-700{% endif %}">
           <i class="fa-solid {{ icon }}"></i>
         </div>
         <div class="min-w-0">
-          <div class="text-2xl font-black leading-none text-[#241207]">{{ number }}</div>
-          <div class="mt-1 text-xs font-bold text-[#9b7b63]">{{ label }}</div>
+          <div class="text-2xl font-black leading-none text-[var(--gua-green-950)]">{{ number }}</div>
+          <div class="mt-1 text-xs font-bold text-[var(--gua-muted)]">{{ label }}</div>
         </div>
       </div>
-    </div>
+    </article>
     {% endfor %}
   </section>
 
-  <!-- FILTER TOOLBAR -->
-  <section class="rounded-[1.7rem] border border-[#eadfd4] bg-[#fffdf9]/95 p-4 shadow-[0_16px_42px_-38px_rgba(36,18,7,0.55)]">
+  <section class="gua-card p-4">
     <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
       <div class="flex flex-col lg:flex-row lg:items-center gap-3 flex-1">
         <form action="{{ url_for('admin.products') }}" method="GET" class="relative w-full lg:max-w-md">
           <input type="hidden" name="status" value="{{ current_status }}">
 
-          <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-[#b98b62]"></i>
+          <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-[var(--gua-gold)]"></i>
 
           <input
             type="text"
             name="q"
             value="{{ current_q }}"
             placeholder="Tìm tên, SKU, Barcode..."
-            class="h-12 w-full rounded-2xl border border-[#eadfd4] bg-white pl-11 pr-4 text-sm font-bold text-[#241207] outline-none transition-all placeholder:text-[#b7a191] focus:border-[#5f3b1e]/50 focus:ring-4 focus:ring-[#b98b62]/15"
+            class="gua-filter-input"
           >
         </form>
 
@@ -211,12 +501,7 @@
           ] %}
           <a
             href="{{ url_for('admin.products', q=current_q, status=val) }}"
-            class="inline-flex h-10 shrink-0 items-center gap-2 rounded-full px-4 text-xs font-black transition-all
-            {% if current_status == val %}
-              bg-[#3b2414] text-white shadow-sm
-            {% else %}
-              bg-transparent text-[#8a6a52] hover:bg-[#fffaf5] hover:text-[#241207]
-            {% endif %}"
+            class="gua-filter-pill {% if current_status == val %}is-active{% endif %}"
           >
             <i class="fa-solid {{ icon }} text-[10px]"></i>
             {{ label }}
@@ -225,12 +510,12 @@
         </div>
       </div>
 
-      <div class="hidden md:flex items-center gap-1 rounded-full border border-[#eadfd4] bg-[#fbf7f1] p-1">
+      <div class="hidden md:flex items-center gap-1 rounded-full border border-[var(--gua-line)] bg-[var(--gua-green-soft)] p-1">
         <button
           id="btn-table"
           type="button"
           onclick="setView('table')"
-          class="js-view-btn flex h-9 w-10 items-center justify-center rounded-full text-[#9b7b63] transition-all"
+          class="js-view-btn flex h-9 w-10 items-center justify-center rounded-full text-[var(--gua-muted)] transition-all"
           title="Xem dạng bảng"
         >
           <i class="fa-solid fa-list-ul"></i>
@@ -240,7 +525,7 @@
           id="btn-grid"
           type="button"
           onclick="setView('grid')"
-          class="js-view-btn flex h-9 w-10 items-center justify-center rounded-full text-[#9b7b63] transition-all"
+          class="js-view-btn flex h-9 w-10 items-center justify-center rounded-full text-[var(--gua-muted)] transition-all"
           title="Xem dạng lưới"
         >
           <i class="fa-solid fa-border-all"></i>
@@ -249,19 +534,18 @@
     </div>
   </section>
 
-  <!-- TABLE VIEW DESKTOP -->
-  <section id="view-table" class="hidden md:block overflow-hidden rounded-[1.8rem] border border-[#eadfd4] bg-[#fffaf5]/95 shadow-[0_18px_50px_-44px_rgba(36,18,7,0.55)]">
+  <section id="view-table" class="hidden md:block gua-table-card">
     <div class="overflow-x-auto">
       <table class="w-full min-w-[1180px] border-collapse text-left">
         <thead>
-          <tr class="border-b border-[#eadfd4] bg-[#fbf7f1]/80">
-            <th class="px-5 py-4 text-[10px] font-black uppercase tracking-[0.18em] text-[#9b7b63]">Sản phẩm</th>
-            <th class="px-5 py-4 text-[10px] font-black uppercase tracking-[0.18em] text-[#9b7b63]">Giá bán</th>
-            <th class="px-5 py-4 text-[10px] font-black uppercase tracking-[0.18em] text-[#9b7b63]">SKU / Barcode</th>
-            <th class="px-5 py-4 text-[10px] font-black uppercase tracking-[0.18em] text-[#9b7b63]">Danh mục / BST</th>
-            <th class="px-5 py-4 text-center text-[10px] font-black uppercase tracking-[0.18em] text-[#9b7b63]">Kho</th>
-            <th class="px-5 py-4 text-center text-[10px] font-black uppercase tracking-[0.18em] text-[#9b7b63]">Trạng thái</th>
-            <th class="px-5 py-4 text-right text-[10px] font-black uppercase tracking-[0.18em] text-[#9b7b63]">Thao tác</th>
+          <tr class="gua-table-head">
+            <th class="px-5 py-4 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--gua-muted)]">Sản phẩm</th>
+            <th class="px-5 py-4 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--gua-muted)]">Giá bán</th>
+            <th class="px-5 py-4 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--gua-muted)]">SKU / Barcode</th>
+            <th class="px-5 py-4 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--gua-muted)]">Danh mục / BST</th>
+            <th class="px-5 py-4 text-center text-[10px] font-black uppercase tracking-[0.18em] text-[var(--gua-muted)]">Kho</th>
+            <th class="px-5 py-4 text-center text-[10px] font-black uppercase tracking-[0.18em] text-[var(--gua-muted)]">Trạng thái</th>
+            <th class="px-5 py-4 text-right text-[10px] font-black uppercase tracking-[0.18em] text-[var(--gua-muted)]">Thao tác</th>
           </tr>
         </thead>
 
@@ -283,12 +567,12 @@
             {% set stock_label = stock_value ~ ' sp' %}
           {% endif %}
 
-          <tr class="border-b border-[#f1e6dc] transition-colors hover:bg-[#fffaf5] {% if p.deleted_at %}opacity-55 grayscale{% endif %}">
+          <tr class="gua-table-row {% if p.deleted_at %}opacity-55 grayscale{% endif %}">
             <td class="px-5 py-4">
               <div class="flex items-center gap-4">
-                <div class="h-[96px] w-[72px] shrink-0 overflow-hidden rounded-2xl border border-[#eadfd4] bg-[#fbf7f1] shadow-sm">
+                <div class="h-[96px] w-[72px] shrink-0 overflow-hidden rounded-2xl border border-[var(--gua-line)] bg-[var(--gua-green-soft)] shadow-sm">
                   <img
-                    src="{{ p.thumbnail_url or 'https://placehold.co/180x240/fbf7f1/9b7b63?text=MM' }}"
+                    src="{{ p.thumbnail_url or 'https://placehold.co/180x240/fbfaf4/1b4922?text=GUA' }}"
                     alt="{{ p.name }}"
                     loading="lazy"
                     decoding="async"
@@ -297,18 +581,18 @@
                 </div>
 
                 <div class="min-w-0">
-                  <div class="max-w-[360px] text-sm font-black leading-snug text-[#241207] mm-line-clamp-2">
+                  <div class="max-w-[360px] text-sm font-black leading-snug text-[var(--gua-green-950)] mm-line-clamp-2">
                     {{ p.name }}
                   </div>
 
                   <div class="mt-2 flex flex-wrap items-center gap-1.5">
-                    <span class="text-[11px] font-bold text-[#9b7b63]">
-                      {{ p.brand or 'MMESTLINE' }}
+                    <span class="text-[11px] font-bold text-[var(--gua-muted)]">
+                      {{ p.brand or 'GUAMAISON' }}
                     </span>
 
                     {% if p.is_featured %}
-                    <span class="inline-flex h-6 items-center gap-1 rounded-full bg-amber-50 px-2 text-[10px] font-black text-amber-700">
-                      <i class="fa-solid fa-star text-[8px]"></i>
+                    <span class="inline-flex h-6 items-center gap-1 rounded-full bg-[var(--gua-gold-soft)] px-2 text-[10px] font-black text-[var(--gua-green-950)]">
+                      <i class="fa-solid fa-star text-[8px] text-[var(--gua-gold)]"></i>
                       Nổi bật
                     </span>
                     {% endif %}
@@ -318,13 +602,13 @@
             </td>
 
             <td class="px-5 py-4">
-              <div class="text-sm font-black text-[#241207]">
+              <div class="text-sm font-black text-[var(--gua-green-950)]">
                 {{ "{:,.0f}".format(p.price or 0).replace(",", ".") }}đ
               </div>
 
               {% if p.compare_at_price and p.price and p.compare_at_price > p.price %}
               <div class="mt-1 flex items-center gap-2">
-                <del class="text-xs font-bold text-[#b7a191]">
+                <del class="text-xs font-bold text-[rgba(102,114,99,.62)]">
                   {{ "{:,.0f}".format(p.compare_at_price or 0).replace(",", ".") }}đ
                 </del>
                 <span class="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-black text-rose-600">
@@ -336,24 +620,24 @@
 
             <td class="px-5 py-4">
               <div class="space-y-2">
-                <div class="text-[11px] font-black text-[#5f3b1e]">
+                <div class="text-[11px] font-black text-[var(--gua-green)]">
                   SKU:
-                  <span class="font-mono font-bold text-[#241207]">
+                  <span class="font-mono font-bold text-[var(--gua-green-950)]">
                     {{ p.sku or 'Chưa có' }}
                   </span>
                 </div>
 
                 {% if p.barcode %}
                 <button type="button" onclick="showBarcodePopup(this, '{{ p.barcode }}')" class="group text-left">
-                  <div class="bc-inline w-[132px] rounded-xl border border-[#eadfd4] bg-white p-1.5 transition-colors group-hover:border-[#b98b62]">
+                  <div class="bc-inline w-[132px] rounded-xl border border-[var(--gua-line)] bg-white p-1.5 transition-colors group-hover:border-[var(--gua-gold)]">
                     <svg class="bc-svg-mini" data-barcode="{{ p.barcode }}"></svg>
                   </div>
-                  <div class="mt-1 font-mono text-[10px] font-bold text-[#9b7b63] transition-colors group-hover:text-[#241207]">
+                  <div class="mt-1 font-mono text-[10px] font-bold text-[var(--gua-muted)] transition-colors group-hover:text-[var(--gua-green)]">
                     {{ p.barcode }}
                   </div>
                 </button>
                 {% else %}
-                <span class="text-xs font-bold italic text-[#c4ab98]">Chưa có barcode</span>
+                <span class="text-xs font-bold italic text-[rgba(102,114,99,.55)]">Chưa có barcode</span>
                 {% endif %}
               </div>
             </td>
@@ -364,18 +648,16 @@
                   {% if p.product_categories %}
                     {% for pc in p.product_categories[:3] %}
                       {% if pc.categories %}
-                        <span class="rounded-full border border-[#eadfd4] bg-white px-2.5 py-1 text-[11px] font-bold text-[#75543f]">
+                        <span class="gua-chip">
                           {{ pc.categories.name }}
                         </span>
                       {% endif %}
                     {% endfor %}
                     {% if p.product_categories|length > 3 %}
-                      <span class="rounded-full border border-[#eadfd4] bg-white px-2.5 py-1 text-[11px] font-bold text-[#75543f]">
-                        +{{ p.product_categories|length - 3 }}
-                      </span>
+                      <span class="gua-chip">+{{ p.product_categories|length - 3 }}</span>
                     {% endif %}
                   {% else %}
-                    <span class="text-xs font-bold italic text-[#c4ab98]">Chưa có danh mục</span>
+                    <span class="text-xs font-bold italic text-[rgba(102,114,99,.55)]">Chưa có danh mục</span>
                   {% endif %}
                 </div>
 
@@ -383,15 +665,13 @@
                   {% if p.collection_products %}
                     {% for cp in p.collection_products[:2] %}
                       {% if cp.collections %}
-                        <span class="rounded-full border border-amber-100 bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-800">
+                        <span class="gua-chip gua-chip-gold">
                           {{ cp.collections.name }}
                         </span>
                       {% endif %}
                     {% endfor %}
                     {% if p.collection_products|length > 2 %}
-                      <span class="rounded-full border border-amber-100 bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-800">
-                        +{{ p.collection_products|length - 2 }}
-                      </span>
+                      <span class="gua-chip gua-chip-gold">+{{ p.collection_products|length - 2 }}</span>
                     {% endif %}
                   {% endif %}
                 </div>
@@ -409,9 +689,9 @@
               {% if p.deleted_at %}
                 <span class="inline-flex h-8 items-center rounded-full bg-stone-100 px-3 text-xs font-black text-stone-500">Đã xóa</span>
               {% elif p.is_active %}
-                <span class="inline-flex h-8 items-center rounded-full bg-[#3b2414] px-3 text-xs font-black text-white">Đang bán</span>
+                <span class="inline-flex h-8 items-center rounded-full bg-[var(--gua-green)] px-3 text-xs font-black text-white">Đang bán</span>
               {% else %}
-                <span class="inline-flex h-8 items-center rounded-full border border-[#eadfd4] bg-white px-3 text-xs font-black text-[#75543f]">Tạm ẩn</span>
+                <span class="inline-flex h-8 items-center rounded-full border border-[var(--gua-line)] bg-white px-3 text-xs font-black text-[var(--gua-muted)]">Tạm ẩn</span>
               {% endif %}
             </td>
 
@@ -421,7 +701,7 @@
                 <a
                   href="/product/{{ p.slug }}"
                   target="_blank"
-                  class="flex h-9 w-9 items-center justify-center rounded-full bg-[#fbf7f1] text-[#75543f] transition-all hover:bg-[#3b2414] hover:text-white"
+                  class="gua-action-btn"
                   title="Xem storefront"
                 >
                   <i class="fa-solid fa-arrow-up-right-from-square text-sm"></i>
@@ -430,7 +710,7 @@
 
                 <a
                   href="{{ url_for('admin.edit_product', pid=p.id) }}"
-                  class="flex h-9 w-9 items-center justify-center rounded-full bg-[#fbf7f1] text-[#75543f] transition-all hover:bg-blue-50 hover:text-blue-700"
+                  class="gua-action-btn"
                   title="Chỉnh sửa"
                 >
                   <i class="fa-solid fa-pen text-sm"></i>
@@ -446,7 +726,7 @@
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button
                     type="submit"
-                    class="flex h-9 w-9 items-center justify-center rounded-full bg-[#fbf7f1] text-[#75543f] transition-all hover:bg-rose-50 hover:text-rose-700"
+                    class="gua-action-btn is-danger"
                     title="Xóa"
                   >
                     <i class="fa-solid fa-trash-can text-sm"></i>
@@ -460,12 +740,12 @@
           <tr>
             <td colspan="7" class="px-6 py-24 text-center">
               <div class="flex flex-col items-center justify-center">
-                <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#fbf7f1] text-[#b98b62]">
+                <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--gua-green-soft)] text-[var(--gua-green)]">
                   <i class="fa-solid fa-box-open text-2xl"></i>
                 </div>
-                <p class="mb-1 text-sm font-black text-[#3b2414]">Chưa có sản phẩm nào</p>
-                <p class="mb-4 text-xs font-bold text-[#9b7b63]">Hãy thêm sản phẩm đầu tiên cho MMESTLINE.</p>
-                <a href="{{ url_for('admin.add_product') }}" class="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#3b2414] px-5 text-xs font-black uppercase tracking-[0.12em] text-white">
+                <p class="mb-1 text-sm font-black text-[var(--gua-green-950)]">Chưa có sản phẩm nào</p>
+                <p class="mb-4 text-xs font-bold text-[var(--gua-muted)]">Hãy thêm sản phẩm đầu tiên cho GUAMAISON.</p>
+                <a href="{{ url_for('admin.add_product') }}" class="gua-btn-primary">
                   <i class="fa-solid fa-plus"></i>
                   Thêm sản phẩm
                 </a>
@@ -478,15 +758,14 @@
     </div>
   </section>
 
-  <!-- GRID / MOBILE CARD VIEW -->
   <section id="view-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-5">
     {% for p in products %}
     {% set stock_value = p.stock or 0 %}
 
-    <article class="group overflow-hidden rounded-[1.8rem] border border-[#eadfd4] bg-[#fffdf9] shadow-[0_16px_42px_-38px_rgba(36,18,7,0.6)] transition-all hover:-translate-y-1 hover:shadow-[0_24px_54px_-40px_rgba(36,18,7,0.65)] {% if p.deleted_at %}opacity-60 grayscale{% endif %}">
-      <div class="relative aspect-[4/5] overflow-hidden bg-[#fbf7f1]">
+    <article class="gua-product-card group {% if p.deleted_at %}opacity-60 grayscale{% endif %}">
+      <div class="relative aspect-[4/5] overflow-hidden bg-[var(--gua-green-soft)]">
         <img
-          src="{{ p.thumbnail_url or 'https://placehold.co/520x650/fbf7f1/9b7b63?text=MMESTLINE' }}"
+          src="{{ p.thumbnail_url or 'https://placehold.co/520x650/fbfaf4/1b4922?text=GUAMAISON' }}"
           alt="{{ p.name }}"
           loading="lazy"
           decoding="async"
@@ -497,7 +776,7 @@
           {% if p.deleted_at %}
             <span class="inline-flex h-8 items-center rounded-full bg-stone-900 px-3 text-xs font-black text-white">Đã xóa</span>
           {% elif not p.is_active %}
-            <span class="inline-flex h-8 items-center rounded-full bg-white/90 px-3 text-xs font-black text-[#75543f] backdrop-blur">Tạm ẩn</span>
+            <span class="inline-flex h-8 items-center rounded-full bg-white/90 px-3 text-xs font-black text-[var(--gua-green)] backdrop-blur">Tạm ẩn</span>
           {% elif stock_value == 0 %}
             <span class="inline-flex h-8 items-center rounded-full bg-rose-600 px-3 text-xs font-black text-white">Hết hàng</span>
           {% elif stock_value <= 5 %}
@@ -506,7 +785,7 @@
         </div>
 
         {% if p.is_featured %}
-        <div class="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-amber-400 text-white shadow-lg">
+        <div class="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-[var(--gua-gold)] text-[var(--gua-green-950)] shadow-lg">
           <i class="fa-solid fa-star text-xs"></i>
         </div>
         {% endif %}
@@ -514,7 +793,7 @@
         <div class="absolute inset-x-4 bottom-4 flex translate-y-4 items-center justify-center gap-3 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
           <a
             href="{{ url_for('admin.edit_product', pid=p.id) }}"
-            class="flex h-12 w-12 items-center justify-center rounded-full bg-white text-[#241207] shadow-xl transition-transform hover:scale-110"
+            class="flex h-12 w-12 items-center justify-center rounded-full bg-white text-[var(--gua-green)] shadow-xl transition-transform hover:scale-110 hover:bg-[var(--gua-green)] hover:text-white"
             title="Chỉnh sửa"
           >
             <i class="fa-solid fa-pen"></i>
@@ -524,7 +803,7 @@
           <a
             href="/product/{{ p.slug }}"
             target="_blank"
-            class="flex h-12 w-12 items-center justify-center rounded-full bg-white text-[#241207] shadow-xl transition-transform hover:scale-110"
+            class="flex h-12 w-12 items-center justify-center rounded-full bg-white text-[var(--gua-green)] shadow-xl transition-transform hover:scale-110 hover:bg-[var(--gua-green)] hover:text-white"
             title="Xem storefront"
           >
             <i class="fa-solid fa-arrow-up-right-from-square"></i>
@@ -536,12 +815,12 @@
       <div class="p-5">
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
-            <h3 class="mm-line-clamp-2 text-sm font-black leading-snug text-[#241207]" title="{{ p.name }}">
+            <h3 class="mm-line-clamp-2 text-sm font-black leading-snug text-[var(--gua-green-950)]" title="{{ p.name }}">
               {{ p.name }}
             </h3>
 
-            <p class="mt-1 text-[11px] font-bold text-[#9b7b63]">
-              {{ p.brand or 'MMESTLINE' }}
+            <p class="mt-1 text-[11px] font-bold text-[var(--gua-muted)]">
+              {{ p.brand or 'GUAMAISON' }}
             </p>
           </div>
 
@@ -559,13 +838,13 @@
         </div>
 
         <div class="mt-4">
-          <div class="text-xl font-black text-[#241207]">
+          <div class="text-xl font-black text-[var(--gua-green-950)]">
             {{ "{:,.0f}".format(p.price or 0).replace(",", ".") }}đ
           </div>
 
           {% if p.compare_at_price and p.price and p.compare_at_price > p.price %}
           <div class="mt-1 flex items-center gap-2">
-            <del class="text-xs font-bold text-[#b7a191]">
+            <del class="text-xs font-bold text-[rgba(102,114,99,.62)]">
               {{ "{:,.0f}".format(p.compare_at_price or 0).replace(",", ".") }}đ
             </del>
             <span class="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-black text-rose-600">
@@ -579,22 +858,20 @@
           {% if p.product_categories %}
             {% for pc in p.product_categories[:2] %}
               {% if pc.categories %}
-                <span class="rounded-full border border-[#eadfd4] bg-white px-2.5 py-1 text-[11px] font-bold text-[#75543f]">
+                <span class="gua-chip">
                   {{ pc.categories.name }}
                 </span>
               {% endif %}
             {% endfor %}
             {% if p.product_categories|length > 2 %}
-              <span class="rounded-full border border-[#eadfd4] bg-white px-2.5 py-1 text-[11px] font-bold text-[#75543f]">
-                +{{ p.product_categories|length - 2 }}
-              </span>
+              <span class="gua-chip">+{{ p.product_categories|length - 2 }}</span>
             {% endif %}
           {% endif %}
 
           {% if p.collection_products %}
             {% for cp in p.collection_products[:1] %}
               {% if cp.collections %}
-                <span class="rounded-full border border-amber-100 bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-800">
+                <span class="gua-chip gua-chip-gold">
                   {{ cp.collections.name }}
                 </span>
               {% endif %}
@@ -602,10 +879,10 @@
           {% endif %}
         </div>
 
-        <div class="mt-4 flex items-center justify-between gap-3 border-t border-[#eadfd4] pt-4">
+        <div class="mt-4 flex items-center justify-between gap-3 border-t border-[var(--gua-line)] pt-4">
           <div class="min-w-0">
-            <div class="text-[10px] font-black uppercase tracking-[0.16em] text-[#b98b62]">SKU</div>
-            <div class="mm-line-clamp-1 font-mono text-xs font-bold text-[#5f3b1e]">
+            <div class="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--gua-gold)]">SKU</div>
+            <div class="mm-line-clamp-1 font-mono text-xs font-bold text-[var(--gua-green)]">
               {{ p.sku or 'Chưa có' }}
             </div>
           </div>
@@ -615,7 +892,7 @@
             <button
               type="button"
               onclick="showBarcodePopup(this, '{{ p.barcode }}')"
-              class="flex h-9 w-9 items-center justify-center rounded-full bg-[#fbf7f1] text-[#75543f] transition-all hover:bg-[#3b2414] hover:text-white"
+              class="gua-action-btn"
               title="Xem barcode"
             >
               <i class="fa-solid fa-barcode"></i>
@@ -624,7 +901,7 @@
 
             <a
               href="{{ url_for('admin.edit_product', pid=p.id) }}"
-              class="flex h-9 w-9 items-center justify-center rounded-full bg-[#fbf7f1] text-[#75543f] transition-all hover:bg-blue-50 hover:text-blue-700"
+              class="gua-action-btn"
               title="Chỉnh sửa"
             >
               <i class="fa-solid fa-pen"></i>
@@ -634,23 +911,22 @@
       </div>
     </article>
     {% else %}
-    <div class="col-span-full rounded-[1.8rem] border border-[#eadfd4] bg-[#fffaf5] p-12 text-center">
-      <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#fbf7f1] text-[#b98b62]">
+    <div class="col-span-full gua-card p-12 text-center">
+      <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--gua-green-soft)] text-[var(--gua-green)]">
         <i class="fa-solid fa-box-open text-2xl"></i>
       </div>
-      <p class="text-sm font-black text-[#3b2414]">Không tìm thấy sản phẩm nào.</p>
-      <p class="mt-1 text-xs font-bold text-[#9b7b63]">Thử đổi bộ lọc hoặc thêm sản phẩm mới.</p>
+      <p class="text-sm font-black text-[var(--gua-green-950)]">Không tìm thấy sản phẩm nào.</p>
+      <p class="mt-1 text-xs font-bold text-[var(--gua-muted)]">Thử đổi bộ lọc hoặc thêm sản phẩm mới.</p>
     </div>
     {% endfor %}
   </section>
 
-  <!-- PAGINATION -->
   {% if total_pages > 1 %}
   <nav class="flex flex-wrap items-center justify-center gap-2 pt-3">
     {% if page > 1 %}
     <a
       href="{{ url_for('admin.products', page=page-1, q=current_q, status=current_status) }}"
-      class="flex h-10 w-10 items-center justify-center rounded-full border border-[#eadfd4] bg-white text-[#75543f] transition-all hover:bg-[#3b2414] hover:text-white"
+      class="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--gua-line)] bg-white text-[var(--gua-green)] transition-all hover:bg-[var(--gua-green)] hover:text-white"
     >
       <i class="fa-solid fa-chevron-left text-xs"></i>
     </a>
@@ -658,25 +934,25 @@
 
     {% for pg in range(1, total_pages + 1) %}
       {% if pg == page %}
-        <span class="flex h-10 w-10 items-center justify-center rounded-full bg-[#3b2414] text-sm font-black text-white">
+        <span class="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--gua-green)] text-sm font-black text-white">
           {{ pg }}
         </span>
       {% elif pg == 1 or pg == total_pages or (pg >= page - 2 and pg <= page + 2) %}
         <a
           href="{{ url_for('admin.products', page=pg, q=current_q, status=current_status) }}"
-          class="flex h-10 w-10 items-center justify-center rounded-full border border-[#eadfd4] bg-white text-sm font-black text-[#75543f] transition-all hover:bg-[#3b2414] hover:text-white"
+          class="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--gua-line)] bg-white text-sm font-black text-[var(--gua-green)] transition-all hover:bg-[var(--gua-green)] hover:text-white"
         >
           {{ pg }}
         </a>
       {% elif pg == page - 3 or pg == page + 3 %}
-        <span class="flex h-10 w-10 items-center justify-center rounded-full text-sm font-black text-[#9b7b63]">…</span>
+        <span class="flex h-10 w-10 items-center justify-center rounded-full text-sm font-black text-[var(--gua-muted)]">…</span>
       {% endif %}
     {% endfor %}
 
     {% if page < total_pages %}
     <a
       href="{{ url_for('admin.products', page=page+1, q=current_q, status=current_status) }}"
-      class="flex h-10 w-10 items-center justify-center rounded-full border border-[#eadfd4] bg-white text-[#75543f] transition-all hover:bg-[#3b2414] hover:text-white"
+      class="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--gua-line)] bg-white text-[var(--gua-green)] transition-all hover:bg-[var(--gua-green)] hover:text-white"
     >
       <i class="fa-solid fa-chevron-right text-xs"></i>
     </a>
@@ -688,18 +964,18 @@
 
 {% block extra_scripts %}
 <div id="barcode-popup" class="barcode-popup" role="tooltip">
-  <div class="mb-3 text-center text-[10px] font-black uppercase tracking-[0.22em] text-[#b98b62]">
-    MMESTLINE
+  <div class="mb-3 text-center text-[10px] font-black uppercase tracking-[0.22em] text-[var(--gua-gold)]">
+    GUAMAISON
   </div>
 
   <svg id="bc-popup-svg"></svg>
 
-  <div id="bc-popup-label" class="mt-3 text-center font-mono text-sm font-black tracking-[0.12em] text-[#241207]"></div>
+  <div id="bc-popup-label" class="mt-3 text-center font-mono text-sm font-black tracking-[0.12em] text-[var(--gua-green-950)]"></div>
 
   <div class="mt-4 flex gap-2">
     <button
       type="button"
-      class="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-[#eadfd4] bg-[#fffdf9] text-xs font-black text-[#75543f] transition-all hover:bg-[#fffaf5] hover:text-[#241207]"
+      class="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--gua-line)] bg-white text-xs font-black text-[var(--gua-green)] transition-all hover:bg-[var(--gua-green-soft)]"
       onclick="copyBarcode()"
     >
       <i class="fa-solid fa-copy"></i>
@@ -708,7 +984,7 @@
 
     <button
       type="button"
-      class="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-[#3b2414] text-xs font-black text-white transition-all hover:bg-[#241207]"
+      class="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--gua-green)] text-xs font-black text-white transition-all hover:bg-[var(--gua-green-900)]"
       onclick="printBarcode()"
     >
       <i class="fa-solid fa-print"></i>
@@ -719,7 +995,7 @@
 
 <div id="barcode-print-area" style="display:none;">
   <div style="text-align:center; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; padding:24px;">
-    <div style="font-size:11px; font-weight:900; letter-spacing:0.2em; color:#78716c; margin-bottom:8px;">MMESTLINE</div>
+    <div style="font-size:11px; font-weight:900; letter-spacing:0.2em; color:#1b4922; margin-bottom:8px;">GUAMAISON</div>
     <svg id="bc-print-svg"></svg>
     <div style="font-size:13px; font-weight:700; letter-spacing:0.12em; margin-top:8px;" id="bc-print-label"></div>
   </div>
@@ -743,13 +1019,13 @@
       if (view === "table" && window.innerWidth >= 768) {
         table.classList.remove("hidden");
         grid.classList.add("hidden");
-        tableBtn?.classList.add("bg-white", "text-[#241207]", "shadow-sm");
-        gridBtn?.classList.remove("bg-white", "text-[#241207]", "shadow-sm");
+        tableBtn?.classList.add("bg-white", "text-[var(--gua-green)]", "shadow-sm");
+        gridBtn?.classList.remove("bg-white", "text-[var(--gua-green)]", "shadow-sm");
       } else {
         table.classList.add("hidden");
         grid.classList.remove("hidden");
-        gridBtn?.classList.add("bg-white", "text-[#241207]", "shadow-sm");
-        tableBtn?.classList.remove("bg-white", "text-[#241207]", "shadow-sm");
+        gridBtn?.classList.add("bg-white", "text-[var(--gua-green)]", "shadow-sm");
+        tableBtn?.classList.remove("bg-white", "text-[var(--gua-green)]", "shadow-sm");
         view = "grid";
       }
 
@@ -770,7 +1046,7 @@
             displayValue: false,
             margin: 0,
             background: "transparent",
-            lineColor: "#241207"
+            lineColor: "#1b4922"
           });
         } catch (error) {
           svg.closest(".bc-inline")?.remove();
@@ -791,7 +1067,7 @@
           displayValue: false,
           margin: 4,
           background: "#ffffff",
-          lineColor: "#241207"
+          lineColor: "#1b4922"
         });
       } catch (error) {
         return;

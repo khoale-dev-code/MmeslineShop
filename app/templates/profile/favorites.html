@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from 'profile/_layout.html' import profile_shell %}
 
-{% block title %}Yêu thích | MMESTLINE{% endblock %}
+{% block title %}Yêu thích | GUAMAISON{% endblock %}
 
 {% block content %}
 {% set raw_name = current_user.full_name|default('', true) if current_user is defined else '' %}
@@ -32,7 +32,7 @@
 
             <div class="min-w-0">
               <p class="mb-2 text-[10px] font-black uppercase tracking-[.24em] text-[#b98b62]">
-                MMESTLINE Account
+                GUAMAISON Account
               </p>
 
               <h1 class="truncate text-2xl font-black uppercase leading-none tracking-[-.04em] text-[#241207] sm:text-3xl">
@@ -91,7 +91,7 @@
 
               {% if product and product.id is defined %}
                 {% set product_id = product.id %}
-                {% set product_name = product.name|default('Sản phẩm MMESTLINE', true) %}
+                {% set product_name = product.name|default('Sản phẩm GUAMAISON', true) %}
                 {% set product_slug = product.slug|default(product_id, true) %}
                 {% set product_image = product.thumbnail_url|default('', true) or product.image_url|default('', true) %}
                 {% set product_stock = product.stock|default(0, true)|int %}
@@ -117,12 +117,12 @@
                     style="aspect-ratio: 3 / 4;"
                   >
                     <img
-                      src="{{ product_image if product_image else 'https://placehold.co/600x800/fbf7f1/8a6a52?text=MMESTLINE' }}"
+                      src="{{ product_image if product_image else 'https://placehold.co/600x800/fbf7f1/8a6a52?text=GUAMAISON' }}"
                       alt="{{ product_name }}"
                       loading="lazy"
                       decoding="async"
                       class="h-full w-full object-cover object-center transition duration-700 group-hover:scale-105"
-                      onerror="this.src='https://placehold.co/600x800/fbf7f1/8a6a52?text=MMESTLINE'"
+                      onerror="this.src='https://placehold.co/600x800/fbf7f1/8a6a52?text=GUAMAISON'"
                     >
 
                     {% if product_stock == 0 %}

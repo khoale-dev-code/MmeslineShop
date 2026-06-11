@@ -379,7 +379,7 @@
     }
 
     if (cat) {
-      cat.textContent = card.dataset.category || "MMESTLINE";
+      cat.textContent = card.dataset.category || "GUAMAISON";
     }
 
     if (price) {

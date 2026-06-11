@@ -2,7 +2,7 @@
 app/controllers/admin/pos_controller.py
 ======================================
 
-MMESTLINE POS Controller
+GUAMAISON POS Controller
 
 Phiên bản POS đầy đủ:
 - Trang POS bán hàng tại quầy.

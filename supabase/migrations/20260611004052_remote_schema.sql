@@ -1053,7 +1053,7 @@ CREATE TABLE IF NOT EXISTS "public"."products" (
     "allow_backorder" boolean DEFAULT false,
     "low_stock_threshold" integer DEFAULT 5,
     "description_html" "text",
-    "brand" "text" DEFAULT 'MMESTLINE'::"text",
+    "brand" "text" DEFAULT 'GUAMAISON'::"text",
     "meta_keywords" "text"
 );
 

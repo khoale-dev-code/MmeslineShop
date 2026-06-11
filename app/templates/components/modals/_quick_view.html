@@ -1,4 +1,4 @@
-{# QUICK VIEW — MMESTLINE Compact #}
+{# QUICK VIEW — GUAMAISON Compact #}
 
 <style>
   :root{
@@ -652,7 +652,7 @@
     $("#qv-slides").innerHTML = QV.imgs.map((src,i)=>`
       <div class="qv-slide${i===0 ? " qv-active" : ""}">
         <img src="${safe(src)}" alt="Product ${i+1}" ${i ? 'loading="lazy"' : 'loading="eager"'}
-             onerror="this.src='https://placehold.co/700x900/f6f6f6/111111?text=MMESTLINE'">
+             onerror="this.src='https://placehold.co/700x900/f6f6f6/111111?text=GUAMAISON'">
       </div>
     `).join("");
 
@@ -703,7 +703,7 @@
     $("#qv-input-id").value = id || "";
     $("#qv-variant-id").value = "";
     $("#qv-name").textContent = name || "Product";
-    $("#qv-category").textContent = category || "MMESTLINE";
+    $("#qv-category").textContent = category || "GUAMAISON";
     $("#qv-detail-link").href = "/product/" + (slug || id || "");
     $("#qv-qty").value = 1;
 

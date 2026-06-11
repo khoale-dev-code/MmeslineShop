@@ -410,7 +410,7 @@ def _product_data_from_form(form: dict) -> dict:
         ),
 
         "gender": _clean_text(form.get("gender"), 30) or "unisex",
-        "brand": _clean_text(form.get("brand"), 120) or "MMESTLINE",
+        "brand": _clean_text(form.get("brand"), 120) or "GUAMAISON",
 
         "meta_title": seo_title or None,
         "meta_description": seo_description or None,

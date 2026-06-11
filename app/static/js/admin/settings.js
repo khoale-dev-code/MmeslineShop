@@ -126,6 +126,11 @@
             let originalBtnHtml = '';
             
             // 🟢 TẠO FORMDATA TRƯỚC KHI DISABLE INPUT ĐỂ KHÔNG BỊ RỖNG DỮ LIỆU
+            if (tabName === 'storefront' && window.__storefrontUploadCount > 0) {
+            notify('Ảnh/video đang tải lên. Vui lòng chờ báo tải lên thành công rồi bấm Lưu.', 'warning');
+            return;
+        }
+
             const formData = new FormData(form);
             const csrfToken = getCSRFToken();
 

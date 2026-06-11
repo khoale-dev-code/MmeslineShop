@@ -1,7 +1,7 @@
 {#
   app/templates/partials/navbar.html
   =================================
-  MMÉSTLINE Storefront Navbar
+  GUAMAISON Storefront Navbar
   Style cảm hứng WHOSE Studio:
   - Desktop 1 hàng, gọn, mượt.
   - Trang chủ: trong suốt ở đầu trang, video/hero tràn đẹp.
@@ -12,7 +12,7 @@
 #}
 
 {% set path = request.path %}
-{% set shop_name = 'MMÉSTLINE' %}
+{% set shop_name = 'GUAMAISON' %}
 {% set is_homepage = path == '/' or path == '/home' %}
 {% set is_voucher_page = path.startswith('/vouchers') or path.startswith('/voucher') or path.startswith('/coupons') %}
 {% set categories_nav = global_categories|default([], true) %}
@@ -276,7 +276,7 @@
               </a>
 
               <p class="max-w-[220px] text-xs font-semibold leading-6 normal-case tracking-normal text-[#8a6a52]">
-                Khám phá lookbook và chiến dịch mới nhất từ MMÉSTLINE.
+                Khám phá lookbook và chiến dịch mới nhất từ GUAMAISON.
               </p>
             </div>
 

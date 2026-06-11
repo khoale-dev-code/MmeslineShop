@@ -457,7 +457,7 @@ def create_pos_order():
                 "message": "Sản phẩm đang tạm ẩn, không thể bán tại POS.",
             }), 400
 
-        product_name = _clean_text(product_info.get("name"), max_len=220) or "Sản phẩm MMESTLINE"
+        product_name = _clean_text(product_info.get("name"), max_len=220) or "Sản phẩm GUAMAISON"
         variant_label = _build_variant_label(variant)
 
         base_price = _safe_float(product_info.get("price"), default=0.0, min_value=0.0)

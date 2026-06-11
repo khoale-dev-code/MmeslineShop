@@ -1,7 +1,7 @@
 {#
   app/templates/admin/partials/_admin_sidebar.html
   ===============================================
-  MMESTLINE Admin Sidebar
+  GUAMAISON Admin Sidebar
 
   Đồng bộ với:
   - static/admin/js/mm_admin_nav.js
@@ -28,27 +28,26 @@
       href="{{ url_for('admin.dashboard') }}"
       class="mm-sidebar-brand-link flex min-w-0 flex-1 items-center gap-3"
       data-nav
-      title="{{ display_shop_name|default('MMESTLINE') }}"
-      aria-label="{{ display_shop_name|default('MMESTLINE') }} Admin Dashboard"
+      title="{{ display_shop_name|default('GUAMAISON') }}"
+      aria-label="{{ display_shop_name|default('GUAMAISON') }} Admin Dashboard"
     >
-      <span class="mm-sidebar-logo flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[18px] bg-[#5a2f1f] text-white">
+      <span class="mm-sidebar-logo flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[18px] bg-[#bfcebb] text-white">
         {% if brand_logo %}
           <img
             src="{{ brand_logo }}"
-            alt="{{ display_shop_name|default('MMESTLINE') }}"
+            alt="{{ display_shop_name|default('GUAMAISON') }}"
             class="h-8 w-8 object-contain"
             width="32"
             height="32"
             loading="eager"
           >
         {% else %}
-          <span class="text-sm font-black">M</span>
         {% endif %}
       </span>
 
       <span class="mm-sidebar-brand-text min-w-0 transition-all duration-150">
         <strong class="block truncate text-[16px] font-black uppercase tracking-[-0.02em] text-[#241207]">
-          {{ display_shop_name|default('MMESTLINE') }}
+          {{ display_shop_name|default('GUAMAISON') }}
         </strong>
 
         <small class="mt-1 block text-[10px] font-black uppercase tracking-[0.24em] text-[#b98b62]">

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Voucher & Ưu đãi | MMÉSTLINE{% endblock %}
+{% block title %}Voucher & Ưu đãi | GUAMAISON{% endblock %}
 
 {% block extra_head %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -268,7 +268,7 @@
       <div class="voucher-rise flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p class="voucher-kicker">
-            MMÉSTLINE Privilege
+            GUAMAISON Privilege
           </p>
 
           <h1 class="font-editorial mt-4 text-[clamp(2.35rem,5vw,4.8rem)] leading-[1.02] tracking-[-0.045em] text-[#241207]">
@@ -276,7 +276,7 @@
           </h1>
 
           <p class="mt-4 max-w-2xl text-sm font-medium leading-7 text-[#8a6a52]">
-            Lưu lại các mã ưu đãi dành riêng cho khách hàng MMÉSTLINE. Chọn voucher phù hợp trước khi mua sắm để tối ưu giá trị đơn hàng.
+            Lưu lại các mã ưu đãi dành riêng cho khách hàng GUAMAISON. Chọn voucher phù hợp trước khi mua sắm để tối ưu giá trị đơn hàng.
           </p>
         </div>
 
@@ -368,7 +368,7 @@
         {% for coupon in coupons %}
           {% set c_type = coupon.discount_type %}
           {% set type_class = 'fixed' if c_type not in ['percent', 'free_shipping'] else c_type %}
-          {% set desc = coupon.description or 'Đặc quyền dành riêng cho khách hàng MMÉSTLINE.' %}
+          {% set desc = coupon.description or 'Đặc quyền dành riêng cho khách hàng GUAMAISON.' %}
           {% set code = coupon.code or '' %}
           {% set value = (coupon.discount_value or 0)|float %}
           {% set min_points = (coupon.min_loyalty_points or 0)|float %}

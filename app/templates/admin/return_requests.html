@@ -1,160 +1,467 @@
 {% extends "admin/admin_base.html" %}
-{% block title %}Yêu cầu Đổi / Trả — GUA Admin{% endblock %}
+{% block title %}Yêu cầu Đổi / Trả | GUAMAISON Admin{% endblock %}
+
+{% block extra_head %}
+<style>
+  :root {
+    --gua-green: #1b4922;
+    --gua-green-950: #0b2110;
+    --gua-green-900: #123418;
+    --gua-gold: #c99e14;
+    --gua-gold-600: #d8ad1d;
+    --gua-paper: #fbfaf4;
+    --gua-card: #fffefa;
+    --gua-line: rgba(27, 73, 34, .14);
+    --gua-muted: #667263;
+    --gua-ink: #101510;
+    --gua-green-soft: rgba(27, 73, 34, .08);
+    --gua-gold-soft: rgba(201, 158, 20, .16);
+    --gua-shadow: 0 20px 58px -44px rgba(11, 33, 16, .58);
+    --gua-shadow-lg: 0 28px 76px -48px rgba(11, 33, 16, .76);
+    --gua-ease: cubic-bezier(.16, 1, .3, 1);
+  }
+
+  .gua-return-page {
+    color: var(--gua-ink);
+  }
+
+  .gua-return-hero {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 34px;
+    background:
+      radial-gradient(circle at 12% 14%, rgba(201, 158, 20, .34), transparent 30%),
+      radial-gradient(circle at 92% 8%, rgba(255, 255, 255, .16), transparent 26%),
+      linear-gradient(135deg, #0b2110 0%, #123418 46%, #1b4922 100%);
+    color: #fff;
+    box-shadow: 0 34px 90px -56px rgba(11, 33, 16, .92);
+  }
+
+  .gua-return-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: .16;
+    background-image:
+      linear-gradient(rgba(255,255,255,.10) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.10) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: linear-gradient(to bottom, black, transparent 88%);
+    pointer-events: none;
+  }
+
+  .gua-return-hero::after {
+    content: "";
+    position: absolute;
+    right: -130px;
+    bottom: -170px;
+    width: 380px;
+    height: 380px;
+    border-radius: 999px;
+    background: rgba(201, 158, 20, .22);
+    filter: blur(22px);
+    pointer-events: none;
+  }
+
+  .gua-card {
+    border: 1px solid var(--gua-line);
+    border-radius: 28px;
+    background: rgba(255, 255, 255, .94);
+    box-shadow: var(--gua-shadow);
+    backdrop-filter: blur(16px);
+  }
+
+  .gua-tabbar {
+    display: flex;
+    gap: .5rem;
+    overflow-x: auto;
+    padding: .45rem;
+    border: 1px solid var(--gua-line);
+    border-radius: 24px;
+    background: rgba(255, 255, 255, .94);
+    box-shadow: var(--gua-shadow);
+    scrollbar-width: none;
+  }
+
+  .gua-tabbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .gua-tab {
+    display: inline-flex;
+    height: 42px;
+    flex-shrink: 0;
+    align-items: center;
+    gap: .55rem;
+    border-radius: 999px;
+    padding: 0 1rem;
+    color: var(--gua-muted);
+    font-size: 12px;
+    font-weight: 950;
+    transition:
+      background .16s var(--gua-ease),
+      color .16s var(--gua-ease),
+      transform .16s var(--gua-ease);
+  }
+
+  .gua-tab:hover {
+    transform: translateY(-1px);
+    background: var(--gua-green-soft);
+    color: var(--gua-green);
+  }
+
+  .gua-tab.is-active {
+    background: var(--gua-green);
+    color: #fff;
+    box-shadow: 0 16px 32px -26px rgba(27, 73, 34, .72);
+  }
+
+  .gua-tab-count {
+    display: inline-flex;
+    min-width: 24px;
+    height: 24px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    padding: 0 .45rem;
+    background: rgba(27, 73, 34, .08);
+    color: var(--gua-green);
+    font-size: 10px;
+    font-weight: 950;
+  }
+
+  .gua-tab.is-active .gua-tab-count {
+    background: rgba(255, 255, 255, .18);
+    color: #fff;
+  }
+
+  .gua-table-card {
+    overflow: hidden;
+    border: 1px solid var(--gua-line);
+    border-radius: 30px;
+    background: rgba(255, 255, 255, .96);
+    box-shadow: var(--gua-shadow);
+  }
+
+  .gua-table-head {
+    border-bottom: 1px solid var(--gua-line);
+    background: rgba(27, 73, 34, .035);
+  }
+
+  .gua-table-row {
+    transition: background .14s ease;
+  }
+
+  .gua-table-row:hover {
+    background: rgba(201, 158, 20, .055);
+  }
+
+  .gua-status {
+    display: inline-flex;
+    min-height: 30px;
+    align-items: center;
+    gap: .45rem;
+    border-radius: 999px;
+    padding: 0 .75rem;
+    font-size: 11px;
+    font-weight: 950;
+    white-space: nowrap;
+  }
+
+  .gua-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+  }
+
+  .gua-status-pending {
+    background: rgba(201, 158, 20, .16);
+    color: #7a5d05;
+  }
+
+  .gua-status-pending .gua-status-dot {
+    background: var(--gua-gold);
+  }
+
+  .gua-status-approved {
+    background: rgba(27, 73, 34, .10);
+    color: var(--gua-green);
+  }
+
+  .gua-status-approved .gua-status-dot {
+    background: var(--gua-green);
+  }
+
+  .gua-status-rejected {
+    background: #fff1f2;
+    color: #be123c;
+  }
+
+  .gua-status-rejected .gua-status-dot {
+    background: #e11d48;
+  }
+
+  .gua-status-refunded {
+    background: #ecfdf5;
+    color: #047857;
+  }
+
+  .gua-status-refunded .gua-status-dot {
+    background: #10b981;
+  }
+
+  .gua-btn-primary {
+    display: inline-flex;
+    min-height: 40px;
+    align-items: center;
+    justify-content: center;
+    gap: .55rem;
+    border-radius: 16px;
+    background: var(--gua-green);
+    color: #fff;
+    padding: 0 1rem;
+    font-size: 12px;
+    font-weight: 950;
+    transition: transform .16s var(--gua-ease), background .16s ease;
+  }
+
+  .gua-btn-primary:hover {
+    transform: translateY(-1px);
+    background: var(--gua-green-900);
+  }
+
+  .gua-page-btn {
+    display: inline-flex;
+    width: 36px;
+    height: 36px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--gua-line);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--gua-green);
+    font-size: 12px;
+    font-weight: 950;
+    transition: background .16s ease, color .16s ease, transform .16s ease;
+  }
+
+  .gua-page-btn:hover,
+  .gua-page-btn.is-active {
+    transform: translateY(-1px);
+    background: var(--gua-green);
+    color: #fff;
+  }
+
+  .gua-empty-icon {
+    display: flex;
+    width: 72px;
+    height: 72px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 28px;
+    background: var(--gua-green-soft);
+    color: var(--gua-green);
+  }
+</style>
+{% endblock %}
 
 {% block content %}
+{% set current = current_status if current_status else 'all' %}
+
 {% set tab_labels = [
-  ('all',      'Tất cả',        'text-stone-600'),
-  ('pending',  'Chờ duyệt',     'text-amber-600'),
-  ('approved', 'Đã duyệt',      'text-blue-600'),
-  ('rejected', 'Từ chối',       'text-red-500'),
-  ('refunded', 'Hoàn tiền xong','text-emerald-600'),
+  ('all',      'Tất cả',         'fa-layer-group'),
+  ('pending',  'Chờ duyệt',      'fa-clock'),
+  ('approved', 'Đã duyệt',       'fa-circle-check'),
+  ('rejected', 'Từ chối',        'fa-circle-xmark'),
+  ('refunded', 'Hoàn tiền xong', 'fa-money-bill-transfer')
 ] %}
 
-<div class="space-y-5 sm:space-y-6">
+<div class="gua-return-page space-y-6">
 
-  {# ── Header (Tự động thích ứng Mobile/Desktop) ── #}
-  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-    <div>
-      <h1 class="text-xl sm:text-2xl font-bold text-stone-900">Yêu cầu Đổi / Trả</h1>
-      <p class="text-xs sm:text-sm text-stone-500 mt-1">Quản lý toàn bộ yêu cầu đổi trả của khách hàng</p>
-    </div>
-    {% if tab_counts.get('pending', 0) > 0 %}
-    <div class="self-start sm:self-auto">
-      <span class="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-amber-50 border border-amber-200 rounded-xl text-xs sm:text-sm font-bold text-amber-700">
-        <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-amber-500 rounded-full animate-pulse"></span>
-        {{ tab_counts['pending'] }} chờ duyệt
-      </span>
-    </div>
-    {% endif %}
-  </div>
+  <section class="gua-return-hero">
+    <div class="relative z-10 p-6 lg:p-8">
+      <div class="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-7">
+        <div class="min-w-0">
+          <p class="text-[10px] font-black uppercase tracking-[0.24em] text-white/58">
+            GUAMAISON Service Center
+          </p>
 
-  {# ── Tab filter (Vuốt ngang trên Mobile) ── #}
-  <div class="bg-white rounded-2xl border border-stone-100 shadow-sm p-1.5 flex gap-1 overflow-x-auto no-scrollbar snap-x">
-    {% for slug, label, color in tab_labels %}
-    <a href="{{ url_for('admin.return_requests', status=(slug if slug != 'all' else '')) }}"
-       class="flex-shrink-0 snap-start flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all
-              {% if current_status == slug %}bg-stone-900 text-white shadow-sm{% else %}text-stone-500 hover:bg-stone-50 hover:text-stone-800{% endif %}">
+          <div class="mt-3 flex flex-wrap items-center gap-3">
+            <h1 class="text-[36px] sm:text-5xl lg:text-[62px] font-black tracking-[-0.07em] leading-none text-white">
+              Đổi / Trả
+            </h1>
+
+            <span class="inline-flex h-10 items-center rounded-full border border-white/14 bg-white/10 px-4 text-sm font-black text-white backdrop-blur">
+              {{ total }} yêu cầu
+            </span>
+          </div>
+
+          <p class="mt-5 max-w-3xl text-sm font-semibold leading-7 text-white/70">
+            Theo dõi, xét duyệt và xử lý toàn bộ yêu cầu đổi trả, hoàn tiền của khách hàng trong hệ thống GUAMAISON.
+          </p>
+        </div>
+
+        {% if tab_counts.get('pending', 0) > 0 %}
+        <div class="rounded-[26px] border border-white/12 bg-white/10 p-5 backdrop-blur">
+          <p class="text-[10px] font-black uppercase tracking-[.18em] text-white/54">
+            Cần xử lý
+          </p>
+          <div class="mt-3 flex items-center gap-3">
+            <span class="flex h-3 w-3 rounded-full bg-[#c99e14] shadow-[0_0_0_7px_rgba(201,158,20,.18)] animate-pulse"></span>
+            <p class="text-3xl font-black text-white">
+              {{ tab_counts['pending'] }}
+            </p>
+          </div>
+          <p class="mt-2 text-xs font-semibold text-white/58">
+            yêu cầu đang chờ duyệt
+          </p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <nav class="gua-tabbar">
+    {% for slug, label, icon in tab_labels %}
+    <a
+      href="{{ url_for('admin.return_requests', status=(slug if slug != 'all' else '')) }}"
+      class="gua-tab {% if current == slug %}is-active{% endif %}"
+    >
+      <i class="fa-solid {{ icon }} text-[11px]"></i>
       {{ label }}
-      <span class="text-[10px] sm:text-xs px-1.5 py-0.5 rounded-full
-                   {% if current_status == slug %}bg-white/20 text-white{% else %}bg-stone-100 {{ color }}{% endif %}">
+      <span class="gua-tab-count">
         {{ tab_counts.get(slug, 0) }}
       </span>
     </a>
     {% endfor %}
-  </div>
+  </nav>
 
-  {# ── Table (Bọc Responsive) ── #}
-  <div class="bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden">
+  <section class="gua-table-card">
     {% if returns %}
-    
-    <div class="overflow-x-auto w-full">
-      <table class="w-full text-sm min-w-[800px]">
-        <thead class="border-b border-stone-100 bg-stone-50">
-          <tr>
-            <th class="px-4 sm:px-6 py-4 text-left text-[10px] sm:text-xs font-bold text-stone-500 uppercase tracking-wider whitespace-nowrap">Khách hàng</th>
-            <th class="px-4 sm:px-6 py-4 text-left text-[10px] sm:text-xs font-bold text-stone-500 uppercase tracking-wider whitespace-nowrap">Đơn hàng</th>
-            <th class="px-4 sm:px-6 py-4 text-left text-[10px] sm:text-xs font-bold text-stone-500 uppercase tracking-wider">Lý do</th>
-            <th class="px-4 sm:px-6 py-4 text-left text-[10px] sm:text-xs font-bold text-stone-500 uppercase tracking-wider whitespace-nowrap">Ngày gửi</th>
-            <th class="px-4 sm:px-6 py-4 text-left text-[10px] sm:text-xs font-bold text-stone-500 uppercase tracking-wider whitespace-nowrap">Trạng thái</th>
-            <th class="px-4 sm:px-6 py-4 text-right text-[10px] sm:text-xs font-bold text-stone-500 uppercase tracking-wider whitespace-nowrap">Thao tác</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-stone-50">
-          {% for rr in returns %}
-          {% set order = rr.get('orders', {}) or {} %}
-          {% set user  = rr.get('users', {})  or {} %}
+      <div class="overflow-x-auto w-full">
+        <table class="w-full min-w-[860px] text-sm">
+          <thead>
+            <tr class="gua-table-head">
+              <th class="px-5 py-4 text-left text-[10px] font-black uppercase tracking-[0.18em] text-[var(--gua-muted)]">Khách hàng</th>
+              <th class="px-5 py-4 text-left text-[10px] font-black uppercase tracking-[0.18em] text-[var(--gua-muted)]">Đơn hàng</th>
+              <th class="px-5 py-4 text-left text-[10px] font-black uppercase tracking-[0.18em] text-[var(--gua-muted)]">Lý do</th>
+              <th class="px-5 py-4 text-left text-[10px] font-black uppercase tracking-[0.18em] text-[var(--gua-muted)]">Ngày gửi</th>
+              <th class="px-5 py-4 text-left text-[10px] font-black uppercase tracking-[0.18em] text-[var(--gua-muted)]">Trạng thái</th>
+              <th class="px-5 py-4 text-right text-[10px] font-black uppercase tracking-[0.18em] text-[var(--gua-muted)]">Thao tác</th>
+            </tr>
+          </thead>
 
-          {% set status_ui = {
-            'pending':  ('Chờ duyệt',      'bg-amber-100 text-amber-700'),
-            'approved': ('Đã duyệt',        'bg-blue-100 text-blue-700'),
-            'rejected': ('Từ chối',         'bg-red-100 text-red-600'),
-            'refunded': ('Hoàn tiền xong',  'bg-emerald-100 text-emerald-700'),
-          } %}
-          {% set ui = status_ui.get(rr.status, ('Không rõ', 'bg-stone-100 text-stone-500')) %}
+          <tbody class="divide-y divide-[rgba(27,73,34,.08)]">
+            {% for rr in returns %}
+            {% set order = rr.get('orders', {}) or {} %}
+            {% set user  = rr.get('users', {})  or {} %}
 
-          <tr class="hover:bg-stone-50/60 transition-colors">
-            {# Khách hàng #}
-            <td class="px-4 sm:px-6 py-4 whitespace-nowrap">
-              <p class="font-semibold text-stone-800 text-xs sm:text-sm">{{ user.get('full_name', 'N/A') }}</p>
-              <p class="text-[10px] sm:text-xs text-stone-400">{{ user.get('email', '') }}</p>
-            </td>
+            {% set status_ui = {
+              'pending':  ('Chờ duyệt',      'gua-status-pending'),
+              'approved': ('Đã duyệt',       'gua-status-approved'),
+              'rejected': ('Từ chối',        'gua-status-rejected'),
+              'refunded': ('Hoàn tiền xong', 'gua-status-refunded')
+            } %}
 
-            {# Đơn hàng #}
-            <td class="px-4 sm:px-6 py-4 whitespace-nowrap">
-              <a href="{{ url_for('admin.order_detail', order_id=rr.order_id) }}"
-                 class="font-mono text-xs font-bold text-stone-800 hover:text-stone-900 underline underline-offset-2">
-                #{{ rr.order_id[:8].upper() }}
-              </a>
-              <p class="text-[10px] sm:text-xs text-stone-500 mt-1">
-                {{ "{:,.0f}".format(order.get('total_amount', 0)) }}đ
-              </p>
-            </td>
+            {% set ui = status_ui.get(rr.status, ('Không rõ', 'gua-status-approved')) %}
 
-            {# Lý do #}
-            <td class="px-4 sm:px-6 py-4">
-              <p class="text-xs sm:text-sm text-stone-700 line-clamp-2 min-w-[200px] max-w-[250px] sm:max-w-xs whitespace-normal">
-                {{ rr.reason }}
-              </p>
-            </td>
+            <tr class="gua-table-row">
+              <td class="px-5 py-4 whitespace-nowrap">
+                <p class="text-sm font-black text-[var(--gua-green-950)]">
+                  {{ user.get('full_name', 'N/A') }}
+                </p>
+                <p class="mt-1 text-xs font-semibold text-[var(--gua-muted)]">
+                  {{ user.get('email', '') }}
+                </p>
+              </td>
 
-            {# Ngày gửi #}
-            <td class="px-4 sm:px-6 py-4 text-stone-500 text-[10px] sm:text-xs whitespace-nowrap">
-              {{ rr.requested_at[:16].replace('T', '<br class="sm:hidden"> ') | safe if rr.requested_at else 'N/A' }}
-            </td>
+              <td class="px-5 py-4 whitespace-nowrap">
+                <a
+                  href="{{ url_for('admin.order_detail', order_id=rr.order_id) }}"
+                  class="font-mono text-xs font-black text-[var(--gua-green)] underline underline-offset-4 hover:text-[var(--gua-gold)]"
+                >
+                  #{{ rr.order_id[:8].upper() }}
+                </a>
 
-            {# Trạng thái #}
-            <td class="px-4 sm:px-6 py-4 whitespace-nowrap">
-              <span class="inline-flex px-2.5 py-1 text-[10px] sm:text-xs font-bold rounded-full {{ ui[1] }}">{{ ui[0] }}</span>
-              {% if rr.status == 'refunded' and rr.refund_amount %}
-              <p class="text-[10px] sm:text-xs text-emerald-600 font-semibold mt-1.5">-{{ "{:,.0f}".format(rr.refund_amount) }}đ</p>
-              {% endif %}
-            </td>
+                <p class="mt-1 text-xs font-bold text-[var(--gua-muted)]">
+                  {{ "{:,.0f}".format(order.get('total_amount', 0)) }}đ
+                </p>
+              </td>
 
-            {# Thao tác #}
-            <td class="px-4 sm:px-6 py-4 text-right whitespace-nowrap">
-              <a href="{{ url_for('admin.return_request_detail', rr_id=rr.id) }}"
-                 class="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-stone-900 text-white text-[10px] sm:text-xs font-bold rounded-lg hover:bg-stone-700 transition-colors active:scale-95">
-                Chi tiết
-              </a>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+              <td class="px-5 py-4">
+                <p class="line-clamp-2 min-w-[220px] max-w-sm text-sm font-semibold leading-6 text-[var(--gua-ink)]">
+                  {{ rr.reason }}
+                </p>
+              </td>
 
-    {# Pagination (Responsive) #}
-    {% if total_pages > 1 %}
-    <div class="px-4 sm:px-6 py-4 border-t border-stone-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-      <p class="text-[10px] sm:text-xs text-stone-500 w-full sm:w-auto text-center sm:text-left">Tổng {{ total }} yêu cầu</p>
-      <div class="flex gap-1 sm:gap-2 flex-wrap justify-center">
-        {% for p in range(1, total_pages + 1) %}
-        <a href="{{ url_for('admin.return_requests', page=p, status=current_status if current_status != 'all' else '') }}"
-           class="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg text-[10px] sm:text-xs font-bold transition-colors
-                  {% if p == page %}bg-stone-900 text-white{% else %}bg-stone-100 text-stone-600 hover:bg-stone-200{% endif %}">
-          {{ p }}
-        </a>
-        {% endfor %}
+              <td class="px-5 py-4 text-xs font-bold text-[var(--gua-muted)] whitespace-nowrap">
+                {{ rr.requested_at[:16].replace('T', ' ') if rr.requested_at else 'N/A' }}
+              </td>
+
+              <td class="px-5 py-4 whitespace-nowrap">
+                <span class="gua-status {{ ui[1] }}">
+                  <span class="gua-status-dot"></span>
+                  {{ ui[0] }}
+                </span>
+
+                {% if rr.status == 'refunded' and rr.refund_amount %}
+                <p class="mt-2 text-xs font-black text-emerald-600">
+                  -{{ "{:,.0f}".format(rr.refund_amount) }}đ
+                </p>
+                {% endif %}
+              </td>
+
+              <td class="px-5 py-4 text-right whitespace-nowrap">
+                <a
+                  href="{{ url_for('admin.return_request_detail', rr_id=rr.id) }}"
+                  class="gua-btn-primary"
+                >
+                  Chi tiết
+                  <i class="fa-solid fa-arrow-right text-[11px]"></i>
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
-    </div>
-    {% endif %}
+
+      {% if total_pages > 1 %}
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-[var(--gua-line)] px-5 py-4">
+        <p class="text-xs font-bold text-[var(--gua-muted)]">
+          Tổng {{ total }} yêu cầu
+        </p>
+
+        <div class="flex flex-wrap justify-center gap-2">
+          {% for p in range(1, total_pages + 1) %}
+          <a
+            href="{{ url_for('admin.return_requests', page=p, status=current if current != 'all' else '') }}"
+            class="gua-page-btn {% if p == page %}is-active{% endif %}"
+          >
+            {{ p }}
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
 
     {% else %}
-    {# Empty State #}
-    <div class="py-16 sm:py-24 px-4 text-center">
-      <svg class="w-10 h-10 sm:w-12 sm:h-12 text-stone-200 mx-auto mb-3 sm:mb-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/>
-      </svg>
-      <p class="text-sm text-stone-400 font-medium">Không có yêu cầu nào</p>
-    </div>
+      <div class="flex flex-col items-center justify-center px-4 py-20 text-center">
+        <div class="gua-empty-icon mb-5">
+          <i class="fa-solid fa-arrow-right-arrow-left text-2xl"></i>
+        </div>
+
+        <h3 class="text-base font-black text-[var(--gua-green-950)]">
+          Không có yêu cầu nào
+        </h3>
+
+        <p class="mt-2 max-w-md text-sm font-semibold leading-6 text-[var(--gua-muted)]">
+          Khi khách hàng gửi yêu cầu đổi / trả, dữ liệu sẽ hiển thị tại đây để quản trị viên xử lý.
+        </p>
+      </div>
     {% endif %}
-  </div>
+  </section>
 
 </div>
-
-<style>
-  /* Ẩn scrollbar cho khu vực tab cuộn ngang trên mobile */
-  .no-scrollbar::-webkit-scrollbar { display: none; }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-</style>
 {% endblock %}

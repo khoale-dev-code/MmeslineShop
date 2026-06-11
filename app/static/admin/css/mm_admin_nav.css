@@ -1,5 +1,5 @@
 /* =========================================================
-   MMESTLINE Admin Navigation
+   GUAMAISON Admin Navigation
    Clean CSS
    Dùng cho:
    - admin_navbar.html
@@ -15,16 +15,23 @@
 ========================================================= */
 
 :root {
-  --mm-brown-950: #241207;
-  --mm-brown-900: #3b2414;
-  --mm-brown-800: #4c2d18;
-  --mm-brown-700: #5f3b1e;
-  --mm-caramel: #b98b62;
-  --mm-muted: #9b7b63;
-  --mm-cream: #fbf7f1;
-  --mm-soft: #fffaf5;
-  --mm-card: #fffdf9;
-  --mm-line: #eadfd4;
+  /* GUAMAISON GREEN / GOLD THEME */
+  --mm-brown-950: #0b2110;
+  --mm-brown-900: #123418;
+  --mm-brown-800: #163c1d;
+  --mm-brown-700: #1b4922;
+
+  --mm-caramel: #c99e14;
+  --mm-muted: #667263;
+
+  --mm-cream: #fbfaf4;
+  --mm-soft: #fffefa;
+  --mm-card: #ffffff;
+  --mm-line: rgba(27, 73, 34, 0.14);
+
+  --mm-gold: #c99e14;
+  --mm-gold-soft: rgba(201, 158, 20, 0.16);
+  --mm-green-soft: rgba(27, 73, 34, 0.08);
 
   --mm-admin-sidebar-full: 300px;
   --mm-admin-sidebar-mini: 92px;
@@ -840,7 +847,7 @@ body.mm-sidebar-open .mm-admin-sidebar-backdrop,
   }
 }
 /* =========================================================
-   MMESTLINE Admin — Final Sidebar/Topbar Polish
+   GUAMAISON Admin — Final Sidebar/Topbar Polish
    Sửa sạn UI sau collapsed
 ========================================================= */
 
@@ -1127,4 +1134,294 @@ body.admin-sidebar-collapsed .mm-sidebar-toggle i {
   body.admin-sidebar-collapsed .mm-topbar {
     padding-left: 52px !important;
   }
+}
+/* =========================================================
+   GUAMAISON COLOR PATCH ONLY
+   Theme: #1b4922 / #c99e14
+   Chỉ chỉnh màu, không đổi layout.
+========================================================= */
+
+/* Progress */
+.mm-admin-progress {
+  background: linear-gradient(90deg, #1b4922, #c99e14) !important;
+  box-shadow: 0 0 18px rgba(201, 158, 20, 0.28) !important;
+}
+
+/* Sidebar */
+#mmAdminSidebar,
+.mm-admin-sidebar {
+  border-right-color: rgba(27, 73, 34, 0.14) !important;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(201, 158, 20, 0.14), transparent 32%),
+    linear-gradient(180deg, #fffefa 0%, #fbfaf4 100%) !important;
+  color: #0b2110 !important;
+}
+
+.mm-sidebar-brand {
+  background: rgba(255, 254, 250, 0.96) !important;
+}
+
+.mm-sidebar-logo {
+  background:
+    radial-gradient(circle at top, rgba(201, 158, 20, 0.24), transparent 58%),
+    #1b4922 !important;
+  border-color: rgba(201, 158, 20, 0.30) !important;
+  box-shadow: 0 16px 32px -24px rgba(27, 73, 34, 0.75) !important;
+}
+
+.mm-sidebar-link {
+  color: #667263 !important;
+}
+
+.mm-sidebar-link:hover {
+  background: rgba(27, 73, 34, 0.06) !important;
+  color: #1b4922 !important;
+}
+
+.mm-sidebar-link.is-active {
+  background: rgba(27, 73, 34, 0.10) !important;
+  color: #1b4922 !important;
+}
+
+.mm-sidebar-link.is-active::after {
+  background: #c99e14 !important;
+}
+
+.mm-sidebar-icon {
+  color: inherit !important;
+}
+
+.mm-sidebar-section-title {
+  color: rgba(27, 73, 34, 0.48) !important;
+}
+
+.mm-sidebar-badge {
+  background: #c99e14 !important;
+  color: #0b2110 !important;
+}
+
+/* Sidebar toggle */
+.mm-sidebar-toggle {
+  background: #fffefa !important;
+  border-color: rgba(27, 73, 34, 0.16) !important;
+  color: #1b4922 !important;
+  box-shadow: 0 18px 38px -26px rgba(27, 73, 34, 0.72) !important;
+}
+
+.mm-sidebar-toggle:hover {
+  background: #1b4922 !important;
+  border-color: #1b4922 !important;
+  color: #fff !important;
+}
+
+/* Mobile sidebar backdrop */
+.mm-admin-sidebar-backdrop {
+  background: rgba(11, 33, 16, 0.46) !important;
+}
+
+/* Topbar */
+#adminTopbar,
+.mm-topbar {
+  border-bottom-color: rgba(27, 73, 34, 0.14) !important;
+  background: rgba(255, 254, 250, 0.94) !important;
+  color: #0b2110 !important;
+}
+
+.mm-topbar-kicker {
+  color: #c99e14 !important;
+}
+
+.mm-topbar-title {
+  color: #0b2110 !important;
+}
+
+/* Topbar buttons */
+.mm-icon-btn {
+  border-color: rgba(27, 73, 34, 0.14) !important;
+  background: #ffffff !important;
+  color: #1b4922 !important;
+}
+
+.mm-icon-btn:hover,
+.mm-icon-btn.is-active {
+  background: #1b4922 !important;
+  border-color: #1b4922 !important;
+  color: #fff !important;
+}
+
+.mm-dot-badge {
+  border-color: #fbfaf4 !important;
+  background: #c99e14 !important;
+  color: #0b2110 !important;
+}
+
+/* POS button */
+.mm-pos-btn {
+  background: #1b4922 !important;
+  color: #fff !important;
+}
+
+.mm-pos-btn:hover {
+  background: #123418 !important;
+}
+
+/* User button */
+.mm-user-btn {
+  border-color: rgba(27, 73, 34, 0.14) !important;
+  background: #ffffff !important;
+  color: #0b2110 !important;
+}
+
+.mm-user-btn:hover,
+.mm-user-btn.is-open {
+  background: #fbfaf4 !important;
+  border-color: rgba(201, 158, 20, 0.36) !important;
+  box-shadow: 0 18px 40px -34px rgba(27, 73, 34, 0.72) !important;
+}
+
+.mm-user-text strong {
+  color: #0b2110 !important;
+}
+
+.mm-user-text small {
+  color: #059669 !important;
+}
+
+.mm-user-avatar {
+  background: #1b4922 !important;
+  color: #fff !important;
+}
+
+.mm-chevron {
+  color: #c99e14 !important;
+}
+
+/* User dropdown */
+.mm-user-dropdown,
+#adminUserDropdown {
+  border-color: rgba(27, 73, 34, 0.14) !important;
+  background: #fffefa !important;
+  box-shadow: 0 28px 90px -42px rgba(11, 33, 16, 0.75) !important;
+}
+
+.mm-user-dropdown-head {
+  border-bottom-color: rgba(27, 73, 34, 0.14) !important;
+  background:
+    radial-gradient(circle at top right, rgba(201, 158, 20, 0.18), transparent 38%),
+    linear-gradient(135deg, #fbfaf4, #f7f9f2) !important;
+}
+
+.mm-user-dropdown-avatar {
+  background: #1b4922 !important;
+  color: #fff !important;
+}
+
+.mm-user-dropdown-head p {
+  color: #0b2110 !important;
+}
+
+.mm-user-dropdown-head small {
+  color: #667263 !important;
+}
+
+.mm-online-pill {
+  background: #ecfdf5 !important;
+  color: #047857 !important;
+}
+
+/* Dropdown items */
+.mm-dropdown-item {
+  color: #667263 !important;
+}
+
+.mm-dropdown-item:hover {
+  color: #1b4922 !important;
+  background: rgba(201, 158, 20, 0.08) !important;
+}
+
+.mm-dropdown-item span {
+  background: rgba(27, 73, 34, 0.08) !important;
+  color: #1b4922 !important;
+}
+
+.mm-dropdown-item:hover span {
+  background: #1b4922 !important;
+  color: #fff !important;
+}
+
+.mm-dropdown-item strong {
+  color: inherit !important;
+}
+
+.mm-dropdown-item em {
+  color: rgba(27, 73, 34, 0.42) !important;
+}
+
+.mm-dropdown-item:hover em {
+  color: #c99e14 !important;
+}
+
+.mm-dropdown-item b {
+  background: #c99e14 !important;
+  color: #0b2110 !important;
+}
+
+.mm-dropdown-line {
+  background: rgba(27, 73, 34, 0.14) !important;
+}
+
+/* Logout giữ màu cảnh báo */
+.mm-dropdown-logout,
+.mm-logout-btn {
+  color: #be123c !important;
+}
+
+.mm-dropdown-logout span,
+.mm-logout-btn span {
+  background: #fff1f2 !important;
+  color: #be123c !important;
+}
+
+.mm-dropdown-logout:hover,
+.mm-logout-btn:hover {
+  color: #be123c !important;
+  background: #fff1f2 !important;
+}
+
+.mm-dropdown-logout:hover span,
+.mm-logout-btn:hover span {
+  background: #be123c !important;
+  color: #fff !important;
+}
+
+/* Footer/sidebar text */
+.mm-sidebar-footer-text {
+  color: #667263 !important;
+}
+
+/* Scrollbar area */
+.mm-admin-nav-scroll,
+.mm-sidebar-nav-scroll,
+.custom-scrollbar {
+  scrollbar-color: rgba(27, 73, 34, 0.30) transparent !important;
+}
+
+/* Mobile */
+@media (max-width: 1023.98px) {
+  #adminTopbar,
+  .mm-topbar {
+    background: rgba(255, 254, 250, 0.96) !important;
+  }
+
+  #mmAdminSidebar,
+  .mm-admin-sidebar {
+    background:
+      radial-gradient(circle at 18% 0%, rgba(201, 158, 20, 0.16), transparent 32%),
+      linear-gradient(180deg, #fffefa 0%, #fbfaf4 100%) !important;
+  }
+}
+/* Logo admin sidebar background */
+.mm-sidebar-logo {
+  background: #bfcebb !important;
+  border-color: rgba(27, 73, 34, 0.18) !important;
 }

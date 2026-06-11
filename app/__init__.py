@@ -1,12 +1,12 @@
 """
 app/__init__.py
-Application Factory - MMESTLINE 2026 Edition
+Application Factory - GUAMAISON 2026 Edition
 
 Cập nhật:
 - Luôn register chat_bp để endpoint /api/bot không bị 404.
 - ai_bp vẫn có thể bật/tắt bằng ENABLE_AI.
 - Context processor an toàn hơn.
-- Error template đồng bộ MMESTLINE green/gold.
+- Error template đồng bộ GUAMAISON green/gold.
 """
 
 import os
@@ -36,7 +36,7 @@ ERROR_TEMPLATE = """<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ code }} – MMESTLINE</title>
+  <title>{{ code }} – GUAMAISON</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -221,7 +221,7 @@ ERROR_TEMPLATE = """<!DOCTYPE html>
   <div class="blob" aria-hidden="true"></div>
 
   <main class="card">
-    <p class="brand">MMESTLINE SYSTEM</p>
+    <p class="brand">GUAMAISON SYSTEM</p>
 
     <div class="icon-wrap" aria-hidden="true">
       {% if code == 404 %}
@@ -338,7 +338,7 @@ def create_app() -> Flask:
             flask_app.register_blueprint(admin_bp)
             flask_app.register_blueprint(admin_shipping_bp)
             flask_app.register_blueprint(admin_providers_bp)
-            logger.info("✅ MMESTLINE admin blueprints enabled.")
+            logger.info("✅ GUAMAISON admin blueprints enabled.")
         except Exception as e:
             logger.error("❌ Không register được admin blueprints: %s", e, exc_info=True)
     else:
@@ -423,8 +423,8 @@ def create_app() -> Flask:
             "system_settings": system_settings,
             "unread_notification_count": unread_notification_count,
             "admin_notification_count": unread_notification_count,
-            "shop_name": "MMESTLINE",
-            "shop_description": "MMESTLINE | Official Online Store",
+            "shop_name": "GUAMAISON",
+            "shop_description": "GUAMAISON | Official Online Store",
         }
 
     # 11. Error Handlers
@@ -452,7 +452,7 @@ def create_app() -> Flask:
         return _error_response(
             403,
             "Từ chối truy cập",
-            "Bạn không có quyền truy cập vào khu vực này của MMESTLINE.",
+            "Bạn không có quyền truy cập vào khu vực này của GUAMAISON.",
         )
 
     @flask_app.errorhandler(CSRFError)
@@ -468,7 +468,7 @@ def create_app() -> Flask:
         return _error_response(
             404,
             "Không tìm thấy trang",
-            "Đường dẫn này không tồn tại hoặc đã bị gỡ khỏi hệ thống MMESTLINE.",
+            "Đường dẫn này không tồn tại hoặc đã bị gỡ khỏi hệ thống GUAMAISON.",
         )
 
     @flask_app.errorhandler(405)
@@ -489,12 +489,12 @@ def create_app() -> Flask:
 
     @flask_app.errorhandler(500)
     def server_error(_e):
-        logger.exception("MMESTLINE Internal Server Error")
+        logger.exception("GUAMAISON Internal Server Error")
 
         return _error_response(
             500,
             "Lỗi máy chủ",
-            "Hệ thống MMESTLINE đang gặp sự cố kỹ thuật. Vui lòng thử lại sau.",
+            "Hệ thống GUAMAISON đang gặp sự cố kỹ thuật. Vui lòng thử lại sau.",
         )
 
     return flask_app

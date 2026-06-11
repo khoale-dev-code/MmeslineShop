@@ -144,7 +144,7 @@
   }
 
   function makeSku(name) {
-    const base = slugifyVi(name || "MMESTLINE")
+    const base = slugifyVi(name || "GUAMAISON")
       .split("-")
       .filter(Boolean)
       .slice(0, 4)
@@ -155,7 +155,7 @@
   }
 
   function getBrandName() {
-    return cleanText(document.querySelector("[name='brand']")?.value) || "MMESTLINE";
+    return cleanText(document.querySelector("[name='brand']")?.value) || "GUAMAISON";
   }
 
   function getGenderText() {
@@ -336,7 +336,7 @@
     },
 
     makeDescription() {
-      const name = getFieldValue(SELECTOR.productName) || "Sản phẩm MMESTLINE";
+      const name = getFieldValue(SELECTOR.productName) || "Sản phẩm GUAMAISON";
       const tags = getFieldValue(SELECTOR.tagsHidden);
 
       const tagText = tags
@@ -442,7 +442,7 @@
       const score = [nameOk, titleOk, descOk].filter(Boolean).length;
 
       setText(SELECTOR.seoScoreBadge, `${score}/3`);
-      setText(SELECTOR.seoPreviewTitle, title || this.makeTitle() || "Tên sản phẩm | MMESTLINE");
+      setText(SELECTOR.seoPreviewTitle, title || this.makeTitle() || "Tên sản phẩm | GUAMAISON");
       setText(
         SELECTOR.seoPreviewDescription,
         desc || "Mô tả ngắn giúp khách hàng hiểu sản phẩm, chất liệu, form dáng và điểm nổi bật."

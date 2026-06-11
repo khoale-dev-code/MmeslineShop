@@ -92,7 +92,7 @@
   }
 
   function makeSkuFromName(name, suffix) {
-    const clean = slugifyVi(name || "MMESTLINE")
+    const clean = slugifyVi(name || "GUAMAISON")
       .split("-")
       .filter(Boolean)
       .slice(0, 4)

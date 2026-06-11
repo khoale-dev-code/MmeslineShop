@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}Đăng nhập | MMESTLINE{% endblock %}
+{% block title %}Đăng nhập | GUAMAISON{% endblock %}
 
 {% block content %}
 {% set storefront_settings = system_settings.get('storefront', {}) if system_settings is defined and system_settings else {} %}
-{% set shop_name = 'MMESTLINE' %}
+{% set shop_name = 'GUAMAISON' %}
 {% set login_img = storefront_settings.get('login_image_url') or url_for('static', filename='images/loginImg.png') %}
 {% set next_url = request.args.get('next') or request.form.get('next') or '' %}
 
@@ -34,7 +34,7 @@
           </p>
 
           <h1 class="text-6xl xl:text-7xl font-black uppercase leading-[.85] tracking-[-.08em]">
-            MMEST<br><span class="text-[#d8b99f]">LINE</span>
+            GUA<br><span class="text-[#c99e14]">MAISON</span>
           </h1>
 
           <p class="mt-6 max-w-md text-sm font-semibold leading-7 text-[#ead8c8]/80">
@@ -63,7 +63,7 @@
 
         <div class="mb-8 border-b border-[#eadfd4] pb-6">
           <p class="mb-3 text-[10px] font-black uppercase tracking-[.28em] text-[#b98b62]">
-            MMESTLINE Account
+            GUAMAISON Account
           </p>
 
           <h2 class="text-4xl sm:text-5xl font-black tracking-[-.06em] leading-none text-[#241207]">

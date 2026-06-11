@@ -1,19 +1,19 @@
 {#
   app/templates/partials/footer.html
   =================================
-  MMESTLINE Storefront Footer
+  GUAMAISON Storefront Footer
 
   Màu chủ đạo:
   - Green: #1b4922
   - Gold:  #c99e14
 
   Lưu ý:
-  - Không dùng {{ shop_name|default('MMESTLINE')[:4] }}
+  - Không dùng {{ shop_name|default('GUAMAISON')[:4] }}
     vì Jinja sẽ lỗi cú pháp.
   - Luôn set biến footer_shop_name trước rồi mới slice.
 #}
 
-{% set footer_shop_name = footer_shop_name|default(shop_name|default('MMESTLINE', true), true) %}
+{% set footer_shop_name = footer_shop_name|default(shop_name|default('GUAMAISON', true), true) %}
 {% set footer_brand_first = footer_shop_name[:4] %}
 {% set footer_brand_rest = footer_shop_name[4:] %}
 
@@ -420,7 +420,7 @@
           <strong>{{ footer_shop_name }}</strong><br>
           Official Online Store<br>
           Vietnam<br>
-          Email: support@mmestline.vn
+          Email: support@GUAMAISON.vn
         </p>
 
         <div class="mm-footer-social">

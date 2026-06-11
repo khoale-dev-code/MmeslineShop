@@ -1,0 +1,688 @@
+/* ==========================================================================
+   app/static/css/base-performance.css
+   GUAMAISON - Stable Base CSS
+   Fix:
+   - Chỉ 1 scrollbar.
+   - Không dùng content-visibility để tránh mất ảnh.
+   - Không khóa scroll chuột.
+========================================================================== */
+
+:root {
+  --header-h: 72px;
+  --topbar-h: 0px;
+  --scroll-offset: calc(var(--header-h) + var(--topbar-h) + 16px);
+
+  --mm-green: #1b4922;
+  --mm-green-dark: #123418;
+  --mm-gold: #c99e14;
+  --mm-gold-soft: rgba(201, 158, 20, .18);
+
+  --mm-ink: #101510;
+  --mm-cream: #fbfaf4;
+  --mm-soft: #f7f9f2;
+  --mm-line: rgba(27, 73, 34, .14);
+  --mm-muted: #687466;
+  --mm-faint: rgba(27, 73, 34, .45);
+
+  --gua-ink: var(--mm-green);
+  --gua-paper: #fbfaf4;
+  --gua-muted: rgba(27, 73, 34, .14);
+  --gua-ghost: #f7f9f2;
+  --gua-warm: var(--mm-green-dark);
+  --gua-sub: #687466;
+  --gua-faint: var(--mm-faint);
+  --gua-accent: var(--mm-gold);
+  --gua-radius: 14px;
+  --gua-shadow: 0 14px 36px -30px rgba(27, 73, 34, .45);
+  --gua-shadow-lg: 0 22px 52px -38px rgba(27, 73, 34, .6);
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --header-h: 76px;
+  }
+}
+
+body.has-topbar {
+  --topbar-h: 34px;
+}
+
+/* ==========================================================================
+   Reset
+========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  width: 100%;
+  min-height: 100%;
+  background: #fff;
+  scroll-padding-top: var(--scroll-offset);
+  scroll-behavior: auto !important;
+
+  /*
+    QUAN TRỌNG:
+    html là scroll container duy nhất.
+  */
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+
+  font-synthesis: none;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+  background: #fff;
+  color: var(--mm-ink);
+  font-family: "DM Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  /*
+    Không để body tự tạo scrollbar.
+  */
+  overflow-x: hidden !important;
+  overflow-y: visible !important;
+
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: auto;
+  touch-action: pan-x pan-y;
+  -webkit-tap-highlight-color: transparent;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+img,
+video,
+svg,
+canvas {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+img,
+video {
+  background: #f6f6f6;
+}
+
+::selection {
+  background: var(--mm-green);
+  color: #fff;
+}
+
+/* ==========================================================================
+   Scroll Lock
+========================================================================== */
+
+html.mm-page-locked {
+  overflow: hidden !important;
+}
+
+body.mm-mobile-menu-open,
+body.mm-modal-open {
+  overflow: hidden !important;
+  touch-action: none !important;
+}
+
+/*
+  Class cũ từng làm kẹt scroll.
+  Không cho nó khóa trang nữa.
+*/
+body.mm-scroll-locked {
+  overflow-y: visible !important;
+  touch-action: pan-x pan-y !important;
+}
+
+/* ==========================================================================
+   Topbar / Navbar
+========================================================================== */
+
+.top-bar {
+  height: var(--topbar-h);
+  min-height: var(--topbar-h);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1rem;
+  overflow: hidden;
+  background: var(--mm-green);
+  color: #fff;
+  font-size: .68rem;
+  font-weight: 900;
+  letter-spacing: .12em;
+  line-height: 1.2;
+  text-align: center;
+  text-transform: uppercase;
+  position: relative;
+  z-index: 1001;
+}
+
+.mm-navbar-shell {
+  height: var(--header-h);
+  min-height: var(--header-h);
+  position: relative;
+  z-index: 1000;
+  overflow: visible;
+  background: transparent;
+}
+
+#mainNav {
+  top: var(--topbar-h) !important;
+  z-index: 1000 !important;
+  min-height: var(--header-h);
+  backface-visibility: hidden;
+}
+
+body.mm-home-transparent-nav .mm-navbar-shell {
+  background: transparent;
+}
+
+body.mm-home-transparent-nav #main-content {
+  margin-top: calc(var(--header-h) * -1);
+}
+
+#mobileMenu {
+  z-index: 1002 !important;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+#mobileMenuBackdrop {
+  z-index: 1001 !important;
+}
+
+/* ==========================================================================
+   Main Layout
+========================================================================== */
+
+#main-content {
+  width: 100%;
+  min-height: 50vh;
+  position: relative;
+  z-index: 1;
+  background: #fff;
+  overflow-x: hidden !important;
+  overflow-y: visible !important;
+}
+
+.mm-home,
+.mm-page,
+.page-wrap,
+.lazy-render-section {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden !important;
+  overflow-y: visible !important;
+}
+
+.lazy-render-section {
+  min-height: auto;
+  background: #fff;
+}
+
+/*
+  Tạm thời KHÔNG dùng content-visibility.
+  Lý do: nó có thể làm section/ảnh bên dưới không hiển thị đúng
+  nếu template con chưa có chiều cao ổn định.
+*/
+.lazy-render-section::before,
+.lazy-render-section::after {
+  content: none !important;
+  display: none !important;
+}
+
+.lazy-render-section.is-loading,
+.lazy-render-section[data-loading="true"] {
+  background: #fff !important;
+}
+
+/* ==========================================================================
+   Animation Guard
+========================================================================== */
+
+.reveal,
+.reveal.active,
+.gua-reveal,
+.gua-d1,
+.gua-d2,
+.gua-d3,
+[data-reveal],
+[data-reveal].is-visible {
+  opacity: 1 !important;
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+  will-change: auto !important;
+}
+
+/* ==========================================================================
+   Horizontal Scroll
+========================================================================== */
+
+.mm-x-section {
+  width: 100%;
+  max-width: 100%;
+  overflow: visible !important;
+}
+
+.mm-x-viewport,
+.mm-horizontal-scroll,
+#slider-container,
+[data-mm-x-scroll],
+[data-horizontal-scroll],
+[data-home-collection-scroll],
+[data-featured-scroll] {
+  width: 100% !important;
+  max-width: 100% !important;
+  display: block !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto;
+  scroll-behavior: auto !important;
+  scroll-snap-type: x proximity;
+  touch-action: pan-x pan-y;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.mm-x-viewport::-webkit-scrollbar,
+.mm-horizontal-scroll::-webkit-scrollbar,
+#slider-container::-webkit-scrollbar,
+[data-mm-x-scroll]::-webkit-scrollbar,
+[data-horizontal-scroll]::-webkit-scrollbar,
+[data-home-collection-scroll]::-webkit-scrollbar,
+[data-featured-scroll]::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+.mm-x-track {
+  display: flex !important;
+  align-items: stretch;
+  width: max-content !important;
+  min-width: 100% !important;
+}
+
+.mm-x-item {
+  flex: 0 0 auto !important;
+  min-width: 0;
+  scroll-snap-align: start;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mm-x-viewport *,
+.mm-horizontal-scroll *,
+#slider-container *,
+[data-mm-x-scroll] *,
+[data-horizontal-scroll] *,
+[data-home-collection-scroll] *,
+[data-featured-scroll] * {
+  -webkit-user-drag: none;
+}
+
+.mm-x-viewport img,
+.mm-x-viewport video,
+.mm-horizontal-scroll img,
+.mm-horizontal-scroll video,
+#slider-container img,
+#slider-container video,
+[data-mm-x-scroll] img,
+[data-mm-x-scroll] video,
+[data-horizontal-scroll] img,
+[data-horizontal-scroll] video,
+[data-home-collection-scroll] img,
+[data-home-collection-scroll] video,
+[data-featured-scroll] img,
+[data-featured-scroll] video {
+  user-select: none;
+}
+
+[data-home-collection-scroll] .mm-media-frame,
+[data-home-collection-scroll] .mm-collection-overlay {
+  pointer-events: none !important;
+}
+
+/* ==========================================================================
+   Hide Scrollbar Utilities
+========================================================================== */
+
+.no-scrollbar,
+.mm-no-scrollbar,
+[data-hide-scrollbar] {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.no-scrollbar::-webkit-scrollbar,
+.mm-no-scrollbar::-webkit-scrollbar,
+[data-hide-scrollbar]::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+/* ==========================================================================
+   Media
+========================================================================== */
+
+.mm-video,
+.mm-media-frame video,
+[data-scroll-video],
+video {
+  max-width: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  background: #111;
+  backface-visibility: hidden;
+  will-change: auto !important;
+}
+
+.mm-media-frame {
+  overflow: hidden;
+  background: #f6f6f6;
+  backface-visibility: hidden;
+  will-change: auto !important;
+}
+
+.mm-media-frame img,
+.mm-media-frame video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mm-img-pan {
+  transform: none;
+  backface-visibility: hidden;
+  will-change: auto !important;
+}
+
+.drop-shadow-xl,
+.drop-shadow-2xl,
+[class*="drop-shadow"] {
+  filter: none !important;
+}
+
+/* ==========================================================================
+   Components
+========================================================================== */
+
+.font-display {
+  font-family: "DM Sans", system-ui, sans-serif !important;
+}
+
+.gua-card {
+  background: #fff;
+  border: 1px solid var(--gua-muted);
+  border-radius: var(--gua-radius);
+  box-shadow: var(--gua-shadow);
+}
+
+.gua-card:hover {
+  box-shadow: var(--gua-shadow-lg);
+}
+
+.gua-btn {
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  padding: 0 1.6rem;
+  border: 0;
+  border-radius: var(--gua-radius);
+  background: var(--mm-green);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  transition:
+    background .15s ease,
+    color .15s ease,
+    transform .15s ease;
+}
+
+.gua-btn:hover {
+  background: var(--mm-gold);
+  color: var(--mm-green-dark);
+  transform: translateY(-1px);
+}
+
+.gua-btn:active {
+  transform: scale(.98);
+}
+
+.gua-btn-ghost {
+  background: #fff;
+  color: var(--mm-green);
+  border: 1px solid var(--mm-line);
+}
+
+.gua-btn-ghost:hover {
+  background: var(--mm-soft);
+  color: var(--mm-green);
+}
+
+.gua-input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 1rem;
+  border: 1px solid var(--mm-line);
+  border-radius: var(--gua-radius);
+  background: #fff;
+  color: var(--mm-green);
+  outline: none;
+  font-size: 13px;
+  font-weight: 600;
+  transition:
+    border-color .15s ease,
+    box-shadow .15s ease;
+}
+
+.gua-input:focus {
+  border-color: var(--mm-green);
+  box-shadow: 0 0 0 3px rgba(27, 73, 34, .08);
+}
+
+.gua-label {
+  display: block;
+  margin-bottom: .55rem;
+  color: var(--mm-green);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.gua-nav-item {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .75rem 1rem;
+  border: 1px solid transparent;
+  border-radius: var(--gua-radius);
+  color: var(--gua-sub);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition:
+    color .15s ease,
+    background .15s ease,
+    border-color .15s ease;
+}
+
+.gua-nav-item:hover {
+  background: var(--gua-ghost);
+  color: var(--gua-ink);
+  border-color: var(--gua-muted);
+}
+
+.gua-nav-item.active {
+  background: var(--gua-ink);
+  color: #fff;
+  border-color: var(--gua-ink);
+}
+
+.notif-badge {
+  position: absolute;
+  top: -4px;
+  right: -5px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border: 1.5px solid #fff;
+  border-radius: 999px;
+  background: var(--mm-green);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 16px;
+  text-align: center;
+}
+
+.notif-badge.is-zero {
+  visibility: hidden;
+}
+
+/* ==========================================================================
+   Form
+========================================================================== */
+
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+
+input[type=number] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* ==========================================================================
+   Toast
+========================================================================== */
+
+#mmToastWrap {
+  pointer-events: none;
+}
+
+#mmToastWrap > * {
+  pointer-events: auto;
+}
+
+/* ==========================================================================
+   Responsive
+========================================================================== */
+
+@media (min-width: 1024px) {
+  .gua-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+    position: sticky;
+    top: calc(var(--header-h) + var(--topbar-h) + 1.5rem);
+  }
+}
+
+@media (max-width: 1023px) {
+  :root {
+    --header-h: 72px;
+  }
+
+  html,
+  body,
+  #main-content,
+  .mm-home,
+  .mm-page,
+  .page-wrap {
+    overflow-x: hidden !important;
+  }
+
+  .gua-sidebar {
+    display: flex;
+    flex-direction: row;
+    gap: .375rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: .5rem;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+  }
+
+  .mm-x-viewport,
+  .mm-horizontal-scroll,
+  #slider-container,
+  [data-mm-x-scroll],
+  [data-horizontal-scroll],
+  [data-home-collection-scroll],
+  [data-featured-scroll] {
+    overflow-x: scroll !important;
+    overflow-y: hidden !important;
+    scroll-snap-type: x proximity;
+    touch-action: pan-x pan-y;
+  }
+}
+
+@media (max-width: 640px) {
+  body.has-topbar {
+    --topbar-h: 38px;
+  }
+
+  .top-bar {
+    font-size: .62rem;
+    letter-spacing: .09em;
+  }
+}
+
+/* ==========================================================================
+   Reduced Motion
+========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  html,
+  body,
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation: none !important;
+    transition: none !important;
+  }
+
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

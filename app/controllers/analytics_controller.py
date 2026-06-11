@@ -1,7 +1,7 @@
 """
 app/controllers/analytics_controller.py
 ======================================
-Event Tracking System cho storefront MMESTLINE.
+Event Tracking System cho storefront GUAMAISON.
 
 Nguyên tắc:
 - Client chỉ được gửi: view, cart, wishlist.

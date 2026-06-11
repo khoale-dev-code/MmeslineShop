@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}Đăng ký | MMESTLINE{% endblock %}
+{% block title %}Đăng ký | GUAMAISON{% endblock %}
 
 {% block content %}
 {% set storefront_settings = system_settings.get('storefront', {}) if system_settings is defined and system_settings else {} %}
-{% set shop_name = 'MMESTLINE' %}
+{% set shop_name = 'GUAMAISON' %}
 {% set register_img = storefront_settings.get('register_image_url') or url_for('static', filename='images/signUp.png') %}
 {% set errors = errors if errors is defined and errors else {} %}
 
@@ -31,15 +31,15 @@
         </div>
 
         <div>
-          <p class="mb-4 text-[10px] font-black uppercase tracking-[.36em] text-[#d8b99f]">
+          <p class="mb-4 text-[10px] font-black uppercase tracking-[.36em] text-[#c99e14]">
             Member Club
           </p>
 
           <h1 class="text-6xl xl:text-7xl font-black uppercase leading-[.85] tracking-[-.08em]">
-            Join<br><span class="text-[#d8b99f]">MMESTLINE</span>
+            Join<br><span class="text-[#c99e14]">GUAMAISON</span>
           </h1>
 
-          <p class="mt-6 max-w-md text-sm font-semibold leading-7 text-[#ead8c8]/80">
+          <p class="mt-6 max-w-md text-sm font-semibold leading-7 text-[#eeeeec]/80">
             Tạo tài khoản để theo dõi đơn hàng, lưu sản phẩm yêu thích và nhận thông tin bộ sưu tập mới.
           </p>
         </div>
@@ -65,7 +65,7 @@
 
         <div class="mb-8 border-b border-[#eadfd4] pb-6">
           <p class="mb-3 text-[10px] font-black uppercase tracking-[.28em] text-[#b98b62]">
-            MMESTLINE Account
+            GUAMAISON Account
           </p>
 
           <h2 class="text-4xl sm:text-5xl font-black tracking-[-.06em] leading-none text-[#241207]">

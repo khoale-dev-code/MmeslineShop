@@ -1,7 +1,7 @@
 """
 app/models/order_model.py
 =========================
-Quản lý vòng đời đơn hàng, thống kê tài chính, logistics và hỗ trợ vận hành cho MMESTLINE.
+Quản lý vòng đời đơn hàng, thống kê tài chính, logistics và hỗ trợ vận hành cho GUAMAISON.
 
 Điểm cập nhật:
 - Fix lỗi thụt lề get_user_orders / get_user_orders_paginated.
@@ -756,7 +756,7 @@ class OrderModel:
                 "status": "pending",
             }).execute()
 
-            return True, "Yêu cầu đổi/trả đã được ghi nhận. Đội ngũ MMESTLINE sẽ liên hệ bạn trong 24 giờ."
+            return True, "Yêu cầu đổi/trả đã được ghi nhận. Đội ngũ GUAMAISON sẽ liên hệ bạn trong 24 giờ."
 
         except Exception as e:
             logger.error("[OrderModel.request_return] Lỗi: %s", e)

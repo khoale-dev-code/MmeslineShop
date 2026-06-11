@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Voucher {{ coupon.code }} | MMÉSTLINE{% endblock %}
+{% block title %}Voucher {{ coupon.code }} | GUAMAISON{% endblock %}
 
 {% block extra_head %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -247,7 +247,7 @@
 {% set min_order = (coupon.min_order_value or 0)|float %}
 {% set max_discount = coupon.max_discount %}
 {% set min_points = (coupon.min_loyalty_points or 0)|float %}
-{% set desc = coupon.description or 'Đặc quyền dành riêng cho khách hàng MMÉSTLINE.' %}
+{% set desc = coupon.description or 'Đặc quyền dành riêng cho khách hàng GUAMAISON.' %}
 
 <div class="voucher-detail-page px-4 pb-20 pt-[calc(var(--header-h,72px)+36px)] selection:bg-[#4a2f20] selection:text-white sm:px-6 lg:px-8">
 
@@ -288,7 +288,7 @@
 
               <div class="absolute bottom-6 left-6 right-6">
                 <p class="voucher-kicker text-white/80">
-                  MMÉSTLINE Offer
+                  GUAMAISON Offer
                 </p>
 
                 <h1 class="font-editorial mt-4 text-[clamp(2.45rem,5vw,5.8rem)] leading-[.95] tracking-[-0.055em] text-white">
@@ -302,7 +302,7 @@
               <div class="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-white/10 blur-3xl"></div>
 
               <p class="voucher-kicker text-white/75">
-                MMÉSTLINE Offer
+                GUAMAISON Offer
               </p>
 
               <h1 class="font-editorial relative z-10 mt-4 text-[clamp(2.45rem,5vw,5.8rem)] leading-[.95] tracking-[-0.055em] text-white">
@@ -355,7 +355,7 @@
                 </span>
 
                 <div>
-                  <p class="text-[9px] font-black uppercase tracking-[0.24em] text-white/45">MMÉSTLINE</p>
+                  <p class="text-[9px] font-black uppercase tracking-[0.24em] text-white/45">GUAMAISON</p>
                   <p class="mt-1 text-xs font-black uppercase tracking-[0.18em] text-white">Voucher Detail</p>
                 </div>
               </div>

@@ -434,11 +434,11 @@ def _build_vietqr_url(order: dict, amount: float, transfer_content: str) -> str:
     Ví dụ:
     SEPAY_BANK_CODE=MB
     SEPAY_BANK_ACCOUNT=0123456789
-    SEPAY_ACCOUNT_NAME=MMESTLINE
+    SEPAY_ACCOUNT_NAME=GUAMAISON
     """
     bank_code = _clean_text(os.getenv("SEPAY_BANK_CODE"))
     account_no = _clean_text(os.getenv("SEPAY_BANK_ACCOUNT"))
-    account_name = _clean_text(os.getenv("SEPAY_ACCOUNT_NAME", "MMESTLINE"))
+    account_name = _clean_text(os.getenv("SEPAY_ACCOUNT_NAME", "GUAMAISON"))
 
     if not bank_code or not account_no:
         logger.warning(
@@ -821,7 +821,7 @@ def sepay_qr(order_id):
         return redirect(url_for("cart.index"))
 
     amount = _to_float(order.get("total_amount"), 0)
-    transfer_content = f"MMESTLINE {order_id}"
+    transfer_content = f"GUAMAISON {order_id}"
 
     qr_image_url = _build_vietqr_url(
         order=order,
@@ -838,7 +838,7 @@ def sepay_qr(order_id):
         bank_code=_clean_text(os.getenv("SEPAY_BANK_CODE")),
         bank_account=_clean_text(os.getenv("SEPAY_BANK_ACCOUNT")),
         bank_name=_clean_text(os.getenv("SEPAY_BANK_NAME")),
-        account_name=_clean_text(os.getenv("SEPAY_ACCOUNT_NAME", "MMESTLINE")),
+        account_name=_clean_text(os.getenv("SEPAY_ACCOUNT_NAME", "GUAMAISON")),
     )
 
 

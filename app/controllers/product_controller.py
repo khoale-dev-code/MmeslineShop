@@ -2,7 +2,7 @@
 app/controllers/product_controller.py
 =====================================
 
-Storefront Product Controller - MMESTLINE
+Storefront Product Controller - GUAMAISON
 
 Mục tiêu:
 - Shop / index / product detail hoạt động ổn định.
@@ -238,7 +238,7 @@ def _normalize_images(product: dict) -> dict:
         product.get("thumbnail_url")
         or primary
         or first
-        or "https://placehold.co/800x1067/f7f8f4/1b4922?text=MMESTLINE"
+        or "https://placehold.co/800x1067/f7f8f4/1b4922?text=GUAMAISON"
     )
 
     product["thumbnail_url"] = thumbnail
@@ -281,7 +281,7 @@ def _normalize_relations(product: dict) -> dict:
     if collection_list and not product.get("collections"):
         product["collections"] = collection_list[0]
 
-    product["category_name"] = category_list[0].get("name") if category_list else "MMESTLINE"
+    product["category_name"] = category_list[0].get("name") if category_list else "GUAMAISON"
     product["collection_name"] = collection_list[0].get("name") if collection_list else None
 
     return product
@@ -461,7 +461,7 @@ def _normalize_product(product: dict) -> dict:
         product.get("seo_title")
         or product.get("meta_title")
         or product.get("name")
-        or "MMESTLINE"
+        or "GUAMAISON"
     )
 
     product["seo_description"] = (

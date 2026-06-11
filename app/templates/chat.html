@@ -1,7 +1,7 @@
 {#
   templates/chat.html
   ===================
-  MMESTLINE AI Chat Widget
+  GUAMAISON AI Chat Widget
 
   Fix chính:
   - Khi chat đóng: wrapper không bắt click, chỉ nút FAB bắt click.
@@ -34,7 +34,7 @@
 
         <div class="min-w-0">
           <h3 id="mmChatTitle" class="mm-chat-title">
-            MMESTLINE Stylist
+            GUAMAISON Stylist
           </h3>
 
           <p class="mm-chat-status">
@@ -64,7 +64,7 @@
 
         <div class="mm-bubble mm-bubble-ai">
           <p>
-            Chào bạn! Mình là <strong>Stylist riêng của MMESTLINE</strong>.
+            Chào bạn! Mình là <strong>Stylist riêng của GUAMAISON</strong>.
             Bạn cần tư vấn phối đồ, chọn size hay tìm sản phẩm phù hợp không?
           </p>
 
@@ -98,7 +98,7 @@
       </div>
 
       <p class="mm-chat-note">
-        MMESTLINE AI có thể gợi ý sản phẩm dựa trên nhu cầu của bạn.
+        GUAMAISON AI có thể gợi ý sản phẩm dựa trên nhu cầu của bạn.
       </p>
     </div>
   </div>
@@ -915,8 +915,8 @@
 
       const cards = products.map(function (p) {
         const slug = escapeHTML(p.slug || "");
-        const name = escapeHTML(p.name || "Sản phẩm MMESTLINE");
-        const image = escapeHTML(p.thumbnail_url || "https://placehold.co/300x400/f7f9f2/1b4922?text=MMESTLINE");
+        const name = escapeHTML(p.name || "Sản phẩm GUAMAISON");
+        const image = escapeHTML(p.thumbnail_url || "https://placehold.co/300x400/f7f9f2/1b4922?text=GUAMAISON");
         const price = formatPrice(p.price);
 
         return `

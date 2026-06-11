@@ -1,7 +1,7 @@
 """
 app/services/chat_service.py
 ============================
-MMESTLINE Smart AI Assistant
+GUAMAISON Smart AI Assistant
 
 Tính năng:
 - Phân loại intent bằng Gemini nếu có GEMINI_API_KEY.
@@ -76,7 +76,7 @@ SESSION_LAST_SEEN: dict[str, float] = {}
 # CONSTANTS
 # ═══════════════════════════════════════════════════════════════
 
-PLACEHOLDER_PRODUCT = "https://placehold.co/300x400/f7f9f2/1b4922?text=MMESTLINE"
+PLACEHOLDER_PRODUCT = "https://placehold.co/300x400/f7f9f2/1b4922?text=GUAMAISON"
 
 VALID_INTENTS = {
     "general_chat",
@@ -139,14 +139,14 @@ SEARCH_HINTS = {
 }
 
 POLICY_REPLY = (
-    "MMESTLINE hỗ trợ bạn như sau:<br>"
+    "GUAMAISON hỗ trợ bạn như sau:<br>"
     "• <strong>Đổi trả:</strong> hỗ trợ trong 7 ngày nếu sản phẩm còn nguyên tem, chưa qua sử dụng.<br>"
     "• <strong>Vận chuyển:</strong> thời gian giao hàng thường từ 2–5 ngày tùy khu vực.<br>"
     "• <strong>Hỗ trợ:</strong> bạn có thể nhắn fanpage hoặc liên hệ bộ phận CSKH để được kiểm tra nhanh hơn."
 )
 
 PROMOTION_REPLY = (
-    "Hiện MMESTLINE có thể áp dụng ưu đãi tùy chương trình đang chạy. "
+    "Hiện GUAMAISON có thể áp dụng ưu đãi tùy chương trình đang chạy. "
     "Bạn có thể thử mã <strong>WELCOME10</strong> cho đơn hàng đầu tiên, hoặc theo dõi trang chủ để cập nhật ưu đãi mới nhất."
 )
 
@@ -233,7 +233,7 @@ def _model_to_dict(model: Any) -> dict:
 def _product_suggestion_from_row(row: dict[str, Any]) -> ProductSuggestion:
     return ProductSuggestion(
         id=str(row.get("id") or ""),
-        name=str(row.get("name") or "Sản phẩm MMESTLINE"),
+        name=str(row.get("name") or "Sản phẩm GUAMAISON"),
         price=_format_vnd(row.get("price")),
         thumbnail_url=(
             row.get("thumbnail_url")
@@ -377,16 +377,16 @@ class AdvancedChatService:
 
         chat_context = ""
         for item in history[-MAX_MESSAGES_PER_SESSION:-1]:
-            speaker = "Khách" if item["role"] == "user" else "MMESTLINE Stylist"
+            speaker = "Khách" if item["role"] == "user" else "GUAMAISON Stylist"
             chat_context += f"{speaker}: {item['content']}\n"
 
         system_prompt = """
-Bạn là MMESTLINE Stylist, trợ lý ảo thời trang cho một website bán quần áo.
+Bạn là GUAMAISON Stylist, trợ lý ảo thời trang cho một website bán quần áo.
 
 Giọng điệu:
 - Sang trọng, tinh tế, gần gũi.
 - Thuần Việt, không dùng quá nhiều từ tiếng Anh nếu không cần.
-- Không tự nhận là GUA Maison. Luôn dùng thương hiệu MMESTLINE.
+- Không tự nhận là GUA Maison. Luôn dùng thương hiệu GUAMAISON.
 
 Nhiệm vụ:
 1. Phân loại intent:
@@ -485,7 +485,7 @@ Chỉ trả JSON đúng schema.
         # Policy
         if any(k in text for k in ["đổi trả", "bảo hành", "vận chuyển", "ship", "freeship", "địa chỉ", "liên hệ"]):
             return ExtractedIntent(
-                reply="Mình gửi bạn thông tin chính sách của MMESTLINE nhé.",
+                reply="Mình gửi bạn thông tin chính sách của GUAMAISON nhé.",
                 intent="policy_info",
                 keywords=[],
                 is_general_request=False,
@@ -503,7 +503,7 @@ Chỉ trả JSON đúng schema.
         # Outfit
         if any(k in text for k in ["phối", "set đồ", "outfit", "mặc gì", "mix", "đi chơi", "đi làm", "hẹn hò"]):
             return ExtractedIntent(
-                reply="Mình gợi ý một set đồ phù hợp với phong cách MMESTLINE cho bạn nhé.",
+                reply="Mình gợi ý một set đồ phù hợp với phong cách GUAMAISON cho bạn nhé.",
                 intent="outfit_suggestion",
                 keywords=[],
                 is_general_request=False,
@@ -590,7 +590,7 @@ Chỉ trả JSON đúng schema.
 
         if not height or not weight:
             response_data.reply = (
-                "Để tư vấn size chuẩn hơn, bạn cho MMESTLINE xin "
+                "Để tư vấn size chuẩn hơn, bạn cho GUAMAISON xin "
                 "<strong>chiều cao</strong> và <strong>cân nặng</strong> nhé. "
                 "Ví dụ: “mình cao 170cm nặng 60kg”."
             )
@@ -606,7 +606,7 @@ Chỉ trả JSON đúng schema.
 
         response_data.reply = (
             f"Với chiều cao <strong>{height}cm</strong> và cân nặng <strong>{weight}kg</strong>, "
-            f"MMESTLINE gợi ý bạn chọn size <strong>{rec_size}</strong>. "
+            f"GUAMAISON gợi ý bạn chọn size <strong>{rec_size}</strong>. "
             "Nếu bạn thích mặc rộng thoải mái hơn, có thể cân nhắc tăng thêm 1 size."
         )
 
@@ -711,7 +711,7 @@ Chỉ trả JSON đúng schema.
 
         if is_general:
             products_data = cls._fetch_latest_products(limit=3)
-            response_data.reply = "MMESTLINE gửi bạn một vài thiết kế mới nhất đang có trên web nhé."
+            response_data.reply = "GUAMAISON gửi bạn một vài thiết kế mới nhất đang có trên web nhé."
         else:
             products_data = cls._search_products_by_keywords(keywords, limit=3)
 
@@ -721,7 +721,7 @@ Chỉ trả JSON đúng schema.
             if products_data:
                 response_data.reply = (
                     "Mẫu bạn tìm hiện chưa có kết quả thật khớp hoàn toàn. "
-                    "MMESTLINE gợi ý bạn một vài thiết kế mới nhất để tham khảo nhé."
+                    "GUAMAISON gợi ý bạn một vài thiết kế mới nhất để tham khảo nhé."
                 )
             else:
                 response_data.reply = (
@@ -754,7 +754,7 @@ Chỉ trả JSON đúng schema.
 
             if len(outfit_items) >= 2:
                 response_data.reply = (
-                    "MMESTLINE gợi ý bạn một set đồ dễ mặc nhưng vẫn có điểm nhấn: "
+                    "GUAMAISON gợi ý bạn một set đồ dễ mặc nhưng vẫn có điểm nhấn: "
                     "một item phần trên phối cùng item phần dưới để tạo tổng thể gọn, hiện đại và dễ ứng dụng."
                 )
 
@@ -766,7 +766,7 @@ Chỉ trả JSON đúng schema.
             else:
                 response_data.reply = (
                     "Hiện mình chưa đủ dữ liệu sản phẩm để phối một set hoàn chỉnh. "
-                    "Bạn có thể xem một vài mẫu mới nhất của MMESTLINE trước nhé."
+                    "Bạn có thể xem một vài mẫu mới nhất của GUAMAISON trước nhé."
                 )
 
         except Exception as e:
@@ -783,7 +783,7 @@ Chỉ trả JSON đúng schema.
     ) -> ChatResponse:
         if not phone and not order_code:
             response_data.reply = (
-                "Bạn cho MMESTLINE xin <strong>số điện thoại đặt hàng</strong> "
+                "Bạn cho GUAMAISON xin <strong>số điện thoại đặt hàng</strong> "
                 "hoặc <strong>mã đơn hàng</strong> để mình kiểm tra nhé."
             )
             return response_data
@@ -818,7 +818,7 @@ Chỉ trả JSON đúng schema.
 
             if not orders:
                 response_data.reply = (
-                    "MMESTLINE chưa tìm thấy đơn hàng khớp với thông tin này. "
+                    "GUAMAISON chưa tìm thấy đơn hàng khớp với thông tin này. "
                     "Bạn kiểm tra lại số điện thoại hoặc mã đơn giúp mình nhé."
                 )
                 return response_data
@@ -862,7 +862,7 @@ Chỉ trả JSON đúng schema.
                 f"<span class='font-black text-emerald-950'>{html.escape(total_fmt)}</span>"
                 "</div>"
                 "</div>"
-                "MMESTLINE đã kiểm tra xong trạng thái đơn hàng của bạn."
+                "GUAMAISON đã kiểm tra xong trạng thái đơn hàng của bạn."
             )
 
             response_data.action_data = {
@@ -879,7 +879,7 @@ Chỉ trả JSON đúng schema.
 
             response_data.reply = (
                 "Hệ thống đang chưa kiểm tra được đơn hàng lúc này. "
-                "Bạn thử lại sau ít phút hoặc liên hệ MMESTLINE để được hỗ trợ nhanh hơn nhé."
+                "Bạn thử lại sau ít phút hoặc liên hệ GUAMAISON để được hỗ trợ nhanh hơn nhé."
             )
 
             return response_data

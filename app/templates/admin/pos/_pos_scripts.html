@@ -1,7 +1,7 @@
 {#
   app/templates/admin/pos/_pos_scripts.html
   =========================================
-  MMESTLINE POS Terminal Logic - Full Version
+  GUAMAISON POS Terminal Logic - Full Version
 
   Đồng bộ với POS UI mới:
   - Tìm sản phẩm / SKU / barcode / camera scanner.
@@ -33,7 +33,7 @@
 
   const STORE_BANK_CODE = "TCB";
   const STORE_BANK_ACCOUNT = "{{ pos_store_account|default('4890440016335294') }}";
-  const STORE_BANK_NAME = "MMESTLINE";
+  const STORE_BANK_NAME = "GUAMAISON";
 
   const POINT_REDEEM_VALUE = Number("{{ point_redeem_value|default(100) }}") || 100;
   const VAT_DEFAULT_RATE = Number("{{ vat_default_rate|default(0.08) }}") || 0.08;
@@ -1800,7 +1800,7 @@
       if (!qr) return;
 
       const amount = Math.max(0, Math.round(total));
-      const addInfo = encodeURIComponent("MMESTLINE POS");
+      const addInfo = encodeURIComponent("GUAMAISON POS");
       const accountName = encodeURIComponent(STORE_BANK_NAME);
 
       qr.src = `https://img.vietqr.io/image/${STORE_BANK_CODE}-${STORE_BANK_ACCOUNT}-compact2.png?amount=${amount}&addInfo=${addInfo}&accountName=${accountName}`;
@@ -2293,7 +2293,7 @@
         </head>
         <body>
           <div class="c">
-            <div class="store">MMESTLINE</div>
+            <div class="store">GUAMAISON</div>
             <div>Official Store</div>
             <div>Hotline: 0909 123 456</div>
           </div>

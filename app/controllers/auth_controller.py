@@ -1,7 +1,7 @@
 """
 app/controllers/auth_controller.py
 ==================================
-Controller xác thực cho MMESTLINE / Fashion Store.
+Controller xác thực cho GUAMAISON / Fashion Store.
 
 Đã xử lý:
 - Sửa lỗi POST /auth/login bị 403 do CSRF tokens do not match.
@@ -223,7 +223,7 @@ def _safe_next_url() -> str | None:
 
 
 def _get_serializer() -> URLSafeTimedSerializer:
-    secret = current_app.config.get("SECRET_KEY") or "mmestline-dev-secret"
+    secret = current_app.config.get("SECRET_KEY") or "GUAMAISON-dev-secret"
     return URLSafeTimedSerializer(secret)
 
 
@@ -509,7 +509,7 @@ def register():
                 _set_login_session(user, remember=False)
 
                 flash(
-                    f"Đăng ký tài khoản thành công! Chào mừng {session.get('user_name', 'Khách hàng')} đến với MMESTLINE.",
+                    f"Đăng ký tài khoản thành công! Chào mừng {session.get('user_name', 'Khách hàng')} đến với GUAMAISON.",
                     "success",
                 )
                 return _redirect_for_user(user)

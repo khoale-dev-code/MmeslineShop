@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ product.seo_title or product.name }} | MMESTLINE{% endblock %}
+{% block title %}{{ product.seo_title or product.name }} | GUAMAISON{% endblock %}
 
 {% block extra_head %}
 <meta name="description" content="{{ product.seo_description or product.name }}">
@@ -285,7 +285,7 @@
 
           <img
             id="main-focus-image"
-            src="{{ images[0].url if images else 'https://placehold.co/900x1200/f6f6f6/111111?text=MMESTLINE' }}"
+            src="{{ images[0].url if images else 'https://placehold.co/900x1200/f6f6f6/111111?text=GUAMAISON' }}"
             alt="{{ product.name }}"
             fetchpriority="high"
             loading="eager"
@@ -301,7 +301,7 @@
       </section>
 
       <section class="pd-info">
-        <p class="pd-kicker">MMESTLINE Product</p>
+        <p class="pd-kicker">GUAMAISON Product</p>
 
         <h1 class="pd-title">
           {{ product.name }}
@@ -428,7 +428,7 @@
         </div>
 
         <div class="pd-accordion">
-          {% set detail_text = product.description_html or product.description or 'Thiết kế nằm trong tinh thần tối giản của MMESTLINE. Form dáng hiện đại, dễ phối và phù hợp sử dụng hằng ngày.' %}
+          {% set detail_text = product.description_html or product.description or 'Thiết kế nằm trong tinh thần tối giản của GUAMAISON. Form dáng hiện đại, dễ phối và phù hợp sử dụng hằng ngày.' %}
 
           {% for id, title, text in [
             ('acc-1', 'Product', detail_text),
@@ -470,7 +470,7 @@
             <article class="pd-rp">
               <a href="{{ url_for('products.detail', slug=rp.slug) }}" class="pd-rp-img block">
                 <img
-                  src="{{ rp.thumbnail_url or 'https://placehold.co/600x800/f6f6f6/111111?text=MMESTLINE' }}"
+                  src="{{ rp.thumbnail_url or 'https://placehold.co/600x800/f6f6f6/111111?text=GUAMAISON' }}"
                   alt="{{ rp.name }}"
                   loading="lazy"
                   decoding="async"

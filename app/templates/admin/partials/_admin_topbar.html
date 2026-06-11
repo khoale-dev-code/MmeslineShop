@@ -1,7 +1,7 @@
 {#
   app/templates/admin/partials/_admin_topbar.html
   ===============================================
-  MMESTLINE Admin Topbar
+  GUAMAISON Admin Topbar
 
   Nguyên tắc:
   - Đây là topbar duy nhất cho desktop/mobile.
@@ -11,8 +11,8 @@
   - Không dùng class Tailwind `flex lg:hidden` cho nút hamburger vì có thể bị .mm-icon-btn override.
 #}
 
-{% set page_title = 'MMESTLINE Workspace' %}
-{% set page_kicker = 'MMESTLINE Admin' %}
+{% set page_title = 'GUAMAISON Workspace' %}
+{% set page_kicker = 'GUAMAISON Admin' %}
 
 {% if current_ep == 'admin.dashboard' %}
   {% set page_title = 'Tổng quan' %}

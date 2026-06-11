@@ -27,15 +27,15 @@
     <div class="mm-seo-preview">
       <div class="mm-seo-preview-top">
         <span class="mm-seo-dot"></span>
-        <span>{{ (system_settings.get('general', {}).get('shop_name') if system_settings is defined else '') or 'MMESTLINE' }}</span>
+        <span>{{ (system_settings.get('general', {}).get('shop_name') if system_settings is defined else '') or 'GUAMAISON' }}</span>
       </div>
 
       <div class="mm-seo-preview-url" id="seoPreviewUrl">
-        /product/{{ p.slug if p and p.slug else 'mmestline-essential-tee' }}
+        /product/{{ p.slug if p and p.slug else 'GUAMAISON-essential-tee' }}
       </div>
 
       <h3 id="seoPreviewTitle">
-        {{ p.seo_title if p and p.seo_title else (p.name if p and p.name else 'MMESTLINE Essential Tee - Áo thun tối giản') }}
+        {{ p.seo_title if p and p.seo_title else (p.name if p and p.name else 'GUAMAISON Essential Tee - Áo thun tối giản') }}
       </h3>
 
       <p id="seoPreviewDescription">
@@ -69,7 +69,7 @@
         id="seoTitle"
         value="{{ p.seo_title if p and p.seo_title else (p.meta_title if p and p.meta_title else '') }}"
         maxlength="70"
-        placeholder="MMESTLINE Essential Tee - Áo thun tối giản"
+        placeholder="GUAMAISON Essential Tee - Áo thun tối giản"
         class="mm-input"
       >
 
@@ -107,7 +107,7 @@
           name="seo_keywords"
           id="seoKeywords"
           value="{{ p.seo_keywords if p and p.seo_keywords else '' }}"
-          placeholder="áo thun local brand, mmestline, áo basic"
+          placeholder="áo thun local brand, GUAMAISON, áo basic"
           class="mm-input"
         >
         <p class="mm-help">

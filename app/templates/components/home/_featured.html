@@ -1,7 +1,7 @@
 {#
   app/templates/components/home/_featured.html
   ===========================================
-  MMESTLINE Featured Products
+  GUAMAISON Featured Products
 
   Yêu cầu:
   - Mobile swipe ngang mượt.
@@ -407,7 +407,7 @@
       </h2>
 
       <p class="mm-featured-desc">
-        Những thiết kế được chọn lọc từ MMESTLINE, phù hợp để mặc hằng ngày
+        Những thiết kế được chọn lọc từ GUAMAISON, phù hợp để mặc hằng ngày
         nhưng vẫn giữ được tinh thần riêng và tính thẩm mỹ cao.
       </p>
     </div>
@@ -425,7 +425,7 @@
       data-mm-x-scroll
       data-featured-scroll
       data-lenis-prevent
-      aria-label="Sản phẩm nổi bật MMESTLINE"
+      aria-label="Sản phẩm nổi bật GUAMAISON"
     >
       <div class="mm-x-track mm-featured-track">
         {% for product in featured_products %}
@@ -433,7 +433,7 @@
             product.thumbnail_url
             or product.image
             or product.image_url
-            or 'https://placehold.co/600x800/f7f9f2/1b4922?text=MMESTLINE'
+            or 'https://placehold.co/600x800/f7f9f2/1b4922?text=GUAMAISON'
           %}
 
           {% set product_url = '/product/' ~ product.slug if product.slug else '/shop' %}

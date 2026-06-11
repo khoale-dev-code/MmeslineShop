@@ -494,7 +494,7 @@
         <div id="descCheckFit"><i class="fa-solid fa-circle"></i> Form dáng</div>
         <div id="descCheckCare"><i class="fa-solid fa-circle"></i> Bảo quản</div>
         <div id="descCheckSize"><i class="fa-solid fa-circle"></i> Size/đổi size</div>
-        <div id="descCheckBrand"><i class="fa-solid fa-circle"></i> MMESTLINE</div>
+        <div id="descCheckBrand"><i class="fa-solid fa-circle"></i> GUAMAISON</div>
       </div>
 
       <div class="mm-editor-autosave">
@@ -544,7 +544,7 @@
       "use strict";
 
       const CKEDITOR_CDN = "https://cdn.ckeditor.com/4.22.1/full-all/ckeditor.js";
-      const DRAFT_PREFIX = "mmestline_product_description_draft_";
+      const DRAFT_PREFIX = "GUAMAISON_product_description_draft_";
 
       const templates = {
         basic: `
@@ -560,7 +560,7 @@
           </ul>
 
           <h3>Hướng dẫn chọn size</h3>
-          <p>Khách hàng nên tham khảo bảng size hoặc nhắn MMESTLINE để được tư vấn form phù hợp.</p>
+          <p>Khách hàng nên tham khảo bảng size hoặc nhắn GUAMAISON để được tư vấn form phù hợp.</p>
 
           <h3>Bảo quản</h3>
           <ul>
@@ -571,7 +571,7 @@
         `,
 
         fashion: `
-          <h2>MMESTLINE Design Notes</h2>
+          <h2>GUAMAISON Design Notes</h2>
           <p>Thiết kế được phát triển theo tinh thần thanh lịch, tối giản và dễ ứng dụng trong tủ đồ hằng ngày.</p>
 
           <h3>Chất liệu & cảm giác mặc</h3>
@@ -592,7 +592,7 @@
         `,
 
         premium: `
-          <h2>MMESTLINE Premium Piece</h2>
+          <h2>GUAMAISON Premium Piece</h2>
           <p>Sản phẩm được xây dựng dành cho những khách hàng yêu thích sự tinh giản, chỉn chu và bền vững trong phong cách cá nhân.</p>
 
           <h3>Điểm nhấn thiết kế</h3>
@@ -760,7 +760,7 @@
         const fitOk = hasAny(text, ["form", "dáng", "fit", "oversized", "regular", "slim", "relaxed"]);
         const careOk = hasAny(text, ["bảo quản", "giặt", "ủi", "phơi", "tẩy"]);
         const sizeOk = hasAny(text, ["size", "kích cỡ", "đổi size", "bảng size"]);
-        const brandOk = hasAny(text, ["MMESTLINE", "mmestline"]);
+        const brandOk = hasAny(text, ["GUAMAISON", "GUAMAISON"]);
 
         setText("descriptionCount", String(text.length));
         setText("descriptionWordCount", String(words.length));

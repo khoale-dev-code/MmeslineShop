@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Đơn hàng #{{ order.id[:8].upper() }} | MMESTLINE{% endblock %}
+{% block title %}Đơn hàng #{{ order.id[:8].upper() }} | GUAMAISON{% endblock %}
 
 {% block content %}
 {% set status_map = {
@@ -66,7 +66,7 @@
             </div>
 
             <p class="mb-3 text-[10px] font-black uppercase tracking-[.28em] text-[#b98b62]">
-              MMESTLINE Order
+              GUAMAISON Order
             </p>
 
             <h1 class="text-3xl font-black uppercase tracking-[-.05em] text-[#241207] sm:text-4xl lg:text-5xl">
@@ -417,7 +417,7 @@
             </div>
 
             {% if return_request.admin_note %}
-              <p class="mb-2 mt-5 text-[9px] font-black uppercase tracking-[.18em] text-emerald-700">Phản hồi từ MMESTLINE</p>
+              <p class="mb-2 mt-5 text-[9px] font-black uppercase tracking-[.18em] text-emerald-700">Phản hồi từ GUAMAISON</p>
               <div class="rounded-[24px] border border-emerald-200 bg-emerald-50 p-5 text-sm font-semibold leading-7 text-emerald-800">
                 {{ return_request.admin_note }}
               </div>
@@ -455,7 +455,7 @@
         Yêu cầu hoàn trả
       </h2>
       <p class="mt-3 text-xs font-semibold leading-6 text-[#8a6a52]">
-        MMESTLINE sẽ phản hồi yêu cầu của bạn trong vòng 24 giờ làm việc.
+        GUAMAISON sẽ phản hồi yêu cầu của bạn trong vòng 24 giờ làm việc.
       </p>
     </div>
 

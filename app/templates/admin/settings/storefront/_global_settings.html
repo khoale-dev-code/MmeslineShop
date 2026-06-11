@@ -1,0 +1,531 @@
+{# app/templates/admin/settings/storefront/_global_settings.html #}
+
+{% set sf = sf | default(storefront | default({}, true), true) %}
+{% set _topbar_active = sf.topbar_active | default('false') %}
+
+<section class="sfb-panel" data-sfb-panel="global" hidden>
+  <div class="sfb-card">
+    <div class="sfb-card-head">
+      <div class="sfb-card-head-row">
+        <div>
+          <p class="sfb-kicker">
+            <i class="fa-solid fa-gear"></i>
+            Global Settings
+          </p>
+
+          <h3 class="sfb-card-title">Cấu hình chung Storefront</h3>
+
+          <p class="sfb-desc">
+            Khu vực này dùng để chỉnh các thiết lập toàn cục như ảnh đăng nhập, ảnh đăng ký,
+            thanh thông báo đầu trang và các field media cũ để giữ tương thích với giao diện trước đây.
+          </p>
+        </div>
+
+        <div class="sfb-global-summary">
+          <span>
+            <i class="fa-solid fa-circle-info"></i>
+            Cấu hình này được lưu cùng section <b>storefront</b>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sfb-card-body">
+      <div class="sfb-global-hero">
+        <div>
+          <p class="sfb-kicker">
+            <i class="fa-solid fa-layer-group"></i>
+            Tổng quan
+          </p>
+          <h4>Thiết lập nền tảng cho toàn bộ giao diện shop</h4>
+          <p>
+            Các block kéo thả trong tab Builder sẽ quyết định bố cục trang chủ.
+            Phần Global Settings bên dưới dùng cho các thành phần dùng chung hoặc giữ tương thích với code cũ.
+          </p>
+        </div>
+
+        <div class="sfb-global-badges">
+          <span><i class="fa-solid fa-right-to-bracket"></i> Auth Media</span>
+          <span><i class="fa-solid fa-bell"></i> Topbar</span>
+          <span><i class="fa-solid fa-link"></i> Legacy Fields</span>
+        </div>
+      </div>
+
+      <div class="sfb-global-layout">
+        <div class="sfb-global-main">
+          <div class="sfb-global-grid">
+            <article class="sfb-card sfb-card-flat sfb-global-card">
+              <div class="sfb-card-head">
+                <p class="sfb-kicker">
+                  <i class="fa-solid fa-key"></i>
+                  Login
+                </p>
+
+                <h3 class="sfb-card-title">Ảnh trang đăng nhập</h3>
+
+                <p class="sfb-desc">
+                  Ảnh dọc giúp trang đăng nhập trông chuyên nghiệp và đồng bộ thương hiệu.
+                </p>
+              </div>
+
+              <div class="sfb-card-body">
+                <div class="sfb-field">
+                  <label class="sfb-label" for="login_image_url">URL ảnh login</label>
+
+                  <div class="sfb-media-row">
+                    <input
+                      id="login_image_url"
+                      name="login_image_url"
+                      class="sfb-input"
+                      value="{{ sf.login_image_url | default('') }}"
+                      placeholder="Dán URL ảnh login..."
+                      data-global-media-input
+                      data-global-preview="loginGlobalPreview"
+                    >
+
+                    <button
+                      type="button"
+                      class="sfb-btn sfb-btn-soft"
+                      data-global-upload-trigger="loginGlobalUpload"
+                    >
+                      <i class="fa-solid fa-cloud-arrow-up"></i>
+                      Tải lên
+                    </button>
+                  </div>
+
+                  <input
+                    id="loginGlobalUpload"
+                    type="file"
+                    class="sfb-hidden"
+                    accept="image/*"
+                    data-global-upload-target="login_image_url"
+                    data-global-preview="loginGlobalPreview"
+                  >
+
+                  <p class="sfb-help">
+                    Khuyên dùng ảnh dọc 900×1200px hoặc 1080×1440px.
+                  </p>
+                </div>
+
+                <div id="loginGlobalPreview" class="sfb-global-preview">
+                  {% if sf.login_image_url %}
+                    <img src="{{ sf.login_image_url }}" alt="Login preview" loading="lazy">
+                  {% else %}
+                    <div class="sfb-global-preview-empty">
+                      <i class="fa-regular fa-image"></i>
+                      <span>Chưa có ảnh login</span>
+                    </div>
+                  {% endif %}
+                </div>
+
+                <button
+                  type="button"
+                  class="sfb-mini-btn sfb-mt"
+                  data-global-clear="login_image_url"
+                  data-global-preview="loginGlobalPreview"
+                >
+                  <i class="fa-solid fa-trash-can"></i>
+                  Gỡ ảnh login
+                </button>
+              </div>
+            </article>
+
+            <article class="sfb-card sfb-card-flat sfb-global-card">
+              <div class="sfb-card-head">
+                <p class="sfb-kicker">
+                  <i class="fa-solid fa-user-plus"></i>
+                  Register
+                </p>
+
+                <h3 class="sfb-card-title">Ảnh trang đăng ký</h3>
+
+                <p class="sfb-desc">
+                  Ảnh đăng ký nên cùng phong cách với ảnh đăng nhập để tạo trải nghiệm liền mạch.
+                </p>
+              </div>
+
+              <div class="sfb-card-body">
+                <div class="sfb-field">
+                  <label class="sfb-label" for="register_image_url">URL ảnh register</label>
+
+                  <div class="sfb-media-row">
+                    <input
+                      id="register_image_url"
+                      name="register_image_url"
+                      class="sfb-input"
+                      value="{{ sf.register_image_url | default('') }}"
+                      placeholder="Dán URL ảnh register..."
+                      data-global-media-input
+                      data-global-preview="registerGlobalPreview"
+                    >
+
+                    <button
+                      type="button"
+                      class="sfb-btn sfb-btn-soft"
+                      data-global-upload-trigger="registerGlobalUpload"
+                    >
+                      <i class="fa-solid fa-cloud-arrow-up"></i>
+                      Tải lên
+                    </button>
+                  </div>
+
+                  <input
+                    id="registerGlobalUpload"
+                    type="file"
+                    class="sfb-hidden"
+                    accept="image/*"
+                    data-global-upload-target="register_image_url"
+                    data-global-preview="registerGlobalPreview"
+                  >
+
+                  <p class="sfb-help">
+                    Khuyên dùng ảnh dọc 900×1200px hoặc 1080×1440px.
+                  </p>
+                </div>
+
+                <div id="registerGlobalPreview" class="sfb-global-preview">
+                  {% if sf.register_image_url %}
+                    <img src="{{ sf.register_image_url }}" alt="Register preview" loading="lazy">
+                  {% else %}
+                    <div class="sfb-global-preview-empty">
+                      <i class="fa-regular fa-image"></i>
+                      <span>Chưa có ảnh register</span>
+                    </div>
+                  {% endif %}
+                </div>
+
+                <button
+                  type="button"
+                  class="sfb-mini-btn sfb-mt"
+                  data-global-clear="register_image_url"
+                  data-global-preview="registerGlobalPreview"
+                >
+                  <i class="fa-solid fa-trash-can"></i>
+                  Gỡ ảnh register
+                </button>
+              </div>
+            </article>
+          </div>
+
+          <article class="sfb-card sfb-card-flat sfb-global-card sfb-mt">
+            <div class="sfb-card-head">
+              <div class="sfb-card-head-row">
+                <div>
+                  <p class="sfb-kicker">
+                    <i class="fa-solid fa-bell"></i>
+                    Topbar
+                  </p>
+
+                  <h3 class="sfb-card-title">Thanh thông báo đầu trang</h3>
+
+                  <p class="sfb-desc">
+                    Dùng để hiển thị thông báo ngắn như freeship, voucher, lịch sale hoặc campaign đang chạy.
+                  </p>
+                </div>
+
+                <div class="sfb-topbar-status">
+                  {% if _topbar_active in ['true', true, 'True', '1', 1] %}
+                    <span class="is-on"><i class="fa-solid fa-eye"></i> Đang bật</span>
+                  {% else %}
+                    <span><i class="fa-solid fa-eye-slash"></i> Đang tắt</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="sfb-card-body">
+              <div class="sfb-topbar-editor">
+                <div class="sfb-topbar-left">
+                  <div class="sfb-field">
+                    <label class="sfb-label">Bật topbar</label>
+
+                    <div class="sfb-toggle-row">
+                      <label class="sfb-switch">
+                        <input
+                          type="checkbox"
+                          id="topbar_active_checkbox"
+                          {% if _topbar_active in ['true', true, 'True', '1', 1] %}checked{% endif %}
+                        >
+                        <span></span>
+                      </label>
+
+                      <div>
+                        <strong>Hiển thị thanh thông báo</strong>
+                        <p>Khi bật, frontend có thể hiển thị thông báo ở đầu trang.</p>
+                      </div>
+                    </div>
+
+                    <input
+                      type="hidden"
+                      id="topbar_active"
+                      name="topbar_active"
+                      value="{{ 'true' if _topbar_active in ['true', true, 'True', '1', 1] else 'false' }}"
+                    >
+                  </div>
+
+                  <div class="sfb-field">
+                    <label class="sfb-label" for="topbar_text">Nội dung topbar</label>
+
+                    <input
+                      id="topbar_text"
+                      name="topbar_text"
+                      class="sfb-input"
+                      value="{{ sf.topbar_text | default('') }}"
+                      placeholder="Ví dụ: Freeship đơn từ 1.500.000đ | Sale cuối tuần tới 50%"
+                    >
+
+                    <p class="sfb-help">
+                      Nên viết ngắn, rõ ràng. Ví dụ: “Freeship đơn từ 1.500.000đ” hoặc “New Collection đã lên kệ”.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="sfb-topbar-preview">
+                  <span class="sfb-kicker">Preview</span>
+                  <div class="sfb-topbar-preview-bar">
+                    <i class="fa-solid fa-bullhorn"></i>
+                    <span>
+                      {{ sf.topbar_text | default('Freeship đơn từ 1.500.000đ | New Collection đã lên kệ') }}
+                    </span>
+                  </div>
+                  <p>
+                    Đây chỉ là preview trong admin. Frontend có thể render khác tùy template trang chủ.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="sfb-card sfb-card-flat sfb-global-card sfb-mt">
+            <div class="sfb-card-head">
+              <p class="sfb-kicker">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                Legacy Compatibility
+              </p>
+
+              <h3 class="sfb-card-title">Media cũ để giữ tương thích</h3>
+
+              <p class="sfb-desc">
+                Nếu trang chủ cũ vẫn đang đọc các field như hero_banner_url, banner2_url,
+                split_left_url hoặc banner4_video_url, bạn có thể giữ chúng ở đây.
+                Với builder mới, nên ưu tiên chỉnh media trực tiếp trong từng block.
+              </p>
+            </div>
+
+            <div class="sfb-card-body">
+              <div class="sfb-legacy-grid">
+                <div class="sfb-field">
+                  <label class="sfb-label" for="hero_banner_url">Hero banner cũ</label>
+                  <input
+                    id="hero_banner_url"
+                    name="hero_banner_url"
+                    class="sfb-input"
+                    value="{{ sf.hero_banner_url | default('') }}"
+                    placeholder="URL hero_banner_url..."
+                    data-global-media-input
+                    data-global-preview="legacyHeroPreview"
+                  >
+                  <div id="legacyHeroPreview" class="sfb-global-mini-preview">
+                    {% if sf.hero_banner_url %}
+                      {% if sf.hero_banner_url.split('?')[0].endswith('.mp4') %}
+                        <video src="{{ sf.hero_banner_url }}" controls preload="metadata"></video>
+                      {% else %}
+                        <img src="{{ sf.hero_banner_url }}" alt="Hero legacy preview" loading="lazy">
+                      {% endif %}
+                    {% else %}
+                      <span>Chưa có media</span>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <div class="sfb-field">
+                  <label class="sfb-label" for="banner2_url">Banner ngang cũ</label>
+                  <input
+                    id="banner2_url"
+                    name="banner2_url"
+                    class="sfb-input"
+                    value="{{ sf.banner2_url | default('') }}"
+                    placeholder="URL banner2_url..."
+                    data-global-media-input
+                    data-global-preview="legacyBanner2Preview"
+                  >
+                  <div id="legacyBanner2Preview" class="sfb-global-mini-preview">
+                    {% if sf.banner2_url %}
+                      <img src="{{ sf.banner2_url }}" alt="Banner 2 preview" loading="lazy">
+                    {% else %}
+                      <span>Chưa có media</span>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <div class="sfb-field">
+                  <label class="sfb-label" for="split_left_url">Split banner trái cũ</label>
+                  <input
+                    id="split_left_url"
+                    name="split_left_url"
+                    class="sfb-input"
+                    value="{{ sf.split_left_url | default('') }}"
+                    placeholder="URL split_left_url..."
+                    data-global-media-input
+                    data-global-preview="legacySplitLeftPreview"
+                  >
+                  <div id="legacySplitLeftPreview" class="sfb-global-mini-preview">
+                    {% if sf.split_left_url %}
+                      <img src="{{ sf.split_left_url }}" alt="Split left preview" loading="lazy">
+                    {% else %}
+                      <span>Chưa có media</span>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <div class="sfb-field">
+                  <label class="sfb-label" for="split_right_url">Split banner phải cũ</label>
+                  <input
+                    id="split_right_url"
+                    name="split_right_url"
+                    class="sfb-input"
+                    value="{{ sf.split_right_url | default('') }}"
+                    placeholder="URL split_right_url..."
+                    data-global-media-input
+                    data-global-preview="legacySplitRightPreview"
+                  >
+                  <div id="legacySplitRightPreview" class="sfb-global-mini-preview">
+                    {% if sf.split_right_url %}
+                      <img src="{{ sf.split_right_url }}" alt="Split right preview" loading="lazy">
+                    {% else %}
+                      <span>Chưa có media</span>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <div class="sfb-field">
+                  <label class="sfb-label" for="banner4_video_url">Video cũ</label>
+                  <input
+                    id="banner4_video_url"
+                    name="banner4_video_url"
+                    class="sfb-input"
+                    value="{{ sf.banner4_video_url | default('') }}"
+                    placeholder="URL banner4_video_url..."
+                    data-global-media-input
+                    data-global-preview="legacyVideoPreview"
+                  >
+                  <div id="legacyVideoPreview" class="sfb-global-mini-preview">
+                    {% if sf.banner4_video_url %}
+                      <video src="{{ sf.banner4_video_url }}" controls preload="metadata"></video>
+                    {% else %}
+                      <span>Chưa có media</span>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <div class="sfb-field">
+                  <label class="sfb-label" for="banner_desktop_url">Banner desktop cũ</label>
+                  <input
+                    id="banner_desktop_url"
+                    name="banner_desktop_url"
+                    class="sfb-input"
+                    value="{{ sf.banner_desktop_url | default('') }}"
+                    placeholder="URL banner_desktop_url..."
+                    data-global-media-input
+                    data-global-preview="legacyDesktopPreview"
+                  >
+                  <div id="legacyDesktopPreview" class="sfb-global-mini-preview">
+                    {% if sf.banner_desktop_url %}
+                      <img src="{{ sf.banner_desktop_url }}" alt="Desktop banner preview" loading="lazy">
+                    {% else %}
+                      <span>Chưa có media</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+
+              <div class="sfb-alert sfb-mt">
+                <i class="fa-solid fa-circle-info"></i>
+                <div>
+                  Với builder mới, bạn nên thêm Hero/Banner/Lưới ảnh ở tab <b>Builder</b> để mỗi block có media riêng.
+                  Các field legacy chỉ dùng để không làm hỏng giao diện cũ trong lúc chuyển đổi.
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <aside class="sfb-global-side">
+          <div class="sfb-card sfb-card-flat">
+            <div class="sfb-card-head">
+              <p class="sfb-kicker">
+                <i class="fa-solid fa-ruler-combined"></i>
+                Kích thước gợi ý
+              </p>
+
+              <h3 class="sfb-card-title">Chuẩn ảnh nên dùng</h3>
+            </div>
+
+            <div class="sfb-card-body">
+              <div class="sfb-size-list">
+                <div>
+                  <span>Login/Register</span>
+                  <strong>900×1200</strong>
+                  <p>Ảnh dọc, rõ chủ thể.</p>
+                </div>
+
+                <div>
+                  <span>Hero Banner</span>
+                  <strong>1920×900</strong>
+                  <p>Ảnh ngang lớn, không quá nhiều chữ sát mép.</p>
+                </div>
+
+                <div>
+                  <span>Banner ngang</span>
+                  <strong>1600×520</strong>
+                  <p>Phù hợp campaign, sale, collection.</p>
+                </div>
+
+                <div>
+                  <span>Split Banner</span>
+                  <strong>900×1100</strong>
+                  <p>Phù hợp bố cục 2 cột.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sfb-card sfb-card-flat sfb-mt">
+            <div class="sfb-card-head">
+              <p class="sfb-kicker">
+                <i class="fa-solid fa-lightbulb"></i>
+                Lưu ý
+              </p>
+
+              <h3 class="sfb-card-title">Cách dùng đúng</h3>
+            </div>
+
+            <div class="sfb-card-body">
+              <div class="sfb-global-tips">
+                <div>
+                  <i class="fa-solid fa-check"></i>
+                  <p>Ảnh/video của từng block nên chỉnh trong tab Builder.</p>
+                </div>
+
+                <div>
+                  <i class="fa-solid fa-check"></i>
+                  <p>Global Settings chỉ dùng cho thành phần dùng chung hoặc tương thích code cũ.</p>
+                </div>
+
+                <div>
+                  <i class="fa-solid fa-check"></i>
+                  <p>File lớn nên tải lên Supabase Storage rồi dán URL.</p>
+                </div>
+
+                <div>
+                  <i class="fa-solid fa-check"></i>
+                  <p>Sau khi chỉnh xong, bấm Lưu giao diện ở thanh trên.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+</section>

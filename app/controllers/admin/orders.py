@@ -2,7 +2,7 @@
 app/controllers/admin/orders.py
 ===============================
 
-MMESTLINE Admin Orders Controller
+GUAMAISON Admin Orders Controller
 
 Chức năng:
 - Danh sách đơn hàng WEB / POS.
@@ -303,7 +303,7 @@ def orders_export():
         ])
 
     csv_text = "\ufeff" + output.getvalue()
-    filename = f"mmestline_orders_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+    filename = f"GUAMAISON_orders_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
 
     response = make_response(csv_text)
     response.headers["Content-Type"] = "text/csv; charset=utf-8"

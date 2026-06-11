@@ -6,33 +6,37 @@ Service ghi nhận và truy xuất lịch sử thao tác của Admin/Staff.
 import logging
 from datetime import datetime, timedelta, timezone
 from flask import request, session
-from app.utils.supabase_client import get_supabase
-
+from app.utils.supabase_client import get_supabase, get_supabase_admin
 logger = logging.getLogger(__name__)
 
 class AuditService:
 
-    @staticmethod
-    def log_action(action: str, table_name: str, record_id: str=None, old_values: dict=None, new_values: dict=None):
-        try:
-            db = get_supabase()
-            user_id = session.get("user_id")
-            ip_address = request.headers.get('X-Forwarded-For', request.remote_addr) if request else None
+   @staticmethod
+   def log_action(action: str, table_name: str, record_id: str = None, old_values: dict = None, new_values: dict = None):
+    try:
+        db = get_supabase_admin()
 
-            log_data = {
-                "action": action,
-                "table_name": table_name,
-                "old_values": old_values if old_values else {},
-                "new_values": new_values if new_values else {},
-                "ip_address": ip_address
-            }
-            
-            if user_id: log_data["user_id"] = user_id
-            if record_id: log_data["record_id"] = str(record_id)
+        user_id = session.get("user_id")
+        ip_address = request.headers.get("X-Forwarded-For", request.remote_addr) if request else None
 
-            db.table("audit_logs").insert(log_data).execute()
-        except Exception as e:
-            logger.error(f"[AuditService] Lỗi ghi log thao tác: {e}")
+        log_data = {
+            "action": action,
+            "table_name": table_name,
+            "old_values": old_values if old_values else {},
+            "new_values": new_values if new_values else {},
+            "ip_address": ip_address,
+        }
+
+        if user_id:
+            log_data["user_id"] = user_id
+
+        if record_id:
+            log_data["record_id"] = str(record_id)
+
+        db.table("audit_logs").insert(log_data).execute()
+
+    except Exception as e:
+        logger.error(f"[AuditService] Lỗi ghi log thao tác: {e}")
 
     @staticmethod
     def get_recent_logs(days: int = 7, role_slug: str = None, page: int = 1, per_page: int = 50) -> dict:

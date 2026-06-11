@@ -1,7 +1,7 @@
 """
 app/controllers/chat_controller.py
 ==================================
-API cho MMESTLINE AI Ecommerce Assistant.
+API cho GUAMAISON AI Ecommerce Assistant.
 
 Endpoint:
 - POST /api/bot
@@ -39,7 +39,7 @@ def _model_to_dict(model) -> Dict[str, Any]:
 def bot_health():
     return jsonify({
         "success": True,
-        "service": "MMESTLINE AI Chatbot",
+        "service": "GUAMAISON AI Chatbot",
         "endpoint": "/api/bot",
         "status": "online"
     }), 200
@@ -68,7 +68,7 @@ def bot_reply():
 
         if not message:
             return jsonify({
-                "reply": "Bạn vui lòng nhập tin nhắn để MMESTLINE Stylist hỗ trợ nhé.",
+                "reply": "Bạn vui lòng nhập tin nhắn để GUAMAISON Stylist hỗ trợ nhé.",
                 "intent": "error",
                 "products": [],
                 "action_data": {}
@@ -113,7 +113,7 @@ def bot_reply():
         logger.error("[Chat API Error] %s", e, exc_info=True)
 
         return jsonify({
-            "reply": "Hệ thống AI đang bảo trì. Bạn có thể nhắn MMESTLINE qua Fanpage để được hỗ trợ nhanh nhất nhé.",
+            "reply": "Hệ thống AI đang bảo trì. Bạn có thể nhắn GUAMAISON qua Fanpage để được hỗ trợ nhanh nhất nhé.",
             "intent": "error",
             "products": [],
             "action_data": {}

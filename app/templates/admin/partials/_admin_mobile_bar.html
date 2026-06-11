@@ -1,34 +1,51 @@
-<header class="mm-mobilebar lg:hidden">
-  <button type="button" onclick="AdminShell.openSidebar()" class="mm-icon-btn" aria-label="Mở menu">
+<header class="gm-mobilebar lg:hidden">
+  <button
+    type="button"
+    onclick="AdminShell.openSidebar()"
+    class="gm-mobile-icon-btn"
+    aria-label="Mở menu"
+  >
     <i class="fa-solid fa-bars"></i>
   </button>
 
-  <a href="{{ url_for('admin.dashboard') }}" data-nav data-prefetch class="mm-mobile-brand">
-    <img src="{{ brand_logo }}" alt="MMESTLINE" class="mm-mobile-logo">
-    <div>
-      <p>MMESTLINE</p>
-      <span>Admin</span>
+  <a
+    href="{{ url_for('admin.dashboard') }}"
+    data-nav
+    data-prefetch
+    class="gm-mobile-brand"
+    aria-label="Về trang dashboard"
+  >
+    <span class="gm-mobile-logo-wrap">
+      <img src="{{ brand_logo }}" alt="GUAMAISON" class="gm-mobile-logo">
+    </span>
+
+    <div class="gm-mobile-brand-text">
+      <p>GUAMAISON</p>
+      <span>Admin Center</span>
     </div>
   </a>
 
-  <a href="{{ url_for('admin.notifications_index') }}"
-     data-nav
-     data-prefetch
-     class="mm-icon-btn relative {{ 'is-active' if notification_active else '' }}"
-     aria-label="Thông báo">
+  <a
+    href="{{ url_for('admin.notifications_index') }}"
+    data-nav
+    data-prefetch
+    class="gm-mobile-icon-btn gm-mobile-notification relative {{ 'is-active' if notification_active else '' }}"
+    aria-label="Thông báo"
+  >
     <i class="fa-solid fa-bell"></i>
 
     {% if admin_notification_count > 0 %}
-    <span class="mm-dot-badge">
-      {{ admin_notification_count if admin_notification_count < 100 else '99+' }}
-    </span>
+      <span class="gm-dot-badge">
+        {{ admin_notification_count if admin_notification_count < 100 else '99+' }}
+      </span>
     {% endif %}
   </a>
 </header>
 
-<div class="lg:hidden h-[64px]"></div>
+<div class="lg:hidden h-[68px]"></div>
 
-<div id="adminSidebarBackdrop"
-     onclick="AdminShell.closeSidebar()"
-     class="mm-sidebar-backdrop lg:hidden">
-</div>
+<div
+  id="adminSidebarBackdrop"
+  onclick="AdminShell.closeSidebar()"
+  class="gm-sidebar-backdrop lg:hidden"
+></div>

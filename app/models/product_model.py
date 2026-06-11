@@ -164,7 +164,7 @@ class ProductModel:
             p["thumbnail_url"] = (
                 primary_url
                 or first_url
-                or "https://placehold.co/600x800/f8f8f8/ccc?text=MMESTLINE"
+                or "https://placehold.co/600x800/f8f8f8/ccc?text=GUAMAISON"
             )
 
         # ── Categories từ bảng N-N product_categories ───────

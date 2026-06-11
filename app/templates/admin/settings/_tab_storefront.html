@@ -1,30 +1,36 @@
 {#
-  admin/settings/_tab_storefront.html
+  app/templates/admin/settings/_tab_storefront.html
   ══════════════════════════════════════════════════════
-  CHANGELOG:
-  - Thêm <input hidden csrf_token> chống lỗi 400 Bad Request.
-  - Ép hạ giới hạn MAX_SIZE xuống 4.5MB tương thích chuẩn Vercel.
-  - UI: Floating remove button, Sticky Header, Alert Box cảnh báo file lớn.
+  FIX:
+  - Upload ảnh/video xong mới cho bấm Lưu.
+  - Không bị lưu URL rỗng khi upload chưa hoàn tất.
+  - Preview ổn định cho ảnh/video.
+  - Dùng url_for để tránh sai prefix route /admin.
+  - Không cần sửa settings.js chỉ để chặn lỗi upload race-condition.
   ══════════════════════════════════════════════════════
 #}
 
-{# ── TOP BAR HEADER (Sticky để luôn thấy nút Lưu) ── #}
+{# ── TOP BAR HEADER ── #}
 <div class="sticky top-0 z-40 bg-stone-50/90 backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 py-4 border-b border-stone-200/60 -mx-4 px-4 sm:-mx-8 sm:px-8">
   <div>
     <h2 class="text-xl font-bold tracking-tight text-stone-900 font-serif">Giao diện cửa hàng</h2>
-    <p class="text-xs text-stone-500 mt-1">Thiết lập biểu ngữ, ảnh trang xác thực và video background cho storefront.</p>
+    <p class="text-xs text-stone-500 mt-1">
+      Thiết lập biểu ngữ, ảnh trang xác thực và video background cho storefront.
+    </p>
   </div>
-  <button type="button"
-          class="inline-flex items-center gap-2 px-6 py-2.5 bg-stone-900 text-white text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-stone-800 transition-all shadow-md hover:shadow-lg active:scale-95 cursor-pointer whitespace-nowrap"
-          onclick="if(window.Settings && typeof window.Settings.save === 'function'){ window.Settings.save('storefront'); }else{ alert('Hệ thống đang đồng bộ dữ liệu JS, vui lòng thử lại sau một giây!'); }">
+
+  <button
+    type="button"
+    data-sf-save-btn
+    class="inline-flex items-center gap-2 px-6 py-2.5 bg-stone-900 text-white text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-stone-800 transition-all shadow-md hover:shadow-lg active:scale-95 cursor-pointer whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+    onclick="sfSaveStorefront(this)"
+  >
     <i class="fa-solid fa-floppy-disk text-sm"></i>
     Lưu cấu hình
   </button>
 </div>
 
 <form id="form-storefront" class="space-y-8 pb-12" novalidate>
-
-  {# 🟢 BẮT BUỘC: Token bảo mật chống lỗi 400 Bad Request / CSRF Attack 🟢 #}
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
   {# ══════════════════════════════════════════════
@@ -39,6 +45,7 @@
           </div>
           <h3 class="text-sm font-bold uppercase tracking-wider">Trang Xác Thực</h3>
         </div>
+
         <p class="text-xs text-stone-500 leading-relaxed">
           Hình ảnh hiển thị ở cột trái của trang đăng nhập và đăng ký. <br>
           Kích thước khuyên dùng: <strong class="text-stone-700">900×1200px</strong>.
@@ -51,26 +58,47 @@
           <label class="block text-[11px] font-bold uppercase tracking-widest text-stone-500" for="login_image_url">
             Trang Đăng nhập
           </label>
+
           <div class="flex gap-2">
-            <input type="url" id="login_image_url" name="login_image_url"
-                   class="flex-1 px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-mono text-stone-900 outline-none focus:bg-white focus:border-stone-400 focus:ring-2 focus:ring-stone-100 transition-all"
-                   placeholder="URL ảnh trang login..."
-                   value="{{ storefront.login_image_url | default('') }}"
-                   oninput="sfAutoPreview(this.value, 'loginImgPreview')">
-            <input type="file" id="login_img_upload" accept="image/*" class="hidden"
-                   onchange="uploadStorefrontFile(this, 'login_image_url', 'loginImgPreview')">
-            <button type="button"
-                    class="px-3.5 bg-white border border-stone-200 rounded-xl text-stone-600 hover:bg-stone-50 hover:border-stone-300 sf-upload-btn transition-all shadow-sm cursor-pointer"
-                    onclick="document.getElementById('login_img_upload').click()">
+            <input
+              type="url"
+              id="login_image_url"
+              name="login_image_url"
+              class="flex-1 px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-mono text-stone-900 outline-none focus:bg-white focus:border-stone-400 focus:ring-2 focus:ring-stone-100 transition-all"
+              placeholder="URL ảnh trang login..."
+              value="{{ storefront.login_image_url | default('', true) }}"
+              oninput="sfAutoPreview(this.value, 'loginImgPreview')"
+            >
+
+            <input
+              type="file"
+              id="login_img_upload"
+              accept="image/*"
+              class="hidden"
+              onchange="uploadStorefrontFile(this, 'login_image_url', 'loginImgPreview')"
+            >
+
+            <button
+              type="button"
+              class="px-3.5 bg-white border border-stone-200 rounded-xl text-stone-600 hover:bg-stone-50 hover:border-stone-300 sf-upload-btn transition-all shadow-sm cursor-pointer"
+              onclick="document.getElementById('login_img_upload').click()"
+              title="Tải ảnh đăng nhập"
+            >
               <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
             </button>
           </div>
+
           <div id="loginImgPreview" class="relative bg-stone-100 border border-stone-200 rounded-xl overflow-hidden sf-preview hidden group mt-3">
-            {% if storefront.login_image_url | default('') %}
+            {% if storefront.login_image_url | default('', true) %}
               <img src="{{ storefront.login_image_url }}" class="w-full h-[180px] object-cover" loading="lazy">
             {% endif %}
-            <button type="button" class="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-white/90 backdrop-blur text-rose-600 rounded-full shadow-sm opacity-0 group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-700 transition-all cursor-pointer"
-                    onclick="sfClearField('login_image_url','loginImgPreview')" title="Gỡ bỏ ảnh">
+
+            <button
+              type="button"
+              class="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-white/90 backdrop-blur text-rose-600 rounded-full shadow-sm opacity-0 group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-700 transition-all cursor-pointer"
+              onclick="sfClearField('login_image_url','loginImgPreview')"
+              title="Gỡ bỏ ảnh"
+            >
               <i class="fa-solid fa-trash-can text-xs"></i>
             </button>
           </div>
@@ -81,26 +109,47 @@
           <label class="block text-[11px] font-bold uppercase tracking-widest text-stone-500" for="register_image_url">
             Trang Đăng ký
           </label>
+
           <div class="flex gap-2">
-            <input type="url" id="register_image_url" name="register_image_url"
-                   class="flex-1 px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-mono text-stone-900 outline-none focus:bg-white focus:border-stone-400 focus:ring-2 focus:ring-stone-100 transition-all"
-                   placeholder="URL ảnh trang register..."
-                   value="{{ storefront.register_image_url | default('') }}"
-                   oninput="sfAutoPreview(this.value, 'registerImgPreview')">
-            <input type="file" id="register_img_upload" accept="image/*" class="hidden"
-                   onchange="uploadStorefrontFile(this, 'register_image_url', 'registerImgPreview')">
-            <button type="button"
-                    class="px-3.5 bg-white border border-stone-200 rounded-xl text-stone-600 hover:bg-stone-50 hover:border-stone-300 sf-upload-btn transition-all shadow-sm cursor-pointer"
-                    onclick="document.getElementById('register_img_upload').click()">
+            <input
+              type="url"
+              id="register_image_url"
+              name="register_image_url"
+              class="flex-1 px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-mono text-stone-900 outline-none focus:bg-white focus:border-stone-400 focus:ring-2 focus:ring-stone-100 transition-all"
+              placeholder="URL ảnh trang register..."
+              value="{{ storefront.register_image_url | default('', true) }}"
+              oninput="sfAutoPreview(this.value, 'registerImgPreview')"
+            >
+
+            <input
+              type="file"
+              id="register_img_upload"
+              accept="image/*"
+              class="hidden"
+              onchange="uploadStorefrontFile(this, 'register_image_url', 'registerImgPreview')"
+            >
+
+            <button
+              type="button"
+              class="px-3.5 bg-white border border-stone-200 rounded-xl text-stone-600 hover:bg-stone-50 hover:border-stone-300 sf-upload-btn transition-all shadow-sm cursor-pointer"
+              onclick="document.getElementById('register_img_upload').click()"
+              title="Tải ảnh đăng ký"
+            >
               <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
             </button>
           </div>
+
           <div id="registerImgPreview" class="relative bg-stone-100 border border-stone-200 rounded-xl overflow-hidden sf-preview hidden group mt-3">
-            {% if storefront.register_image_url | default('') %}
+            {% if storefront.register_image_url | default('', true) %}
               <img src="{{ storefront.register_image_url }}" class="w-full h-[180px] object-cover" loading="lazy">
             {% endif %}
-            <button type="button" class="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-white/90 backdrop-blur text-rose-600 rounded-full shadow-sm opacity-0 group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-700 transition-all cursor-pointer"
-                    onclick="sfClearField('register_image_url','registerImgPreview')" title="Gỡ bỏ ảnh">
+
+            <button
+              type="button"
+              class="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-white/90 backdrop-blur text-rose-600 rounded-full shadow-sm opacity-0 group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-700 transition-all cursor-pointer"
+              onclick="sfClearField('register_image_url','registerImgPreview')"
+              title="Gỡ bỏ ảnh"
+            >
               <i class="fa-solid fa-trash-can text-xs"></i>
             </button>
           </div>
@@ -109,7 +158,9 @@
     </div>
   </div>
 
-  {# ═══ SECTION 2 — HERO BANNER ═══ #}
+  {# ══════════════════════════════════════════════
+     SECTION 2 — HERO BANNER
+     ══════════════════════════════════════════════ #}
   <div class="bg-white border border-stone-200/80 rounded-2xl shadow-sm p-6 lg:p-8 transition-all hover:shadow-md">
     <div class="flex flex-col lg:flex-row gap-8">
       <div class="lg:w-1/3 space-y-2">
@@ -119,54 +170,82 @@
           </div>
           <h3 class="text-sm font-bold uppercase tracking-wider">Hero Banner</h3>
         </div>
+
         <p class="text-xs text-stone-500 leading-relaxed">
           Khung hình lớn đầu trang chủ. Hỗ trợ .jpg, .png, .webp hoặc video .mp4.
         </p>
+
         <div class="mt-4 p-3 bg-amber-50/80 border border-amber-200/60 rounded-xl flex items-start gap-2.5 text-amber-800 text-xs leading-relaxed">
           <i class="fa-solid fa-triangle-exclamation mt-0.5 text-amber-500"></i>
           <div>
-            <strong>Vercel giới hạn upload 4.5MB.</strong> Nếu video lớn hơn, hãy tải trực tiếp lên Supabase Storage và dán URL vào ô bên cạnh.
+            <strong>Vercel giới hạn upload 4.5MB.</strong>
+            Nếu video lớn hơn, hãy tải trực tiếp lên Supabase Storage và dán URL vào ô bên cạnh.
           </div>
         </div>
       </div>
 
       <div class="flex-1 space-y-4">
         <div class="flex gap-2">
-          <input type="url" id="hero_banner_url" name="hero_banner_url"
-                 class="flex-1 px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-medium text-stone-900 focus:bg-white focus:border-stone-400 focus:ring-2 focus:ring-stone-100 transition-all outline-none font-mono"
-                 placeholder="Dán liên kết URL từ Supabase Storage hoặc Tải lên..."
-                 value="{{ storefront.hero_banner_url | default('') }}"
-                 oninput="sfAutoPreview(this.value, 'heroPreview')">
-          <input type="file" id="hero_upload" accept="image/*,video/mp4" class="hidden"
-                 onchange="uploadStorefrontFile(this, 'hero_banner_url', 'heroPreview')">
-          <button type="button"
-                  class="px-5 py-2.5 bg-white border border-stone-200 text-stone-700 text-xs font-bold rounded-xl hover:bg-stone-50 hover:border-stone-300 transition-all sf-upload-btn whitespace-nowrap shadow-sm cursor-pointer inline-flex items-center gap-2"
-                  onclick="document.getElementById('hero_upload').click()">
-            <i class="fa-solid fa-cloud-arrow-up"></i> Tải lên
+          <input
+            type="url"
+            id="hero_banner_url"
+            name="hero_banner_url"
+            class="flex-1 px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-medium text-stone-900 focus:bg-white focus:border-stone-400 focus:ring-2 focus:ring-stone-100 transition-all outline-none font-mono"
+            placeholder="Dán liên kết URL từ Supabase Storage hoặc Tải lên..."
+            value="{{ storefront.hero_banner_url | default('', true) }}"
+            oninput="sfAutoPreview(this.value, 'heroPreview')"
+          >
+
+          <input
+            type="file"
+            id="hero_upload"
+            accept="image/*,video/mp4,video/webm,video/quicktime"
+            class="hidden"
+            onchange="uploadStorefrontFile(this, 'hero_banner_url', 'heroPreview')"
+          >
+
+          <button
+            type="button"
+            class="px-5 py-2.5 bg-white border border-stone-200 text-stone-700 text-xs font-bold rounded-xl hover:bg-stone-50 hover:border-stone-300 transition-all sf-upload-btn whitespace-nowrap shadow-sm cursor-pointer inline-flex items-center gap-2"
+            onclick="document.getElementById('hero_upload').click()"
+          >
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            Tải lên
           </button>
         </div>
+
         <div id="heroPreview" class="relative bg-stone-100 border border-stone-200 rounded-xl overflow-hidden sf-preview hidden group">
-          {% if storefront.hero_banner_url | default('') %}
-            {% if storefront.hero_banner_url.split('?')[0].endswith('.mp4') %}
+          {% if storefront.hero_banner_url | default('', true) %}
+            {% set hero_clean_url = storefront.hero_banner_url.split('?')[0].lower() %}
+            {% if hero_clean_url.endswith('.mp4') or hero_clean_url.endswith('.webm') or hero_clean_url.endswith('.mov') %}
               <video src="{{ storefront.hero_banner_url }}" preload="none" controls class="w-full h-[220px] object-cover bg-stone-950"></video>
             {% else %}
               <img src="{{ storefront.hero_banner_url }}" class="w-full h-[220px] object-cover" loading="lazy">
             {% endif %}
           {% endif %}
-          
-          <button type="button" class="absolute top-3 right-3 w-8 h-8 flex items-center justify-center bg-white/90 backdrop-blur text-rose-600 rounded-full shadow-sm opacity-0 group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-700 transition-all cursor-pointer z-10"
-                  onclick="sfClearField('hero_banner_url','heroPreview')" title="Gỡ bỏ">
+
+          <button
+            type="button"
+            class="absolute top-3 right-3 w-8 h-8 flex items-center justify-center bg-white/90 backdrop-blur text-rose-600 rounded-full shadow-sm opacity-0 group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-700 transition-all cursor-pointer z-10"
+            onclick="sfClearField('hero_banner_url','heroPreview')"
+            title="Gỡ bỏ"
+          >
             <i class="fa-solid fa-trash-can text-xs"></i>
           </button>
+
           <div class="absolute bottom-0 inset-x-0 px-4 py-2 bg-gradient-to-t from-black/60 to-transparent flex items-center">
-            <span id="heroPreviewName" class="text-white/90 text-[11px] truncate font-mono drop-shadow-sm">{{ storefront.hero_banner_url | default('') }}</span>
+            <span id="heroPreviewName" class="text-white/90 text-[11px] truncate font-mono drop-shadow-sm">
+              {{ storefront.hero_banner_url | default('', true) }}
+            </span>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  {# ═══ SECTION 3 — SHOP PAGE BANNER (Ảnh nền trang Shop) ═══ #}
+  {# ══════════════════════════════════════════════
+     SECTION 3 — SHOP PAGE BANNER
+     ══════════════════════════════════════════════ #}
   <div class="bg-white border border-stone-200/80 rounded-2xl shadow-sm p-6 lg:p-8 transition-all hover:shadow-md">
     <div class="flex flex-col lg:flex-row gap-8">
       <div class="lg:w-1/3 space-y-2">
@@ -176,31 +255,53 @@
           </div>
           <h3 class="text-sm font-bold uppercase tracking-wider">Banner Trang Shop</h3>
         </div>
+
         <p class="text-xs text-stone-500 leading-relaxed">
-          Ảnh nền (hỗ trợ cả tĩnh và GIF) hiển thị ở khu vực trên cùng của trang danh sách sản phẩm (Shop All).
+          Ảnh nền hiển thị ở khu vực trên cùng của trang danh sách sản phẩm.
         </p>
       </div>
+
       <div class="flex-1 space-y-4">
         <div class="flex gap-2">
-          <input type="url" id="shop_banner_url" name="shop_banner_url"
-                 class="flex-1 px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-medium text-stone-900 focus:bg-white focus:border-stone-400 focus:ring-2 focus:ring-stone-100 transition-all outline-none font-mono"
-                 placeholder="Đường dẫn hình ảnh hoặc GIF cho trang Shop..."
-                 value="{{ storefront.shop_banner_url | default('') }}"
-                 oninput="sfAutoPreview(this.value, 'shopBannerPreview')">
-          <input type="file" id="shop_banner_upload" accept="image/*" class="hidden"
-                 onchange="uploadStorefrontFile(this, 'shop_banner_url', 'shopBannerPreview')">
-          <button type="button"
-                  class="px-5 py-2.5 bg-white border border-stone-200 text-stone-700 text-xs font-bold rounded-xl hover:bg-stone-50 hover:border-stone-300 transition-all sf-upload-btn whitespace-nowrap shadow-sm cursor-pointer inline-flex items-center gap-2"
-                  onclick="document.getElementById('shop_banner_upload').click()">
-            <i class="fa-solid fa-cloud-arrow-up"></i> Tải lên
+          <input
+            type="url"
+            id="shop_banner_url"
+            name="shop_banner_url"
+            class="flex-1 px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-medium text-stone-900 focus:bg-white focus:border-stone-400 focus:ring-2 focus:ring-stone-100 transition-all outline-none font-mono"
+            placeholder="Đường dẫn hình ảnh hoặc GIF cho trang Shop..."
+            value="{{ storefront.shop_banner_url | default('', true) }}"
+            oninput="sfAutoPreview(this.value, 'shopBannerPreview')"
+          >
+
+          <input
+            type="file"
+            id="shop_banner_upload"
+            accept="image/*"
+            class="hidden"
+            onchange="uploadStorefrontFile(this, 'shop_banner_url', 'shopBannerPreview')"
+          >
+
+          <button
+            type="button"
+            class="px-5 py-2.5 bg-white border border-stone-200 text-stone-700 text-xs font-bold rounded-xl hover:bg-stone-50 hover:border-stone-300 transition-all sf-upload-btn whitespace-nowrap shadow-sm cursor-pointer inline-flex items-center gap-2"
+            onclick="document.getElementById('shop_banner_upload').click()"
+          >
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            Tải lên
           </button>
         </div>
+
         <div id="shopBannerPreview" class="relative bg-stone-100 border border-stone-200 rounded-xl overflow-hidden sf-preview hidden group">
-          {% if storefront.shop_banner_url | default('') %}
+          {% if storefront.shop_banner_url | default('', true) %}
             <img src="{{ storefront.shop_banner_url }}" class="w-full h-[180px] object-cover" loading="lazy">
           {% endif %}
-          <button type="button" class="absolute top-3 right-3 w-8 h-8 flex items-center justify-center bg-white/90 backdrop-blur text-rose-600 rounded-full shadow-sm opacity-0 group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-700 transition-all cursor-pointer z-10"
-                  onclick="sfClearField('shop_banner_url','shopBannerPreview')">
+
+          <button
+            type="button"
+            class="absolute top-3 right-3 w-8 h-8 flex items-center justify-center bg-white/90 backdrop-blur text-rose-600 rounded-full shadow-sm opacity-0 group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-700 transition-all cursor-pointer z-10"
+            onclick="sfClearField('shop_banner_url','shopBannerPreview')"
+            title="Gỡ bỏ"
+          >
             <i class="fa-solid fa-trash-can text-xs"></i>
           </button>
         </div>
@@ -208,7 +309,9 @@
     </div>
   </div>
 
-  {# ═══ SECTION 4 — BANNER 2 FULL WIDTH ═══ #}
+  {# ══════════════════════════════════════════════
+     SECTION 4 — BANNER 2 FULL WIDTH
+     ══════════════════════════════════════════════ #}
   <div class="bg-white border border-stone-200/80 rounded-2xl shadow-sm p-6 lg:p-8 transition-all hover:shadow-md">
     <div class="flex flex-col lg:flex-row gap-8">
       <div class="lg:w-1/3 space-y-2">
@@ -218,31 +321,53 @@
           </div>
           <h3 class="text-sm font-bold uppercase tracking-wider">Banner 2 – Full Width</h3>
         </div>
+
         <p class="text-xs text-stone-500 leading-relaxed">
-          Biểu ngữ tràn viền ngang màn hình, ngăn cách sau khối danh mục (1920×600px).
+          Biểu ngữ tràn viền ngang màn hình, ngăn cách sau khối danh mục. Gợi ý 1920×600px.
         </p>
       </div>
+
       <div class="flex-1 space-y-4">
         <div class="flex gap-2">
-          <input type="url" id="banner2_url" name="banner2_url"
-                 class="flex-1 px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-medium text-stone-900 focus:bg-white focus:border-stone-400 focus:ring-2 focus:ring-stone-100 transition-all outline-none font-mono"
-                 placeholder="Đường dẫn hình ảnh biểu ngữ tràn viền..."
-                 value="{{ storefront.banner2_url | default('') }}"
-                 oninput="sfAutoPreview(this.value, 'banner2Preview')">
-          <input type="file" id="banner2_upload" accept="image/*" class="hidden"
-                 onchange="uploadStorefrontFile(this, 'banner2_url', 'banner2Preview')">
-          <button type="button"
-                  class="px-5 py-2.5 bg-white border border-stone-200 text-stone-700 text-xs font-bold rounded-xl hover:bg-stone-50 hover:border-stone-300 transition-all sf-upload-btn whitespace-nowrap shadow-sm cursor-pointer inline-flex items-center gap-2"
-                  onclick="document.getElementById('banner2_upload').click()">
-            <i class="fa-solid fa-cloud-arrow-up"></i> Tải lên
+          <input
+            type="url"
+            id="banner2_url"
+            name="banner2_url"
+            class="flex-1 px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-medium text-stone-900 focus:bg-white focus:border-stone-400 focus:ring-2 focus:ring-stone-100 transition-all outline-none font-mono"
+            placeholder="Đường dẫn hình ảnh biểu ngữ tràn viền..."
+            value="{{ storefront.banner2_url | default('', true) }}"
+            oninput="sfAutoPreview(this.value, 'banner2Preview')"
+          >
+
+          <input
+            type="file"
+            id="banner2_upload"
+            accept="image/*"
+            class="hidden"
+            onchange="uploadStorefrontFile(this, 'banner2_url', 'banner2Preview')"
+          >
+
+          <button
+            type="button"
+            class="px-5 py-2.5 bg-white border border-stone-200 text-stone-700 text-xs font-bold rounded-xl hover:bg-stone-50 hover:border-stone-300 transition-all sf-upload-btn whitespace-nowrap shadow-sm cursor-pointer inline-flex items-center gap-2"
+            onclick="document.getElementById('banner2_upload').click()"
+          >
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            Tải lên
           </button>
         </div>
+
         <div id="banner2Preview" class="relative bg-stone-100 border border-stone-200 rounded-xl overflow-hidden sf-preview hidden group">
-          {% if storefront.banner2_url | default('') %}
+          {% if storefront.banner2_url | default('', true) %}
             <img src="{{ storefront.banner2_url }}" class="w-full h-[180px] object-cover" loading="lazy">
           {% endif %}
-          <button type="button" class="absolute top-3 right-3 w-8 h-8 flex items-center justify-center bg-white/90 backdrop-blur text-rose-600 rounded-full shadow-sm opacity-0 group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-700 transition-all cursor-pointer z-10"
-                  onclick="sfClearField('banner2_url','banner2Preview')">
+
+          <button
+            type="button"
+            class="absolute top-3 right-3 w-8 h-8 flex items-center justify-center bg-white/90 backdrop-blur text-rose-600 rounded-full shadow-sm opacity-0 group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-700 transition-all cursor-pointer z-10"
+            onclick="sfClearField('banner2_url','banner2Preview')"
+            title="Gỡ bỏ"
+          >
             <i class="fa-solid fa-trash-can text-xs"></i>
           </button>
         </div>
@@ -250,7 +375,9 @@
     </div>
   </div>
 
-  {# ═══ SECTION 5 — SPLIT BANNERS ═══ #}
+  {# ══════════════════════════════════════════════
+     SECTION 5 — SPLIT BANNERS
+     ══════════════════════════════════════════════ #}
   <div class="bg-white border border-stone-200/80 rounded-2xl shadow-sm p-6 lg:p-8 transition-all hover:shadow-md">
     <div class="flex flex-col lg:flex-row gap-8">
       <div class="lg:w-1/3 space-y-2">
@@ -260,59 +387,110 @@
           </div>
           <h3 class="text-sm font-bold uppercase tracking-wider">Split Banners</h3>
         </div>
+
         <p class="text-xs text-stone-500 leading-relaxed">
-          Cặp đôi banner song song. Phù hợp phân nhóm chiến dịch Nam và Nữ.
+          Cặp banner song song. Phù hợp chia nhóm chiến dịch hoặc danh mục nổi bật.
         </p>
       </div>
+
       <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6">
-        {# Trái #}
+        {# Banner trái #}
         <div class="space-y-3">
-          <label class="block text-[11px] font-bold uppercase tracking-widest text-stone-500">Banner Trái</label>
+          <label class="block text-[11px] font-bold uppercase tracking-widest text-stone-500" for="split_left_url">
+            Banner Trái
+          </label>
+
           <div class="flex gap-2">
-            <input type="url" id="split_left_url" name="split_left_url"
-                   class="flex-1 px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-mono text-stone-900 outline-none focus:bg-white focus:border-stone-400 focus:ring-2 focus:ring-stone-100 transition-all"
-                   placeholder="URL ảnh trái..." value="{{ storefront.split_left_url | default('') }}"
-                   oninput="sfAutoPreview(this.value, 'splitLeftPreview')">
-            <input type="file" id="split_left_upload" accept="image/*" class="hidden"
-                   onchange="uploadStorefrontFile(this, 'split_left_url', 'splitLeftPreview')">
-            <button type="button"
-                    class="px-3.5 bg-white border border-stone-200 rounded-xl text-stone-600 hover:bg-stone-50 hover:border-stone-300 sf-upload-btn transition-all shadow-sm cursor-pointer"
-                    onclick="document.getElementById('split_left_upload').click()">
+            <input
+              type="url"
+              id="split_left_url"
+              name="split_left_url"
+              class="flex-1 px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-mono text-stone-900 outline-none focus:bg-white focus:border-stone-400 focus:ring-2 focus:ring-stone-100 transition-all"
+              placeholder="URL ảnh trái..."
+              value="{{ storefront.split_left_url | default('', true) }}"
+              oninput="sfAutoPreview(this.value, 'splitLeftPreview')"
+            >
+
+            <input
+              type="file"
+              id="split_left_upload"
+              accept="image/*"
+              class="hidden"
+              onchange="uploadStorefrontFile(this, 'split_left_url', 'splitLeftPreview')"
+            >
+
+            <button
+              type="button"
+              class="px-3.5 bg-white border border-stone-200 rounded-xl text-stone-600 hover:bg-stone-50 hover:border-stone-300 sf-upload-btn transition-all shadow-sm cursor-pointer"
+              onclick="document.getElementById('split_left_upload').click()"
+              title="Tải banner trái"
+            >
               <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
             </button>
           </div>
+
           <div id="splitLeftPreview" class="relative bg-stone-100 border border-stone-200 rounded-xl overflow-hidden sf-preview hidden group mt-3">
-            {% if storefront.split_left_url | default('') %}
+            {% if storefront.split_left_url | default('', true) %}
               <img src="{{ storefront.split_left_url }}" class="w-full h-[140px] object-cover" loading="lazy">
             {% endif %}
-            <button type="button" class="absolute top-2 right-2 w-7 h-7 flex items-center justify-center bg-white/90 backdrop-blur text-rose-600 rounded-full shadow-sm opacity-0 group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-700 transition-all cursor-pointer"
-                    onclick="sfClearField('split_left_url','splitLeftPreview')">
+
+            <button
+              type="button"
+              class="absolute top-2 right-2 w-7 h-7 flex items-center justify-center bg-white/90 backdrop-blur text-rose-600 rounded-full shadow-sm opacity-0 group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-700 transition-all cursor-pointer"
+              onclick="sfClearField('split_left_url','splitLeftPreview')"
+              title="Gỡ bỏ"
+            >
               <i class="fa-solid fa-trash-can text-[10px]"></i>
             </button>
           </div>
         </div>
-        {# Phải #}
+
+        {# Banner phải #}
         <div class="space-y-3">
-          <label class="block text-[11px] font-bold uppercase tracking-widest text-stone-500">Banner Phải</label>
+          <label class="block text-[11px] font-bold uppercase tracking-widest text-stone-500" for="split_right_url">
+            Banner Phải
+          </label>
+
           <div class="flex gap-2">
-            <input type="url" id="split_right_url" name="split_right_url"
-                   class="flex-1 px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-mono text-stone-900 outline-none focus:bg-white focus:border-stone-400 focus:ring-2 focus:ring-stone-100 transition-all"
-                   placeholder="URL ảnh phải..." value="{{ storefront.split_right_url | default('') }}"
-                   oninput="sfAutoPreview(this.value, 'splitRightPreview')">
-            <input type="file" id="split_right_upload" accept="image/*" class="hidden"
-                   onchange="uploadStorefrontFile(this, 'split_right_url', 'splitRightPreview')">
-            <button type="button"
-                    class="px-3.5 bg-white border border-stone-200 rounded-xl text-stone-600 hover:bg-stone-50 hover:border-stone-300 sf-upload-btn transition-all shadow-sm cursor-pointer"
-                    onclick="document.getElementById('split_right_upload').click()">
+            <input
+              type="url"
+              id="split_right_url"
+              name="split_right_url"
+              class="flex-1 px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-mono text-stone-900 outline-none focus:bg-white focus:border-stone-400 focus:ring-2 focus:ring-stone-100 transition-all"
+              placeholder="URL ảnh phải..."
+              value="{{ storefront.split_right_url | default('', true) }}"
+              oninput="sfAutoPreview(this.value, 'splitRightPreview')"
+            >
+
+            <input
+              type="file"
+              id="split_right_upload"
+              accept="image/*"
+              class="hidden"
+              onchange="uploadStorefrontFile(this, 'split_right_url', 'splitRightPreview')"
+            >
+
+            <button
+              type="button"
+              class="px-3.5 bg-white border border-stone-200 rounded-xl text-stone-600 hover:bg-stone-50 hover:border-stone-300 sf-upload-btn transition-all shadow-sm cursor-pointer"
+              onclick="document.getElementById('split_right_upload').click()"
+              title="Tải banner phải"
+            >
               <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
             </button>
           </div>
+
           <div id="splitRightPreview" class="relative bg-stone-100 border border-stone-200 rounded-xl overflow-hidden sf-preview hidden group mt-3">
-            {% if storefront.split_right_url | default('') %}
+            {% if storefront.split_right_url | default('', true) %}
               <img src="{{ storefront.split_right_url }}" class="w-full h-[140px] object-cover" loading="lazy">
             {% endif %}
-            <button type="button" class="absolute top-2 right-2 w-7 h-7 flex items-center justify-center bg-white/90 backdrop-blur text-rose-600 rounded-full shadow-sm opacity-0 group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-700 transition-all cursor-pointer"
-                    onclick="sfClearField('split_right_url','splitRightPreview')">
+
+            <button
+              type="button"
+              class="absolute top-2 right-2 w-7 h-7 flex items-center justify-center bg-white/90 backdrop-blur text-rose-600 rounded-full shadow-sm opacity-0 group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-700 transition-all cursor-pointer"
+              onclick="sfClearField('split_right_url','splitRightPreview')"
+              title="Gỡ bỏ"
+            >
               <i class="fa-solid fa-trash-can text-[10px]"></i>
             </button>
           </div>
@@ -321,7 +499,9 @@
     </div>
   </div>
 
-  {# ═══ SECTION 6 — BANNER 4 VIDEO ═══ #}
+  {# ══════════════════════════════════════════════
+     SECTION 6 — BANNER 4 VIDEO
+     ══════════════════════════════════════════════ #}
   <div class="bg-white border border-stone-200/80 rounded-2xl shadow-sm p-6 lg:p-8 transition-all hover:shadow-md">
     <div class="flex flex-col md:flex-row gap-8">
       <div class="md:w-1/3 space-y-2">
@@ -331,152 +511,424 @@
           </div>
           <h3 class="text-sm font-bold uppercase tracking-wider">Video Best Sellers</h3>
         </div>
+
         <p class="text-xs text-stone-500 leading-relaxed">
-          Luồng video vòng lặp chạy nền khu vực hàng bán chạy (.mp4).
+          Luồng video vòng lặp chạy nền khu vực hàng bán chạy. Hỗ trợ .mp4, .webm, .mov.
         </p>
+
         <div class="mt-4 p-3 bg-amber-50/80 border border-amber-200/60 rounded-xl flex items-start gap-2.5 text-amber-800 text-xs leading-relaxed">
           <i class="fa-solid fa-triangle-exclamation mt-0.5 text-amber-500"></i>
-          <div>Tương tự Hero Banner, vui lòng <strong>dán URL Supabase</strong> nếu dung lượng video vượt quá 4.5MB.</div>
+          <div>
+            Vui lòng <strong>dán URL Supabase</strong> nếu dung lượng video vượt quá 4.5MB.
+          </div>
         </div>
       </div>
+
       <div class="flex-1 space-y-4">
         <div class="flex gap-2">
-          <input type="url" id="banner4_video_url" name="banner4_video_url"
-                 class="flex-1 px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-medium text-stone-900 focus:bg-white focus:border-stone-400 focus:ring-2 focus:ring-stone-100 transition-all outline-none font-mono"
-                 placeholder="Dán URL tệp video .mp4 từ Supabase Storage..."
-                 value="{{ storefront.banner4_video_url | default('') }}"
-                 oninput="sfAutoPreview(this.value, 'banner4Preview')">
-          <input type="file" id="banner4_upload" accept="video/mp4" class="hidden"
-                 onchange="uploadStorefrontFile(this, 'banner4_video_url', 'banner4Preview')">
-          <button type="button"
-                  class="px-5 py-2.5 bg-white border border-stone-200 text-stone-700 text-xs font-bold rounded-xl hover:bg-stone-50 hover:border-stone-300 transition-all sf-upload-btn whitespace-nowrap shadow-sm cursor-pointer inline-flex items-center gap-2"
-                  onclick="document.getElementById('banner4_upload').click()">
-            <i class="fa-solid fa-cloud-arrow-up"></i> Tải lên
+          <input
+            type="url"
+            id="banner4_video_url"
+            name="banner4_video_url"
+            class="flex-1 px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-medium text-stone-900 focus:bg-white focus:border-stone-400 focus:ring-2 focus:ring-stone-100 transition-all outline-none font-mono"
+            placeholder="Dán URL tệp video từ Supabase Storage..."
+            value="{{ storefront.banner4_video_url | default('', true) }}"
+            oninput="sfAutoPreview(this.value, 'banner4Preview')"
+          >
+
+          <input
+            type="file"
+            id="banner4_upload"
+            accept="video/mp4,video/webm,video/quicktime"
+            class="hidden"
+            onchange="uploadStorefrontFile(this, 'banner4_video_url', 'banner4Preview')"
+          >
+
+          <button
+            type="button"
+            class="px-5 py-2.5 bg-white border border-stone-200 text-stone-700 text-xs font-bold rounded-xl hover:bg-stone-50 hover:border-stone-300 transition-all sf-upload-btn whitespace-nowrap shadow-sm cursor-pointer inline-flex items-center gap-2"
+            onclick="document.getElementById('banner4_upload').click()"
+          >
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            Tải lên
           </button>
         </div>
+
         <div id="banner4Preview" class="relative bg-stone-100 border border-stone-200 rounded-xl overflow-hidden sf-preview hidden group">
-          {% if storefront.banner4_video_url | default('') %}
+          {% if storefront.banner4_video_url | default('', true) %}
             <video src="{{ storefront.banner4_video_url }}" preload="none" controls class="w-full h-[180px] object-cover bg-stone-950"></video>
           {% endif %}
-          <button type="button" class="absolute top-3 right-3 w-8 h-8 flex items-center justify-center bg-white/90 backdrop-blur text-rose-600 rounded-full shadow-sm opacity-0 group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-700 transition-all cursor-pointer z-10"
-                  onclick="sfClearField('banner4_video_url','banner4Preview')">
+
+          <button
+            type="button"
+            class="absolute top-3 right-3 w-8 h-8 flex items-center justify-center bg-white/90 backdrop-blur text-rose-600 rounded-full shadow-sm opacity-0 group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-700 transition-all cursor-pointer z-10"
+            onclick="sfClearField('banner4_video_url','banner4Preview')"
+            title="Gỡ bỏ"
+          >
             <i class="fa-solid fa-trash-can text-xs"></i>
           </button>
+
           <div class="absolute bottom-0 inset-x-0 px-4 py-2 bg-gradient-to-t from-black/60 to-transparent flex items-center">
-            <span id="banner4PreviewName" class="text-white/90 text-[11px] truncate font-mono drop-shadow-sm">{{ storefront.banner4_video_url | default('') }}</span>
+            <span id="banner4PreviewName" class="text-white/90 text-[11px] truncate font-mono drop-shadow-sm">
+              {{ storefront.banner4_video_url | default('', true) }}
+            </span>
           </div>
         </div>
       </div>
     </div>
   </div>
-
 </form>
 
 <script>
-/* ── JS giữ nguyên logic auto-preview và upload ── */
-document.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll('.sf-preview').forEach(preview => {
-    const media = preview.querySelector('img, video');
-    if (media && media.getAttribute('src') && media.getAttribute('src').trim() !== '') {
-      preview.classList.remove('hidden');
-    }
-  });
-});
+(function () {
+  "use strict";
 
-function sfAutoPreview(url, previewId, isVideoExplicit) {
-  const wrap = document.getElementById(previewId);
-  if (!wrap) return;
-  if (!url) { wrap.classList.add('hidden'); return; }
-  let isVideo = isVideoExplicit !== undefined ? isVideoExplicit : url.toLowerCase().split('?')[0].endsWith('.mp4');
-  let media = wrap.querySelector('img, video');
-  if (isVideo) {
-    if (!media || media.tagName !== 'VIDEO') {
-      if (media) media.remove();
-      media = document.createElement('video');
-      media.muted = true; media.setAttribute('playsinline',''); media.setAttribute('controls','');
-      media.setAttribute('preload','none');
-      media.className = "w-full h-[220px] object-cover bg-stone-950";
-      wrap.prepend(media);
+  const SF_UPLOAD_URL = "{{ url_for('admin.upload_storefront_media') }}";
+  const SF_SAVE_URL = "{{ url_for('admin.update_settings', section='storefront') }}";
+  const VERCEL_MAX_SIZE = 4.5 * 1024 * 1024;
+
+  window.__storefrontUploadCount = window.__storefrontUploadCount || 0;
+
+  function sfNotify(message, type = "info") {
+    const normalizedType = type === "danger" ? "error" : type;
+
+    if (window.GUA && typeof window.GUA.snackbar === "function") {
+      window.GUA.snackbar(message, normalizedType);
+      return;
     }
-  } else {
-    if (!media || media.tagName !== 'IMG') {
-      if (media) media.remove();
-      media = document.createElement('img');
-      media.className = "w-full h-[220px] object-cover";
-      media.setAttribute('loading','lazy');
-      wrap.prepend(media);
+
+    if (window.GUA && typeof window.GUA.toast === "function") {
+      window.GUA.toast(message, normalizedType);
+      return;
     }
+
+    if (window.Settings && typeof window.Settings.toast === "function") {
+      window.Settings.toast(message, normalizedType);
+      return;
+    }
+
+    alert(message);
   }
-  media.src = url;
-  const nameEl = document.getElementById(previewId + 'Name');
-  if (nameEl) nameEl.textContent = url.startsWith('blob:') ? "Tệp cục bộ đang chờ lưu..." : (url.length > 50 ? url.slice(0,50)+'...' : url);
-  wrap.classList.remove('hidden');
-}
 
-function sfClearField(inputId, previewId) {
-  const inp = document.getElementById(inputId);
-  if (inp) inp.value = '';
-  const wrap = document.getElementById(previewId);
-  if (wrap) { wrap.classList.add('hidden'); const m = wrap.querySelector('img,video'); if (m) m.src = ''; }
-}
-
-async function uploadStorefrontFile(inputEl, targetInputId, previewId) {
-  const file = inputEl.files[0];
-  if (!file) return;
-  
-  const VERCEL_MAX_SIZE = 4.5 * 1024 * 1024; 
-  const btn = inputEl.closest('.flex').querySelector('.sf-upload-btn');
-  
-  if (file.size > VERCEL_MAX_SIZE) {
-    const errorMsg = `File vượt quá hạn mức Vercel (4.5MB). Kích thước file hiện tại: ${(file.size/1024/1024).toFixed(2)}MB. Vui lòng tải trực tiếp lên Supabase Storage Dashboard và dán URL vào ô cấu hình!`;
-    if (window.GUA && typeof window.GUA.snackbar === 'function') {
-      window.GUA.snackbar(errorMsg, 'warning');
-    } else {
-      alert(errorMsg);
-    }
-    inputEl.value = ''; 
-    return;
+  function sfGetCsrfToken() {
+    return (
+      document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") ||
+      document.querySelector('#form-storefront input[name="csrf_token"]')?.value ||
+      document.querySelector('input[name="csrf_token"]')?.value ||
+      ""
+    );
   }
-  
-  const blobUrl = URL.createObjectURL(file);
-  const isVideo = file.type.startsWith('video/');
-  sfAutoPreview(blobUrl, previewId, isVideo);
-  
-  if (btn) { btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'; btn.classList.add('opacity-40','pointer-events-none'); }
-  const fd = new FormData(); fd.append('file', file);
-  
-  // Hỗ trợ lấy csrf_token linh hoạt từ thẻ meta hoặc thẻ input hidden
-  const csrf = document.querySelector('meta[name="csrf-token"]')?.content || 
-               document.querySelector('input[name="csrf_token"]')?.value || '';
-  
-  try {
-    const res = await fetch('/admin/settings/upload', { method:'POST',credentials: 'same-origin',  headers:{'X-CSRFToken': csrf}, body: fd });
-    if (!res.ok) throw new Error(`Lỗi máy chủ (${res.status})`);
-    const data = await res.json();
-    if (data.success) {
-      const inp = document.getElementById(targetInputId);
-      if (inp) { inp.value = data.url; sfAutoPreview(data.url, previewId, isVideo); }
-      URL.revokeObjectURL(blobUrl);
-      if (window.GUA && typeof window.GUA.snackbar === 'function') {
-        window.GUA.snackbar('Tải file lên thành công!', 'success');
-      } else {
-        alert('Tải file lên thành công!');
+
+  function sfIsVideoUrl(url) {
+    const clean = String(url || "").toLowerCase().split("?")[0].split("#")[0];
+    return (
+      clean.endsWith(".mp4") ||
+      clean.endsWith(".webm") ||
+      clean.endsWith(".mov") ||
+      clean.includes("/video/")
+    );
+  }
+
+  function sfSetSaveButtonsLoading(isLoading) {
+    document.querySelectorAll("[data-sf-save-btn]").forEach((btn) => {
+      if (!btn.dataset.originalHtml) {
+        btn.dataset.originalHtml = btn.innerHTML;
       }
-    } else throw new Error(data.error || 'Lỗi không xác định');
-  } catch (err) {
-    sfClearField(targetInputId, previewId); 
-    URL.revokeObjectURL(blobUrl);
-    if (window.GUA && typeof window.GUA.snackbar === 'function') {
-      window.GUA.snackbar(err.message, 'danger');
-    } else {
-      alert(err.message);
-    }
-  } finally {
-    if (btn) { 
-      btn.innerHTML = btn.classList.contains('px-5') ? '<i class="fa-solid fa-cloud-arrow-up"></i> Tải lên' : '<i class="fa-solid fa-cloud-arrow-up text-sm"></i>'; 
-      btn.classList.remove('opacity-40','pointer-events-none'); 
-    }
-    inputEl.value = '';
+
+      btn.disabled = isLoading || window.__storefrontUploadCount > 0;
+
+      if (isLoading) {
+        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-sm"></i> Đang lưu...';
+      } else if (window.__storefrontUploadCount > 0) {
+        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-sm"></i> Đang tải file...';
+      } else {
+        btn.innerHTML = btn.dataset.originalHtml;
+      }
+    });
   }
-}
+
+  function sfSetFormDisabled(disabled) {
+    const form = document.getElementById("form-storefront");
+    if (!form) return;
+
+    form.querySelectorAll("input, select, textarea, button").forEach((el) => {
+      if (el.hasAttribute("data-sf-save-btn")) return;
+      el.disabled = disabled;
+    });
+  }
+
+  function sfSetUploadButtonLoading(inputEl, isLoading) {
+    const row = inputEl ? inputEl.closest(".flex") : null;
+    const btn = row ? row.querySelector(".sf-upload-btn") : null;
+    if (!btn) return;
+
+    if (!btn.dataset.originalHtml) {
+      btn.dataset.originalHtml = btn.innerHTML;
+    }
+
+    btn.disabled = isLoading;
+    btn.classList.toggle("opacity-40", isLoading);
+    btn.classList.toggle("pointer-events-none", isLoading);
+
+    if (isLoading) {
+      btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+    } else {
+      btn.innerHTML = btn.dataset.originalHtml;
+    }
+  }
+
+  function sfTouchInput(inputEl) {
+    if (!inputEl) return;
+
+    inputEl.dispatchEvent(new Event("input", { bubbles: true }));
+    inputEl.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  function sfSetPreviewName(previewId, url) {
+    const nameEl = document.getElementById(previewId + "Name");
+    if (!nameEl) return;
+
+    const text = String(url || "");
+    nameEl.textContent = text.startsWith("blob:")
+      ? "Tệp cục bộ đang tải lên..."
+      : text.length > 72
+        ? text.slice(0, 72) + "..."
+        : text;
+  }
+
+  window.sfAutoPreview = function sfAutoPreview(url, previewId, isVideoExplicit) {
+    const wrap = document.getElementById(previewId);
+    if (!wrap) return;
+
+    const finalUrl = String(url || "").trim();
+
+    if (!finalUrl) {
+      wrap.classList.add("hidden");
+      sfSetPreviewName(previewId, "");
+      return;
+    }
+
+    const isVideo = typeof isVideoExplicit === "boolean"
+      ? isVideoExplicit
+      : sfIsVideoUrl(finalUrl);
+
+    let media = wrap.querySelector("img, video");
+
+    if (isVideo) {
+      if (!media || media.tagName !== "VIDEO") {
+        if (media) media.remove();
+
+        media = document.createElement("video");
+        media.controls = true;
+        media.muted = true;
+        media.playsInline = true;
+        media.preload = "none";
+        media.className = "w-full h-[220px] object-cover bg-stone-950";
+
+        wrap.prepend(media);
+      }
+    } else {
+      if (!media || media.tagName !== "IMG") {
+        if (media) media.remove();
+
+        media = document.createElement("img");
+        media.loading = "lazy";
+        media.className = "w-full h-[220px] object-cover";
+
+        wrap.prepend(media);
+      }
+    }
+
+    media.src = finalUrl;
+    sfSetPreviewName(previewId, finalUrl);
+    wrap.classList.remove("hidden");
+  };
+
+  window.sfClearField = function sfClearField(inputId, previewId) {
+    const input = document.getElementById(inputId);
+
+    if (input) {
+      input.value = "";
+      sfTouchInput(input);
+    }
+
+    const wrap = document.getElementById(previewId);
+
+    if (wrap) {
+      const media = wrap.querySelector("img, video");
+
+      if (media) {
+        if (media.src && media.src.startsWith("blob:")) {
+          URL.revokeObjectURL(media.src);
+        }
+
+        media.removeAttribute("src");
+        media.load?.();
+      }
+
+      wrap.classList.add("hidden");
+    }
+
+    sfSetPreviewName(previewId, "");
+  };
+
+  window.uploadStorefrontFile = async function uploadStorefrontFile(inputEl, targetInputId, previewId) {
+    const file = inputEl?.files?.[0];
+    if (!file) return;
+
+    if (file.size > VERCEL_MAX_SIZE) {
+      const currentSize = (file.size / 1024 / 1024).toFixed(2);
+      const errorMsg = `File vượt quá hạn mức Vercel 4.5MB. File hiện tại: ${currentSize}MB. Vui lòng tải trực tiếp lên Supabase Storage Dashboard rồi dán URL vào ô cấu hình.`;
+
+      inputEl.value = "";
+      sfNotify(errorMsg, "warning");
+      return;
+    }
+
+    window.__storefrontUploadCount += 1;
+    sfSetSaveButtonsLoading(false);
+    sfSetUploadButtonLoading(inputEl, true);
+
+    const blobUrl = URL.createObjectURL(file);
+    const isVideo = file.type.startsWith("video/");
+
+    sfAutoPreview(blobUrl, previewId, isVideo);
+
+    const fd = new FormData();
+    fd.append("file", file);
+
+    try {
+      const response = await fetch(SF_UPLOAD_URL, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "X-CSRFToken": sfGetCsrfToken(),
+          "X-Requested-With": "XMLHttpRequest"
+        },
+        body: fd
+      });
+
+      const rawText = await response.text();
+      let data = {};
+
+      try {
+        data = rawText ? JSON.parse(rawText) : {};
+      } catch (_) {
+        data = {};
+      }
+
+      if (!response.ok) {
+        throw new Error(data.error || data.message || `Lỗi upload HTTP ${response.status}`);
+      }
+
+      if (!data.success || !data.url) {
+        throw new Error(data.error || data.message || "Upload thất bại, server không trả về URL.");
+      }
+
+      const targetInput = document.getElementById(targetInputId);
+
+      if (targetInput) {
+        targetInput.value = data.url;
+        sfTouchInput(targetInput);
+      }
+
+      sfAutoPreview(data.url, previewId, isVideo);
+
+      sfNotify("Tải file lên thành công. Bây giờ bạn có thể bấm Lưu cấu hình.", "success");
+
+    } catch (err) {
+      console.error("[Storefront Upload Error]", err);
+      sfClearField(targetInputId, previewId);
+      sfNotify(err.message || "Upload thất bại. Vui lòng thử lại.", "error");
+
+    } finally {
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+      }
+
+      window.__storefrontUploadCount = Math.max(0, window.__storefrontUploadCount - 1);
+
+      sfSetUploadButtonLoading(inputEl, false);
+      sfSetSaveButtonsLoading(false);
+
+      if (inputEl) {
+        inputEl.value = "";
+      }
+    }
+  };
+
+  window.sfSaveStorefront = async function sfSaveStorefront(buttonEl) {
+    if (window.__storefrontUploadCount > 0) {
+      sfNotify("Ảnh/video đang tải lên. Vui lòng chờ upload thành công rồi bấm Lưu cấu hình.", "warning");
+      return;
+    }
+
+    const form = document.getElementById("form-storefront");
+
+    if (!form) {
+      sfNotify('Không tìm thấy form id="form-storefront".', "error");
+      return;
+    }
+
+    const formData = new FormData(form);
+
+    sfSetSaveButtonsLoading(true);
+    sfSetFormDisabled(true);
+
+    try {
+      const response = await fetch(SF_SAVE_URL, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "X-CSRFToken": sfGetCsrfToken(),
+          "X-Requested-With": "XMLHttpRequest"
+        },
+        body: formData
+      });
+
+      const rawText = await response.text();
+      let result = {};
+
+      try {
+        result = rawText ? JSON.parse(rawText) : {};
+      } catch (_) {
+        result = {};
+      }
+
+      if (!response.ok) {
+        throw new Error(result.message || result.error || `Lỗi lưu cấu hình HTTP ${response.status}`);
+      }
+
+      if (!result.success) {
+        throw new Error(result.message || result.error || "Server từ chối lưu cấu hình.");
+      }
+
+      sfNotify(result.message || "Đã lưu cấu hình storefront thành công.", "success");
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 900);
+
+    } catch (err) {
+      console.error("[Storefront Save Error]", err);
+      sfNotify(err.message || "Không thể lưu cấu hình. Vui lòng thử lại.", "error");
+
+    } finally {
+      sfSetFormDisabled(false);
+      sfSetSaveButtonsLoading(false);
+    }
+  };
+
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".sf-preview").forEach((preview) => {
+      const media = preview.querySelector("img, video");
+
+      if (media && media.getAttribute("src") && media.getAttribute("src").trim() !== "") {
+        preview.classList.remove("hidden");
+      }
+    });
+
+    sfSetSaveButtonsLoading(false);
+  });
+})();
 </script>

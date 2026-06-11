@@ -256,7 +256,7 @@ class FavoriteRepository:
 
             product["price"] = product.get("price") or 0
             product["stock"] = product.get("stock") or 0
-            product["name"] = product.get("name") or "Sản phẩm MMESTLINE"
+            product["name"] = product.get("name") or "Sản phẩm GUAMAISON"
             product["slug"] = product.get("slug") or product.get("id")
             product["thumbnail_url"] = product.get("thumbnail_url") or ""
 

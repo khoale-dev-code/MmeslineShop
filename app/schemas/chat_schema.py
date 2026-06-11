@@ -1,7 +1,7 @@
 """
 app/schemas/chat_schema.py
 ===========================
-Schema dữ liệu cho MMESTLINE AI Chatbot.
+Schema dữ liệu cho GUAMAISON AI Chatbot.
 Tương thích Pydantic v1/v2.
 """
 

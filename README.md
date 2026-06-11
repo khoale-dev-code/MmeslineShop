@@ -39,7 +39,7 @@
 
 ## ✦ Tổng quan
 
-**MMÉSTLINE** là nền tảng thương mại điện tử thời trang full-stack, được thiết kế để đáp ứng toàn bộ chu kỳ bán hàng — từ hiển thị sản phẩm, giỏ hàng, đặt hàng, đến tích hợp thanh toán và quản trị nội bộ.
+**GUAMAISON** là nền tảng thương mại điện tử thời trang full-stack, được thiết kế để đáp ứng toàn bộ chu kỳ bán hàng — từ hiển thị sản phẩm, giỏ hàng, đặt hàng, đến tích hợp thanh toán và quản trị nội bộ.
 
 Kiến trúc được phân tầng rõ ràng theo mô hình **Controller → Service → Repository → Model**, đảm bảo tách biệt hoàn toàn giữa logic giao diện, nghiệp vụ và dữ liệu. Hệ thống được xây dựng trên **Flask** + **Jinja2** + **TailwindCSS** với backend lưu trữ trên **Supabase PostgreSQL**.
 
@@ -461,11 +461,11 @@ Template     →  Render giao diện, hạn chế nhúng logic phức tạp
 
 <br/>
 
-**MMÉSTLINE** — Built with craft, deployed with confidence.
+**GUAMAISON** — Built with craft, deployed with confidence.
 
 <br/>
 
-[MIT License](./LICENSE) &nbsp;·&nbsp; © 2026 MMÉSTLINE
+[MIT License](./LICENSE) &nbsp;·&nbsp; © 2026 GUAMAISON
 
 <br/>
 <br/>

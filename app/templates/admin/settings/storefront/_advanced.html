@@ -1,0 +1,292 @@
+{# app/templates/admin/settings/storefront/_advanced.html #}
+
+<section class="sfb-panel" data-sfb-panel="advanced" hidden>
+  <div class="sfb-card">
+    <div class="sfb-card-head">
+      <div class="sfb-card-head-row">
+        <div>
+          <p class="sfb-kicker">
+            <i class="fa-solid fa-code"></i>
+            Advanced Layout Data
+          </p>
+
+          <h3 class="sfb-card-title">Dữ liệu JSON của trang chủ</h3>
+
+          <p class="sfb-desc">
+            Đây là dữ liệu đầy đủ của toàn bộ block trong Storefront Builder.
+            Mỗi block có ID riêng, type riêng, thứ tự riêng và settings riêng nên có thể lặp cùng loại không giới hạn.
+          </p>
+        </div>
+
+        <div class="sfb-advanced-summary">
+          <span>
+            <i class="fa-solid fa-database"></i>
+            Lưu vào <b>storefront.homepage_layout</b>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sfb-card-body">
+      <div class="sfb-advanced-hero">
+        <div>
+          <p class="sfb-kicker">
+            <i class="fa-solid fa-shield-halved"></i>
+            Developer Tools
+          </p>
+
+          <h4>Kiểm tra, sao chép, import và export layout</h4>
+
+          <p>
+            Tab này dành cho kiểm tra dữ liệu kỹ thuật. Bạn có thể copy JSON, validate cấu trúc,
+            export layout ra file, hoặc import layout từ file JSON khác. Khi chỉnh trực tiếp JSON,
+            hãy bấm <b>Áp dụng JSON</b> trước khi lưu giao diện.
+          </p>
+        </div>
+
+        <div class="sfb-advanced-badges">
+          <span><i class="fa-solid fa-copy"></i> Copy</span>
+          <span><i class="fa-solid fa-check"></i> Validate</span>
+          <span><i class="fa-solid fa-file-export"></i> Export</span>
+          <span><i class="fa-solid fa-file-import"></i> Import</span>
+        </div>
+      </div>
+
+      <div class="sfb-advanced-grid">
+        <main class="sfb-advanced-main">
+          <div class="sfb-card sfb-card-flat sfb-advanced-card">
+            <div class="sfb-card-head">
+              <div class="sfb-card-head-row">
+                <div>
+                  <p class="sfb-kicker">
+                    <i class="fa-solid fa-brackets-curly"></i>
+                    JSON Editor
+                  </p>
+
+                  <h3 class="sfb-card-title">Layout JSON</h3>
+
+                  <p class="sfb-desc">
+                    Có thể xem hoặc chỉnh thủ công. Nếu chỉnh tay, cần giữ đúng cấu trúc array JSON.
+                  </p>
+                </div>
+
+                <div class="sfb-json-state" id="sfbJsonState">
+                  <span>
+                    <i class="fa-solid fa-circle-info"></i>
+                    Chưa kiểm tra
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="sfb-card-body">
+              <div class="sfb-json-toolbar">
+                <button type="button" class="sfb-mini-btn" data-sfb-action="advanced-refresh-json">
+                  <i class="fa-solid fa-rotate"></i>
+                  Làm mới
+                </button>
+
+                <button type="button" class="sfb-mini-btn" data-sfb-action="advanced-format-json">
+                  <i class="fa-solid fa-align-left"></i>
+                  Format
+                </button>
+
+                <button type="button" class="sfb-mini-btn" data-sfb-action="advanced-validate-json">
+                  <i class="fa-solid fa-check"></i>
+                  Kiểm tra
+                </button>
+
+                <button type="button" class="sfb-mini-btn" data-sfb-action="advanced-copy-json">
+                  <i class="fa-solid fa-copy"></i>
+                  Copy
+                </button>
+
+                <button type="button" class="sfb-mini-btn" data-sfb-action="advanced-download-json">
+                  <i class="fa-solid fa-download"></i>
+                  Tải file
+                </button>
+
+                <button type="button" class="sfb-mini-btn" data-sfb-action="advanced-import-json">
+                  <i class="fa-solid fa-upload"></i>
+                  Import
+                </button>
+
+                <button type="button" class="sfb-mini-btn sfb-mini-danger" data-sfb-action="advanced-apply-json">
+                  <i class="fa-solid fa-wand-magic-sparkles"></i>
+                  Áp dụng JSON
+                </button>
+              </div>
+
+              <input
+                type="file"
+                id="sfbJsonImportInput"
+                class="sfb-hidden"
+                accept="application/json,.json"
+              >
+
+              <textarea
+                id="sfbJsonPreview"
+                class="sfb-textarea sfb-json-preview sfb-json-editor"
+                spellcheck="false"
+                placeholder="Layout JSON sẽ hiển thị tại đây..."
+              ></textarea>
+
+              <div class="sfb-json-foot">
+                <div>
+                  <i class="fa-solid fa-triangle-exclamation"></i>
+                  <span>
+                    Không xóa các field quan trọng như <b>id</b>, <b>type</b>, <b>enabled</b>,
+                    <b>sort_order</b>, <b>settings</b>.
+                  </span>
+                </div>
+
+                <div>
+                  <i class="fa-solid fa-floppy-disk"></i>
+                  <span>
+                    Sau khi áp dụng JSON, vẫn cần bấm <b>Lưu giao diện</b> để ghi vào database.
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sfb-card sfb-card-flat sfb-advanced-card sfb-mt">
+            <div class="sfb-card-head">
+              <p class="sfb-kicker">
+                <i class="fa-solid fa-stethoscope"></i>
+                JSON Health Check
+              </p>
+
+              <h3 class="sfb-card-title">Kết quả kiểm tra dữ liệu</h3>
+
+              <p class="sfb-desc">
+                Dùng để phát hiện JSON sai format, thiếu type, thiếu settings hoặc block không được hỗ trợ.
+              </p>
+            </div>
+
+            <div class="sfb-card-body">
+              <div class="sfb-json-health" id="sfbJsonHealth">
+                <div class="sfb-json-health-empty">
+                  <i class="fa-solid fa-circle-info"></i>
+                  <div>
+                    <strong>Chưa kiểm tra JSON</strong>
+                    <p>Bấm nút “Kiểm tra” để validate cấu trúc layout hiện tại.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        <aside class="sfb-advanced-side">
+          <div class="sfb-card sfb-card-flat">
+            <div class="sfb-card-head">
+              <p class="sfb-kicker">
+                <i class="fa-solid fa-chart-simple"></i>
+                Layout Stats
+              </p>
+
+              <h3 class="sfb-card-title">Thống kê nhanh</h3>
+            </div>
+
+            <div class="sfb-card-body">
+              <div class="sfb-advanced-stats">
+                <div>
+                  <span>Tổng block</span>
+                  <strong id="sfbAdvancedTotal">—</strong>
+                </div>
+
+                <div>
+                  <span>Đang bật</span>
+                  <strong id="sfbAdvancedEnabled">—</strong>
+                </div>
+
+                <div>
+                  <span>Đang ẩn</span>
+                  <strong id="sfbAdvancedDisabled">—</strong>
+                </div>
+
+                <div>
+                  <span>Loại block</span>
+                  <strong id="sfbAdvancedTypes">—</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sfb-card sfb-card-flat sfb-mt">
+            <div class="sfb-card-head">
+              <p class="sfb-kicker">
+                <i class="fa-solid fa-sitemap"></i>
+                Cấu trúc chuẩn
+              </p>
+
+              <h3 class="sfb-card-title">Một block hợp lệ</h3>
+            </div>
+
+            <div class="sfb-card-body">
+              <pre class="sfb-json-example"><code>{
+  "id": "hero_slider_...",
+  "type": "hero_slider",
+  "enabled": true,
+  "title": "Hero Banner",
+  "subtitle": "Banner lớn",
+  "icon": "fa-panorama",
+  "sort_order": 0,
+  "settings": {
+    "heading": "New Collection",
+    "media_url": "https://..."
+  }
+}</code></pre>
+            </div>
+          </div>
+
+          <div class="sfb-card sfb-card-flat sfb-mt">
+            <div class="sfb-card-head">
+              <p class="sfb-kicker">
+                <i class="fa-solid fa-lightbulb"></i>
+                Lưu ý
+              </p>
+
+              <h3 class="sfb-card-title">Cách dùng an toàn</h3>
+            </div>
+
+            <div class="sfb-card-body">
+              <div class="sfb-advanced-tips">
+                <div>
+                  <i class="fa-solid fa-check"></i>
+                  <p>Trước khi chỉnh JSON thủ công, nên copy hoặc tải file backup.</p>
+                </div>
+
+                <div>
+                  <i class="fa-solid fa-check"></i>
+                  <p>Không đổi <b>type</b> sang giá trị chưa khai báo trong config.</p>
+                </div>
+
+                <div>
+                  <i class="fa-solid fa-check"></i>
+                  <p>Nếu import JSON từ máy khác, hãy kiểm tra lại link ảnh/video.</p>
+                </div>
+
+                <div>
+                  <i class="fa-solid fa-check"></i>
+                  <p>Sau khi import hoặc áp dụng JSON, quay lại tab Builder để kiểm tra giao diện.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sfb-alert sfb-mt">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <div>
+              <strong>Không bắt buộc dùng tab này</strong>
+              <p>
+                Nếu bạn không chỉnh code hoặc debug dữ liệu, chỉ cần dùng tab Builder để kéo thả là đủ.
+              </p>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+</section>

@@ -78,7 +78,7 @@ def _auth_ok() -> bool:
 def _extract_order_id(content: str) -> str | None:
     """
     Nội dung chuyển khoản nên chứa mã đơn dạng:
-    MMESTLINE <order_id>
+    GUAMAISON <order_id>
     hoặc
     DH <order_id>
     hoặc
@@ -96,7 +96,7 @@ def _extract_order_id(content: str) -> str | None:
         return uuid_match.group(0)
 
     # Fallback nếu bạn dùng mã ngắn 8 ký tự trong nội dung CK.
-    short_match = re.search(r"(?:DH|ORDER|MMESTLINE)\s*([A-Z0-9]{6,12})", content.upper())
+    short_match = re.search(r"(?:DH|ORDER|GUAMAISON)\s*([A-Z0-9]{6,12})", content.upper())
     if short_match:
         return short_match.group(1)
 
