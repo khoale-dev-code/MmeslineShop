@@ -1,583 +1,754 @@
 {#
   app/templates/admin/settings/_tab_storefront.html
-  ══════════════════════════════════════════════════════
+
   FIX:
-  - Upload ảnh/video xong mới cho bấm Lưu.
-  - Không bị lưu URL rỗng khi upload chưa hoàn tất.
-  - Preview ổn định cho ảnh/video.
-  - Dùng url_for để tránh sai prefix route /admin.
-  - Không cần sửa settings.js chỉ để chặn lỗi upload race-condition.
-  ══════════════════════════════════════════════════════
+  - UI đồng bộ GUAMAISON green/gold.
+  - Preview ổn định cho jpg/png/webp/gif/avif/mp4/webm/mov.
+  - Không render cứng bằng <img> nữa; JS tự nhận diện ảnh/video.
+  - Dán URL gif/webp/video không làm vỡ preview.
+  - Upload xong mới cho bấm Lưu.
+  - Không lưu URL rỗng khi upload chưa hoàn tất.
+  - Preview xem được hình đầy đủ, không bị cắt hình.
 #}
 
-{# ── TOP BAR HEADER ── #}
-<div class="sticky top-0 z-40 bg-stone-50/90 backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 py-4 border-b border-stone-200/60 -mx-4 px-4 sm:-mx-8 sm:px-8">
-  <div>
-    <h2 class="text-xl font-bold tracking-tight text-stone-900 font-serif">Giao diện cửa hàng</h2>
-    <p class="text-xs text-stone-500 mt-1">
-      Thiết lập biểu ngữ, ảnh trang xác thực và video background cho storefront.
-    </p>
-  </div>
+{% set media_accept = "image/png,image/jpeg,image/webp,image/gif,image/avif,video/mp4,video/webm,video/quicktime" %}
 
-  <button
-    type="button"
-    data-sf-save-btn
-    class="inline-flex items-center gap-2 px-6 py-2.5 bg-stone-900 text-white text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-stone-800 transition-all shadow-md hover:shadow-lg active:scale-95 cursor-pointer whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
-    onclick="sfSaveStorefront(this)"
-  >
-    <i class="fa-solid fa-floppy-disk text-sm"></i>
-    Lưu cấu hình
-  </button>
+{% macro media_card(field_id, upload_id, preview_id, label, desc, icon, value, placeholder, height='220px', recommended='') %}
+<div class="sf-card">
+  <div class="sf-card-grid">
+    <div class="sf-card-info">
+      <div class="sf-card-title-row">
+        <span class="sf-card-icon">
+          <i class="fa-solid {{ icon }}"></i>
+        </span>
+
+        <div>
+          <h3>{{ label }}</h3>
+
+          {% if recommended %}
+            <p class="sf-recommended">{{ recommended }}</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <p class="sf-card-desc">
+        {{ desc }}
+      </p>
+
+      <div class="sf-format-pill">
+        <i class="fa-solid fa-circle-info"></i>
+        Hỗ trợ JPG, PNG, WEBP, GIF, AVIF, MP4, WEBM, MOV
+      </div>
+    </div>
+
+    <div class="sf-card-control">
+      <label class="sf-label" for="{{ field_id }}">
+        URL media
+      </label>
+
+      <div class="sf-input-row">
+        <input
+          type="url"
+          id="{{ field_id }}"
+          name="{{ field_id }}"
+          class="sf-url-input"
+          placeholder="{{ placeholder }}"
+          value="{{ value | default('', true) }}"
+          oninput="sfAutoPreview(this.value, '{{ preview_id }}')"
+        >
+
+        <input
+          type="file"
+          id="{{ upload_id }}"
+          accept="{{ media_accept }}"
+          class="hidden"
+          onchange="uploadStorefrontFile(this, '{{ field_id }}', '{{ preview_id }}')"
+        >
+
+        <button
+          type="button"
+          class="sf-upload-btn"
+          onclick="document.getElementById('{{ upload_id }}').click()"
+          title="Tải lên"
+        >
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <span>Tải lên</span>
+        </button>
+      </div>
+
+      <div
+        id="{{ preview_id }}"
+        class="sf-preview hidden group"
+        data-preview-url="{{ value | default('', true) }}"
+        style="--sf-preview-h: {{ height }};"
+      >
+        <div class="sf-preview-stage"></div>
+
+        <button
+          type="button"
+          class="sf-preview-remove"
+          onclick="sfClearField('{{ field_id }}','{{ preview_id }}')"
+          title="Gỡ bỏ"
+        >
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+
+        <div class="sf-preview-footer">
+          <span id="{{ preview_id }}Name" class="sf-preview-name">
+            {{ value | default('', true) }}
+          </span>
+
+          <a
+            id="{{ preview_id }}Open"
+            class="sf-preview-open hidden"
+            href="#"
+            target="_blank"
+            rel="noopener"
+            title="Mở file gốc"
+          >
+            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
+{% endmacro %}
 
-<form id="form-storefront" class="space-y-8 pb-12" novalidate>
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+<style>
+  :root {
+    --sf-green: #1b4922;
+    --sf-green-950: #0b2110;
+    --sf-green-900: #123418;
+    --sf-gold: #c99e14;
+    --sf-gold-600: #d8ad1d;
+    --sf-paper: #fbfaf4;
+    --sf-card: #fffefa;
+    --sf-line: rgba(27, 73, 34, .14);
+    --sf-muted: #667263;
+    --sf-soft-green: rgba(27, 73, 34, .08);
+    --sf-soft-gold: rgba(201, 158, 20, .16);
+    --sf-shadow: 0 20px 58px -44px rgba(11, 33, 16, .58);
+    --sf-shadow-lg: 0 28px 76px -48px rgba(11, 33, 16, .76);
+    --sf-ease: cubic-bezier(.16, 1, .3, 1);
+  }
 
-  {# ══════════════════════════════════════════════
-     SECTION 1 — ẢNH TRANG ĐĂNG NHẬP & ĐĂNG KÝ
-     ══════════════════════════════════════════════ #}
-  <div class="bg-white border border-stone-200/80 rounded-2xl shadow-sm p-6 lg:p-8 transition-all hover:shadow-md">
-    <div class="flex flex-col lg:flex-row gap-8">
-      <div class="lg:w-1/3 space-y-2">
-        <div class="flex items-center gap-2.5 text-stone-900">
-          <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-stone-100 text-stone-600">
-            <i class="fa-solid fa-users text-sm"></i>
-          </div>
-          <h3 class="text-sm font-bold uppercase tracking-wider">Trang Xác Thực</h3>
-        </div>
+  .sf-shell {
+    color: var(--sf-green-950);
+  }
 
-        <p class="text-xs text-stone-500 leading-relaxed">
-          Hình ảnh hiển thị ở cột trái của trang đăng nhập và đăng ký. <br>
-          Kích thước khuyên dùng: <strong class="text-stone-700">900×1200px</strong>.
+  .sf-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    margin: -1rem -1rem 2rem;
+    padding: 1rem;
+    border-bottom: 1px solid var(--sf-line);
+    background:
+      radial-gradient(circle at top left, rgba(201,158,20,.13), transparent 34%),
+      rgba(251, 250, 244, .92);
+    backdrop-filter: blur(18px);
+  }
+
+  @media (min-width: 640px) {
+    .sf-topbar {
+      margin-inline: -2rem;
+      padding-inline: 2rem;
+    }
+  }
+
+  .sf-hero {
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+    border-radius: 32px;
+    background:
+      radial-gradient(circle at 12% 14%, rgba(201,158,20,.34), transparent 30%),
+      radial-gradient(circle at 92% 8%, rgba(255,255,255,.16), transparent 26%),
+      linear-gradient(135deg, #0b2110 0%, #123418 46%, #1b4922 100%);
+    color: #fff;
+    box-shadow: 0 34px 90px -56px rgba(11,33,16,.92);
+  }
+
+  .sf-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: .15;
+    background-image:
+      linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px);
+    background-size: 42px 42px;
+    pointer-events: none;
+  }
+
+  .sf-hero-inner {
+    position: relative;
+    z-index: 2;
+    padding: 1.5rem;
+  }
+
+  @media (min-width: 1024px) {
+    .sf-hero-inner {
+      padding: 2rem;
+    }
+  }
+
+  .sf-hero-kicker {
+    color: rgba(255,255,255,.58);
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .24em;
+    text-transform: uppercase;
+  }
+
+  .sf-hero-title {
+    margin-top: .65rem;
+    color: #fff;
+    font-size: clamp(34px, 5vw, 64px);
+    line-height: .9;
+    font-weight: 950;
+    letter-spacing: -.065em;
+  }
+
+  .sf-hero-title span {
+    color: var(--sf-gold);
+  }
+
+  .sf-hero-desc {
+    max-width: 48rem;
+    margin-top: 1rem;
+    color: rgba(255,255,255,.72);
+    font-size: 14px;
+    font-weight: 650;
+    line-height: 1.75;
+  }
+
+  .sf-save-btn {
+    display: inline-flex;
+    min-height: 46px;
+    align-items: center;
+    justify-content: center;
+    gap: .65rem;
+    border: none;
+    border-radius: 16px;
+    background: var(--sf-gold);
+    color: var(--sf-green-950);
+    padding: 0 1.25rem;
+    font-size: 12px;
+    font-weight: 950;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    box-shadow: 0 20px 42px -30px rgba(201,158,20,.8);
+    transition: transform .16s var(--sf-ease), background .16s ease, opacity .16s ease;
+  }
+
+  .sf-save-btn:hover {
+    transform: translateY(-1px);
+    background: var(--sf-gold-600);
+  }
+
+  .sf-save-btn:disabled {
+    cursor: not-allowed;
+    opacity: .58;
+    transform: none;
+  }
+
+  .sf-card {
+    overflow: hidden;
+    border: 1px solid var(--sf-line);
+    border-radius: 28px;
+    background: rgba(255,255,255,.94);
+    box-shadow: var(--sf-shadow);
+    backdrop-filter: blur(16px);
+    transition: transform .18s var(--sf-ease), box-shadow .18s var(--sf-ease), border-color .18s var(--sf-ease);
+  }
+
+  .sf-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(201,158,20,.34);
+    box-shadow: var(--sf-shadow-lg);
+  }
+
+  .sf-card-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    padding: 1.25rem;
+  }
+
+  @media (min-width: 1024px) {
+    .sf-card-grid {
+      grid-template-columns: minmax(260px, .42fr) minmax(0, 1fr);
+      gap: 2rem;
+      padding: 1.75rem;
+    }
+  }
+
+  .sf-card-title-row {
+    display: flex;
+    align-items: flex-start;
+    gap: .9rem;
+  }
+
+  .sf-card-title-row h3 {
+    margin: 0;
+    color: var(--sf-green-950);
+    font-size: 14px;
+    font-weight: 950;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+  }
+
+  .sf-card-icon {
+    display: flex;
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+    background: var(--sf-soft-green);
+    color: var(--sf-green);
+  }
+
+  .sf-recommended {
+    margin-top: .35rem;
+    color: var(--sf-gold);
+    font-size: 11px;
+    font-weight: 850;
+  }
+
+  .sf-card-desc {
+    margin-top: 1rem;
+    color: var(--sf-muted);
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 1.7;
+  }
+
+  .sf-format-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    margin-top: 1rem;
+    border: 1px solid rgba(201,158,20,.22);
+    border-radius: 999px;
+    background: var(--sf-soft-gold);
+    color: var(--sf-green);
+    padding: .55rem .8rem;
+    font-size: 11px;
+    font-weight: 850;
+  }
+
+  .sf-label {
+    display: block;
+    margin-bottom: .55rem;
+    color: var(--sf-muted);
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+  }
+
+  .sf-input-row {
+    display: flex;
+    gap: .6rem;
+  }
+
+  .sf-url-input {
+    min-width: 0;
+    flex: 1;
+    height: 46px;
+    border: 1px solid var(--sf-line);
+    border-radius: 16px;
+    background: #fff;
+    color: var(--sf-green-950);
+    padding: 0 1rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12px;
+    font-weight: 700;
+    outline: none;
+    transition: border-color .16s ease, box-shadow .16s ease;
+  }
+
+  .sf-url-input::placeholder {
+    color: rgba(102,114,99,.58);
+  }
+
+  .sf-url-input:focus {
+    border-color: rgba(201,158,20,.46);
+    box-shadow: 0 0 0 4px rgba(201,158,20,.12);
+  }
+
+  .sf-upload-btn {
+    display: inline-flex;
+    min-width: 46px;
+    height: 46px;
+    align-items: center;
+    justify-content: center;
+    gap: .55rem;
+    border: 1px solid var(--sf-line);
+    border-radius: 16px;
+    background: #fff;
+    color: var(--sf-green);
+    padding: 0 1rem;
+    font-size: 12px;
+    font-weight: 950;
+    white-space: nowrap;
+    transition: transform .16s var(--sf-ease), background .16s ease, color .16s ease;
+  }
+
+  .sf-upload-btn:hover {
+    transform: translateY(-1px);
+    background: var(--sf-green);
+    color: #fff;
+  }
+
+  @media (max-width: 520px) {
+    .sf-upload-btn span {
+      display: none;
+    }
+  }
+
+  /* PREVIEW MEDIA — xem đầy đủ ảnh/video, không bị cắt hình */
+  .sf-preview {
+    position: relative;
+    margin-top: 1rem;
+    overflow: hidden;
+    border: 1px solid rgba(27, 73, 34, .14);
+    border-radius: 26px;
+    background:
+      radial-gradient(circle at 20% 12%, rgba(201, 158, 20, .16), transparent 34%),
+      linear-gradient(135deg, rgba(27,73,34,.08), rgba(201,158,20,.08));
+    box-shadow: 0 20px 56px -44px rgba(11, 33, 16, .58);
+  }
+
+  .sf-preview::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background-image:
+      linear-gradient(45deg, rgba(27,73,34,.045) 25%, transparent 25%),
+      linear-gradient(-45deg, rgba(27,73,34,.045) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, rgba(27,73,34,.045) 75%),
+      linear-gradient(-45deg, transparent 75%, rgba(27,73,34,.045) 75%);
+    background-size: 22px 22px;
+    background-position: 0 0, 0 11px, 11px -11px, -11px 0;
+    opacity: .8;
+    pointer-events: none;
+  }
+
+  .sf-preview-stage {
+    position: relative;
+    z-index: 1;
+    min-height: var(--sf-preview-h, 220px);
+    height: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px;
+  }
+
+  .sf-preview-bg {
+    position: absolute;
+    inset: -36px;
+    z-index: 0;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    filter: blur(26px);
+    transform: scale(1.06);
+    opacity: .28;
+    pointer-events: none;
+  }
+
+  .sf-media {
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    max-height: min(520px, 72vh);
+    object-fit: contain;
+    object-position: center;
+    border-radius: 18px;
+    background: transparent;
+    box-shadow: 0 18px 46px -34px rgba(11, 33, 16, .72);
+  }
+
+  .sf-media.is-image {
+    background: rgba(255,255,255,.36);
+  }
+
+  .sf-media.is-video {
+    width: 100%;
+    max-height: min(520px, 72vh);
+    background: #050805;
+  }
+
+  .sf-preview[data-media-kind="portrait"] .sf-media {
+    max-height: min(680px, 82vh);
+  }
+
+  .sf-preview[data-media-kind="square"] .sf-media {
+    max-height: min(560px, 76vh);
+  }
+
+  .sf-preview[data-media-kind="wide"] .sf-media,
+  .sf-preview[data-media-kind="ultrawide"] .sf-media {
+    width: 100%;
+  }
+
+  .sf-preview-remove {
+    position: absolute;
+    top: .85rem;
+    right: .85rem;
+    z-index: 8;
+    display: flex;
+    width: 36px;
+    height: 36px;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 999px;
+    background: rgba(255,255,255,.94);
+    color: #be123c;
+    box-shadow: 0 16px 34px -24px rgba(0,0,0,.5);
+    opacity: 0;
+    transition: opacity .16s ease, transform .16s ease, background .16s ease;
+  }
+
+  .sf-preview:hover .sf-preview-remove {
+    opacity: 1;
+  }
+
+  .sf-preview-remove:hover {
+    transform: scale(1.04);
+    background: #fff1f2;
+  }
+
+  .sf-preview-footer {
+    position: relative;
+    z-index: 7;
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .75rem .9rem;
+    border-top: 1px solid rgba(27,73,34,.10);
+    background: rgba(11, 33, 16, .88);
+    backdrop-filter: blur(14px);
+  }
+
+  .sf-preview-name {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+    color: rgba(255,255,255,.92);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 11px;
+    font-weight: 750;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sf-preview-open {
+    display: inline-flex;
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: rgba(201,158,20,.22);
+    color: #fff;
+    transition: background .16s ease, transform .16s ease;
+  }
+
+  .sf-preview-open:hover {
+    transform: translateY(-1px);
+    background: rgba(201,158,20,.42);
+  }
+
+  .sf-preview-error {
+    display: flex;
+    min-height: var(--sf-preview-h, 220px);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    color: var(--sf-green);
+    text-align: center;
+  }
+
+  .sf-preview-error i {
+    margin-bottom: .75rem;
+    color: var(--sf-gold);
+    font-size: 28px;
+  }
+
+  .sf-preview-error strong {
+    color: var(--sf-green-950);
+    font-size: 14px;
+  }
+
+  .sf-preview-error p {
+    margin-top: .4rem;
+    color: var(--sf-muted);
+    font-size: 12px;
+    font-weight: 650;
+    line-height: 1.6;
+  }
+</style>
+
+<div class="sf-shell">
+  <div class="sf-topbar">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h2 class="text-xl font-black tracking-tight text-[#0b2110]">
+          Giao diện cửa hàng
+        </h2>
+        <p class="mt-1 text-xs font-semibold text-[#667263]">
+          Thiết lập hình ảnh, GIF và video cho storefront. Preview tự nhận diện ảnh/video và hiển thị đầy đủ hình.
         </p>
       </div>
 
-      <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6">
-        {# Ảnh Login #}
-        <div class="space-y-3">
-          <label class="block text-[11px] font-bold uppercase tracking-widest text-stone-500" for="login_image_url">
-            Trang Đăng nhập
-          </label>
-
-          <div class="flex gap-2">
-            <input
-              type="url"
-              id="login_image_url"
-              name="login_image_url"
-              class="flex-1 px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-mono text-stone-900 outline-none focus:bg-white focus:border-stone-400 focus:ring-2 focus:ring-stone-100 transition-all"
-              placeholder="URL ảnh trang login..."
-              value="{{ storefront.login_image_url | default('', true) }}"
-              oninput="sfAutoPreview(this.value, 'loginImgPreview')"
-            >
-
-            <input
-              type="file"
-              id="login_img_upload"
-              accept="image/*"
-              class="hidden"
-              onchange="uploadStorefrontFile(this, 'login_image_url', 'loginImgPreview')"
-            >
-
-            <button
-              type="button"
-              class="px-3.5 bg-white border border-stone-200 rounded-xl text-stone-600 hover:bg-stone-50 hover:border-stone-300 sf-upload-btn transition-all shadow-sm cursor-pointer"
-              onclick="document.getElementById('login_img_upload').click()"
-              title="Tải ảnh đăng nhập"
-            >
-              <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
-            </button>
-          </div>
-
-          <div id="loginImgPreview" class="relative bg-stone-100 border border-stone-200 rounded-xl overflow-hidden sf-preview hidden group mt-3">
-            {% if storefront.login_image_url | default('', true) %}
-              <img src="{{ storefront.login_image_url }}" class="w-full h-[180px] object-cover" loading="lazy">
-            {% endif %}
-
-            <button
-              type="button"
-              class="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-white/90 backdrop-blur text-rose-600 rounded-full shadow-sm opacity-0 group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-700 transition-all cursor-pointer"
-              onclick="sfClearField('login_image_url','loginImgPreview')"
-              title="Gỡ bỏ ảnh"
-            >
-              <i class="fa-solid fa-trash-can text-xs"></i>
-            </button>
-          </div>
-        </div>
-
-        {# Ảnh Register #}
-        <div class="space-y-3">
-          <label class="block text-[11px] font-bold uppercase tracking-widest text-stone-500" for="register_image_url">
-            Trang Đăng ký
-          </label>
-
-          <div class="flex gap-2">
-            <input
-              type="url"
-              id="register_image_url"
-              name="register_image_url"
-              class="flex-1 px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-mono text-stone-900 outline-none focus:bg-white focus:border-stone-400 focus:ring-2 focus:ring-stone-100 transition-all"
-              placeholder="URL ảnh trang register..."
-              value="{{ storefront.register_image_url | default('', true) }}"
-              oninput="sfAutoPreview(this.value, 'registerImgPreview')"
-            >
-
-            <input
-              type="file"
-              id="register_img_upload"
-              accept="image/*"
-              class="hidden"
-              onchange="uploadStorefrontFile(this, 'register_image_url', 'registerImgPreview')"
-            >
-
-            <button
-              type="button"
-              class="px-3.5 bg-white border border-stone-200 rounded-xl text-stone-600 hover:bg-stone-50 hover:border-stone-300 sf-upload-btn transition-all shadow-sm cursor-pointer"
-              onclick="document.getElementById('register_img_upload').click()"
-              title="Tải ảnh đăng ký"
-            >
-              <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
-            </button>
-          </div>
-
-          <div id="registerImgPreview" class="relative bg-stone-100 border border-stone-200 rounded-xl overflow-hidden sf-preview hidden group mt-3">
-            {% if storefront.register_image_url | default('', true) %}
-              <img src="{{ storefront.register_image_url }}" class="w-full h-[180px] object-cover" loading="lazy">
-            {% endif %}
-
-            <button
-              type="button"
-              class="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-white/90 backdrop-blur text-rose-600 rounded-full shadow-sm opacity-0 group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-700 transition-all cursor-pointer"
-              onclick="sfClearField('register_image_url','registerImgPreview')"
-              title="Gỡ bỏ ảnh"
-            >
-              <i class="fa-solid fa-trash-can text-xs"></i>
-            </button>
-          </div>
-        </div>
-      </div>
+      <button
+        type="button"
+        data-sf-save-btn
+        class="sf-save-btn"
+        onclick="sfSaveStorefront(this)"
+      >
+        <i class="fa-solid fa-floppy-disk"></i>
+        Lưu cấu hình
+      </button>
     </div>
   </div>
 
-  {# ══════════════════════════════════════════════
-     SECTION 2 — HERO BANNER
-     ══════════════════════════════════════════════ #}
-  <div class="bg-white border border-stone-200/80 rounded-2xl shadow-sm p-6 lg:p-8 transition-all hover:shadow-md">
-    <div class="flex flex-col lg:flex-row gap-8">
-      <div class="lg:w-1/3 space-y-2">
-        <div class="flex items-center gap-2.5 text-stone-900">
-          <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-stone-100 text-stone-600">
-            <i class="fa-solid fa-panorama text-sm"></i>
-          </div>
-          <h3 class="text-sm font-bold uppercase tracking-wider">Hero Banner</h3>
-        </div>
+  <section class="sf-hero">
+    <div class="sf-hero-inner">
+      <p class="sf-hero-kicker">GUAMAISON Storefront</p>
 
-        <p class="text-xs text-stone-500 leading-relaxed">
-          Khung hình lớn đầu trang chủ. Hỗ trợ .jpg, .png, .webp hoặc video .mp4.
-        </p>
+      <h1 class="sf-hero-title">
+        Media Center <span>2026</span>
+      </h1>
 
-        <div class="mt-4 p-3 bg-amber-50/80 border border-amber-200/60 rounded-xl flex items-start gap-2.5 text-amber-800 text-xs leading-relaxed">
-          <i class="fa-solid fa-triangle-exclamation mt-0.5 text-amber-500"></i>
-          <div>
-            <strong>Vercel giới hạn upload 4.5MB.</strong>
-            Nếu video lớn hơn, hãy tải trực tiếp lên Supabase Storage và dán URL vào ô bên cạnh.
-          </div>
-        </div>
-      </div>
-
-      <div class="flex-1 space-y-4">
-        <div class="flex gap-2">
-          <input
-            type="url"
-            id="hero_banner_url"
-            name="hero_banner_url"
-            class="flex-1 px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-medium text-stone-900 focus:bg-white focus:border-stone-400 focus:ring-2 focus:ring-stone-100 transition-all outline-none font-mono"
-            placeholder="Dán liên kết URL từ Supabase Storage hoặc Tải lên..."
-            value="{{ storefront.hero_banner_url | default('', true) }}"
-            oninput="sfAutoPreview(this.value, 'heroPreview')"
-          >
-
-          <input
-            type="file"
-            id="hero_upload"
-            accept="image/*,video/mp4,video/webm,video/quicktime"
-            class="hidden"
-            onchange="uploadStorefrontFile(this, 'hero_banner_url', 'heroPreview')"
-          >
-
-          <button
-            type="button"
-            class="px-5 py-2.5 bg-white border border-stone-200 text-stone-700 text-xs font-bold rounded-xl hover:bg-stone-50 hover:border-stone-300 transition-all sf-upload-btn whitespace-nowrap shadow-sm cursor-pointer inline-flex items-center gap-2"
-            onclick="document.getElementById('hero_upload').click()"
-          >
-            <i class="fa-solid fa-cloud-arrow-up"></i>
-            Tải lên
-          </button>
-        </div>
-
-        <div id="heroPreview" class="relative bg-stone-100 border border-stone-200 rounded-xl overflow-hidden sf-preview hidden group">
-          {% if storefront.hero_banner_url | default('', true) %}
-            {% set hero_clean_url = storefront.hero_banner_url.split('?')[0].lower() %}
-            {% if hero_clean_url.endswith('.mp4') or hero_clean_url.endswith('.webm') or hero_clean_url.endswith('.mov') %}
-              <video src="{{ storefront.hero_banner_url }}" preload="none" controls class="w-full h-[220px] object-cover bg-stone-950"></video>
-            {% else %}
-              <img src="{{ storefront.hero_banner_url }}" class="w-full h-[220px] object-cover" loading="lazy">
-            {% endif %}
-          {% endif %}
-
-          <button
-            type="button"
-            class="absolute top-3 right-3 w-8 h-8 flex items-center justify-center bg-white/90 backdrop-blur text-rose-600 rounded-full shadow-sm opacity-0 group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-700 transition-all cursor-pointer z-10"
-            onclick="sfClearField('hero_banner_url','heroPreview')"
-            title="Gỡ bỏ"
-          >
-            <i class="fa-solid fa-trash-can text-xs"></i>
-          </button>
-
-          <div class="absolute bottom-0 inset-x-0 px-4 py-2 bg-gradient-to-t from-black/60 to-transparent flex items-center">
-            <span id="heroPreviewName" class="text-white/90 text-[11px] truncate font-mono drop-shadow-sm">
-              {{ storefront.hero_banner_url | default('', true) }}
-            </span>
-          </div>
-        </div>
-      </div>
+      <p class="sf-hero-desc">
+        Upload hoặc dán URL media cho trang chủ, trang shop và trang xác thực. Hệ thống hỗ trợ WEBP, GIF và video MP4/WEBM/MOV với preview an toàn, xem được đầy đủ hình.
+      </p>
     </div>
-  </div>
+  </section>
 
-  {# ══════════════════════════════════════════════
-     SECTION 3 — SHOP PAGE BANNER
-     ══════════════════════════════════════════════ #}
-  <div class="bg-white border border-stone-200/80 rounded-2xl shadow-sm p-6 lg:p-8 transition-all hover:shadow-md">
-    <div class="flex flex-col lg:flex-row gap-8">
-      <div class="lg:w-1/3 space-y-2">
-        <div class="flex items-center gap-2.5 text-stone-900">
-          <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-stone-100 text-stone-600">
-            <i class="fa-solid fa-store text-sm"></i>
-          </div>
-          <h3 class="text-sm font-bold uppercase tracking-wider">Banner Trang Shop</h3>
-        </div>
+  <form id="form-storefront" class="space-y-6 pb-12" novalidate onsubmit="return false;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
-        <p class="text-xs text-stone-500 leading-relaxed">
-          Ảnh nền hiển thị ở khu vực trên cùng của trang danh sách sản phẩm.
-        </p>
-      </div>
+    {{ media_card(
+      'login_image_url',
+      'login_img_upload',
+      'loginImgPreview',
+      'Trang Đăng nhập',
+      'Media hiển thị ở cột trái trang đăng nhập. GIF/WEBP có thể preview bình thường; video cũng không làm vỡ UI.',
+      'fa-users',
+      storefront.login_image_url,
+      'URL ảnh/GIF/WEBP cho trang login...',
+      '190px',
+      'Gợi ý 900×1200px'
+    ) }}
 
-      <div class="flex-1 space-y-4">
-        <div class="flex gap-2">
-          <input
-            type="url"
-            id="shop_banner_url"
-            name="shop_banner_url"
-            class="flex-1 px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-medium text-stone-900 focus:bg-white focus:border-stone-400 focus:ring-2 focus:ring-stone-100 transition-all outline-none font-mono"
-            placeholder="Đường dẫn hình ảnh hoặc GIF cho trang Shop..."
-            value="{{ storefront.shop_banner_url | default('', true) }}"
-            oninput="sfAutoPreview(this.value, 'shopBannerPreview')"
-          >
+    {{ media_card(
+      'register_image_url',
+      'register_img_upload',
+      'registerImgPreview',
+      'Trang Đăng ký',
+      'Media hiển thị ở cột trái trang đăng ký. Nên dùng ảnh dọc hoặc GIF nhẹ để tải nhanh.',
+      'fa-user-plus',
+      storefront.register_image_url,
+      'URL ảnh/GIF/WEBP cho trang register...',
+      '190px',
+      'Gợi ý 900×1200px'
+    ) }}
 
-          <input
-            type="file"
-            id="shop_banner_upload"
-            accept="image/*"
-            class="hidden"
-            onchange="uploadStorefrontFile(this, 'shop_banner_url', 'shopBannerPreview')"
-          >
+    {{ media_card(
+      'hero_banner_url',
+      'hero_upload',
+      'heroPreview',
+      'Hero Banner',
+      'Khung media lớn đầu trang chủ. Có thể dùng ảnh, GIF hoặc video MP4/WEBM/MOV.',
+      'fa-panorama',
+      storefront.hero_banner_url,
+      'Dán URL hoặc tải media hero...',
+      '240px',
+      'Gợi ý 1920×1080px'
+    ) }}
 
-          <button
-            type="button"
-            class="px-5 py-2.5 bg-white border border-stone-200 text-stone-700 text-xs font-bold rounded-xl hover:bg-stone-50 hover:border-stone-300 transition-all sf-upload-btn whitespace-nowrap shadow-sm cursor-pointer inline-flex items-center gap-2"
-            onclick="document.getElementById('shop_banner_upload').click()"
-          >
-            <i class="fa-solid fa-cloud-arrow-up"></i>
-            Tải lên
-          </button>
-        </div>
+    {{ media_card(
+      'shop_banner_url',
+      'shop_banner_upload',
+      'shopBannerPreview',
+      'Banner Trang Shop',
+      'Media nền ở khu vực đầu trang danh sách sản phẩm. GIF/WEBP được hỗ trợ preview.',
+      'fa-store',
+      storefront.shop_banner_url,
+      'URL media cho trang shop...',
+      '190px',
+      'Gợi ý 1920×640px'
+    ) }}
 
-        <div id="shopBannerPreview" class="relative bg-stone-100 border border-stone-200 rounded-xl overflow-hidden sf-preview hidden group">
-          {% if storefront.shop_banner_url | default('', true) %}
-            <img src="{{ storefront.shop_banner_url }}" class="w-full h-[180px] object-cover" loading="lazy">
-          {% endif %}
+    {{ media_card(
+      'banner2_url',
+      'banner2_upload',
+      'banner2Preview',
+      'Banner 2 – Full Width',
+      'Biểu ngữ tràn viền ngang màn hình sau khu vực collection. Có thể preview ảnh, GIF hoặc video.',
+      'fa-arrows-left-right',
+      storefront.banner2_url,
+      'URL media banner full width...',
+      '190px',
+      'Gợi ý 1920×720px'
+    ) }}
 
-          <button
-            type="button"
-            class="absolute top-3 right-3 w-8 h-8 flex items-center justify-center bg-white/90 backdrop-blur text-rose-600 rounded-full shadow-sm opacity-0 group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-700 transition-all cursor-pointer z-10"
-            onclick="sfClearField('shop_banner_url','shopBannerPreview')"
-            title="Gỡ bỏ"
-          >
-            <i class="fa-solid fa-trash-can text-xs"></i>
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
+    {{ media_card(
+      'split_left_url',
+      'split_left_upload',
+      'splitLeftPreview',
+      'Split Banner Trái',
+      'Media bên trái trong cặp banner chia đôi. Nên dùng ảnh/GIF cùng style với banner phải.',
+      'fa-table-columns',
+      storefront.split_left_url,
+      'URL media banner trái...',
+      '170px',
+      'Gợi ý 1000×1300px'
+    ) }}
 
-  {# ══════════════════════════════════════════════
-     SECTION 4 — BANNER 2 FULL WIDTH
-     ══════════════════════════════════════════════ #}
-  <div class="bg-white border border-stone-200/80 rounded-2xl shadow-sm p-6 lg:p-8 transition-all hover:shadow-md">
-    <div class="flex flex-col lg:flex-row gap-8">
-      <div class="lg:w-1/3 space-y-2">
-        <div class="flex items-center gap-2.5 text-stone-900">
-          <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-stone-100 text-stone-600">
-            <i class="fa-solid fa-arrows-left-right text-sm"></i>
-          </div>
-          <h3 class="text-sm font-bold uppercase tracking-wider">Banner 2 – Full Width</h3>
-        </div>
+    {{ media_card(
+      'split_right_url',
+      'split_right_upload',
+      'splitRightPreview',
+      'Split Banner Phải',
+      'Media bên phải trong cặp banner chia đôi. Preview an toàn cho WEBP/GIF/video.',
+      'fa-table-columns',
+      storefront.split_right_url,
+      'URL media banner phải...',
+      '170px',
+      'Gợi ý 1000×1300px'
+    ) }}
 
-        <p class="text-xs text-stone-500 leading-relaxed">
-          Biểu ngữ tràn viền ngang màn hình, ngăn cách sau khối danh mục. Gợi ý 1920×600px.
-        </p>
-      </div>
-
-      <div class="flex-1 space-y-4">
-        <div class="flex gap-2">
-          <input
-            type="url"
-            id="banner2_url"
-            name="banner2_url"
-            class="flex-1 px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-medium text-stone-900 focus:bg-white focus:border-stone-400 focus:ring-2 focus:ring-stone-100 transition-all outline-none font-mono"
-            placeholder="Đường dẫn hình ảnh biểu ngữ tràn viền..."
-            value="{{ storefront.banner2_url | default('', true) }}"
-            oninput="sfAutoPreview(this.value, 'banner2Preview')"
-          >
-
-          <input
-            type="file"
-            id="banner2_upload"
-            accept="image/*"
-            class="hidden"
-            onchange="uploadStorefrontFile(this, 'banner2_url', 'banner2Preview')"
-          >
-
-          <button
-            type="button"
-            class="px-5 py-2.5 bg-white border border-stone-200 text-stone-700 text-xs font-bold rounded-xl hover:bg-stone-50 hover:border-stone-300 transition-all sf-upload-btn whitespace-nowrap shadow-sm cursor-pointer inline-flex items-center gap-2"
-            onclick="document.getElementById('banner2_upload').click()"
-          >
-            <i class="fa-solid fa-cloud-arrow-up"></i>
-            Tải lên
-          </button>
-        </div>
-
-        <div id="banner2Preview" class="relative bg-stone-100 border border-stone-200 rounded-xl overflow-hidden sf-preview hidden group">
-          {% if storefront.banner2_url | default('', true) %}
-            <img src="{{ storefront.banner2_url }}" class="w-full h-[180px] object-cover" loading="lazy">
-          {% endif %}
-
-          <button
-            type="button"
-            class="absolute top-3 right-3 w-8 h-8 flex items-center justify-center bg-white/90 backdrop-blur text-rose-600 rounded-full shadow-sm opacity-0 group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-700 transition-all cursor-pointer z-10"
-            onclick="sfClearField('banner2_url','banner2Preview')"
-            title="Gỡ bỏ"
-          >
-            <i class="fa-solid fa-trash-can text-xs"></i>
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {# ══════════════════════════════════════════════
-     SECTION 5 — SPLIT BANNERS
-     ══════════════════════════════════════════════ #}
-  <div class="bg-white border border-stone-200/80 rounded-2xl shadow-sm p-6 lg:p-8 transition-all hover:shadow-md">
-    <div class="flex flex-col lg:flex-row gap-8">
-      <div class="lg:w-1/3 space-y-2">
-        <div class="flex items-center gap-2.5 text-stone-900">
-          <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-stone-100 text-stone-600">
-            <i class="fa-solid fa-table-columns text-sm"></i>
-          </div>
-          <h3 class="text-sm font-bold uppercase tracking-wider">Split Banners</h3>
-        </div>
-
-        <p class="text-xs text-stone-500 leading-relaxed">
-          Cặp banner song song. Phù hợp chia nhóm chiến dịch hoặc danh mục nổi bật.
-        </p>
-      </div>
-
-      <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6">
-        {# Banner trái #}
-        <div class="space-y-3">
-          <label class="block text-[11px] font-bold uppercase tracking-widest text-stone-500" for="split_left_url">
-            Banner Trái
-          </label>
-
-          <div class="flex gap-2">
-            <input
-              type="url"
-              id="split_left_url"
-              name="split_left_url"
-              class="flex-1 px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-mono text-stone-900 outline-none focus:bg-white focus:border-stone-400 focus:ring-2 focus:ring-stone-100 transition-all"
-              placeholder="URL ảnh trái..."
-              value="{{ storefront.split_left_url | default('', true) }}"
-              oninput="sfAutoPreview(this.value, 'splitLeftPreview')"
-            >
-
-            <input
-              type="file"
-              id="split_left_upload"
-              accept="image/*"
-              class="hidden"
-              onchange="uploadStorefrontFile(this, 'split_left_url', 'splitLeftPreview')"
-            >
-
-            <button
-              type="button"
-              class="px-3.5 bg-white border border-stone-200 rounded-xl text-stone-600 hover:bg-stone-50 hover:border-stone-300 sf-upload-btn transition-all shadow-sm cursor-pointer"
-              onclick="document.getElementById('split_left_upload').click()"
-              title="Tải banner trái"
-            >
-              <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
-            </button>
-          </div>
-
-          <div id="splitLeftPreview" class="relative bg-stone-100 border border-stone-200 rounded-xl overflow-hidden sf-preview hidden group mt-3">
-            {% if storefront.split_left_url | default('', true) %}
-              <img src="{{ storefront.split_left_url }}" class="w-full h-[140px] object-cover" loading="lazy">
-            {% endif %}
-
-            <button
-              type="button"
-              class="absolute top-2 right-2 w-7 h-7 flex items-center justify-center bg-white/90 backdrop-blur text-rose-600 rounded-full shadow-sm opacity-0 group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-700 transition-all cursor-pointer"
-              onclick="sfClearField('split_left_url','splitLeftPreview')"
-              title="Gỡ bỏ"
-            >
-              <i class="fa-solid fa-trash-can text-[10px]"></i>
-            </button>
-          </div>
-        </div>
-
-        {# Banner phải #}
-        <div class="space-y-3">
-          <label class="block text-[11px] font-bold uppercase tracking-widest text-stone-500" for="split_right_url">
-            Banner Phải
-          </label>
-
-          <div class="flex gap-2">
-            <input
-              type="url"
-              id="split_right_url"
-              name="split_right_url"
-              class="flex-1 px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-mono text-stone-900 outline-none focus:bg-white focus:border-stone-400 focus:ring-2 focus:ring-stone-100 transition-all"
-              placeholder="URL ảnh phải..."
-              value="{{ storefront.split_right_url | default('', true) }}"
-              oninput="sfAutoPreview(this.value, 'splitRightPreview')"
-            >
-
-            <input
-              type="file"
-              id="split_right_upload"
-              accept="image/*"
-              class="hidden"
-              onchange="uploadStorefrontFile(this, 'split_right_url', 'splitRightPreview')"
-            >
-
-            <button
-              type="button"
-              class="px-3.5 bg-white border border-stone-200 rounded-xl text-stone-600 hover:bg-stone-50 hover:border-stone-300 sf-upload-btn transition-all shadow-sm cursor-pointer"
-              onclick="document.getElementById('split_right_upload').click()"
-              title="Tải banner phải"
-            >
-              <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
-            </button>
-          </div>
-
-          <div id="splitRightPreview" class="relative bg-stone-100 border border-stone-200 rounded-xl overflow-hidden sf-preview hidden group mt-3">
-            {% if storefront.split_right_url | default('', true) %}
-              <img src="{{ storefront.split_right_url }}" class="w-full h-[140px] object-cover" loading="lazy">
-            {% endif %}
-
-            <button
-              type="button"
-              class="absolute top-2 right-2 w-7 h-7 flex items-center justify-center bg-white/90 backdrop-blur text-rose-600 rounded-full shadow-sm opacity-0 group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-700 transition-all cursor-pointer"
-              onclick="sfClearField('split_right_url','splitRightPreview')"
-              title="Gỡ bỏ"
-            >
-              <i class="fa-solid fa-trash-can text-[10px]"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {# ══════════════════════════════════════════════
-     SECTION 6 — BANNER 4 VIDEO
-     ══════════════════════════════════════════════ #}
-  <div class="bg-white border border-stone-200/80 rounded-2xl shadow-sm p-6 lg:p-8 transition-all hover:shadow-md">
-    <div class="flex flex-col md:flex-row gap-8">
-      <div class="md:w-1/3 space-y-2">
-        <div class="flex items-center gap-2.5 text-stone-900">
-          <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-stone-100 text-stone-600">
-            <i class="fa-solid fa-video text-sm"></i>
-          </div>
-          <h3 class="text-sm font-bold uppercase tracking-wider">Video Best Sellers</h3>
-        </div>
-
-        <p class="text-xs text-stone-500 leading-relaxed">
-          Luồng video vòng lặp chạy nền khu vực hàng bán chạy. Hỗ trợ .mp4, .webm, .mov.
-        </p>
-
-        <div class="mt-4 p-3 bg-amber-50/80 border border-amber-200/60 rounded-xl flex items-start gap-2.5 text-amber-800 text-xs leading-relaxed">
-          <i class="fa-solid fa-triangle-exclamation mt-0.5 text-amber-500"></i>
-          <div>
-            Vui lòng <strong>dán URL Supabase</strong> nếu dung lượng video vượt quá 4.5MB.
-          </div>
-        </div>
-      </div>
-
-      <div class="flex-1 space-y-4">
-        <div class="flex gap-2">
-          <input
-            type="url"
-            id="banner4_video_url"
-            name="banner4_video_url"
-            class="flex-1 px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-medium text-stone-900 focus:bg-white focus:border-stone-400 focus:ring-2 focus:ring-stone-100 transition-all outline-none font-mono"
-            placeholder="Dán URL tệp video từ Supabase Storage..."
-            value="{{ storefront.banner4_video_url | default('', true) }}"
-            oninput="sfAutoPreview(this.value, 'banner4Preview')"
-          >
-
-          <input
-            type="file"
-            id="banner4_upload"
-            accept="video/mp4,video/webm,video/quicktime"
-            class="hidden"
-            onchange="uploadStorefrontFile(this, 'banner4_video_url', 'banner4Preview')"
-          >
-
-          <button
-            type="button"
-            class="px-5 py-2.5 bg-white border border-stone-200 text-stone-700 text-xs font-bold rounded-xl hover:bg-stone-50 hover:border-stone-300 transition-all sf-upload-btn whitespace-nowrap shadow-sm cursor-pointer inline-flex items-center gap-2"
-            onclick="document.getElementById('banner4_upload').click()"
-          >
-            <i class="fa-solid fa-cloud-arrow-up"></i>
-            Tải lên
-          </button>
-        </div>
-
-        <div id="banner4Preview" class="relative bg-stone-100 border border-stone-200 rounded-xl overflow-hidden sf-preview hidden group">
-          {% if storefront.banner4_video_url | default('', true) %}
-            <video src="{{ storefront.banner4_video_url }}" preload="none" controls class="w-full h-[180px] object-cover bg-stone-950"></video>
-          {% endif %}
-
-          <button
-            type="button"
-            class="absolute top-3 right-3 w-8 h-8 flex items-center justify-center bg-white/90 backdrop-blur text-rose-600 rounded-full shadow-sm opacity-0 group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-700 transition-all cursor-pointer z-10"
-            onclick="sfClearField('banner4_video_url','banner4Preview')"
-            title="Gỡ bỏ"
-          >
-            <i class="fa-solid fa-trash-can text-xs"></i>
-          </button>
-
-          <div class="absolute bottom-0 inset-x-0 px-4 py-2 bg-gradient-to-t from-black/60 to-transparent flex items-center">
-            <span id="banner4PreviewName" class="text-white/90 text-[11px] truncate font-mono drop-shadow-sm">
-              {{ storefront.banner4_video_url | default('', true) }}
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</form>
+    {{ media_card(
+      'banner4_video_url',
+      'banner4_upload',
+      'banner4Preview',
+      'Video Best Sellers',
+      'Media nền cho khu vực Best Sellers. Có thể dùng ảnh, GIF, WEBP hoặc video MP4/WEBM.',
+      'fa-video',
+      storefront.banner4_video_url,
+      'URL media Best Sellers từ Supabase Storage...',
+      '220px',
+      'Gợi ý MP4/WebM hoặc ảnh ngang'
+    ) }}
+  </form>
+</div>
 
 <script>
 (function () {
@@ -585,7 +756,12 @@
 
   const SF_UPLOAD_URL = "{{ url_for('admin.upload_storefront_media') }}";
   const SF_SAVE_URL = "{{ url_for('admin.update_settings', section='storefront') }}";
-  const VERCEL_MAX_SIZE = 4.5 * 1024 * 1024;
+
+  const CLIENT_MAX_UPLOAD_SIZE = 50 * 1024 * 1024;
+  const VERCEL_WARNING_SIZE = 4.5 * 1024 * 1024;
+
+  const IMAGE_EXTS = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"];
+  const VIDEO_EXTS = [".mp4", ".webm", ".mov", ".avi"];
 
   window.__storefrontUploadCount = window.__storefrontUploadCount || 0;
 
@@ -619,14 +795,58 @@
     );
   }
 
-  function sfIsVideoUrl(url) {
-    const clean = String(url || "").toLowerCase().split("?")[0].split("#")[0];
-    return (
-      clean.endsWith(".mp4") ||
-      clean.endsWith(".webm") ||
-      clean.endsWith(".mov") ||
-      clean.includes("/video/")
-    );
+  function sfGetCleanUrl(url) {
+    return String(url || "")
+      .trim()
+      .toLowerCase()
+      .split("?")[0]
+      .split("#")[0];
+  }
+
+  function sfHasAnyExt(cleanUrl, exts) {
+    return exts.some((ext) => cleanUrl.endsWith(ext));
+  }
+
+  function sfGetMediaKind(url, explicitKind) {
+    if (explicitKind === "video" || explicitKind === "image") {
+      return explicitKind;
+    }
+
+    const clean = sfGetCleanUrl(url);
+
+    if (clean.startsWith("blob:")) {
+      return explicitKind || "image";
+    }
+
+    if (sfHasAnyExt(clean, VIDEO_EXTS) || clean.includes("/video/")) {
+      return "video";
+    }
+
+    if (sfHasAnyExt(clean, IMAGE_EXTS) || clean.includes("/image/")) {
+      return "image";
+    }
+
+    return "image";
+  }
+
+  function sfGetKindFromFile(file) {
+    if (!file) return "image";
+
+    if (String(file.type || "").startsWith("video/")) {
+      return "video";
+    }
+
+    if (String(file.type || "").startsWith("image/")) {
+      return "image";
+    }
+
+    const clean = sfGetCleanUrl(file.name || "");
+
+    if (sfHasAnyExt(clean, VIDEO_EXTS)) {
+      return "video";
+    }
+
+    return "image";
   }
 
   function sfSetSaveButtonsLoading(isLoading) {
@@ -638,9 +858,9 @@
       btn.disabled = isLoading || window.__storefrontUploadCount > 0;
 
       if (isLoading) {
-        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-sm"></i> Đang lưu...';
+        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Đang lưu...';
       } else if (window.__storefrontUploadCount > 0) {
-        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-sm"></i> Đang tải file...';
+        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Đang tải file...';
       } else {
         btn.innerHTML = btn.dataset.originalHtml;
       }
@@ -658,7 +878,7 @@
   }
 
   function sfSetUploadButtonLoading(inputEl, isLoading) {
-    const row = inputEl ? inputEl.closest(".flex") : null;
+    const row = inputEl ? inputEl.closest(".sf-input-row") : null;
     const btn = row ? row.querySelector(".sf-upload-btn") : null;
     if (!btn) return;
 
@@ -667,11 +887,11 @@
     }
 
     btn.disabled = isLoading;
-    btn.classList.toggle("opacity-40", isLoading);
+    btn.classList.toggle("opacity-50", isLoading);
     btn.classList.toggle("pointer-events-none", isLoading);
 
     if (isLoading) {
-      btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+      btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i><span>Đang tải</span>';
     } else {
       btn.innerHTML = btn.dataset.originalHtml;
     }
@@ -689,14 +909,137 @@
     if (!nameEl) return;
 
     const text = String(url || "");
+
     nameEl.textContent = text.startsWith("blob:")
       ? "Tệp cục bộ đang tải lên..."
-      : text.length > 72
-        ? text.slice(0, 72) + "..."
+      : text.length > 96
+        ? text.slice(0, 96) + "..."
         : text;
   }
 
-  window.sfAutoPreview = function sfAutoPreview(url, previewId, isVideoExplicit) {
+  function sfSetPreviewOpen(previewId, url) {
+    const openEl = document.getElementById(previewId + "Open");
+    if (!openEl) return;
+
+    const finalUrl = String(url || "").trim();
+
+    if (!finalUrl || finalUrl.startsWith("blob:")) {
+      openEl.classList.add("hidden");
+      openEl.removeAttribute("href");
+      return;
+    }
+
+    openEl.href = finalUrl;
+    openEl.classList.remove("hidden");
+  }
+
+  function sfSetPreviewRatio(wrap, width, height) {
+    if (!wrap || !width || !height) return;
+
+    const ratio = width / height;
+
+    wrap.dataset.mediaRatio = String(ratio.toFixed(3));
+
+    if (ratio < 0.82) {
+      wrap.dataset.mediaKind = "portrait";
+    } else if (ratio < 1.18) {
+      wrap.dataset.mediaKind = "square";
+    } else if (ratio > 2.05) {
+      wrap.dataset.mediaKind = "ultrawide";
+    } else {
+      wrap.dataset.mediaKind = "wide";
+    }
+  }
+
+  function sfClearPreviewStage(wrap) {
+    const stage = wrap.querySelector(".sf-preview-stage");
+    if (!stage) return null;
+
+    stage.querySelectorAll("img, video").forEach((media) => {
+      if (media.src && media.src.startsWith("blob:")) {
+        try {
+          URL.revokeObjectURL(media.src);
+        } catch (_) {}
+      }
+
+      media.removeAttribute("src");
+      media.load?.();
+      media.remove();
+    });
+
+    stage.querySelectorAll(".sf-preview-error").forEach((el) => el.remove());
+    stage.querySelectorAll(".sf-preview-bg").forEach((el) => el.remove());
+
+    wrap.removeAttribute("data-media-kind");
+    wrap.removeAttribute("data-media-ratio");
+    wrap.removeAttribute("data-media-type");
+
+    return stage;
+  }
+
+  function sfCreatePreviewBg(stage, url, kind) {
+    if (!stage || kind !== "image") return;
+
+    const bg = document.createElement("div");
+    bg.className = "sf-preview-bg";
+    bg.style.backgroundImage = `url("${url}")`;
+
+    stage.appendChild(bg);
+  }
+
+  function sfShowPreviewError(wrap, url, kind) {
+    const stage = sfClearPreviewStage(wrap);
+    if (!stage) return;
+
+    const box = document.createElement("div");
+    box.className = "sf-preview-error";
+
+    box.innerHTML = `
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <strong>Không thể preview ${kind === "video" ? "video" : "hình ảnh"} này</strong>
+      <p>File vẫn có thể đã upload/lưu URL. Hãy bấm biểu tượng mở link gốc để kiểm tra trực tiếp.</p>
+    `;
+
+    stage.appendChild(box);
+  }
+
+  function sfCreateMediaElement(kind, previewId, url) {
+    const media = kind === "video"
+      ? document.createElement("video")
+      : document.createElement("img");
+
+    media.className = "sf-media " + (kind === "video" ? "is-video" : "is-image");
+
+    if (kind === "video") {
+      media.controls = true;
+      media.muted = true;
+      media.playsInline = true;
+      media.preload = "metadata";
+
+      media.addEventListener("loadedmetadata", function () {
+        const wrap = document.getElementById(previewId);
+        sfSetPreviewRatio(wrap, media.videoWidth, media.videoHeight);
+      }, { once: true });
+    } else {
+      media.loading = "lazy";
+      media.decoding = "async";
+      media.alt = "Storefront media preview";
+
+      media.addEventListener("load", function () {
+        const wrap = document.getElementById(previewId);
+        sfSetPreviewRatio(wrap, media.naturalWidth, media.naturalHeight);
+      }, { once: true });
+    }
+
+    media.onerror = function () {
+      const wrap = document.getElementById(previewId);
+      if (wrap) sfShowPreviewError(wrap, url, kind);
+    };
+
+    return media;
+  }
+
+  window.sfAutoPreview = function sfAutoPreview(url, previewId, explicitKind) {
     const wrap = document.getElementById(previewId);
     if (!wrap) return;
 
@@ -705,42 +1048,33 @@
     if (!finalUrl) {
       wrap.classList.add("hidden");
       sfSetPreviewName(previewId, "");
+      sfSetPreviewOpen(previewId, "");
+      sfClearPreviewStage(wrap);
       return;
     }
 
-    const isVideo = typeof isVideoExplicit === "boolean"
-      ? isVideoExplicit
-      : sfIsVideoUrl(finalUrl);
+    const kind = sfGetMediaKind(finalUrl, explicitKind);
+    const stage = sfClearPreviewStage(wrap);
 
-    let media = wrap.querySelector("img, video");
+    if (!stage) return;
 
-    if (isVideo) {
-      if (!media || media.tagName !== "VIDEO") {
-        if (media) media.remove();
+    sfCreatePreviewBg(stage, finalUrl, kind);
 
-        media = document.createElement("video");
-        media.controls = true;
-        media.muted = true;
-        media.playsInline = true;
-        media.preload = "none";
-        media.className = "w-full h-[220px] object-cover bg-stone-950";
+    const media = sfCreateMediaElement(kind, previewId, finalUrl);
 
-        wrap.prepend(media);
-      }
+    stage.appendChild(media);
+
+    if (kind === "video") {
+      media.src = finalUrl;
+      media.load?.();
     } else {
-      if (!media || media.tagName !== "IMG") {
-        if (media) media.remove();
-
-        media = document.createElement("img");
-        media.loading = "lazy";
-        media.className = "w-full h-[220px] object-cover";
-
-        wrap.prepend(media);
-      }
+      media.src = finalUrl;
     }
 
-    media.src = finalUrl;
+    wrap.dataset.mediaType = kind;
+
     sfSetPreviewName(previewId, finalUrl);
+    sfSetPreviewOpen(previewId, finalUrl);
     wrap.classList.remove("hidden");
   };
 
@@ -755,44 +1089,42 @@
     const wrap = document.getElementById(previewId);
 
     if (wrap) {
-      const media = wrap.querySelector("img, video");
-
-      if (media) {
-        if (media.src && media.src.startsWith("blob:")) {
-          URL.revokeObjectURL(media.src);
-        }
-
-        media.removeAttribute("src");
-        media.load?.();
-      }
-
+      sfClearPreviewStage(wrap);
       wrap.classList.add("hidden");
     }
 
     sfSetPreviewName(previewId, "");
+    sfSetPreviewOpen(previewId, "");
   };
 
   window.uploadStorefrontFile = async function uploadStorefrontFile(inputEl, targetInputId, previewId) {
     const file = inputEl?.files?.[0];
     if (!file) return;
 
-    if (file.size > VERCEL_MAX_SIZE) {
-      const currentSize = (file.size / 1024 / 1024).toFixed(2);
-      const errorMsg = `File vượt quá hạn mức Vercel 4.5MB. File hiện tại: ${currentSize}MB. Vui lòng tải trực tiếp lên Supabase Storage Dashboard rồi dán URL vào ô cấu hình.`;
-
+    if (file.size <= 0) {
       inputEl.value = "";
-      sfNotify(errorMsg, "warning");
+      sfNotify("File rỗng hoặc không đọc được dữ liệu.", "error");
       return;
     }
+
+    if (file.size > CLIENT_MAX_UPLOAD_SIZE) {
+      inputEl.value = "";
+      sfNotify("File vượt quá 50MB. Vui lòng nén file hoặc tải trực tiếp lên Supabase Storage rồi dán URL.", "warning");
+      return;
+    }
+
+    if (file.size > VERCEL_WARNING_SIZE) {
+      sfNotify("File lớn hơn 4.5MB. Nếu deploy trên Vercel có thể bị giới hạn request; local Flask hoặc server riêng vẫn có thể upload.", "warning");
+    }
+
+    const kind = sfGetKindFromFile(file);
+    const blobUrl = URL.createObjectURL(file);
 
     window.__storefrontUploadCount += 1;
     sfSetSaveButtonsLoading(false);
     sfSetUploadButtonLoading(inputEl, true);
 
-    const blobUrl = URL.createObjectURL(file);
-    const isVideo = file.type.startsWith("video/");
-
-    sfAutoPreview(blobUrl, previewId, isVideo);
+    sfAutoPreview(blobUrl, previewId, kind);
 
     const fd = new FormData();
     fd.append("file", file);
@@ -825,6 +1157,10 @@
         throw new Error(data.error || data.message || "Upload thất bại, server không trả về URL.");
       }
 
+      const finalKind = data.media_type === "video" || data.media_type === "image"
+        ? data.media_type
+        : kind;
+
       const targetInput = document.getElementById(targetInputId);
 
       if (targetInput) {
@@ -832,7 +1168,7 @@
         sfTouchInput(targetInput);
       }
 
-      sfAutoPreview(data.url, previewId, isVideo);
+      sfAutoPreview(data.url, previewId, finalKind);
 
       sfNotify("Tải file lên thành công. Bây giờ bạn có thể bấm Lưu cấu hình.", "success");
 
@@ -842,9 +1178,9 @@
       sfNotify(err.message || "Upload thất bại. Vui lòng thử lại.", "error");
 
     } finally {
-      if (blobUrl) {
+      try {
         URL.revokeObjectURL(blobUrl);
-      }
+      } catch (_) {}
 
       window.__storefrontUploadCount = Math.max(0, window.__storefrontUploadCount - 1);
 
@@ -921,10 +1257,10 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     document.querySelectorAll(".sf-preview").forEach((preview) => {
-      const media = preview.querySelector("img, video");
+      const url = String(preview.dataset.previewUrl || "").trim();
 
-      if (media && media.getAttribute("src") && media.getAttribute("src").trim() !== "") {
-        preview.classList.remove("hidden");
+      if (url) {
+        window.sfAutoPreview(url, preview.id);
       }
     });
 

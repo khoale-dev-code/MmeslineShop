@@ -5,8 +5,14 @@
 {% block extra_head %}
 {% set sf = system_settings.get('storefront', {}) if system_settings is defined and system_settings else {} %}
 {% set hero_url = sf.get('hero_banner_url') or '' %}
-{% set lower_hero = hero_url.lower() if hero_url else '' %}
-{% set hero_is_video = hero_url and (lower_hero.endswith('.mp4') or lower_hero.endswith('.webm') or lower_hero.endswith('.mov') or 'video' in lower_hero) %}
+{% set lower_hero = hero_url.lower().split('?')[0].split('#')[0] if hero_url else '' %}
+{% set hero_is_video = (
+  lower_hero.endswith('.mp4') or
+  lower_hero.endswith('.webm') or
+  lower_hero.endswith('.mov') or
+  lower_hero.endswith('.avi') or
+  'video' in lower_hero
+) if hero_url else false %}
 
 {% if hero_url and not hero_is_video %}
   <link rel="preload" as="image" href="{{ hero_url }}" fetchpriority="high">
@@ -177,7 +183,7 @@
     transform: translateX(0);
   }
 
-  /* COLLECTIONS: full-bleed, no white gap */
+  /* COLLECTIONS */
   .mm-collection-section {
     width: 100%;
     max-width: 100%;
@@ -210,7 +216,7 @@
     min-width: 100%;
   }
 
-    .mm-collection-card {
+  .mm-collection-card {
     position: relative;
     display: block;
     flex: 0 0 auto;
@@ -223,11 +229,6 @@
     color: #fff;
     scroll-snap-align: start;
     -webkit-tap-highlight-color: transparent;
-
-    /*
-      Cho phép title dùng đơn vị cqw theo chiều rộng từng card.
-      Giúp chữ tự nhỏ lại khi card chỉ chiếm 25% màn hình.
-    */
     container-type: inline-size;
   }
 
@@ -278,22 +279,11 @@
     max-width: 100%;
     margin: 0;
     color: #fff;
-
-    /*
-      FIX MẤT CHỮ:
-      Dùng cqw để title tính theo chiều rộng card,
-      không tính theo viewport như vw.
-    */
     font-size: clamp(34px, 13.2cqw, 64px);
     font-weight: 950;
     letter-spacing: -0.065em;
     line-height: .9;
     text-transform: uppercase;
-
-    /*
-      Cho phép xuống dòng đẹp theo khoảng trắng.
-      Không để một từ dài bị cắt mất bên phải.
-    */
     white-space: normal;
     text-wrap: balance;
     overflow-wrap: normal;
@@ -318,10 +308,6 @@
     -webkit-box-orient: vertical;
   }
 
-  /*
-    Trên desktop khi có 4 collection, card hẹp hơn,
-    giảm title thêm một chút để chữ như COLLECTION không bị cắt.
-  */
   @media (min-width: 1180px) {
     .mm-collection-card.is-count-4 .mm-collection-title,
     .mm-collection-card.is-count-many .mm-collection-title {
@@ -341,6 +327,7 @@
       bottom: 34px;
     }
   }
+
   .mm-collection-hint {
     position: absolute;
     left: 16px;
@@ -428,6 +415,94 @@
     min-height: 680px;
   }
 
+  /* BEST SELLERS ADAPTIVE MEDIA */
+  .mm-best-section {
+    height: clamp(560px, 82svh, 900px);
+    min-height: 560px;
+    background: #050505;
+  }
+
+  .mm-best-section.is-portrait {
+    height: min(100svh, 980px);
+    min-height: 720px;
+  }
+
+  .mm-best-section.is-square {
+    height: min(90svh, 880px);
+    min-height: 640px;
+  }
+
+  .mm-best-section.is-wide {
+    height: min(82svh, 860px);
+    min-height: 560px;
+  }
+
+  .mm-best-section.is-ultrawide {
+    height: min(70svh, 760px);
+    min-height: 500px;
+  }
+
+  .mm-best-stage {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 50% 42%, rgba(255,255,255,.08), transparent 30%),
+      linear-gradient(135deg, #050805, #111);
+  }
+
+  .mm-best-stage::before {
+    content: "";
+    position: absolute;
+    inset: -42px;
+    z-index: 0;
+    background-image: var(--best-bg);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    filter: blur(30px);
+    transform: scale(1.08);
+    opacity: .55;
+  }
+
+  .mm-best-stage.is-video::before {
+    background-image: none;
+    background:
+      radial-gradient(circle at 50% 42%, rgba(201,158,20,.16), transparent 34%),
+      linear-gradient(135deg, #050805, #111);
+    filter: none;
+    transform: none;
+    opacity: 1;
+  }
+
+  .mm-best-media {
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    background: transparent;
+  }
+
+  .mm-best-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background:
+      linear-gradient(to top, rgba(0,0,0,.82), rgba(0,0,0,.22) 54%, rgba(0,0,0,.08)),
+      linear-gradient(to right, rgba(0,0,0,.58), rgba(0,0,0,.12) 58%, rgba(0,0,0,.34));
+    pointer-events: none;
+    transition: background .5s ease;
+  }
+
+  .mm-best-section:hover .mm-best-overlay {
+    background:
+      linear-gradient(to top, rgba(0,0,0,.88), rgba(0,0,0,.28) 54%, rgba(0,0,0,.10)),
+      linear-gradient(to right, rgba(0,0,0,.62), rgba(0,0,0,.16) 58%, rgba(0,0,0,.38));
+  }
+
   .mm-split-grid {
     display: grid;
     grid-template-columns: 1fr;
@@ -477,6 +552,19 @@
       min-height: 560px;
     }
 
+    .mm-best-section,
+    .mm-best-section.is-wide,
+    .mm-best-section.is-square,
+    .mm-best-section.is-ultrawide {
+      height: 76svh;
+      min-height: 560px;
+    }
+
+    .mm-best-section.is-portrait {
+      height: 88svh;
+      min-height: 660px;
+    }
+
     .mm-section-title {
       font-size: clamp(42px, 15vw, 76px);
     }
@@ -500,8 +588,14 @@
 {% set sf = system_settings.get('storefront', {}) if system_settings is defined and system_settings else {} %}
 
 {% set hero_url = sf.get('hero_banner_url') or '' %}
-{% set lower_hero = hero_url.lower() if hero_url else '' %}
-{% set is_video = (lower_hero.endswith('.mp4') or lower_hero.endswith('.webm') or lower_hero.endswith('.mov') or 'video' in lower_hero) if hero_url else false %}
+{% set lower_hero = hero_url.lower().split('?')[0].split('#')[0] if hero_url else '' %}
+{% set is_video = (
+  lower_hero.endswith('.mp4') or
+  lower_hero.endswith('.webm') or
+  lower_hero.endswith('.mov') or
+  lower_hero.endswith('.avi') or
+  'video' in lower_hero
+) if hero_url else false %}
 
 {% set home_colls = collections | selectattr('show_on_home', 'equalto', true) | list if collections else [] %}
 {% set display_collections = home_colls if home_colls|length > 0 else (collections if collections else []) %}
@@ -523,7 +617,15 @@
             poster="{{ sf.get('banner_desktop_url') or '' }}"
             class="h-full w-full object-cover"
           >
-            <source src="{{ hero_url }}" type="video/mp4">
+            {% if lower_hero.endswith('.webm') %}
+              <source src="{{ hero_url }}" type="video/webm">
+            {% elif lower_hero.endswith('.mov') %}
+              <source src="{{ hero_url }}" type="video/quicktime">
+            {% elif lower_hero.endswith('.avi') %}
+              <source src="{{ hero_url }}" type="video/x-msvideo">
+            {% else %}
+              <source src="{{ hero_url }}" type="video/mp4">
+            {% endif %}
           </video>
         {% else %}
           <img
@@ -636,16 +738,16 @@
               <div class="mm-collection-overlay"></div>
 
               <div class="mm-collection-info">
-             <h3 class="mm-collection-title" title="{{ collection.name }}">
-                {% set cname = collection.name %}
-                {% if ' ' in cname %}
-                  {% for part in cname.split(' ') %}
-                    <span>{{ part }}</span>
-                  {% endfor %}
-                {% else %}
-                  <span>{{ cname }}</span>
-                {% endif %}
-              </h3>
+                <h3 class="mm-collection-title" title="{{ collection.name }}">
+                  {% set cname = collection.name %}
+                  {% if ' ' in cname %}
+                    {% for part in cname.split(' ') %}
+                      <span>{{ part }}</span>
+                    {% endfor %}
+                  {% else %}
+                    <span>{{ cname }}</span>
+                  {% endif %}
+                </h3>
 
                 {% if collection.description %}
                   <p class="mm-collection-desc">
@@ -769,22 +871,63 @@
     </article>
   </section>
 
-  {# VIDEO BANNER #}
-  {% set video_url = sf.get('banner4_video_url') %}
-  {% if video_url %}
-    <section class="mm-home-section mm-feature-panel group bg-neutral-950">
-      <video
-        loop
-        muted
-        playsinline
-        preload="metadata"
-        data-scroll-video
-        class="absolute inset-0 h-full w-full bg-neutral-950 object-cover object-center"
-      >
-        <source src="{{ video_url }}" type="video/mp4">
-      </video>
+  {# BEST SELLERS MEDIA: khung tự thích ứng ảnh / gif / webp / video #}
+  {% set best_url = sf.get('banner4_video_url') or '' %}
+  {% set best_clean = best_url.lower().split('?')[0].split('#')[0] if best_url else '' %}
+  {% set best_is_video = (
+    best_clean.endswith('.mp4') or
+    best_clean.endswith('.webm') or
+    best_clean.endswith('.mov') or
+    best_clean.endswith('.avi') or
+    'video' in best_clean
+  ) if best_url else false %}
 
-      <div class="absolute inset-0 bg-black/34 transition-colors duration-500 group-hover:bg-black/44"></div>
+  {% if best_url %}
+    <section
+      class="mm-home-section mm-best-section group bg-neutral-950"
+      data-best-media-section
+    >
+      <div
+        class="mm-best-stage {{ 'is-video' if best_is_video else 'is-image' }}"
+        {% if not best_is_video %}
+          style="--best-bg: url('{{ best_url }}');"
+        {% endif %}
+      >
+        {% if best_is_video %}
+          <video
+            loop
+            muted
+            playsinline
+            preload="metadata"
+            data-scroll-video
+            data-best-media
+            class="mm-best-media"
+          >
+            {% if best_clean.endswith('.webm') %}
+              <source src="{{ best_url }}" type="video/webm">
+            {% elif best_clean.endswith('.mov') %}
+              <source src="{{ best_url }}" type="video/quicktime">
+            {% elif best_clean.endswith('.avi') %}
+              <source src="{{ best_url }}" type="video/x-msvideo">
+            {% else %}
+              <source src="{{ best_url }}" type="video/mp4">
+            {% endif %}
+          </video>
+        {% else %}
+          <img
+            src="{{ best_url }}"
+            alt="GUAMAISON Best Sellers"
+            width="1920"
+            height="1080"
+            loading="lazy"
+            decoding="async"
+            data-best-media
+            class="mm-best-media"
+          >
+        {% endif %}
+      </div>
+
+      <div class="mm-best-overlay"></div>
 
       <div class="absolute bottom-12 left-6 z-10 text-white md:bottom-16 md:left-12">
         <div class="mm-slide-reveal mm-slide-left">
@@ -925,10 +1068,67 @@
     update();
   }
 
+  function initBestAdaptiveMedia() {
+    const sections = document.querySelectorAll("[data-best-media-section]");
+
+    sections.forEach((section) => {
+      const media = section.querySelector("[data-best-media]");
+      if (!media) return;
+
+      function applyRatio() {
+        let width = 0;
+        let height = 0;
+
+        if (media instanceof HTMLImageElement) {
+          width = media.naturalWidth;
+          height = media.naturalHeight;
+        }
+
+        if (media instanceof HTMLVideoElement) {
+          width = media.videoWidth;
+          height = media.videoHeight;
+        }
+
+        if (!width || !height) return;
+
+        const ratio = width / height;
+
+        section.classList.remove("is-portrait", "is-square", "is-wide", "is-ultrawide");
+
+        if (ratio < 0.82) {
+          section.classList.add("is-portrait");
+        } else if (ratio < 1.18) {
+          section.classList.add("is-square");
+        } else if (ratio > 2.05) {
+          section.classList.add("is-ultrawide");
+        } else {
+          section.classList.add("is-wide");
+        }
+      }
+
+      if (media instanceof HTMLImageElement) {
+        if (media.complete) {
+          applyRatio();
+        } else {
+          media.addEventListener("load", applyRatio, { once: true });
+        }
+      }
+
+      if (media instanceof HTMLVideoElement) {
+        if (media.readyState >= 1) {
+          applyRatio();
+        } else {
+          media.addEventListener("loadedmetadata", applyRatio, { once: true });
+        }
+      }
+    });
+  }
+
   function initHomePage() {
     initReveal();
     initScrollVideos();
     initCollectionProgress();
+    initBestAdaptiveMedia();
   }
 
   if (document.readyState === "loading") {
@@ -938,4 +1138,4 @@
   }
 })();
 </script>
-{% endblock %}    
+{% endblock %}
