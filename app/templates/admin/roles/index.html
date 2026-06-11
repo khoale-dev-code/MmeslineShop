@@ -1,553 +1,1675 @@
 {# app/templates/admin/roles/index.html #}
 {% extends "admin/admin_base.html" %}
 
-{% block title %}Phân quyền Nhân viên{% endblock %}
+{% block title %}Phân quyền nhân sự | Trung tâm quản trị{% endblock %}
 
 {% block extra_head %}
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
-    :root { --font-jakarta: 'Plus Jakarta Sans', sans-serif; }
-    body { font-family: var(--font-jakarta); background-color: #f8fafc; }
-    
-    .modern-card {
-        background: #ffffff;
-        border: 1px solid #f1f5f9;
-        border-radius: 1.5rem;
-        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+ .rbac-page,
+.rbac-modal,
+.rbac-toast {
+  --rbac-ink: var(--mm-brown-950, #241207);
+  --rbac-brown: var(--mm-brown-900, #3b2414);
+  --rbac-warm: var(--mm-brown-700, #5f3b1e);
+  --rbac-caramel: var(--mm-caramel, #b98b62);
+  --rbac-muted: var(--mm-muted, #9b7b63);
+  --rbac-cream: var(--mm-cream, #fbf7f1);
+  --rbac-soft: var(--mm-soft, #fffaf5);
+  --rbac-card: var(--mm-card, #fffdf9);
+  --rbac-line: var(--mm-line, #eadfd4);
+}
+
+.rbac-page {
+  width: 100%;
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 22px 18px 42px;
+  color: var(--rbac-ink);
+}
+
+  .rbac-hero {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--rbac-line);
+    border-radius: 34px;
+    background:
+      radial-gradient(circle at top right, rgba(185, 139, 98, 0.22), transparent 32%),
+      radial-gradient(circle at bottom left, rgba(95, 59, 30, 0.10), transparent 38%),
+      linear-gradient(135deg, #fffaf5, #fbf7f1);
+    padding: 26px;
+    box-shadow: 0 28px 80px -58px rgba(36, 18, 7, 0.7);
+  }
+
+  .rbac-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(90deg, rgba(255,255,255,.62), transparent 58%);
+  }
+
+  .rbac-hero > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .rbac-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--rbac-caramel);
+    font-size: 11px;
+    font-weight: 950;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+  }
+
+  .rbac-title {
+    margin: 10px 0 0;
+    font-size: clamp(30px, 4vw, 52px);
+    line-height: .95;
+    letter-spacing: -.055em;
+    font-weight: 950;
+    color: var(--rbac-ink);
+  }
+
+  .rbac-subtitle {
+    max-width: 840px;
+    margin-top: 14px;
+    color: #80614b;
+    font-size: 14px;
+    font-weight: 650;
+    line-height: 1.7;
+  }
+
+  .rbac-hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .rbac-btn {
+    min-height: 46px;
+    border: 0;
+    border-radius: 17px;
+    padding: 0 17px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    font-size: 11px;
+    font-weight: 950;
+    letter-spacing: .10em;
+    text-transform: uppercase;
+    transition: transform .16s ease, background .16s ease, border-color .16s ease, color .16s ease, opacity .16s ease;
+  }
+
+  .rbac-btn:hover {
+    transform: translateY(-1px);
+  }
+
+  .rbac-btn-primary {
+    background: var(--rbac-brown);
+    color: #fff;
+    box-shadow: 0 18px 36px -26px rgba(36, 18, 7, .86);
+  }
+
+  .rbac-btn-primary:hover {
+    background: var(--rbac-ink);
+  }
+
+  .rbac-btn-soft {
+    border: 1px solid var(--rbac-line);
+    background: rgba(255, 253, 249, .88);
+    color: var(--rbac-brown);
+  }
+
+  .rbac-btn-soft:hover {
+    background: #fff;
+    border-color: #d6c2b0;
+  }
+
+  .rbac-btn-danger {
+    border: 1px solid rgba(220, 38, 38, .16);
+    background: #fff7f7;
+    color: #b91c1c;
+  }
+
+  .rbac-btn-danger:hover {
+    background: #fee2e2;
+  }
+
+  .rbac-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 18px;
+  }
+
+  .rbac-stat {
+    border: 1px solid rgba(234, 223, 212, .9);
+    border-radius: 24px;
+    background: rgba(255, 253, 249, .86);
+    padding: 18px;
+    box-shadow: 0 18px 50px -44px rgba(36, 18, 7, .55);
+  }
+
+  .rbac-stat span {
+    display: block;
+    color: var(--rbac-muted);
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+  }
+
+  .rbac-stat strong {
+    display: block;
+    margin-top: 8px;
+    color: var(--rbac-ink);
+    font-size: 30px;
+    line-height: 1;
+    font-weight: 950;
+    letter-spacing: -.04em;
+  }
+
+  .rbac-section {
+    margin-top: 26px;
+  }
+
+  .rbac-section-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+  }
+
+  .rbac-section-title {
+    margin: 0;
+    color: var(--rbac-ink);
+    font-size: 19px;
+    font-weight: 950;
+    letter-spacing: -.025em;
+  }
+
+  .rbac-section-desc {
+    margin: 5px 0 0;
+    color: var(--rbac-muted);
+    font-size: 12px;
+    font-weight: 650;
+  }
+
+  .rbac-search {
+    width: min(100%, 380px);
+    height: 46px;
+    border: 1px solid var(--rbac-line);
+    border-radius: 17px;
+    background: rgba(255, 253, 249, .92);
+    color: var(--rbac-ink);
+    padding: 0 15px 0 42px;
+    outline: none;
+    font-size: 13px;
+    font-weight: 750;
+  }
+
+  .rbac-search-wrap {
+    position: relative;
+  }
+
+  .rbac-search-wrap i {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--rbac-muted);
+    font-size: 13px;
+  }
+
+  .rbac-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .rbac-card {
+    border: 1px solid var(--rbac-line);
+    border-radius: 28px;
+    background: rgba(255, 253, 249, .95);
+    box-shadow: 0 18px 50px -44px rgba(36, 18, 7, .55);
+  }
+
+  .rbac-role-card {
+    padding: 20px;
+    transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+  }
+
+  .rbac-role-card:hover {
+    transform: translateY(-2px);
+    border-color: #dbc8b7;
+    box-shadow: 0 26px 60px -48px rgba(36, 18, 7, .72);
+  }
+
+  .rbac-role-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .rbac-slug {
+    display: inline-flex;
+    max-width: 100%;
+    border-radius: 999px;
+    background: #f4ece4;
+    color: var(--rbac-brown);
+    padding: 7px 10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .05em;
+    word-break: break-all;
+  }
+
+  .rbac-role-name {
+    margin: 12px 0 0;
+    color: var(--rbac-ink);
+    font-size: 16px;
+    font-weight: 950;
+    letter-spacing: -.02em;
+  }
+
+  .rbac-role-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .rbac-icon-btn {
+    width: 38px;
+    height: 38px;
+    border: 1px solid var(--rbac-line);
+    border-radius: 14px;
+    background: var(--rbac-soft);
+    color: var(--rbac-muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .16s ease, color .16s ease, border-color .16s ease, transform .16s ease;
+  }
+
+  .rbac-icon-btn:hover {
+    transform: translateY(-1px);
+    background: var(--rbac-brown);
+    border-color: var(--rbac-brown);
+    color: #fff;
+  }
+
+  .rbac-icon-btn.is-danger:hover {
+    background: #b91c1c;
+    border-color: #b91c1c;
+  }
+
+  .rbac-lock {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    background: #f5f1ed;
+    color: #80614b;
+    padding: 8px 10px;
+    font-size: 10px;
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+  }
+
+  .rbac-perms {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 16px;
+  }
+
+  .rbac-perm-chip {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    background: #fff7ef;
+    border: 1px solid #efdfd1;
+    color: #74533f;
+    padding: 7px 9px;
+    font-size: 10px;
+    font-weight: 850;
+  }
+
+  .rbac-empty {
+    padding: 42px 22px;
+    text-align: center;
+    color: var(--rbac-muted);
+  }
+
+  .rbac-guide {
+    display: grid;
+    grid-template-columns: .95fr 1.05fr;
+    gap: 16px;
+  }
+
+  .rbac-guide-card {
+    padding: 20px;
+  }
+
+  .rbac-steps {
+    display: grid;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .rbac-step {
+    display: flex;
+    gap: 12px;
+    border: 1px solid var(--rbac-line);
+    border-radius: 18px;
+    background: var(--rbac-soft);
+    padding: 13px;
+  }
+
+  .rbac-step b {
+    width: 28px;
+    height: 28px;
+    flex: 0 0 auto;
+    border-radius: 999px;
+    background: var(--rbac-brown);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 950;
+  }
+
+  .rbac-step strong {
+    display: block;
+    color: var(--rbac-ink);
+    font-size: 12px;
+    font-weight: 950;
+  }
+
+  .rbac-step span {
+    display: block;
+    margin-top: 3px;
+    color: var(--rbac-muted);
+    font-size: 12px;
+    line-height: 1.55;
+    font-weight: 650;
+  }
+
+  .rbac-table-wrap {
+    overflow: hidden;
+  }
+
+  .rbac-table-scroll {
+    overflow-x: auto;
+  }
+
+  .rbac-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 760px;
+  }
+
+  .rbac-table th {
+    background: #f8efe7;
+    color: #80614b;
+    padding: 14px 18px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--rbac-line);
+  }
+
+  .rbac-table td {
+    padding: 15px 18px;
+    border-bottom: 1px solid var(--rbac-line);
+    vertical-align: middle;
+  }
+
+  .rbac-table tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .rbac-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .rbac-avatar {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 auto;
+    border-radius: 16px;
+    background: #f0e5db;
+    color: var(--rbac-brown);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 950;
+  }
+
+  .rbac-user-name {
+    color: var(--rbac-ink);
+    font-size: 13px;
+    font-weight: 950;
+  }
+
+  .rbac-user-email {
+    margin-top: 3px;
+    color: var(--rbac-muted);
+    font-size: 12px;
+    font-weight: 650;
+    word-break: break-all;
+  }
+
+  .rbac-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    padding: 8px 10px;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .rbac-badge-admin {
+    background: var(--rbac-brown);
+    color: #fff;
+  }
+
+  .rbac-badge-role {
+    background: #fff7ef;
+    border: 1px solid #efdfd1;
+    color: var(--rbac-brown);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  .rbac-badge-muted {
+    background: #f5f1ed;
+    color: #80614b;
+  }
+
+  .rbac-badge-ok {
+    background: #ecfdf5;
+    color: #047857;
+  }
+
+  .rbac-badge-danger {
+    background: #fff1f2;
+    color: #be123c;
+  }
+
+  .rbac-mobile-staff {
+    display: none;
+  }
+
+  .rbac-toast {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 9999;
+    max-width: min(420px, calc(100vw - 36px));
+    border: 1px solid var(--rbac-line);
+    border-radius: 18px;
+    background: var(--rbac-brown);
+    color: #fff;
+    padding: 13px 15px;
+    display: none;
+    align-items: flex-start;
+    gap: 10px;
+    box-shadow: 0 28px 80px -46px rgba(36,18,7,.72);
+  }
+
+  .rbac-toast.is-show {
+    display: flex;
+  }
+
+  .rbac-toast.is-error {
+    background: #991b1b;
+  }
+
+ .rbac-modal[hidden] {
+  display: none !important;
+}
+
+.rbac-modal {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147483000 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  background: rgba(36, 18, 7, 0.58);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  padding: clamp(12px, 2vw, 26px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.rbac-modal-box {
+  width: min(940px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow: hidden;
+  border: 1px solid var(--rbac-line);
+  border-radius: 30px;
+  background: var(--rbac-card);
+  box-shadow: 0 34px 110px -54px rgba(36, 18, 7, 0.88);
+  display: flex;
+  flex-direction: column;
+  transform: translateZ(0);
+}
+
+#modal-assign .rbac-modal-box {
+  width: min(560px, calc(100vw - 32px)) !important;
+}
+
+.rbac-modal-head,
+.rbac-modal-foot {
+  flex: 0 0 auto;
+  padding: 18px 20px;
+  border-color: var(--rbac-line);
+}
+
+.rbac-modal-head {
+  border-bottom: 1px solid var(--rbac-line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: linear-gradient(135deg, #fffaf5, #fbf7f1);
+}
+
+.rbac-modal-foot {
+  border-top: 1px solid var(--rbac-line);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  background: #fffaf5;
+}
+
+.rbac-modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #c8aa92 transparent;
+}
+
+.rbac-modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.rbac-modal-body::-webkit-scrollbar-thumb {
+  background: #c8aa92;
+  border-radius: 999px;
+}
+
+.rbac-modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+body.rbac-modal-open {
+  overflow: hidden !important;
+}
+
+body.rbac-modal-open .mm-admin-topbar,
+body.rbac-modal-open .mm-admin-sidebar,
+body.rbac-modal-open #mmAdminTopbar,
+body.rbac-modal-open #mmAdminSidebar {
+  pointer-events: none;
+}
+
+@media (max-width: 760px) {
+  .rbac-modal {
+    padding: 10px;
+    align-items: flex-end;
+  }
+
+  .rbac-modal-box,
+  #modal-assign .rbac-modal-box {
+    width: 100% !important;
+    max-height: calc(100dvh - 20px);
+    border-radius: 26px 26px 18px 18px;
+  }
+
+  .rbac-modal-head,
+  .rbac-modal-foot {
+    padding: 15px;
+  }
+
+  .rbac-modal-body {
+    padding: 15px;
+  }
+}
+
+  .rbac-field {
+    margin-bottom: 16px;
+  }
+
+  .rbac-label {
+    display: block;
+    margin-bottom: 8px;
+    color: #80614b;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+  }
+
+  .rbac-input,
+  .rbac-select {
+    width: 100%;
+    height: 48px;
+    border: 1px solid var(--rbac-line);
+    border-radius: 16px;
+    background: #fffdf9;
+    color: var(--rbac-ink);
+    padding: 0 14px;
+    outline: none;
+    font-size: 14px;
+    font-weight: 750;
+  }
+
+  .rbac-input:focus,
+  .rbac-select:focus {
+    border-color: rgba(95, 59, 30, .42);
+    box-shadow: 0 0 0 4px rgba(185, 139, 98, .13);
+  }
+
+  .rbac-input[readonly],
+  .rbac-input:disabled {
+    background: #f3ebe4;
+    color: #9b7b63;
+    cursor: not-allowed;
+  }
+
+  .rbac-help {
+    margin: 7px 0 0;
+    color: var(--rbac-muted);
+    font-size: 12px;
+    font-weight: 650;
+    line-height: 1.5;
+  }
+
+  .rbac-perm-group {
+    border: 1px solid var(--rbac-line);
+    border-radius: 20px;
+    background: var(--rbac-soft);
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+
+  .rbac-perm-group-head {
+    padding: 13px 14px;
+    border-bottom: 1px solid var(--rbac-line);
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: center;
+    background: #fbf7f1;
+  }
+
+  .rbac-perm-group-head strong {
+    color: var(--rbac-ink);
+    font-size: 13px;
+    font-weight: 950;
+  }
+
+  .rbac-perm-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+    padding: 12px;
+  }
+
+  .rbac-perm-item {
+    border: 1px solid var(--rbac-line);
+    border-radius: 16px;
+    background: #fffdf9;
+    padding: 11px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+    transition: border-color .16s ease, background .16s ease;
+  }
+
+  .rbac-perm-item:hover {
+    border-color: #d8c2ae;
+    background: #fffaf5;
+  }
+
+  .rbac-perm-item input {
+    margin-top: 2px;
+    accent-color: var(--rbac-brown);
+  }
+
+  .rbac-perm-item span {
+    display: block;
+    color: var(--rbac-ink);
+    font-size: 12px;
+    font-weight: 850;
+    line-height: 1.35;
+  }
+
+  .rbac-perm-item small {
+    display: block;
+    margin-top: 4px;
+    color: var(--rbac-muted);
+    font-size: 10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    word-break: break-all;
+  }
+
+  @media (max-width: 1160px) {
+    .rbac-grid,
+    .rbac-stats,
+    .rbac-guide {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-    
-    .glass-nav { 
-        background: rgba(248, 250, 252, 0.85); 
-        backdrop-filter: blur(16px); 
-        -webkit-backdrop-filter: blur(16px); 
+  }
+
+  @media (max-width: 760px) {
+    .rbac-page {
+      padding: 14px 12px 34px;
     }
-    
-    .fade-up { opacity: 0; animation: fadeUpAnim 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    @keyframes fadeUpAnim { 
-        from { opacity: 0; transform: translateY(20px); } 
-        to { opacity: 1; transform: translateY(0); } 
+
+    .rbac-hero {
+      border-radius: 26px;
+      padding: 20px;
     }
-    
-    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+
+    .rbac-hero-actions,
+    .rbac-section-head,
+    .rbac-modal-foot {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .rbac-btn,
+    .rbac-search-wrap,
+    .rbac-search {
+      width: 100%;
+    }
+
+    .rbac-grid,
+    .rbac-stats,
+    .rbac-guide,
+    .rbac-perm-list {
+      grid-template-columns: 1fr;
+    }
+
+    .rbac-table-wrap {
+      display: none;
+    }
+
+    .rbac-mobile-staff {
+      display: grid;
+      gap: 12px;
+    }
+
+    .rbac-mobile-user-card {
+      padding: 16px;
+    }
+
+    .rbac-mobile-actions {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .rbac-modal {
+      padding: 10px;
+      align-items: flex-end;
+    }
+
+    .rbac-modal-box {
+      width: 100%;
+      max-height: 92vh;
+      border-radius: 26px 26px 18px 18px;
+    }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="min-h-screen pb-16 font-sans text-slate-800 selection:bg-indigo-500 selection:text-white">
+<div class="rbac-page" id="rbacPage">
 
-    {# ── STICKY TOP BAR ── #}
-    <div class="glass-nav sticky top-0 z-30 border-b border-slate-200/60">
-        <div class="max-w-[1400px] mx-auto px-6 lg:px-12 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-                <h1 class="text-2xl font-bold tracking-tight text-slate-900">Quản lý Phân quyền</h1>
-                <div class="flex items-center gap-2 mt-1">
-                    <a href="/admin/" class="text-slate-500 hover:text-indigo-600 text-xs font-semibold transition-colors">Dashboard</a>
-                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
-                    <span class="text-indigo-600 text-xs font-semibold">Vai trò nhân viên</span>
-                </div>
-            </div>
-            <div class="flex items-center gap-3">
-                <button onclick="openRoleModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-sm shadow-indigo-200 transition-all flex items-center gap-2">
-                    <i class="fa-solid fa-plus"></i> Tạo vai trò mới
-                </button>
-            </div>
-        </div>
+  <section class="rbac-hero">
+    <div class="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-6">
+      <div>
+        <span class="rbac-kicker">
+          <i class="fa-solid fa-user-shield"></i>
+          RBAC / Admin access
+        </span>
+        <h1 class="rbac-title">Phân quyền nhân sự</h1>
+        <p class="rbac-subtitle">
+          Quản lý nhóm quyền, cấp quyền cho nhân sự và thu hồi quyền truy cập khu vực quản trị.
+          Chỉ Super Admin nên sử dụng màn hình này.
+        </p>
+      </div>
+
+      <div class="rbac-hero-actions">
+        <button type="button" class="rbac-btn rbac-btn-soft" data-action="scroll-guide">
+          <i class="fa-solid fa-circle-question"></i>
+          Hướng dẫn
+        </button>
+        <button type="button" class="rbac-btn rbac-btn-soft" data-action="open-assign-new">
+          <i class="fa-solid fa-user-plus"></i>
+          Gán nhân sự
+        </button>
+        <button type="button" class="rbac-btn rbac-btn-primary" data-action="open-create-role">
+          <i class="fa-solid fa-plus"></i>
+          Tạo vai trò
+        </button>
+      </div>
     </div>
 
-    <div class="max-w-[1400px] mx-auto px-6 lg:px-12 mt-8 fade-up space-y-8">
+    <div class="rbac-stats">
+      <div class="rbac-stat">
+        <span>Tổng vai trò</span>
+        <strong>{{ stats.total_roles if stats is defined else roles|length }}</strong>
+      </div>
+      <div class="rbac-stat">
+        <span>Vai trò hệ thống</span>
+        <strong>{{ stats.protected_count if stats is defined else protected_roles|length }}</strong>
+      </div>
+      <div class="rbac-stat">
+        <span>Tài khoản nhân sự</span>
+        <strong>{{ stats.total_staff if stats is defined else staff|length }}</strong>
+      </div>
+      <div class="rbac-stat">
+        <span>Mã quyền</span>
+        <strong>{{ stats.total_permissions if stats is defined else 0 }}</strong>
+      </div>
+    </div>
+  </section>
 
-        {# ── Thống kê nhanh ── #}
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-5">
-            <div class="modern-card p-6 flex items-center gap-5">
-                <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl"><i class="fa-solid fa-users-gear"></i></div>
-                <div>
-                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Tổng vai trò</p>
-                    <p class="text-3xl font-extrabold text-slate-900 mt-1">{{ stats.total_roles }}</p>
-                </div>
+  <section class="rbac-section" id="rbacGuide">
+    <div class="rbac-guide">
+      <div class="rbac-card rbac-guide-card">
+        <span class="rbac-kicker">
+          <i class="fa-solid fa-book-open"></i>
+          Hướng dẫn sử dụng
+        </span>
+        <h2 class="rbac-section-title mt-3">Quy trình phân quyền chuẩn</h2>
+
+        <div class="rbac-steps">
+          <div class="rbac-step">
+            <b>1</b>
+            <div>
+              <strong>Tạo vai trò</strong>
+              <span>Đặt tên dễ hiểu như “Nhân viên kho”, “CSKH”, “Quản lý đơn hàng”. Slug nên viết thường, không dấu.</span>
             </div>
-            <div class="modern-card p-6 flex items-center gap-5">
-                <div class="w-12 h-12 rounded-xl bg-slate-50 text-slate-600 flex items-center justify-center text-xl"><i class="fa-solid fa-lock"></i></div>
-                <div>
-                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Hệ thống</p>
-                    <p class="text-3xl font-extrabold text-slate-900 mt-1">{{ stats.protected_count }}</p>
-                </div>
+          </div>
+          <div class="rbac-step">
+            <b>2</b>
+            <div>
+              <strong>Chọn quyền phù hợp</strong>
+              <span>Chỉ chọn đúng quyền nhân sự cần. Không cấp quyền cài đặt hoặc báo cáo nếu không cần thiết.</span>
             </div>
-            <div class="modern-card p-6 flex items-center gap-5">
-                <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl"><i class="fa-solid fa-user-check"></i></div>
-                <div>
-                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Nhân sự</p>
-                    <p class="text-3xl font-extrabold text-slate-900 mt-1">{{ stats.total_staff }}</p>
-                </div>
+          </div>
+          <div class="rbac-step">
+            <b>3</b>
+            <div>
+              <strong>Gán nhân sự</strong>
+              <span>Nhập email tài khoản đã tồn tại hoặc đổi quyền cho nhân sự đang có trong danh sách.</span>
             </div>
-            <div class="modern-card p-6 flex items-center gap-5">
-                <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center text-xl"><i class="fa-solid fa-key"></i></div>
-                <div>
-                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Loại quyền</p>
-                    <p class="text-3xl font-extrabold text-slate-900 mt-1">{{ stats.total_permissions }}</p>
-                </div>
+          </div>
+          <div class="rbac-step">
+            <b>4</b>
+            <div>
+              <strong>Kiểm tra và thu hồi</strong>
+              <span>Khi nhân sự nghỉ việc hoặc đổi vị trí, hãy thu hồi quyền để tài khoản trở về khách hàng thường.</span>
             </div>
+          </div>
         </div>
+      </div>
 
-        {# ── Roles Grid ── #}
-        <div>
-            <h2 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-5 flex items-center gap-2">
-                <i class="fa-solid fa-layer-group"></i> Danh sách Vai trò
-            </h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" id="rolesGrid">
-                {% for role in roles %}
-                <div class="modern-card p-6 hover:-translate-y-1 transition-transform duration-300 group flex flex-col justify-between">
+      <div class="rbac-card rbac-guide-card">
+        <span class="rbac-kicker">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          Lưu ý an toàn
+        </span>
+        <h2 class="rbac-section-title mt-3">Không chỉnh trực tiếp trong database</h2>
+        <p class="rbac-subtitle" style="margin-top: 10px;">
+          Trang này sẽ ghi vào bảng <b>admin_roles</b> và cột <b>users.admin_role_slug</b>.
+          Vai trò hệ thống như <b>admin</b> hoặc <b>super_admin</b> được khóa để tránh mất quyền quản trị cao nhất.
+        </p>
+        <div class="rbac-steps">
+          <div class="rbac-step">
+            <b><i class="fa-solid fa-lock"></i></b>
+            <div>
+              <strong>Vai trò hệ thống</strong>
+              <span>Không thể sửa/xóa từ giao diện để tránh làm hỏng quyền Super Admin.</span>
+            </div>
+          </div>
+          <div class="rbac-step">
+            <b><i class="fa-solid fa-rotate"></i></b>
+            <div>
+              <strong>Hiệu lực quyền</strong>
+              <span>Sau khi đổi quyền, nhân sự nên tải lại trang hoặc đăng nhập lại để nhận quyền mới.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="rbac-section">
+    <div class="rbac-section-head">
+      <div>
+        <h2 class="rbac-section-title">Danh sách vai trò</h2>
+        <p class="rbac-section-desc">Tạo, chỉnh sửa và kiểm soát các nhóm quyền trong hệ thống.</p>
+      </div>
+
+      <div class="rbac-search-wrap">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input id="roleSearch" class="rbac-search" type="search" placeholder="Tìm vai trò, slug hoặc mã quyền...">
+      </div>
+    </div>
+
+    <div class="rbac-grid" id="rolesGrid">
+      {% for role in roles %}
+        {% set perms = role.permissions|default([], true) %}
+        {% if perms is string %}
+          {% set perms = [] %}
+        {% endif %}
+        {% set is_protected = role.slug in protected_roles %}
+
+        <article
+          class="rbac-card rbac-role-card"
+          data-role-card
+          data-search="{{ (role.slug ~ ' ' ~ role.name ~ ' ' ~ (perms|join(' ')))|lower }}"
+        >
+          <div class="rbac-role-top">
+            <div class="min-w-0">
+              <span class="rbac-slug">{{ role.slug }}</span>
+              <h3 class="rbac-role-name">{{ role.name }}</h3>
+            </div>
+
+            {% if is_protected %}
+              <span class="rbac-lock" title="Vai trò hệ thống, không thể sửa/xóa">
+                <i class="fa-solid fa-lock"></i>
+                System
+              </span>
+            {% else %}
+              <div class="rbac-role-actions">
+                <button
+                  type="button"
+                  class="rbac-icon-btn"
+                  title="Sửa vai trò"
+                  data-action="open-edit-role"
+                  data-slug="{{ role.slug }}"
+                  data-name="{{ role.name }}"
+                  data-permissions='{{ perms|tojson|forceescape }}'
+                >
+                  <i class="fa-solid fa-pen"></i>
+                </button>
+                <button
+                  type="button"
+                  class="rbac-icon-btn is-danger"
+                  title="Xóa vai trò"
+                  data-action="delete-role"
+                  data-slug="{{ role.slug }}"
+                  data-name="{{ role.name }}"
+                >
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="rbac-perms">
+            {% if perms|length > 0 %}
+              {% for p in perms[:7] %}
+                <span class="rbac-perm-chip">{{ p }}</span>
+              {% endfor %}
+              {% if perms|length > 7 %}
+                <span class="rbac-perm-chip">+{{ perms|length - 7 }} quyền khác</span>
+              {% endif %}
+            {% else %}
+              <span class="rbac-badge rbac-badge-muted">Chưa có quyền</span>
+            {% endif %}
+          </div>
+        </article>
+      {% else %}
+        <div class="rbac-card rbac-empty" style="grid-column: 1 / -1;">
+          <i class="fa-solid fa-shield-halved text-4xl mb-4" style="color:#c8aa92;"></i>
+          <h3 class="rbac-section-title">Chưa có vai trò nào</h3>
+          <p class="rbac-section-desc">Hãy tạo vai trò đầu tiên để bắt đầu phân quyền.</p>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="rbac-section">
+    <div class="rbac-section-head">
+      <div>
+        <h2 class="rbac-section-title">Tài khoản nhân sự</h2>
+        <p class="rbac-section-desc">Danh sách tài khoản admin/staff đang có quyền vào khu vực quản trị.</p>
+      </div>
+
+      <button type="button" class="rbac-btn rbac-btn-primary" data-action="open-assign-new">
+        <i class="fa-solid fa-user-plus"></i>
+        Gán nhân sự
+      </button>
+    </div>
+
+    <div class="rbac-card rbac-table-wrap">
+      <div class="rbac-table-scroll">
+        <table class="rbac-table">
+          <thead>
+            <tr>
+              <th>Tài khoản</th>
+              <th>Vai trò</th>
+              <th>Trạng thái</th>
+              <th style="text-align:right;">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in staff %}
+              {% set is_super = u.role == 'Super Admin' or u.role == 'admin' %}
+              <tr>
+                <td>
+                  <div class="rbac-user">
+                    <div class="rbac-avatar">{{ u.initials or '?' }}</div>
                     <div>
-                        <div class="flex items-start justify-between">
-                            <div>
-                                <span class="text-[10px] font-bold tracking-widest text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg uppercase">{{ role.slug }}</span>
-                                <h3 class="text-lg font-bold text-slate-900 mt-3">{{ role.name }}</h3>
-                            </div>
-                            
-                            {% if role.slug not in protected_roles %}
-                            <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onclick='editRole("{{ role.slug }}", "{{ role.name }}", {{ role.permissions|tojson|safe }})'
-                                class="w-8 h-8 rounded-lg bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-indigo-50 hover:text-indigo-600 transition-colors" title="Sửa">
-                                <i class="fa-solid fa-pen text-xs"></i>
-                                </button>
-                                <button onclick='deleteRole("{{ role.slug }}", "{{ role.name }}")'
-                                class="w-8 h-8 rounded-lg bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-rose-50 hover:text-rose-600 transition-colors" title="Xoá">
-                                <i class="fa-solid fa-trash-can text-xs"></i>
-                                </button>
-                            </div>
-                            {% else %}
-                            <span class="flex items-center gap-1.5 text-[10px] bg-slate-100 text-slate-500 px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider" title="Quyền hệ thống, không thể sửa đổi">
-                                <i class="fa-solid fa-lock"></i> System
-                            </span>
-                            {% endif %}
-                        </div>
-                        <div class="mt-5 flex flex-wrap gap-2">
-                        {% set perms = role.permissions if role.permissions is iterable and role.permissions is not string else [] %}
-                        
-                        {% if perms|length > 0 %}
-                            {% for p in perms[:6] %}
-                            <span class="text-[10px] font-semibold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-lg">{{ p }}</span>
-                            {% endfor %}
-                            {% if perms | length > 6 %}
-                            <span class="text-[10px] text-slate-500 font-bold bg-slate-50 px-2.5 py-1 rounded-lg">+{{ perms | length - 6 }} khác</span>
-                            {% endif %}
-                        {% else %}
-                            <span class="text-xs text-slate-400 font-medium italic">Chưa gán quyền truy cập nào</span>
-                        {% endif %}
-                        </div>
+                      <div class="rbac-user-name">{{ u.full_name or 'Chưa có tên' }}</div>
+                      <div class="rbac-user-email">{{ u.email }}</div>
                     </div>
-                </div>
-                {% else %}
-                <div class="col-span-full modern-card p-12 text-center text-slate-500">
-                    <div class="w-20 h-20 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-4">
-                        <i class="fa-solid fa-shield-halved text-3xl text-slate-300"></i>
+                  </div>
+                </td>
+                <td>
+                  {% if is_super %}
+                    <span class="rbac-badge rbac-badge-admin">
+                      <i class="fa-solid fa-crown"></i>
+                      Super Admin
+                    </span>
+                  {% elif u.admin_role_slug %}
+                    <span class="rbac-badge rbac-badge-role">{{ u.admin_role_slug }}</span>
+                  {% else %}
+                    <span class="rbac-badge rbac-badge-muted">Chưa gán</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if u.is_suspended %}
+                    <span class="rbac-badge rbac-badge-danger">Bị khóa</span>
+                  {% else %}
+                    <span class="rbac-badge rbac-badge-ok">Hoạt động</span>
+                  {% endif %}
+                </td>
+                <td style="text-align:right;">
+                  {% if is_super %}
+                    <span class="rbac-badge rbac-badge-muted">Được bảo vệ</span>
+                  {% else %}
+                    <div class="inline-flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        class="rbac-btn rbac-btn-soft"
+                        data-action="open-assign-existing"
+                        data-user-id="{{ u.id }}"
+                        data-email="{{ u.email }}"
+                        data-name="{{ u.full_name or u.email }}"
+                        data-current-slug="{{ u.admin_role_slug or '' }}"
+                      >
+                        Đổi quyền
+                      </button>
+                      <button
+                        type="button"
+                        class="rbac-btn rbac-btn-danger"
+                        data-action="revoke-user"
+                        data-user-id="{{ u.id }}"
+                        data-email="{{ u.email }}"
+                      >
+                        Thu hồi
+                      </button>
                     </div>
-                    <p class="text-sm font-bold text-slate-900 mb-1">Chưa có vai trò nào</p>
-                    <p class="text-xs">Bạn có thể tạo vai trò đầu tiên để bắt đầu phân quyền.</p>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-
-        {# ── Staff Users ── #}
-        <div class="mt-12">
-            <div class="flex items-center justify-between mb-5">
-                <h2 class="text-sm font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2">
-                    <i class="fa-solid fa-users"></i> Tài khoản Nhân sự
-                </h2>
-                
-                <button onclick="openAddStaffModal()" class="text-xs font-bold uppercase tracking-widest text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
-                    <i class="fa-solid fa-plus"></i> Thêm nhân sự
-                </button>
-            </div>
-
-            <div class="modern-card overflow-hidden">
-                <div class="overflow-x-auto custom-scrollbar">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-slate-50/50 border-b border-slate-100">
-                                <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-slate-500">Tài khoản</th>
-                                <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-slate-500">Vai trò</th>
-                                <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-slate-500">Trạng thái</th>
-                                <th class="py-4 px-6 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">Thao tác</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            {% for u in staff %}
-                            <tr class="hover:bg-slate-50/50 transition-colors group">
-                                <td class="py-4 px-6 align-middle">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-10 h-10 rounded-xl {{ u.avatar_bg }} {{ u.avatar_fg }} flex items-center justify-center font-bold text-sm shadow-sm">
-                                            {{ u.initials }}
-                                        </div>
-                                        <div>
-                                            <p class="font-bold text-slate-900">{{ u.full_name }}</p>
-                                            <p class="text-xs text-slate-500 font-medium">{{ u.email }}</p>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="py-4 px-6 align-middle">
-                                    {% if u.role == 'Super Admin' %}
-                                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-900 text-white tracking-wide">
-                                            <i class="fa-solid fa-crown text-[10px] mr-1.5 text-amber-400"></i> Super Admin
-                                        </span>
-                                    {% elif u.admin_role_slug %}
-                                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-700 tracking-wide border border-indigo-100">
-                                            {{ u.role }}
-                                        </span>
-                                    {% else %}
-                                        <span class="text-xs text-slate-400 font-medium italic">Chưa gán vai trò</span>
-                                    {% endif %}
-                                </td>
-                                <td class="py-4 px-6 align-middle">
-                                    {% if u.is_suspended %}
-                                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold bg-rose-50 text-rose-600 uppercase tracking-widest border border-rose-100">Bị khoá</span>
-                                    {% else %}
-                                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-50 text-emerald-600 uppercase tracking-widest border border-emerald-100">Hoạt động</span>
-                                    {% endif %}
-                                </td>
-                                <td class="py-4 px-6 align-middle text-right">
-                                    {% if u.role != 'Super Admin' %}
-                                    <div class="opacity-0 group-hover:opacity-100 transition-opacity flex justify-end gap-2">
-                                        <button onclick="changeUserRole('{{ u.id }}', '{{ u.email }}', '{{ u.admin_role_slug or '' }}')"
-                                            class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 text-xs font-bold transition-colors">
-                                            Đổi quyền
-                                        </button>
-                                        <button onclick="revokeUser('{{ u.id }}', '{{ u.email }}')"
-                                            class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-rose-50 hover:text-rose-600 text-xs font-bold transition-colors">
-                                            Thu hồi
-                                        </button>
-                                    </div>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="4" class="py-12 text-center text-slate-500 font-medium">Chưa có nhân sự nào trong hệ thống.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+                  {% endif %}
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="4">
+                  <div class="rbac-empty">
+                    <i class="fa-solid fa-users text-3xl mb-3" style="color:#c8aa92;"></i>
+                    <p>Chưa có tài khoản nhân sự.</p>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
-</div>
 
-{# ════════════════════════════════════════════
-   Modal: Tạo / Sửa Vai trò
-════════════════════════════════════════════ #}
-<div id="roleModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 transition-opacity duration-300 opacity-0" aria-modal="true" aria-labelledby="roleModalTitle">
-    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl transform scale-95 transition-transform duration-300" id="roleModalContent">
-        <div class="flex items-center justify-between p-6 border-b border-slate-100">
-            <div class="flex items-center gap-4">
-                <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center">
-                    <i class="fa-solid fa-user-shield text-xl"></i>
-                </div>
-                <div>
-                    <h3 class="text-lg font-bold text-slate-900" id="roleModalTitle">Tạo vai trò mới</h3>
-                    <p class="text-xs font-medium text-slate-500 mt-0.5">Cấu hình tên và phân quyền truy cập hệ thống</p>
-                </div>
-            </div>
-            <button onclick="closeRoleModal()" class="w-8 h-8 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors">
-                <i class="fa-solid fa-xmark text-lg"></i>
-            </button>
-        </div>
-
-        <div class="p-6 md:p-8">
-            <input type="hidden" id="roleSlugOriginal">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
-                <div>
-                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">Định danh (Slug) <span class="text-rose-500">*</span></label>
-                    <input id="roleSlug" type="text" placeholder="Ví dụ: sales_manager"
-                        class="w-full bg-slate-50 border border-slate-200 text-sm font-bold font-mono rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed transition-all">
-                    <p class="text-[10px] text-slate-400 mt-2 font-medium"><i class="fa-solid fa-info-circle mr-1"></i>Chữ thường, số, dấu _. Không đổi sau tạo.</p>
-                </div>
-                <div>
-                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">Tên hiển thị <span class="text-rose-500">*</span></label>
-                    <input id="roleName" type="text" placeholder="Ví dụ: Quản lý Bán hàng"
-                        class="w-full bg-slate-50 border border-slate-200 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
-                </div>
-            </div>
-
+    <div class="rbac-mobile-staff">
+      {% for u in staff %}
+        {% set is_super = u.role == 'Super Admin' or u.role == 'admin' %}
+        <article class="rbac-card rbac-mobile-user-card">
+          <div class="rbac-user">
+            <div class="rbac-avatar">{{ u.initials or '?' }}</div>
             <div>
-                <div class="flex items-center justify-between mb-4">
-                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest">Danh sách Quyền hạn</label>
-                    <div class="flex gap-3">
-                        <button onclick="toggleAllPerms(true)" class="text-[11px] font-bold uppercase tracking-widest text-indigo-600 hover:text-indigo-700 transition-colors">Chọn tất cả</button>
-                        <span class="text-slate-300">|</span>
-                        <button onclick="toggleAllPerms(false)" class="text-[11px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors">Bỏ chọn</button>
-                    </div>
-                </div>
-
-                <div class="max-h-[35vh] overflow-y-auto pr-2 space-y-4 custom-scrollbar">
-                    {% for group, perms in available_permissions.items() %}
-                    <div class="bg-slate-50 p-5 rounded-2xl border border-slate-100">
-                        <p class="text-[11px] font-bold text-slate-700 uppercase tracking-widest mb-4 flex items-center gap-2">
-                            <i class="fa-solid fa-layer-group text-slate-400"></i> {{ group }}
-                        </p>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {% for perm in perms %}
-                            <label class="flex items-start gap-3 cursor-pointer group/label">
-                                <div class="relative flex items-center justify-center mt-0.5">
-                                    <input type="checkbox" name="permissions" value="{{ perm.code }}"
-                                        class="perm-checkbox peer appearance-none w-5 h-5 border-2 border-slate-300 bg-white rounded flex-shrink-0 checked:bg-indigo-600 checked:border-indigo-600 transition-all cursor-pointer">
-                                    <i class="fa-solid fa-check text-white text-[10px] absolute opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity"></i>
-                                </div>
-                                <span class="text-sm font-semibold text-slate-600 group-hover/label:text-slate-900 transition-colors flex items-center gap-2">
-                                   <i class="fa-solid {{ perm.icon }} w-4 text-center text-slate-400"></i> {{ perm.name }}
-                                </span>
-                            </label>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
+              <div class="rbac-user-name">{{ u.full_name or 'Chưa có tên' }}</div>
+              <div class="rbac-user-email">{{ u.email }}</div>
             </div>
-        </div>
+          </div>
 
-        <div class="flex justify-end gap-3 p-6 border-t border-slate-100 bg-slate-50 rounded-b-3xl">
-            <button onclick="closeRoleModal()" class="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors shadow-sm">Huỷ bỏ</button>
-            <button onclick="saveRole()" class="px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-colors shadow-sm flex items-center gap-2">
-                <i class="fa-solid fa-save"></i> Lưu thay đổi
-            </button>
-        </div>
+          <div class="flex flex-wrap gap-2 mt-4">
+            {% if is_super %}
+              <span class="rbac-badge rbac-badge-admin">
+                <i class="fa-solid fa-crown"></i>
+                Super Admin
+              </span>
+            {% elif u.admin_role_slug %}
+              <span class="rbac-badge rbac-badge-role">{{ u.admin_role_slug }}</span>
+            {% else %}
+              <span class="rbac-badge rbac-badge-muted">Chưa gán</span>
+            {% endif %}
+
+            {% if u.is_suspended %}
+              <span class="rbac-badge rbac-badge-danger">Bị khóa</span>
+            {% else %}
+              <span class="rbac-badge rbac-badge-ok">Hoạt động</span>
+            {% endif %}
+          </div>
+
+          {% if not is_super %}
+            <div class="rbac-mobile-actions">
+              <button
+                type="button"
+                class="rbac-btn rbac-btn-soft"
+                data-action="open-assign-existing"
+                data-user-id="{{ u.id }}"
+                data-email="{{ u.email }}"
+                data-name="{{ u.full_name or u.email }}"
+                data-current-slug="{{ u.admin_role_slug or '' }}"
+              >
+                Đổi quyền
+              </button>
+              <button
+                type="button"
+                class="rbac-btn rbac-btn-danger"
+                data-action="revoke-user"
+                data-user-id="{{ u.id }}"
+                data-email="{{ u.email }}"
+              >
+                Thu hồi quyền
+              </button>
+            </div>
+          {% endif %}
+        </article>
+      {% endfor %}
     </div>
-</div>
+  </section>
 
-{# ════════════════════════════════════════════
-   Modal: Gán quyền cho User
-════════════════════════════════════════════ #}
-<div id="assignModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 transition-opacity duration-300 opacity-0" aria-modal="true">
-    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md transform scale-95 transition-transform duration-300" id="assignModalContent">
-        <div class="flex items-center justify-between p-6 border-b border-slate-100">
-            <div class="flex items-center gap-4">
-                <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
-                    <i class="fa-solid fa-user-tag text-xl"></i>
-                </div>
-                <div>
-                    <h3 class="text-lg font-bold text-slate-900" id="assignModalTitle">Gán quyền nhân sự</h3>
-                </div>
-            </div>
-            <button onclick="closeAssignModal()" class="w-8 h-8 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors">
-                <i class="fa-solid fa-xmark text-lg"></i>
-            </button>
-        </div>
-        <div class="p-6 md:p-8 space-y-6">
-            <div>
-                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">Tài khoản (Email) <span class="text-rose-500">*</span></label>
-                <input type="hidden" id="assignUserId">
-                <input type="email" id="assignUserEmail" placeholder="Ví dụ: khachhang@gmail.com"
-                    class="w-full bg-slate-50 border border-slate-200 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed transition-all">
-                <p id="assignUserHint" class="text-[10px] text-slate-500 font-medium mt-2">Nhập email của khách hàng để cấp quyền nhân viên.</p>
-            </div>
-            <div>
-                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">Chọn Vai trò cấp phát <span class="text-rose-500">*</span></label>
-                <div class="relative">
-                    <select id="assignRoleSlug"
-                        class="w-full bg-slate-50 border border-slate-200 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 appearance-none cursor-pointer transition-all">
-                        <option value="">-- Chọn vai trò --</option>
-                        {% for role in roles %}
-                            {% if role.slug not in protected_roles %}
-                            <option value="{{ role.slug }}">{{ role.name }}</option>
-                            {% endif %}
-                        {% endfor %}
-                    </select>
-                    <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
-                </div>
-            </div>
-        </div>
-        <div class="flex justify-end gap-3 p-6 border-t border-slate-100 bg-slate-50 rounded-b-3xl">
-            <button onclick="closeAssignModal()" class="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors shadow-sm">Huỷ</button>
-            <button onclick="confirmAssign()" class="px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-colors shadow-sm flex items-center gap-2">
-                <i class="fa-solid fa-check"></i> Xác nhận
-            </button>
-        </div>
-    </div>
+  {% include "admin/roles/_modal_role.html" %}
+  {% include "admin/roles/_modal_assign.html" %}
+
+  <div id="rbacToast" class="rbac-toast" role="status" aria-live="polite">
+    <i id="rbacToastIcon" class="fa-solid fa-circle-check mt-0.5"></i>
+    <div id="rbacToastText" class="text-sm font-bold leading-relaxed"></div>
+  </div>
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
-<style>
-    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #e5e7eb; border-radius: 10px; }
-    .custom-scrollbar:hover::-webkit-scrollbar-thumb { background-color: #d1d5db; }
-</style>
-
 <script>
-  const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || '';
+(function () {
+  "use strict";
 
-  async function apiFetch(url, method, body) {
+  const API = {
+    createRole: "/admin/roles/create",
+    updateRole: (slug) => "/admin/roles/" + encodeURIComponent(slug) + "/update",
+    deleteRole: (slug) => "/admin/roles/" + encodeURIComponent(slug) + "/delete",
+    assignRole: "/admin/roles/assign",
+    revokeRole: "/admin/roles/revoke"
+  };
+
+  const state = {
+    editingSlug: null,
+    toastTimer: null
+  };
+
+  const $ = (selector, root = document) => root.querySelector(selector);
+  const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+
+  function csrfToken() {
+    return $('meta[name="csrf-token"]')?.getAttribute("content") || "";
+  }
+
+  function parseJson(value, fallback) {
     try {
-        const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
-        body: body ? JSON.stringify(body) : undefined,
-        });
-        return res.json();
-    } catch (e) {
-        return {success: false, message: "Lỗi kết nối máy chủ."};
+      return JSON.parse(value || "");
+    } catch (_) {
+      return fallback;
     }
   }
 
-  function openModal(id, contentId) {
-    const modal = document.getElementById(id);
-    const content = document.getElementById(contentId);
-    modal.classList.replace('hidden', 'flex');
-    void modal.offsetWidth; 
-    modal.classList.replace('opacity-0', 'opacity-100');
-    content.classList.replace('scale-95', 'scale-100');
+  function slugify(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/g, "d")
+      .replace(/Đ/g, "d")
+      .toLowerCase()
+      .replace(/[^a-z0-9_ -]+/g, "")
+      .trim()
+      .replace(/[\s-]+/g, "_")
+      .replace(/_+/g, "_")
+      .replace(/^_+|_+$/g, "");
   }
 
-  function closeModal(id, contentId) {
-    const modal = document.getElementById(id);
-    const content = document.getElementById(contentId);
-    modal.classList.replace('opacity-100', 'opacity-0');
-    content.classList.replace('scale-100', 'scale-95');
-    setTimeout(() => { modal.classList.replace('flex', 'hidden'); }, 300);
+  async function apiPost(url, payload) {
+    const headers = {
+      "Content-Type": "application/json"
+    };
+
+    const token = csrfToken();
+    if (token) {
+      headers["X-CSRFToken"] = token;
+      headers["X-CSRF-Token"] = token;
+    }
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload || {})
+    });
+
+    let data = {};
+    try {
+      data = await response.json();
+    } catch (_) {
+      data = {};
+    }
+
+    if (!response.ok && !data.message) {
+      data.message = "Lỗi máy chủ. Vui lòng thử lại.";
+    }
+
+    return data;
   }
 
-  // --- ROLE LOGIC ---
-  function openRoleModal() {
-    document.getElementById('roleModalTitle').textContent = 'Tạo vai trò mới';
-    document.getElementById('roleSlugOriginal').value = '';
-    const slugInput = document.getElementById('roleSlug');
-    slugInput.value = '';
-    slugInput.disabled = false;
-    document.getElementById('roleName').value = '';
-    toggleAllPerms(false);
-    openModal('roleModal', 'roleModalContent');
+  function showToast(message, isError) {
+    const toast = $("#rbacToast");
+    const text = $("#rbacToastText");
+    const icon = $("#rbacToastIcon");
+
+    if (!toast || !text || !icon) return;
+
+    text.textContent = message || "";
+    toast.classList.toggle("is-error", Boolean(isError));
+    icon.className = isError
+      ? "fa-solid fa-triangle-exclamation mt-0.5"
+      : "fa-solid fa-circle-check mt-0.5";
+
+    toast.classList.add("is-show");
+
+    clearTimeout(state.toastTimer);
+    state.toastTimer = setTimeout(() => {
+      toast.classList.remove("is-show");
+    }, 3200);
   }
 
-  function editRole(slug, name, permissions) {
-    document.getElementById('roleModalTitle').textContent = 'Chỉnh sửa vai trò';
-    document.getElementById('roleSlugOriginal').value = slug;
-    const slugInput = document.getElementById('roleSlug');
+ function liftModalToBody(id) {
+  const modal = document.getElementById(id);
+
+  if (!modal) return null;
+
+  if (modal.parentElement !== document.body) {
+    document.body.appendChild(modal);
+  }
+
+  return modal;
+}
+
+function liftFloatingUiToBody() {
+  ["modal-role", "modal-assign", "rbacToast"].forEach((id) => {
+    const el = document.getElementById(id);
+
+    if (el && el.parentElement !== document.body) {
+      document.body.appendChild(el);
+    }
+  });
+}
+
+function hasOpenModal() {
+  return Boolean(document.querySelector(".rbac-modal:not([hidden])"));
+}
+
+function lockModalPage() {
+  document.body.classList.add("rbac-modal-open");
+  document.documentElement.classList.add("rbac-modal-open");
+}
+
+function unlockModalPage() {
+  if (hasOpenModal()) return;
+
+  document.body.classList.remove("rbac-modal-open");
+  document.documentElement.classList.remove("rbac-modal-open");
+}
+
+function openModal(id) {
+  const modal = liftModalToBody(id);
+
+  if (!modal) return;
+
+  modal.hidden = false;
+  lockModalPage();
+
+  const firstInput = modal.querySelector("input:not([type='hidden']):not(:disabled), select:not(:disabled), button:not(:disabled)");
+  window.setTimeout(() => firstInput?.focus(), 60);
+}
+
+function closeModal(id) {
+  const modal = document.getElementById(id);
+
+  if (!modal) return;
+
+  modal.hidden = true;
+  unlockModalPage();
+}
+
+  function getCheckedPermissions() {
+    return $$('input[name="role_permissions"]:checked').map((input) => input.value);
+  }
+
+  function setCheckedPermissions(values) {
+    const selected = new Set(Array.isArray(values) ? values : []);
+
+    $$('input[name="role_permissions"]').forEach((input) => {
+      input.checked = selected.has(input.value);
+    });
+  }
+
+  function setAllPermissions(checked) {
+    $$('input[name="role_permissions"]').forEach((input) => {
+      input.checked = Boolean(checked);
+    });
+  }
+
+  function openCreateRole() {
+    state.editingSlug = null;
+
+    $("#modal-role-title").textContent = "Tạo vai trò mới";
+    $("#role-form-name").value = "";
+    $("#role-form-slug").value = "";
+    $("#role-form-slug").readOnly = false;
+    $("#role-slug-lock").hidden = true;
+    $("#btn-save-role").innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Tạo vai trò';
+
+    setAllPermissions(false);
+    openModal("modal-role");
+  }
+
+  function openEditRole(button) {
+    const slug = button.dataset.slug || "";
+    const name = button.dataset.name || "";
+    const permissions = parseJson(button.dataset.permissions, []);
+
+    state.editingSlug = slug;
+
+    $("#modal-role-title").textContent = "Chỉnh sửa vai trò";
+    $("#role-form-name").value = name;
+    $("#role-form-slug").value = slug;
+    $("#role-form-slug").readOnly = true;
+    $("#role-slug-lock").hidden = false;
+    $("#btn-save-role").innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Lưu thay đổi';
+
+    setCheckedPermissions(permissions);
+    openModal("modal-role");
+  }
+
+  async function submitRole() {
+    const saveBtn = $("#btn-save-role");
+    const nameInput = $("#role-form-name");
+    const slugInput = $("#role-form-slug");
+
+    const name = nameInput.value.trim();
+    const slug = slugify(slugInput.value);
+    const permissions = getCheckedPermissions();
+
     slugInput.value = slug;
-    slugInput.disabled = true; 
-    document.getElementById('roleName').value = name;
-    toggleAllPerms(false);
-    if(Array.isArray(permissions)){
-        document.querySelectorAll('.perm-checkbox').forEach(c => {
-            if (permissions.includes(c.value)) c.checked = true;
-        });
+
+    if (!name) {
+      showToast("Vui lòng nhập tên vai trò.", true);
+      nameInput.focus();
+      return;
     }
-    openModal('roleModal', 'roleModalContent');
-  }
 
-  function closeRoleModal() { closeModal('roleModal', 'roleModalContent'); }
+    if (!slug) {
+      showToast("Vui lòng nhập slug hợp lệ.", true);
+      slugInput.focus();
+      return;
+    }
 
-  function toggleAllPerms(state) {
-      document.querySelectorAll('.perm-checkbox').forEach(c => c.checked = state);
-  }
+    const oldHtml = saveBtn.innerHTML;
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Đang lưu...';
 
-  async function saveRole() {
-    const slugOrig = document.getElementById('roleSlugOriginal').value;
-    const slug = document.getElementById('roleSlug').value.trim();
-    const name = document.getElementById('roleName').value.trim();
-    const permissions = [...document.querySelectorAll('.perm-checkbox:checked')].map(c => c.value);
+    const url = state.editingSlug ? API.updateRole(state.editingSlug) : API.createRole;
+    const payload = { slug, name, permissions };
+    const data = await apiPost(url, payload);
 
-    if (!slug || !name) { showToast('Vui lòng nhập đầy đủ Slug và Tên hiển thị.', true); return; }
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = oldHtml;
 
-    const isEdit = !!slugOrig;
-    const url = isEdit ? `/admin/roles/${slugOrig}/update` : '/admin/roles/create';
-    const body = isEdit ? { name, permissions } : { slug, name, permissions };
-
-    const btn = event.currentTarget;
-    const oldText = btn.innerHTML;
-    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Đang xử lý...';
-    btn.disabled = true;
-
-    const data = await apiFetch(url, 'POST', body);
-    
     if (data.success) {
-      showToast(data.message);
-      setTimeout(() => location.reload(), 1000);
+      showToast(data.message || "Đã lưu vai trò.");
+      window.setTimeout(() => window.location.reload(), 800);
     } else {
-      showToast(data.message, true);
-      btn.innerHTML = oldText;
-      btn.disabled = false;
+      showToast(data.message || "Không thể lưu vai trò.", true);
     }
   }
 
-  async function deleteRole(slug, name) {
-    if (!confirm(`CẢNH BÁO: Bạn có chắc chắn muốn xoá vai trò "${name}"?\nTất cả nhân viên đang dùng vai trò này sẽ bị hạ cấp về khách hàng.`)) return;
-    const data = await apiFetch(`/admin/roles/${slug}/delete`, 'POST', {});
+  async function deleteRole(button) {
+    const slug = button.dataset.slug || "";
+    const name = button.dataset.name || slug;
+
+    if (!slug) return;
+
+    const ok = window.confirm(
+      'Bạn có chắc muốn xóa vai trò "' + name + '"?\n\nNhân sự đang dùng vai trò này có thể bị mất quyền.'
+    );
+
+    if (!ok) return;
+
+    const data = await apiPost(API.deleteRole(slug), {});
+
     if (data.success) {
-        showToast(data.message);
-        setTimeout(() => location.reload(), 1000);
-    } else { showToast(data.message, true); }
-  }
-
-  // --- ASSIGN & REVOKE LOGIC ---
-  function openAddStaffModal() {
-    document.getElementById('assignModalTitle').textContent = "Thêm nhân sự mới";
-    document.getElementById('assignUserId').value = "";
-    
-    const emailInput = document.getElementById('assignUserEmail');
-    emailInput.value = "";
-    emailInput.disabled = false; // MỞ KHÓA CHO PHÉP NHẬP EMAIL
-    document.getElementById('assignUserHint').classList.remove('hidden');
-
-    document.getElementById('assignRoleSlug').value = "";
-    openModal('assignModal', 'assignModalContent');
-  }
-
-  function changeUserRole(userId, email, currentSlug) {
-    document.getElementById('assignModalTitle').textContent = "Đổi quyền nhân sự";
-    document.getElementById('assignUserId').value = userId;
-    
-    const emailInput = document.getElementById('assignUserEmail');
-    emailInput.value = email;
-    emailInput.disabled = true; // KHÓA EMAIL VÌ ĐANG SỬA
-    document.getElementById('assignUserHint').classList.add('hidden');
-
-    document.getElementById('assignRoleSlug').value = currentSlug || "";
-    openModal('assignModal', 'assignModalContent');
-  }
-
-  function closeAssignModal() { closeModal('assignModal', 'assignModalContent'); }
-
-  async function confirmAssign() {
-    const userId = document.getElementById('assignUserId').value;
-    const email = document.getElementById('assignUserEmail').value.trim();
-    const slug = document.getElementById('assignRoleSlug').value;
-    
-    if (!email) { showToast('Vui lòng nhập Email.', true); return; }
-    if (!slug) { showToast('Vui lòng chọn một vai trò để gán.', true); return; }
-
-    const btn = event.currentTarget;
-    const oldText = btn.innerHTML;
-    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Đang xử lý...';
-    btn.disabled = true;
-
-    // Gửi đi cả user_id và email, Backend sẽ tự xử lý
-    const data = await apiFetch(`/admin/roles/assign`, 'POST', { user_id: userId, email: email, role_slug: slug });
-    
-    if (data.success) {
-      showToast(data.message);
-      setTimeout(() => location.reload(), 1000);
+      showToast(data.message || "Đã xóa vai trò.");
+      window.setTimeout(() => window.location.reload(), 800);
     } else {
-      showToast(data.message, true);
-      btn.innerHTML = oldText;
-      btn.disabled = false;
+      showToast(data.message || "Không thể xóa vai trò.", true);
     }
   }
 
-  async function revokeUser(userId, email) {
-    if (!confirm(`Bạn có chắc chắn muốn thu hồi toàn bộ quyền nhân viên của tài khoản "${email}"?\nTài khoản này sẽ trở thành khách hàng bình thường.`)) return;
-    
-    const data = await apiFetch(`/admin/roles/revoke`, 'POST', { user_id: userId });
-    
+  function openAssignNew() {
+    $("#modal-assign-title").textContent = "Gán quyền cho nhân sự";
+    $("#assign-user-id").value = "";
+    $("#assign-user-email").value = "";
+    $("#assign-user-email").disabled = false;
+    $("#assign-user-name").textContent = "Nhân sự mới";
+    $("#assign-current-role").textContent = "Chưa có";
+    $("#assign-role-slug").value = "";
+
+    $("#assign-email-help").hidden = false;
+
+    openModal("modal-assign");
+  }
+
+  function openAssignExisting(button) {
+    const userId = button.dataset.userId || "";
+    const email = button.dataset.email || "";
+    const name = button.dataset.name || email;
+    const currentSlug = button.dataset.currentSlug || "";
+
+    $("#modal-assign-title").textContent = "Đổi quyền nhân sự";
+    $("#assign-user-id").value = userId;
+    $("#assign-user-email").value = email;
+    $("#assign-user-email").disabled = true;
+    $("#assign-user-name").textContent = name;
+    $("#assign-current-role").textContent = currentSlug || "Chưa gán";
+    $("#assign-role-slug").value = currentSlug;
+
+    $("#assign-email-help").hidden = true;
+
+    openModal("modal-assign");
+  }
+
+  async function submitAssign() {
+    const saveBtn = $("#btn-save-assign");
+    const userId = $("#assign-user-id").value.trim();
+    const email = $("#assign-user-email").value.trim();
+    const roleSlug = $("#assign-role-slug").value.trim();
+
+    if (!email && !userId) {
+      showToast("Vui lòng nhập email nhân sự.", true);
+      $("#assign-user-email").focus();
+      return;
+    }
+
+    if (!roleSlug) {
+      showToast("Vui lòng chọn vai trò cần gán.", true);
+      $("#assign-role-slug").focus();
+      return;
+    }
+
+    const oldHtml = saveBtn.innerHTML;
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Đang gán...';
+
+    const data = await apiPost(API.assignRole, {
+      user_id: userId,
+      email: email,
+      role_slug: roleSlug
+    });
+
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = oldHtml;
+
     if (data.success) {
-      showToast(data.message);
-      setTimeout(() => location.reload(), 1000);
+      showToast(data.message || "Đã gán quyền.");
+      window.setTimeout(() => window.location.reload(), 800);
     } else {
-      showToast(data.message, true);
+      showToast(data.message || "Không thể gán quyền.", true);
     }
   }
+
+  async function revokeUser(button) {
+    const userId = button.dataset.userId || "";
+    const email = button.dataset.email || "";
+
+    if (!userId) return;
+
+    const ok = window.confirm(
+      'Bạn có chắc muốn thu hồi toàn bộ quyền quản trị của "' + email + '"?\n\nTài khoản sẽ trở về khách hàng thường.'
+    );
+
+    if (!ok) return;
+
+    const data = await apiPost(API.revokeRole, { user_id: userId });
+
+    if (data.success) {
+      showToast(data.message || "Đã thu hồi quyền.");
+      window.setTimeout(() => window.location.reload(), 800);
+    } else {
+      showToast(data.message || "Không thể thu hồi quyền.", true);
+    }
+  }
+
+  function filterRoles() {
+    const keyword = ($("#roleSearch")?.value || "").trim().toLowerCase();
+
+    $$("[data-role-card]").forEach((card) => {
+      const haystack = card.dataset.search || "";
+      card.style.display = haystack.includes(keyword) ? "" : "none";
+    });
+  }
+
+  function bindEvents() {
+    document.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-action]");
+      if (!button) return;
+
+      const action = button.dataset.action;
+
+      if (action === "open-create-role") openCreateRole();
+      if (action === "open-edit-role") openEditRole(button);
+      if (action === "delete-role") deleteRole(button);
+      if (action === "open-assign-new") openAssignNew();
+      if (action === "open-assign-existing") openAssignExisting(button);
+      if (action === "revoke-user") revokeUser(button);
+      if (action === "close-role") closeModal("modal-role");
+      if (action === "close-assign") closeModal("modal-assign");
+      if (action === "submit-role") submitRole();
+      if (action === "submit-assign") submitAssign();
+      if (action === "check-all-permissions") setAllPermissions(true);
+      if (action === "uncheck-all-permissions") setAllPermissions(false);
+      if (action === "scroll-guide") {
+        $("#rbacGuide")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      closeModal("modal-role");
+      closeModal("modal-assign");
+    });
+
+    $("#roleSearch")?.addEventListener("input", filterRoles);
+
+    $("#role-form-name")?.addEventListener("input", () => {
+      if (state.editingSlug) return;
+      const slugInput = $("#role-form-slug");
+      if (!slugInput.dataset.touched) {
+        slugInput.value = slugify($("#role-form-name").value);
+      }
+    });
+
+    $("#role-form-slug")?.addEventListener("input", () => {
+      $("#role-form-slug").dataset.touched = "1";
+      $("#role-form-slug").value = slugify($("#role-form-slug").value);
+    });
+
+  $$(".rbac-modal").forEach((modal) => {
+    modal.addEventListener("click", (event) => {
+        if (event.target !== modal) return;
+
+        modal.hidden = true;
+        unlockModalPage();
+    });
+    });
+  }
+
+document.addEventListener("DOMContentLoaded", function () {
+  liftFloatingUiToBody();
+  bindEvents();
+});
+})();
 </script>
 {% endblock %}

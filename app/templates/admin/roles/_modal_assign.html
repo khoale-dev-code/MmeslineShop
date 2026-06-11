@@ -1,91 +1,92 @@
-{# ════════════════════════════════════════════════════════════════
-   _modal_assign.html
-   Modal gán role cho một nhân viên cụ thể.
-   Được mở qua nút "Đổi role" trong bảng staff.
-   ════════════════════════════════════════════════════════════════ #}
+{# app/templates/admin/roles/_modal_assign.html #}
 
-<div id="modal-assign" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modal-assign-title">
-  <div class="modal-box" style="max-width: 440px;">
+<div id="modal-assign" class="rbac-modal" role="dialog" aria-modal="true" aria-labelledby="modal-assign-title" hidden>
+  <div class="rbac-modal-box" style="width: min(520px, 100%);">
 
-    {# ── Header ── #}
-    <div class="flex items-center justify-between px-6 py-4 border-b border-line shrink-0">
+    <div class="rbac-modal-head">
       <div class="flex items-center gap-3">
-        <div class="w-8 h-8 bg-ink text-paper rounded-md flex items-center justify-center text-sm">
-          <i class="fa-solid fa-user-tag fa-xs"></i>
+        <div class="w-11 h-11 rounded-2xl flex items-center justify-center text-white"
+             style="background: var(--mm-brown-900, #3b2414);">
+          <i class="fa-solid fa-user-tag"></i>
         </div>
-        <h2 id="modal-assign-title" class="text-[15px] font-bold text-ink">Gán nhóm quyền</h2>
+        <div>
+          <p class="rbac-kicker" style="font-size: 9px;">Assign access</p>
+          <h2 id="modal-assign-title" class="m-0 text-lg font-black tracking-[-0.03em]">
+            Gán quyền cho nhân sự
+          </h2>
+        </div>
       </div>
-      <button onclick="RolesUI.closeAssign()"
-        class="w-8 h-8 flex items-center justify-center rounded-md text-muted hover:text-ink hover:bg-paper transition-colors">
+
+      <button type="button" class="rbac-icon-btn" data-action="close-assign" aria-label="Đóng">
         <i class="fa-solid fa-xmark"></i>
       </button>
     </div>
 
-    {# ── Body ── #}
-    <div class="p-6">
-
-      {# Hidden: user_id #}
+    <div class="rbac-modal-body">
       <input type="hidden" id="assign-user-id">
 
-      {# Thông tin nhân viên #}
-      <div class="flex items-center gap-3 p-4 bg-paper rounded-lg border border-line mb-5">
-        <div class="w-10 h-10 bg-stone-200 text-stone-700 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0">
-          <i class="fa-solid fa-user"></i>
-        </div>
-        <div>
-          <p id="assign-user-name" class="text-[14px] font-bold text-ink"></p>
-          <p class="text-[11px] text-muted mt-0.5">
-            Role hiện tại:
-            <span id="assign-current-role" class="font-mono font-bold text-ink"></span>
-          </p>
+      <div class="rbac-card p-4 mb-4" style="box-shadow:none;">
+        <div class="rbac-user">
+          <div class="rbac-avatar">
+            <i class="fa-solid fa-user"></i>
+          </div>
+          <div>
+            <div id="assign-user-name" class="rbac-user-name">Nhân sự mới</div>
+            <div class="rbac-user-email">
+              Vai trò hiện tại:
+              <span id="assign-current-role" class="font-mono font-black">Chưa có</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {# Select role #}
-      <div class="mb-6">
-        <label for="assign-role-select"
-               class="block text-[10px] font-bold text-muted uppercase tracking-[0.15em] mb-2">
-          Nhóm quyền mới <span class="text-red-500">*</span>
+      <div class="rbac-field">
+        <label for="assign-user-email" class="rbac-label">
+          Email tài khoản <span class="text-red-600">*</span>
         </label>
-        <select
-          id="assign-role-select"
-          class="w-full bg-paper border border-line text-ink text-sm px-4 py-2.5
-                 rounded-md focus:outline-none focus:border-ink/40 focus:bg-white
-                 transition-colors appearance-none cursor-pointer">
-          {# Populated by JS: RolesUI.openAssign() #}
+        <input
+          id="assign-user-email"
+          type="email"
+          class="rbac-input"
+          placeholder="nhanvien@example.com"
+          autocomplete="off"
+        >
+        <p id="assign-email-help" class="rbac-help">
+          Nhập email tài khoản đã đăng ký. Hệ thống sẽ tìm user theo email để gán quyền.
+        </p>
+      </div>
+
+      <div class="rbac-field">
+        <label for="assign-role-slug" class="rbac-label">
+          Vai trò cần gán <span class="text-red-600">*</span>
+        </label>
+        <select id="assign-role-slug" class="rbac-select">
+          <option value="">-- Chọn vai trò --</option>
+          {% for role in roles %}
+            {% if role.slug not in protected_roles %}
+              <option value="{{ role.slug }}">{{ role.name }} — {{ role.slug }}</option>
+            {% endif %}
+          {% endfor %}
         </select>
-        <p class="text-[10px] text-muted mt-1.5">
-          <i class="fa-solid fa-circle-info fa-xs mr-1"></i>
-          Thay đổi sẽ có hiệu lực ngay khi nhân viên tải lại trang.
-        </p>
+        <p class="rbac-help">Sau khi lưu, nhân sự nên tải lại trang hoặc đăng nhập lại để nhận quyền mới.</p>
       </div>
 
-      {# Warning #}
-      <div class="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-1">
-        <i class="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5 text-sm shrink-0"></i>
-        <p class="text-[11px] text-amber-800 leading-relaxed">
-          Việc thay đổi role sẽ ảnh hưởng ngay đến quyền truy cập của nhân viên này.
-          Đảm bảo bạn chọn đúng nhóm quyền phù hợp.
+      <div class="flex items-start gap-3 rounded-2xl border p-4"
+           style="background:#fffbeb;border-color:#fde68a;color:#92400e;">
+        <i class="fa-solid fa-triangle-exclamation mt-0.5"></i>
+        <p class="m-0 text-xs leading-relaxed font-bold">
+          Hãy kiểm tra đúng email và đúng vai trò trước khi lưu. Việc gán sai quyền có thể làm nhân sự truy cập nhầm chức năng quản trị.
         </p>
       </div>
-
     </div>
 
-    {# ── Footer ── #}
-    <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-line shrink-0">
-      <button
-        onclick="RolesUI.closeAssign()"
-        class="px-5 py-2 text-[11px] font-bold uppercase tracking-wider
-               border border-line rounded-md text-muted hover:text-ink transition-colors">
+    <div class="rbac-modal-foot">
+      <button type="button" class="rbac-btn rbac-btn-soft" data-action="close-assign">
         Hủy
       </button>
-      <button
-        id="btn-save-assign"
-        onclick="RolesUI.submitAssign()"
-        class="px-6 py-2 text-[11px] font-bold uppercase tracking-wider
-               bg-ink text-paper rounded-md hover:bg-warm transition-colors
-               disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
-        Lưu thay đổi
+      <button type="button" id="btn-save-assign" class="rbac-btn rbac-btn-primary" data-action="submit-assign">
+        <i class="fa-solid fa-floppy-disk"></i>
+        Lưu phân quyền
       </button>
     </div>
 

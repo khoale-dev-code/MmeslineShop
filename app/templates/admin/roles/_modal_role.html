@@ -1,111 +1,116 @@
-{# ════════════════════════════════════════════════════════════════
-   _modal_role.html
-   Modal tạo mới / chỉnh sửa nhóm quyền.
-   Dùng chung cho cả CREATE và EDIT (phân biệt qua data-mode).
-   ════════════════════════════════════════════════════════════════ #}
+{# app/templates/admin/roles/_modal_role.html #}
 
-<div id="modal-role" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modal-role-title">
-  <div class="modal-box">
+<div id="modal-role" class="rbac-modal" role="dialog" aria-modal="true" aria-labelledby="modal-role-title" hidden>
+  <div class="rbac-modal-box">
 
-    {# ── Header ── #}
-    <div class="flex items-center justify-between px-6 py-4 border-b border-line shrink-0">
+    <div class="rbac-modal-head">
       <div class="flex items-center gap-3">
-        <div class="w-8 h-8 bg-ink text-paper rounded-md flex items-center justify-center text-sm">
-          <i class="fa-solid fa-user-shield fa-xs"></i>
+        <div class="w-11 h-11 rounded-2xl flex items-center justify-center text-white"
+             style="background: var(--mm-brown-900, #3b2414);">
+          <i class="fa-solid fa-user-shield"></i>
         </div>
-        <h2 id="modal-role-title" class="text-[15px] font-bold text-ink">Tạo nhóm quyền mới</h2>
+        <div>
+          <p class="rbac-kicker" style="font-size: 9px;">Role editor</p>
+          <h2 id="modal-role-title" class="m-0 text-lg font-black tracking-[-0.03em]">
+            Tạo vai trò mới
+          </h2>
+        </div>
       </div>
-      <button onclick="RolesUI.closeRole()"
-        class="w-8 h-8 flex items-center justify-center rounded-md text-muted hover:text-ink hover:bg-paper transition-colors">
+
+      <button type="button" class="rbac-icon-btn" data-action="close-role" aria-label="Đóng">
         <i class="fa-solid fa-xmark"></i>
       </button>
     </div>
 
-    {# ── Body ── #}
-    <div class="modal-body">
-
-      {# Tên nhóm quyền #}
-      <div class="mb-5">
-        <label for="role-form-name"
-               class="block text-[10px] font-bold text-muted uppercase tracking-[0.15em] mb-2">
-          Tên nhóm quyền <span class="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          id="role-form-name"
-          autocomplete="off"
-          placeholder="Ví dụ: Nhân viên kinh doanh"
-          class="w-full bg-paper border border-line text-ink text-sm px-4 py-2.5
-                 rounded-md focus:outline-none focus:border-ink/40 focus:bg-white
-                 transition-colors placeholder-muted">
-      </div>
-
-      {# Slug #}
-      <div class="mb-6">
-        <label for="role-form-slug"
-               class="block text-[10px] font-bold text-muted uppercase tracking-[0.15em] mb-2">
-          Slug (định danh)
-          <i id="slug-lock-icon" class="fa-solid fa-lock text-muted ml-1" style="display:none;" title="Slug không thể thay đổi sau khi tạo"></i>
-          <span class="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          id="role-form-slug"
-          autocomplete="off"
-          placeholder="Ví dụ: sales_staff"
-          class="w-full bg-paper border border-line text-ink text-sm px-4 py-2.5
-                 rounded-md focus:outline-none focus:border-ink/40 focus:bg-white
-                 transition-colors placeholder-muted font-mono read-only:bg-stone-100
-                 read-only:text-muted read-only:cursor-not-allowed">
-        <p class="text-[10px] text-muted mt-1.5">
-          Chỉ dùng chữ thường, số, dấu gạch dưới. Không thể thay đổi sau khi tạo.
-        </p>
-      </div>
-
-      {# Permissions #}
-      <div>
-        <div class="flex items-center justify-between mb-3">
-          <label class="text-[10px] font-bold text-muted uppercase tracking-[0.15em]">
-            Danh sách quyền hạn
+    <div class="rbac-modal-body">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="rbac-field">
+          <label for="role-form-name" class="rbac-label">
+            Tên vai trò <span class="text-red-600">*</span>
           </label>
-          <div class="flex items-center gap-3">
-            <button type="button"
-              onclick="document.querySelectorAll('#perm-grid-container input[type=checkbox]').forEach(el=>el.checked=true)"
-              class="text-[10px] font-bold text-ink underline underline-offset-2 hover:text-warm transition-colors">
-              Chọn tất cả
-            </button>
-            <span class="text-muted text-[10px]">·</span>
-            <button type="button"
-              onclick="document.querySelectorAll('#perm-grid-container input[type=checkbox]').forEach(el=>el.checked=false)"
-              class="text-[10px] font-bold text-muted underline underline-offset-2 hover:text-ink transition-colors">
-              Bỏ chọn
-            </button>
-          </div>
+          <input
+            id="role-form-name"
+            type="text"
+            class="rbac-input"
+            placeholder="Ví dụ: Nhân viên kho"
+            autocomplete="off"
+          >
+          <p class="rbac-help">Tên hiển thị trong trang quản trị, nên viết dễ hiểu cho người dùng.</p>
         </div>
 
-        {# Grid permissions được build bởi JS #}
-        <div id="perm-grid-container"
-             class="max-h-[340px] overflow-y-auto pr-1 space-y-0 no-scrollbar">
-          {# JS: RolesUI → buildPermGrid() #}
+        <div class="rbac-field">
+          <label for="role-form-slug" class="rbac-label">
+            Slug định danh <span class="text-red-600">*</span>
+            <span id="role-slug-lock" hidden>
+              <i class="fa-solid fa-lock ml-1"></i>
+            </span>
+          </label>
+          <input
+            id="role-form-slug"
+            type="text"
+            class="rbac-input"
+            placeholder="Ví dụ: warehouse_staff"
+            autocomplete="off"
+          >
+          <p class="rbac-help">Chỉ dùng chữ thường, số và dấu gạch dưới. Khi sửa role, slug sẽ bị khóa.</p>
         </div>
       </div>
 
-    </div>{# /modal-body #}
+      <div class="mt-2 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h3 class="m-0 text-base font-black tracking-[-0.02em]">Danh sách quyền</h3>
+          <p class="rbac-help">Chọn những quyền mà vai trò này được phép sử dụng.</p>
+        </div>
 
-    {# ── Footer ── #}
-    <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-line shrink-0">
-      <button
-        onclick="RolesUI.closeRole()"
-        class="px-5 py-2 text-[11px] font-bold uppercase tracking-wider
-               border border-line rounded-md text-muted hover:text-ink transition-colors">
+        <div class="flex items-center gap-2">
+          <button type="button" class="rbac-btn rbac-btn-soft" data-action="check-all-permissions">
+            <i class="fa-solid fa-check-double"></i>
+            Chọn tất cả
+          </button>
+          <button type="button" class="rbac-btn rbac-btn-soft" data-action="uncheck-all-permissions">
+            <i class="fa-solid fa-eraser"></i>
+            Bỏ chọn
+          </button>
+        </div>
+      </div>
+
+      <div>
+        {% for group_name, permissions in available_permissions.items() %}
+          <section class="rbac-perm-group">
+            <div class="rbac-perm-group-head">
+              <strong>{{ group_name }}</strong>
+              <span class="rbac-badge rbac-badge-muted">{{ permissions|length }} quyền</span>
+            </div>
+
+            <div class="rbac-perm-list">
+              {% for perm in permissions %}
+                <label class="rbac-perm-item">
+                  <input
+                    type="checkbox"
+                    name="role_permissions"
+                    value="{{ perm.code }}"
+                  >
+                  <span>
+                    {% if perm.icon %}
+                      <i class="fa-solid {{ perm.icon }} mr-1.5" style="color: var(--mm-caramel, #b98b62);"></i>
+                    {% endif %}
+                    {{ perm.name }}
+                    <small>{{ perm.code }}</small>
+                  </span>
+                </label>
+              {% endfor %}
+            </div>
+          </section>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="rbac-modal-foot">
+      <button type="button" class="rbac-btn rbac-btn-soft" data-action="close-role">
         Hủy
       </button>
-      <button
-        id="btn-save-role"
-        onclick="RolesUI.submitRole()"
-        class="px-6 py-2 text-[11px] font-bold uppercase tracking-wider
-               bg-ink text-paper rounded-md hover:bg-warm transition-colors
-               disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+      <button type="button" id="btn-save-role" class="rbac-btn rbac-btn-primary" data-action="submit-role">
+        <i class="fa-solid fa-floppy-disk"></i>
         Lưu thay đổi
       </button>
     </div>
