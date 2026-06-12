@@ -10,6 +10,7 @@ Controller xác thực cho GUAMAISON / Fashion Store.
 - Chống cache trang /auth/* để tránh browser dùng form login cũ.
 - Đồng bộ session user_name/full_name để profile/navbar không hiện None.
 - Chuẩn hóa tên người dùng khi register/login.
+- Fix forgot password gọi đúng send_password_reset_email(recipient_email, recipient_name, reset_link).
 - Có đủ route:
   /auth/login
   /auth/logout
@@ -317,6 +318,70 @@ def _change_password(email: str, new_password: str) -> bool:
     return False
 
 
+def _build_recipient_name(user: dict | None, email: str) -> str:
+    if not user:
+        return email.split("@")[0] if email else "Quý khách"
+
+    return (
+        _clean_name(user.get("full_name"))
+        or _clean_name(user.get("name"))
+        or _clean_name(user.get("username"))
+        or (email.split("@")[0] if email else "")
+        or "Quý khách"
+    )
+
+
+def _send_password_reset_email_safe(email: str, user: dict, reset_url: str) -> bool:
+    """
+    Gửi email reset password an toàn.
+
+    email_service.py hiện tại dùng signature:
+        send_password_reset_email(recipient_email, recipient_name, reset_link)
+
+    Hàm này gọi đúng signature bằng keyword để tránh lỗi:
+        TypeError: missing 1 required positional argument: 'reset_link'
+    """
+    if not send_password_reset_email:
+        logger.warning(
+            "[FORGOT PASSWORD WARNING] Chưa có send_password_reset_email. Reset URL: %s",
+            reset_url,
+        )
+        return False
+
+    recipient_name = _build_recipient_name(user, email)
+
+    try:
+        sent = send_password_reset_email(
+            recipient_email=email,
+            recipient_name=recipient_name,
+            reset_link=reset_url,
+        )
+
+        if sent:
+            logger.info("[FORGOT PASSWORD SUCCESS] Đã gửi mail reset tới: %s", email)
+            return True
+
+        logger.warning("[FORGOT PASSWORD WARNING] Không gửi được mail reset tới: %s", email)
+        return False
+
+    except TypeError as e:
+        logger.error(
+            "[FORGOT PASSWORD TYPE ERROR] Hàm send_password_reset_email sai signature hoặc gọi sai tham số: %s",
+            e,
+            exc_info=True,
+        )
+        return False
+
+    except Exception as e:
+        logger.error(
+            "[FORGOT PASSWORD EMAIL ERROR] Lỗi gửi reset email tới %s: %s",
+            email,
+            e,
+            exc_info=True,
+        )
+        return False
+
+
 def _redirect_for_user(user: dict):
     next_url = _safe_next_url()
     if next_url:
@@ -540,22 +605,22 @@ def forgot_password():
                 token = serializer.dumps(email, salt="password-reset-salt")
                 reset_url = url_for("auth.reset_password", token=token, _external=True)
 
-                if send_password_reset_email:
-                    send_password_reset_email(email, reset_url)
-                    logger.info("[FORGOT PASSWORD SUCCESS] Đã gửi mail reset tới: %s", email)
-                else:
-                    logger.warning(
-                        "[FORGOT PASSWORD WARNING] Chưa có send_password_reset_email. Reset URL: %s",
-                        reset_url,
-                    )
+                _send_password_reset_email_safe(
+                    email=email,
+                    user=user,
+                    reset_url=reset_url,
+                )
 
             except Exception as e:
                 logger.error(
-                    "[FORGOT PASSWORD CRASH] Lỗi gửi reset email tới %s: %s",
+                    "[FORGOT PASSWORD CRASH] Lỗi xử lý reset password tới %s: %s",
                     email,
                     e,
                     exc_info=True,
                 )
+        else:
+            # Không báo cho người dùng biết email có tồn tại hay không để tránh dò tài khoản.
+            logger.info("[FORGOT PASSWORD] Email không tồn tại hoặc không tìm thấy user: %s", email)
 
         flash(
             "Nếu tài khoản email tồn tại, hệ thống đã gửi đường liên kết đặt lại mật khẩu. Vui lòng kiểm tra hộp thư.",
