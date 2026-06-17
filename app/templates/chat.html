@@ -3,21 +3,21 @@
   ===================
   GUAMAISON AI Chat Widget
 
-  Fix chính:
+  UI update:
+  - Tone mới: #010101 + #fef9ed.
+  - Layout gọn, cao cấp hơn.
+  - Giữ nguyên logic JS /api/bot.
   - Khi chat đóng: wrapper không bắt click, chỉ nút FAB bắt click.
-  - .mm-chat-window.hidden luôn display:none !important để không đè UI mobile.
-  - Khi chat mở: body thêm class mm-chat-open.
-  - Ở mobile/detail: FAB nâng lên khỏi vùng nút thêm giỏ hàng.
-  - Không auto-call /api/bot khi load trang.
+  - .mm-chat-window.hidden luôn display:none !important.
+  - Mobile không che nút thêm giỏ hàng.
 #}
 
 <div
   id="gua-ai-chat"
-  class="mm-chat-widget fixed z-[160] font-sans"
+  class="mm-chat-widget fixed z-[99999] font-sans"
   data-lenis-prevent
   data-chat-widget
 >
-  {# ───────────────── CHAT WINDOW ───────────────── #}
   <div
     id="chatbot-window"
     class="mm-chat-window hidden"
@@ -29,7 +29,7 @@
     <div class="mm-chat-header" data-chat-header>
       <div class="mm-chat-header-left">
         <div class="mm-chat-avatar">
-          <i class="fa-solid fa-sparkles"></i>
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
         </div>
 
         <div class="min-w-0">
@@ -103,7 +103,6 @@
     </div>
   </div>
 
-  {# ───────────────── FLOAT BUTTON ───────────────── #}
   <button
     type="button"
     id="bot-toggle-btn"
@@ -132,17 +131,18 @@
 
 <style>
   #gua-ai-chat {
-    --chat-green: #1b4922;
-    --chat-green-dark: #123418;
-    --chat-gold: #c99e14;
-    --chat-gold-soft: rgba(201, 158, 20, .16);
-    --chat-ink: #101510;
-    --chat-muted: #687466;
-    --chat-line: rgba(27, 73, 34, .14);
-    --chat-soft: #f7f9f2;
-    --chat-cream: #fbfaf4;
-    --chat-radius: 14px;
-    --chat-radius-sm: 8px;
+    --chat-black: #010101;
+    --chat-cream: #fef9ed;
+    --chat-cream-soft: rgba(254, 249, 237, .72);
+    --chat-cream-muted: rgba(254, 249, 237, .52);
+    --chat-cream-line: rgba(254, 249, 237, .16);
+    --chat-cream-faint: rgba(254, 249, 237, .08);
+    --chat-ink-soft: #111111;
+    --chat-gray: #e9e2d3;
+    --chat-danger: #ef4444;
+    --chat-success: #22c55e;
+    --chat-radius: 22px;
+    --chat-radius-sm: 14px;
     --chat-ease: cubic-bezier(.16, 1, .3, 1);
 
     right: 1rem;
@@ -154,15 +154,12 @@
     pointer-events: none;
   }
 
-  #gua-ai-chat * {
+  #gua-ai-chat *,
+  #gua-ai-chat *::before,
+  #gua-ai-chat *::after {
     box-sizing: border-box;
   }
 
-  /*
-    FIX TẬN GỐC:
-    CSS cũ .mm-chat-window display:flex có thể ghi đè .hidden.
-    Dòng này bắt buộc để chat đóng không còn tồn tại trên UI và không bắt pointer.
-  */
   .mm-chat-window.hidden {
     display: none !important;
     visibility: hidden !important;
@@ -171,22 +168,24 @@
   }
 
   .mm-chat-window {
-    width: min(400px, calc(100vw - 32px));
-    height: min(570px, calc(100dvh - 112px));
-    max-height: 570px;
+    width: min(410px, calc(100vw - 32px));
+    height: min(590px, calc(100dvh - 112px));
+    max-height: 590px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    border: 1px solid rgba(27, 73, 34, .2);
+    border: 1px solid var(--chat-cream-line);
     border-radius: var(--chat-radius);
     background:
-      radial-gradient(circle at 92% 0%, rgba(201, 158, 20, .12), transparent 34%),
-      linear-gradient(180deg, #fff 0%, var(--chat-cream) 100%);
+      radial-gradient(circle at 18% 0%, rgba(254,249,237,.12), transparent 30%),
+      radial-gradient(circle at 100% 20%, rgba(254,249,237,.08), transparent 30%),
+      linear-gradient(180deg, #010101 0%, #080808 100%);
+    color: var(--chat-cream);
     box-shadow:
-      0 28px 80px -44px rgba(18, 52, 24, .48),
-      0 10px 26px -22px rgba(0, 0, 0, .45);
+      0 34px 90px -52px rgba(1, 1, 1, .95),
+      0 18px 46px -36px rgba(1, 1, 1, .85);
     transform-origin: bottom right;
-    transform: translate3d(0, 10px, 0) scale(.96);
+    transform: translate3d(0, 12px, 0) scale(.96);
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
@@ -196,6 +195,21 @@
       visibility .24s var(--chat-ease);
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
+    isolation: isolate;
+  }
+
+  .mm-chat-window::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    opacity: .28;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(254,249,237,.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(254,249,237,.055) 1px, transparent 1px);
+    background-size: 32px 32px;
+    mask-image: linear-gradient(to bottom, black, transparent 86%);
   }
 
   .mm-chat-window.is-open {
@@ -206,53 +220,58 @@
   }
 
   .mm-chat-header {
-    min-height: 74px;
+    position: relative;
+    z-index: 2;
+    min-height: 78px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
     padding: 1rem;
+    border-bottom: 1px solid var(--chat-cream-line);
     background:
-      linear-gradient(135deg, var(--chat-green) 0%, var(--chat-green-dark) 100%);
-    color: #fff;
-    border-bottom: 1px solid rgba(201, 158, 20, .28);
+      radial-gradient(circle at 16% 0%, rgba(254,249,237,.14), transparent 34%),
+      linear-gradient(135deg, #010101 0%, #111111 100%);
+    color: var(--chat-cream);
     flex-shrink: 0;
   }
 
   .mm-chat-header-left {
     display: flex;
     align-items: center;
-    gap: .8rem;
+    gap: .85rem;
     min-width: 0;
   }
 
   .mm-chat-avatar {
-    width: 40px;
-    height: 40px;
+    width: 42px;
+    height: 42px;
     display: grid;
     place-items: center;
-    border: 1px solid rgba(201, 158, 20, .38);
-    border-radius: 12px;
-    background: rgba(255, 255, 255, .1);
-    color: var(--chat-gold);
+    border: 1px solid rgba(254, 249, 237, .24);
+    border-radius: 15px;
+    background: rgba(254, 249, 237, .07);
+    color: var(--chat-cream);
     flex-shrink: 0;
+    box-shadow: inset 0 1px 0 rgba(254, 249, 237, .08);
   }
 
   .mm-chat-title {
-    color: #fff;
+    margin: 0;
+    color: var(--chat-cream);
     font-size: 12px;
     font-weight: 950;
     line-height: 1.1;
-    letter-spacing: .14em;
+    letter-spacing: .15em;
     text-transform: uppercase;
   }
 
   .mm-chat-status {
-    margin-top: .35rem;
+    margin-top: .38rem;
     display: flex;
     align-items: center;
-    gap: .42rem;
-    color: rgba(255, 255, 255, .66);
+    gap: .45rem;
+    color: var(--chat-cream-muted);
     font-size: 9px;
     font-weight: 850;
     letter-spacing: .12em;
@@ -263,8 +282,8 @@
     width: 6px;
     height: 6px;
     border-radius: 999px;
-    background: #22c55e;
-    box-shadow: 0 0 10px rgba(34, 197, 94, .9);
+    background: var(--chat-success);
+    box-shadow: 0 0 11px rgba(34, 197, 94, .95);
   }
 
   .mm-chat-close {
@@ -272,39 +291,45 @@
     height: 36px;
     display: grid;
     place-items: center;
-    border: 1px solid rgba(255, 255, 255, .12);
+    border: 1px solid var(--chat-cream-line);
     border-radius: 999px;
-    background: rgba(255, 255, 255, .08);
-    color: rgba(255, 255, 255, .72);
+    background: rgba(254, 249, 237, .055);
+    color: var(--chat-cream-soft);
     transition:
       background .18s ease,
       color .18s ease,
-      transform .18s ease;
+      transform .18s var(--chat-ease),
+      border-color .18s ease;
   }
 
   .mm-chat-close:hover {
-    background: rgba(255, 255, 255, .14);
-    color: #fff;
+    background: var(--chat-cream);
+    border-color: var(--chat-cream);
+    color: var(--chat-black);
     transform: translateY(-1px);
   }
 
   .mm-chat-strip {
-    padding: .72rem 1rem;
-    border-bottom: 1px solid var(--chat-line);
-    background: rgba(255, 255, 255, .55);
+    position: relative;
+    z-index: 2;
+    padding: .75rem 1rem;
+    border-bottom: 1px solid var(--chat-cream-line);
+    background: rgba(254, 249, 237, .055);
     flex-shrink: 0;
   }
 
   .mm-chat-strip p {
     margin: 0;
-    color: rgba(27, 73, 34, .7);
+    color: var(--chat-cream-muted);
     font-size: 9px;
     font-weight: 950;
-    letter-spacing: .18em;
+    letter-spacing: .17em;
     text-transform: uppercase;
   }
 
   .mm-chat-messages {
+    position: relative;
+    z-index: 2;
     flex: 1;
     min-height: 0;
     overflow-y: auto;
@@ -313,9 +338,10 @@
     flex-direction: column;
     gap: .95rem;
     background:
-      linear-gradient(180deg, rgba(255,255,255,.5), rgba(247,249,242,.6));
+      radial-gradient(circle at 50% 0%, rgba(254,249,237,.045), transparent 28%),
+      rgba(1, 1, 1, .35);
     scrollbar-width: thin;
-    scrollbar-color: rgba(27, 73, 34, .55) transparent;
+    scrollbar-color: rgba(254, 249, 237, .38) transparent;
     -webkit-overflow-scrolling: touch;
   }
 
@@ -328,7 +354,7 @@
   }
 
   .mm-chat-messages::-webkit-scrollbar-thumb {
-    background: rgba(27, 73, 34, .5);
+    background: rgba(254, 249, 237, .38);
     border-radius: 999px;
   }
 
@@ -351,9 +377,10 @@
     height: 30px;
     display: grid;
     place-items: center;
-    border-radius: 10px;
-    background: var(--chat-green);
-    color: #fff;
+    border: 1px solid var(--chat-cream-line);
+    border-radius: 11px;
+    background: var(--chat-cream);
+    color: var(--chat-black);
     font-size: 10px;
     font-weight: 950;
     flex-shrink: 0;
@@ -362,7 +389,7 @@
 
   .mm-bubble {
     max-width: 84%;
-    padding: .85rem .95rem;
+    padding: .88rem .96rem;
     border-radius: var(--chat-radius-sm);
     font-size: 13px;
     font-weight: 600;
@@ -370,49 +397,56 @@
     word-break: break-word;
   }
 
+  .mm-bubble p {
+    margin: 0;
+  }
+
   .mm-bubble strong {
-    color: var(--chat-green);
+    color: var(--chat-black);
     font-weight: 950;
   }
 
   .mm-bubble-ai {
-    border: 1px solid var(--chat-line);
-    background: rgba(255, 255, 255, .86);
-    color: var(--chat-ink);
+    border: 1px solid rgba(254, 249, 237, .18);
+    background: var(--chat-cream);
+    color: var(--chat-black);
+    box-shadow: 0 18px 42px -36px rgba(254, 249, 237, .38);
   }
 
   .mm-bubble-user {
-    border: 1px solid var(--chat-green);
-    background: var(--chat-green);
-    color: #fff;
+    border: 1px solid rgba(254, 249, 237, .22);
+    background: #111111;
+    color: var(--chat-cream);
   }
 
   .mm-chat-suggestions {
     display: flex;
     flex-wrap: wrap;
     gap: .45rem;
-    margin-top: .8rem;
+    margin-top: .85rem;
   }
 
   .mm-chat-suggestions button {
     min-height: 30px;
-    border: 1px solid rgba(27, 73, 34, .18);
+    border: 1px solid rgba(1, 1, 1, .14);
     border-radius: 999px;
-    background: var(--chat-soft);
-    color: var(--chat-green);
+    background: rgba(1, 1, 1, .05);
+    color: var(--chat-black);
     padding: 0 .72rem;
     font-size: 10px;
     font-weight: 850;
     transition:
       background .18s ease,
       color .18s ease,
-      border-color .18s ease;
+      border-color .18s ease,
+      transform .18s var(--chat-ease);
   }
 
   .mm-chat-suggestions button:hover {
-    background: var(--chat-green);
-    border-color: var(--chat-green);
-    color: #fff;
+    background: var(--chat-black);
+    border-color: var(--chat-black);
+    color: var(--chat-cream);
+    transform: translateY(-1px);
   }
 
   .mm-chat-typing {
@@ -422,16 +456,16 @@
     align-items: center;
     justify-content: center;
     gap: .28rem;
-    border: 1px solid var(--chat-line);
+    border: 1px solid rgba(254, 249, 237, .18);
     border-radius: var(--chat-radius-sm);
-    background: rgba(255, 255, 255, .86);
+    background: var(--chat-cream);
   }
 
   .mm-chat-typing span {
     width: 6px;
     height: 6px;
     border-radius: 999px;
-    background: rgba(27, 73, 34, .55);
+    background: rgba(1, 1, 1, .58);
     animation: mmTyping 1s infinite ease-in-out;
   }
 
@@ -456,9 +490,11 @@
   }
 
   .mm-chat-input-wrap {
+    position: relative;
+    z-index: 2;
     padding: .85rem;
-    border-top: 1px solid var(--chat-line);
-    background: rgba(255, 255, 255, .82);
+    border-top: 1px solid var(--chat-cream-line);
+    background: rgba(1, 1, 1, .72);
     flex-shrink: 0;
   }
 
@@ -466,20 +502,22 @@
     display: flex;
     align-items: center;
     gap: .55rem;
-    border: 1px solid rgba(27, 73, 34, .22);
-    border-radius: 12px;
-    background: #fff;
+    border: 1px solid rgba(254, 249, 237, .22);
+    border-radius: 15px;
+    background: rgba(254, 249, 237, .07);
     padding: .32rem;
     transition:
       border-color .18s ease,
       box-shadow .18s ease,
-      background .18s ease;
+      background .18s ease,
+      transform .18s var(--chat-ease);
   }
 
   .mm-chat-input-box:focus-within {
-    border-color: rgba(27, 73, 34, .65);
-    box-shadow: 0 0 0 4px rgba(27, 73, 34, .08);
-    background: #fffef8;
+    border-color: rgba(254, 249, 237, .46);
+    background: rgba(254, 249, 237, .10);
+    box-shadow: 0 0 0 4px rgba(254, 249, 237, .07);
+    transform: translateY(-1px);
   }
 
   .mm-chat-input {
@@ -490,13 +528,13 @@
     outline: 0;
     background: transparent;
     padding: 0 .65rem;
-    color: var(--chat-ink);
+    color: var(--chat-cream);
     font-size: 13px;
     font-weight: 650;
   }
 
   .mm-chat-input::placeholder {
-    color: rgba(27, 73, 34, .48);
+    color: rgba(254, 249, 237, .44);
   }
 
   .mm-chat-send {
@@ -504,25 +542,25 @@
     height: 42px;
     display: grid;
     place-items: center;
-    border-radius: 10px;
-    background: var(--chat-green);
-    color: #fff;
+    border-radius: 12px;
+    background: var(--chat-cream);
+    color: var(--chat-black);
     transition:
       background .18s ease,
       color .18s ease,
-      transform .18s ease;
+      transform .18s var(--chat-ease);
     flex-shrink: 0;
   }
 
   .mm-chat-send:hover {
-    background: var(--chat-gold);
-    color: var(--chat-green-dark);
-    transform: translateY(-1px);
+    background: #ffffff;
+    color: var(--chat-black);
+    transform: translateY(-1px) rotate(-4deg);
   }
 
   .mm-chat-note {
-    margin-top: .55rem;
-    color: rgba(27, 73, 34, .52);
+    margin: .58rem 0 0;
+    color: rgba(254, 249, 237, .42);
     font-size: 9px;
     font-weight: 750;
     line-height: 1.45;
@@ -534,26 +572,29 @@
     height: 58px;
     display: grid;
     place-items: center;
-    border: 1px solid rgba(201, 158, 20, .38);
-    border-radius: 18px;
+    border: 1px solid rgba(254, 249, 237, .24);
+    border-radius: 20px;
     background:
-      radial-gradient(circle at 30% 20%, rgba(201, 158, 20, .32), transparent 34%),
-      var(--chat-green);
-    color: #fff;
+      radial-gradient(circle at 30% 20%, rgba(254, 249, 237, .18), transparent 34%),
+      #010101;
+    color: var(--chat-cream);
     box-shadow:
-      0 24px 54px -34px rgba(18, 52, 24, .78),
-      0 10px 24px -18px rgba(0,0,0,.45);
+      0 24px 54px -34px rgba(1, 1, 1, .9),
+      0 10px 24px -18px rgba(1, 1, 1, .7);
     transition:
-      transform .18s ease,
+      transform .18s var(--chat-ease),
       background .18s ease,
-      border-color .18s ease;
+      border-color .18s ease,
+      color .18s ease;
     overflow: hidden;
     pointer-events: auto;
   }
 
   .mm-chat-fab:hover {
-    transform: translateY(-2px);
-    border-color: rgba(201, 158, 20, .75);
+    transform: translateY(-3px);
+    border-color: rgba(254, 249, 237, .62);
+    background: var(--chat-cream);
+    color: var(--chat-black);
   }
 
   .mm-chat-fab-icon {
@@ -570,7 +611,7 @@
     width: 9px;
     height: 9px;
     border-radius: 999px;
-    background: #22c55e;
+    background: var(--chat-success);
     box-shadow: 0 0 0 0 rgba(34, 197, 94, .55);
     animation: mmPulse 1.8s infinite;
   }
@@ -596,12 +637,12 @@
   @keyframes bubblePop {
     from {
       opacity: 0;
-      transform: translateY(8px);
+      transform: translateY(8px) scale(.98);
     }
 
     to {
       opacity: 1;
-      transform: translateY(0);
+      transform: translateY(0) scale(1);
     }
   }
 
@@ -615,26 +656,28 @@
     display: flex;
     align-items: center;
     gap: .7rem;
-    padding: .55rem;
-    border: 1px solid var(--chat-line);
-    border-radius: 10px;
-    background: #fff;
+    padding: .58rem;
+    border: 1px solid rgba(1, 1, 1, .10);
+    border-radius: 13px;
+    background: rgba(1, 1, 1, .045);
     transition:
       border-color .18s ease,
-      transform .18s ease;
+      transform .18s var(--chat-ease),
+      background .18s ease;
   }
 
   .mm-product-suggestion:hover {
-    border-color: rgba(27, 73, 34, .55);
+    border-color: rgba(1, 1, 1, .32);
+    background: rgba(1, 1, 1, .075);
     transform: translateY(-1px);
   }
 
   .mm-product-suggestion-img {
     width: 52px;
-    height: 60px;
-    border-radius: 8px;
+    height: 62px;
+    border-radius: 11px;
     overflow: hidden;
-    background: var(--chat-soft);
+    background: #eeeeee;
     flex-shrink: 0;
   }
 
@@ -645,15 +688,16 @@
   }
 
   .mm-product-suggestion-name {
-    color: var(--chat-ink);
+    margin: 0;
+    color: var(--chat-black);
     font-size: 12px;
     font-weight: 850;
     line-height: 1.35;
   }
 
   .mm-product-suggestion-price {
-    margin-top: .2rem;
-    color: var(--chat-gold);
+    margin: .2rem 0 0;
+    color: rgba(1, 1, 1, .62);
     font-size: 11px;
     font-weight: 950;
   }
@@ -664,18 +708,12 @@
     display: grid;
     place-items: center;
     border-radius: 999px;
-    background: var(--chat-soft);
-    color: var(--chat-green);
+    background: var(--chat-black);
+    color: var(--chat-cream);
     margin-left: auto;
     flex-shrink: 0;
   }
 
-  /*
-    MOBILE:
-    - Chat đóng: chỉ nút FAB bắt pointer.
-    - Chat mở: window bắt pointer.
-    - FAB nâng cao hơn để không che nút thêm vào giỏ ở trang chi tiết.
-  */
   @media (max-width: 640px) {
     #gua-ai-chat {
       right: 12px;
@@ -694,7 +732,7 @@
       width: 100%;
       height: min(620px, calc(100dvh - 128px));
       max-height: calc(100dvh - 128px);
-      border-radius: 16px;
+      border-radius: 18px;
     }
 
     body:not(.mm-chat-open) .mm-chat-window,
@@ -709,7 +747,7 @@
     .mm-chat-fab {
       width: 54px;
       height: 54px;
-      border-radius: 17px;
+      border-radius: 18px;
       pointer-events: auto;
     }
 
@@ -737,6 +775,174 @@
       transform: none !important;
     }
   }
+  /* =========================================================
+   FIX CHAT KHÔNG BỊ NAVBAR / STICKY CART ĐÈ
+   ========================================================= */
+
+#gua-ai-chat {
+  --chat-header-safe: calc(var(--topbar-h, 0px) + var(--header-h, 86px) + 16px);
+  --chat-bottom-safe: calc(env(safe-area-inset-bottom, 0px) + 24px);
+
+  z-index: 99999 !important;
+  right: 24px !important;
+  bottom: var(--chat-bottom-safe) !important;
+  top: auto !important;
+  pointer-events: none;
+}
+
+body.mm-chat-open #gua-ai-chat {
+  z-index: 99999 !important;
+}
+
+/* Window tự né navbar phía trên */
+#gua-ai-chat .mm-chat-window {
+  width: min(390px, calc(100vw - 32px)) !important;
+  height: min(
+    540px,
+    calc(100dvh - var(--chat-header-safe) - var(--chat-bottom-safe) - 12px)
+  ) !important;
+  max-height: calc(100dvh - var(--chat-header-safe) - var(--chat-bottom-safe) - 12px) !important;
+  margin-top: var(--chat-header-safe);
+  box-shadow:
+    0 34px 86px -46px rgba(1, 1, 1, .95),
+    0 12px 30px -22px rgba(1, 1, 1, .88) !important;
+}
+
+/* Làm header chat gọn hơn để không chiếm chiều cao */
+#gua-ai-chat .mm-chat-header {
+  min-height: 66px !important;
+  padding: .82rem .92rem !important;
+}
+
+#gua-ai-chat .mm-chat-avatar {
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 13px !important;
+}
+
+#gua-ai-chat .mm-chat-title {
+  font-size: 11px !important;
+  letter-spacing: .13em !important;
+}
+
+#gua-ai-chat .mm-chat-status {
+  margin-top: .28rem !important;
+  font-size: 8.5px !important;
+}
+
+#gua-ai-chat .mm-chat-strip {
+  padding: .62rem .92rem !important;
+}
+
+#gua-ai-chat .mm-chat-messages {
+  padding: .9rem !important;
+  gap: .78rem !important;
+}
+
+#gua-ai-chat .mm-bubble {
+  font-size: 12.5px !important;
+  line-height: 1.58 !important;
+  padding: .78rem .88rem !important;
+}
+
+#gua-ai-chat .mm-chat-input-wrap {
+  padding: .72rem !important;
+}
+
+#gua-ai-chat .mm-chat-input {
+  min-height: 39px !important;
+  font-size: 12.5px !important;
+}
+
+#gua-ai-chat .mm-chat-send {
+  width: 39px !important;
+  height: 39px !important;
+}
+
+/* FAB nằm trên mọi sticky button */
+#gua-ai-chat .mm-chat-fab {
+  z-index: 100000 !important;
+  pointer-events: auto !important;
+}
+
+/* Khi màn hình thấp như laptop 1366x768 */
+@media (max-height: 760px) and (min-width: 641px) {
+  #gua-ai-chat {
+    --chat-header-safe: calc(var(--topbar-h, 0px) + var(--header-h, 76px) + 10px);
+    --chat-bottom-safe: 18px;
+    right: 22px !important;
+  }
+
+  #gua-ai-chat .mm-chat-window {
+    width: min(370px, calc(100vw - 32px)) !important;
+    height: min(
+      500px,
+      calc(100dvh - var(--chat-header-safe) - var(--chat-bottom-safe) - 10px)
+    ) !important;
+    max-height: calc(100dvh - var(--chat-header-safe) - var(--chat-bottom-safe) - 10px) !important;
+  }
+
+  #gua-ai-chat .mm-chat-header {
+    min-height: 60px !important;
+  }
+
+  #gua-ai-chat .mm-chat-strip {
+    padding-block: .52rem !important;
+  }
+
+  #gua-ai-chat .mm-chat-note {
+    display: none !important;
+  }
+}
+
+/* Mobile: mở chat thì né header và né nút add-to-cart phía dưới */
+@media (max-width: 640px) {
+  #gua-ai-chat {
+    --chat-header-safe: calc(var(--topbar-h, 0px) + var(--header-h, 72px) + 10px);
+    --chat-bottom-safe: calc(env(safe-area-inset-bottom, 0px) + 92px);
+
+    right: 12px !important;
+    bottom: var(--chat-bottom-safe) !important;
+    left: auto !important;
+    z-index: 99999 !important;
+  }
+
+  body.mm-chat-open #gua-ai-chat {
+    left: 12px !important;
+    right: 12px !important;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 14px) !important;
+    pointer-events: auto !important;
+  }
+
+  body.mm-chat-open #gua-ai-chat .mm-chat-window {
+    width: 100% !important;
+    height: calc(100dvh - var(--chat-header-safe) - env(safe-area-inset-bottom, 0px) - 24px) !important;
+    max-height: calc(100dvh - var(--chat-header-safe) - env(safe-area-inset-bottom, 0px) - 24px) !important;
+    border-radius: 18px !important;
+  }
+
+  #gua-ai-chat .mm-chat-fab {
+    width: 54px !important;
+    height: 54px !important;
+    border-radius: 18px !important;
+  }
+}
+
+/* Trường hợp navbar/sticky cart có z-index cực cao */
+header,
+nav,
+.mm-header,
+.site-header,
+.sticky,
+.fixed {
+  transform-style: flat;
+}
+
+body.mm-chat-open #gua-ai-chat,
+body.mm-chat-open #chatbot-window,
+body.mm-chat-open #bot-toggle-btn {
+  z-index: 99999 !important;
+}
 </style>
 
 <script>
@@ -916,7 +1122,7 @@
       const cards = products.map(function (p) {
         const slug = escapeHTML(p.slug || "");
         const name = escapeHTML(p.name || "Sản phẩm GUAMAISON");
-        const image = escapeHTML(p.thumbnail_url || "https://placehold.co/300x400/f7f9f2/1b4922?text=GUAMAISON");
+        const image = escapeHTML(p.thumbnail_url || "https://placehold.co/300x400/fef9ed/010101?text=GUAMAISON");
         const price = formatPrice(p.price);
 
         return `
@@ -954,14 +1160,14 @@
         const size = escapeHTML(data.action_data.recommended_size);
 
         extra += `
-          <div class="mt-3 rounded-[10px] border border-[rgba(27,73,34,.14)] bg-[#f7f9f2] p-3">
-            <p class="mb-2 text-[10px] font-black uppercase tracking-[.16em] text-[#1b4922]">
+          <div style="margin-top:.8rem;border:1px solid rgba(1,1,1,.12);background:rgba(1,1,1,.045);border-radius:13px;padding:.78rem;">
+            <p style="margin:0 0 .55rem;color:#010101;font-size:10px;font-weight:950;letter-spacing:.16em;text-transform:uppercase;">
               Phân tích vóc dáng
             </p>
 
-            <div class="flex items-center justify-between gap-3 rounded-[8px] bg-white p-2">
-              <span class="text-[12px] font-bold text-[#687466]">${height}cm / ${weight}kg</span>
-              <span class="rounded-full bg-[#1b4922] px-3 py-1 text-[11px] font-black text-white">Size ${size}</span>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:.75rem;border-radius:11px;background:#fff;padding:.65rem;">
+              <span style="font-size:12px;font-weight:800;color:rgba(1,1,1,.62);">${height}cm / ${weight}kg</span>
+              <span style="border-radius:999px;background:#010101;color:#fef9ed;padding:.28rem .75rem;font-size:11px;font-weight:950;">Size ${size}</span>
             </div>
           </div>
         `;
@@ -994,13 +1200,13 @@
 
       if (!messages) return;
 
-      const color = type === "error" ? "#dc2626" : "#1b4922";
+      const color = type === "error" ? "#dc2626" : "#010101";
 
       messages.insertAdjacentHTML(
         "beforeend",
         `
         <div class="flex justify-center chat-bubble-anim">
-          <div style="border:1px solid rgba(27,73,34,.14);background:#fff;color:${color};border-radius:999px;padding:.55rem .9rem;font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;">
+          <div style="border:1px solid rgba(254,249,237,.16);background:#fef9ed;color:${color};border-radius:999px;padding:.55rem .9rem;font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;">
             ${escapeHTML(message)}
           </div>
         </div>

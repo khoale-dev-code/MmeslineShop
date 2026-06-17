@@ -4,54 +4,59 @@
 {% block extra_head %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900;1000&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
 
 <style>
-  :root {
-    --mm-brown: #4a2f20;
-    --mm-brown-dark: #241207;
-    --mm-brown-soft: #75543f;
-    --mm-cream: #fffaf5;
-    --mm-paper: #fbf7f1;
-    --mm-white: #ffffff;
-    --mm-line: #eadfd4;
-    --mm-gold: #c99e14;
-    --mm-muted: #8a6a52;
-    --mm-shadow: 0 26px 80px -62px rgba(36, 18, 7, .58);
-    --mm-ease: cubic-bezier(.16, 1, .3, 1);
-  }
-
-  body {
-    background: var(--mm-paper);
-    color: var(--mm-brown-dark);
-    font-family: "Plus Jakarta Sans", sans-serif;
-    -webkit-font-smoothing: antialiased;
-  }
-
   .voucher-page {
+    --v-black: #010101;
+    --v-cream: #fef9ed;
+    --v-cream-2: #f5ead5;
+    --v-cream-3: #eee0c8;
+    --v-white: #ffffff;
+    --v-muted: rgba(1, 1, 1, .56);
+    --v-muted-soft: rgba(1, 1, 1, .38);
+    --v-line: rgba(1, 1, 1, .14);
+    --v-line-dark: rgba(1, 1, 1, .88);
+    --v-radius: 18px;
+    --v-ease: cubic-bezier(.16, 1, .3, 1);
+
     position: relative;
     min-height: 100vh;
     overflow: hidden;
     background:
-      radial-gradient(circle at 0 0, rgba(201, 158, 20, .12), transparent 28%),
-      radial-gradient(circle at 100% 10%, rgba(74, 47, 32, .12), transparent 34%),
-      linear-gradient(180deg, #fffaf5 0%, #fbf7f1 42%, #fffaf5 100%);
+      radial-gradient(circle at 12% 0%, rgba(1, 1, 1, .06), transparent 28%),
+      radial-gradient(circle at 94% 12%, rgba(1, 1, 1, .05), transparent 32%),
+      linear-gradient(180deg, #ffffff 0%, #fef9ed 34%, #ffffff 100%);
+    color: var(--v-black);
+    font-family: "DM Sans", system-ui, sans-serif;
+    isolation: isolate;
+  }
+
+  .voucher-page *,
+  .voucher-page *::before,
+  .voucher-page *::after {
+    box-sizing: border-box;
   }
 
   .voucher-page::before {
     content: "";
     position: fixed;
     inset: 0;
-    pointer-events: none;
-    opacity: .035;
     z-index: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.8'/%3E%3C/svg%3E");
+    opacity: .32;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(1,1,1,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(1,1,1,.04) 1px, transparent 1px);
+    background-size: 32px 32px;
+    mask-image: linear-gradient(to bottom, black, transparent 78%);
   }
 
   .voucher-shell {
     position: relative;
     z-index: 1;
-    max-width: 1460px;
+    width: 100%;
+    max-width: 1420px;
     margin: 0 auto;
   }
 
@@ -59,171 +64,601 @@
     font-family: "Playfair Display", serif;
   }
 
-  .voucher-glass {
-    border: 1px solid rgba(234, 223, 212, .9);
-    background: rgba(255, 250, 245, .82);
-    box-shadow: var(--mm-shadow);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
+  .voucher-hero {
+    padding: 34px 16px 22px;
+  }
+
+  @media (min-width: 768px) {
+    .voucher-hero {
+      padding: 44px 32px 26px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .voucher-hero {
+      padding-inline: 48px;
+    }
+  }
+
+  .voucher-hero-card {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(1, 1, 1, .92);
+    border-radius: 30px;
+    background: var(--v-black);
+    color: var(--v-cream);
+    box-shadow: 0 34px 92px -70px rgba(1, 1, 1, .92);
+  }
+
+  .voucher-hero-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: .20;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(254,249,237,.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(254,249,237,.08) 1px, transparent 1px);
+    background-size: 34px 34px;
+    mask-image: linear-gradient(to bottom, black, transparent 86%);
+  }
+
+  .voucher-hero-card::after {
+    content: "GUAMAISON";
+    position: absolute;
+    right: -18px;
+    bottom: -24px;
+    color: rgba(254,249,237,.045);
+    font-size: clamp(72px, 12vw, 170px);
+    font-weight: 1000;
+    letter-spacing: -.08em;
+    line-height: .8;
+    pointer-events: none;
+  }
+
+  .voucher-hero-inner {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 28px;
+    padding: clamp(26px, 4vw, 54px);
+  }
+
+  @media (min-width: 1024px) {
+    .voucher-hero-inner {
+      grid-template-columns: minmax(0, 1fr) 340px;
+      align-items: end;
+    }
   }
 
   .voucher-kicker {
     display: inline-flex;
     align-items: center;
     gap: 12px;
-    color: var(--mm-brown-soft);
+    margin: 0;
+    color: rgba(254,249,237,.62);
     font-size: 10px;
-    font-weight: 900;
-    letter-spacing: .28em;
+    font-weight: 950;
+    letter-spacing: .24em;
     text-transform: uppercase;
   }
 
   .voucher-kicker::before {
     content: "";
-    display: block;
     width: 34px;
     height: 1px;
-    background: var(--mm-gold);
+    background: var(--v-cream);
+    opacity: .7;
+  }
+
+  .voucher-title {
+    max-width: 780px;
+    margin: 14px 0 0;
+    color: var(--v-cream);
+    font-size: clamp(40px, 6vw, 82px);
+    font-weight: 700;
+    line-height: .92;
+    letter-spacing: -.055em;
+    text-wrap: balance;
+  }
+
+  .voucher-title em {
+    color: rgba(254,249,237,.45);
+  }
+
+  .voucher-intro {
+    max-width: 620px;
+    margin: 18px 0 0;
+    color: rgba(254,249,237,.64);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.75;
+  }
+
+  .voucher-hero-panel {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(254,249,237,.16);
+    border-radius: 24px;
+    background: rgba(254,249,237,.07);
+    padding: 18px;
+    backdrop-filter: blur(16px);
+  }
+
+  .voucher-hero-panel p {
+    margin: 0;
+  }
+
+  .voucher-hero-panel .label {
+    color: rgba(254,249,237,.52);
+    font-size: 9px;
+    font-weight: 950;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+  }
+
+  .voucher-hero-panel .count {
+    margin-top: 10px;
+    color: var(--v-cream);
+    font-size: 54px;
+    font-weight: 1000;
+    line-height: .9;
+    letter-spacing: -.07em;
+  }
+
+  .voucher-hero-panel .desc {
+    margin-top: 12px;
+    color: rgba(254,249,237,.58);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.6;
+  }
+
+  .voucher-shop-btn {
+    margin-top: 18px;
+    min-height: 46px;
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .65rem;
+    border: 1px solid var(--v-cream);
+    border-radius: 16px;
+    background: var(--v-cream);
+    color: var(--v-black);
+    padding: 0 18px;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    transition: transform .2s var(--v-ease), background .2s ease, color .2s ease;
+  }
+
+  .voucher-shop-btn:hover {
+    transform: translateY(-2px);
+    background: transparent;
+    color: var(--v-cream);
+  }
+
+  .voucher-toolbar {
+    position: sticky;
+    top: var(--header-h, 72px);
+    z-index: 45;
+    border-block: 1px solid rgba(1, 1, 1, .10);
+    background: rgba(254, 249, 237, .88);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+
+  .voucher-toolbar-inner {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 14px 16px;
+  }
+
+  @media (min-width: 768px) {
+    .voucher-toolbar-inner {
+      padding-inline: 32px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .voucher-toolbar-inner {
+      grid-template-columns: minmax(0, 1fr) 360px;
+      align-items: center;
+      padding-inline: 48px;
+    }
+  }
+
+  .voucher-tabs {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .voucher-tabs::-webkit-scrollbar {
+    display: none;
   }
 
   .voucher-tab {
-    min-height: 44px;
-    border: 1px solid transparent;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(1, 1, 1, .14);
     border-radius: 999px;
-    padding: 0 18px;
-    color: var(--mm-muted);
+    background: rgba(255,255,255,.62);
+    color: rgba(1,1,1,.52);
+    padding: 0 15px;
     font-size: 10px;
-    font-weight: 900;
-    letter-spacing: .18em;
+    font-weight: 950;
+    letter-spacing: .14em;
     text-transform: uppercase;
     white-space: nowrap;
-    transition: color .2s var(--mm-ease), background .2s var(--mm-ease), border-color .2s var(--mm-ease), box-shadow .2s var(--mm-ease);
+    transition: background .2s var(--v-ease), color .2s var(--v-ease), border-color .2s var(--v-ease), transform .2s var(--v-ease);
   }
 
   .voucher-tab:hover {
-    color: var(--mm-brown-dark);
-    background: rgba(255, 255, 255, .72);
-    border-color: var(--mm-line);
+    color: var(--v-black);
+    border-color: rgba(1,1,1,.35);
+    transform: translateY(-1px);
   }
 
   .voucher-tab.is-active {
-    color: #fff;
-    background: var(--mm-brown-dark);
-    border-color: var(--mm-brown-dark);
-    box-shadow: 0 18px 42px -28px rgba(36, 18, 7, .75);
+    color: var(--v-cream);
+    background: var(--v-black);
+    border-color: var(--v-black);
+  }
+
+  .voucher-search-wrap {
+    position: relative;
   }
 
   .voucher-search {
-    border: 1px solid var(--mm-line);
-    background: rgba(255, 255, 255, .78);
-    color: var(--mm-brown-dark);
-    box-shadow: 0 16px 48px -42px rgba(36, 18, 7, .45);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    width: 100%;
+    height: 46px;
+    border: 1px solid rgba(1,1,1,.15);
+    border-radius: 16px;
+    background: rgba(255,255,255,.74);
+    color: var(--v-black);
+    padding: 0 44px 0 16px;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    outline: none;
+    box-shadow: 0 16px 46px -42px rgba(1,1,1,.45);
+    transition: border-color .2s ease, background .2s ease, box-shadow .2s ease;
+  }
+
+  .voucher-search::placeholder {
+    color: rgba(1,1,1,.34);
   }
 
   .voucher-search:focus {
-    border-color: var(--mm-brown);
-    box-shadow: 0 0 0 4px rgba(74, 47, 32, .11);
+    border-color: var(--v-black);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(1,1,1,.07);
   }
 
-  .voucher-card {
+  .voucher-search-icon {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    color: rgba(1,1,1,.46);
+    font-size: 13px;
+    transform: translateY(-50%);
+  }
+
+  .voucher-main {
+    padding: 28px 16px 92px;
+  }
+
+  @media (min-width: 768px) {
+    .voucher-main {
+      padding-inline: 32px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .voucher-main {
+      padding-inline: 48px;
+    }
+  }
+
+  .voucher-guide-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  @media (min-width: 768px) {
+    .voucher-guide-row {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  .voucher-guide {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(1,1,1,.12);
+    border-radius: 18px;
+    background: rgba(255,255,255,.72);
+    padding: 15px 16px;
+    box-shadow: 0 20px 56px -52px rgba(1,1,1,.45);
+  }
+
+  .voucher-guide::after {
+    content: "";
+    position: absolute;
+    right: -24px;
+    top: -24px;
+    width: 76px;
+    height: 76px;
+    border: 1px solid rgba(1,1,1,.10);
+    border-radius: 999px;
+  }
+
+  .voucher-guide p:first-child {
+    margin: 0;
+    color: rgba(1,1,1,.44);
+    font-size: 9px;
+    font-weight: 950;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+  }
+
+  .voucher-guide p:last-child {
+    margin: 7px 0 0;
+    color: var(--v-black);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.55;
+  }
+
+  #coupon-grid {
+    align-items: stretch;
+  }
+
+  .coupon-card.is-hidden {
+    display: none !important;
+  }
+
+  .voucher-pass {
+    position: relative;
+    min-height: 218px;
+    border: 1px solid rgba(1,1,1,.18);
+    border-radius: 22px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.86), rgba(254,249,237,.94));
+    padding: 4px;
+    box-shadow: 0 20px 58px -50px rgba(1,1,1,.56);
+    transition: transform .32s var(--v-ease), box-shadow .32s var(--v-ease), border-color .32s var(--v-ease);
+  }
+
+  .voucher-pass:hover {
+    transform: translateY(-4px);
+    border-color: rgba(1,1,1,.42);
+    box-shadow: 0 30px 76px -56px rgba(1,1,1,.72);
+  }
+
+  .voucher-pass-inner {
+    position: relative;
+    min-height: 210px;
+    height: 100%;
     display: flex;
     flex-direction: column;
-    min-height: 100%;
-    border: 1px solid var(--mm-line);
-    background: var(--mm-white);
-    box-shadow: 0 22px 70px -58px rgba(36, 18, 7, .58);
-    transition: transform .35s var(--mm-ease), box-shadow .35s var(--mm-ease), border-color .35s var(--mm-ease);
-  }
-
-  .voucher-card:hover {
-    transform: translateY(-5px);
-    border-color: rgba(74, 47, 32, .3);
-    box-shadow: 0 34px 86px -60px rgba(36, 18, 7, .7);
-  }
-
-  .voucher-card-inner {
-    position: relative;
-    min-height: 100%;
-    border: 1px solid rgba(234, 223, 212, .72);
+    overflow: hidden;
+    border: 1px solid rgba(1,1,1,.10);
+    border-radius: 18px;
     background:
-      linear-gradient(135deg, rgba(255, 250, 245, .75), #fff 42%),
-      #fff;
+      radial-gradient(circle at 100% 0%, rgba(1,1,1,.06), transparent 30%),
+      linear-gradient(180deg, var(--v-cream) 0%, #fff 100%);
   }
 
-  .voucher-card-inner::before,
-  .voucher-card-inner::after {
+  .voucher-pass-inner::before,
+  .voucher-pass-inner::after {
     content: "";
     position: absolute;
     top: 50%;
-    width: 22px;
-    height: 22px;
-    border: 1px solid var(--mm-line);
+    z-index: 4;
+    width: 18px;
+    height: 18px;
+    border: 1px solid rgba(1,1,1,.14);
     border-radius: 999px;
-    background: var(--mm-paper);
+    background: #fff;
     transform: translateY(-50%);
-    z-index: 3;
   }
 
-  .voucher-card-inner::before {
-    left: -12px;
+  .voucher-pass-inner::before {
+    left: -10px;
   }
 
-  .voucher-card-inner::after {
-    right: -12px;
+  .voucher-pass-inner::after {
+    right: -10px;
   }
 
-  .voucher-image img {
-    transition: transform .75s var(--mm-ease), filter .75s var(--mm-ease), opacity .75s var(--mm-ease);
+  .voucher-pass-top {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 16px 0;
   }
 
-  .voucher-card:hover .voucher-image img {
-    transform: scale(1.055);
-    filter: saturate(1.02);
-    opacity: 1;
+  .voucher-type {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid rgba(1,1,1,.12);
+    border-radius: 999px;
+    background: rgba(1,1,1,.045);
+    color: var(--v-black);
+    padding: 7px 10px;
+    font-size: 8.5px;
+    font-weight: 950;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    white-space: nowrap;
   }
 
-  .voucher-divider {
-    border-top: 1px dashed rgba(117, 84, 63, .28);
+  .voucher-exp {
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .voucher-exp span {
+    display: block;
+    color: rgba(1,1,1,.36);
+    font-size: 7.5px;
+    font-weight: 950;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+  }
+
+  .voucher-exp strong {
+    display: block;
+    margin-top: 3px;
+    color: var(--v-black);
+    font-size: 9.5px;
+    font-weight: 950;
+    letter-spacing: .08em;
+  }
+
+  .voucher-pass-body {
+    flex: 1;
+    padding: 16px;
+  }
+
+  .voucher-value {
+    margin: 0;
+    color: var(--v-black);
+    font-family: "Playfair Display", serif;
+    font-size: clamp(32px, 3.8vw, 46px);
+    font-weight: 700;
+    line-height: .92;
+    letter-spacing: -.055em;
+  }
+
+  .voucher-value .unit {
+    font-family: "DM Sans", system-ui, sans-serif;
+    font-size: 15px;
+    font-weight: 950;
+    letter-spacing: -.02em;
+  }
+
+  .voucher-value .free {
+    font-size: clamp(28px, 3.2vw, 38px);
+    text-transform: uppercase;
+  }
+
+  .voucher-desc {
+    display: -webkit-box;
+    margin: 11px 0 0;
+    overflow: hidden;
+    color: rgba(1,1,1,.58);
+    font-size: 12px;
+    font-weight: 550;
+    line-height: 1.55;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .voucher-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 13px;
+  }
+
+  .voucher-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: 999px;
+    background: rgba(1,1,1,.055);
+    color: rgba(1,1,1,.62);
+    padding: 6px 8px;
+    font-size: 7.8px;
+    font-weight: 950;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .voucher-pass-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-top: 1px dashed rgba(1,1,1,.22);
+    padding: 12px 16px 14px;
+  }
+
+  .voucher-code-label {
+    margin: 0;
+    color: rgba(1,1,1,.34);
+    font-size: 7.5px;
+    font-weight: 950;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+  }
+
+  .voucher-code {
+    margin: 4px 0 0;
+    color: var(--v-black);
+    font-size: 12px;
+    font-weight: 1000;
+    letter-spacing: .12em;
+    text-transform: uppercase;
   }
 
   .voucher-copy-btn {
-    border: 1px solid var(--mm-brown-dark);
-    color: var(--mm-brown-dark);
+    flex-shrink: 0;
+    border: 1px solid var(--v-black);
+    border-radius: 999px;
     background: transparent;
-    transition: background .2s var(--mm-ease), color .2s var(--mm-ease), border-color .2s var(--mm-ease);
+    color: var(--v-black);
+    padding: 9px 12px;
+    font-size: 8px;
+    font-weight: 950;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    transition: background .2s var(--v-ease), color .2s var(--v-ease), transform .2s var(--v-ease);
   }
 
   .voucher-copy-btn:hover,
   .voucher-copy-btn.is-copied {
-    color: #fff;
-    background: var(--mm-brown-dark);
-    border-color: var(--mm-brown-dark);
+    background: var(--v-black);
+    color: var(--v-cream);
+    transform: translateY(-1px);
   }
 
-  .voucher-scroll {
-    scrollbar-width: none;
-  }
-
-  .voucher-scroll::-webkit-scrollbar {
-    display: none;
+  .voucher-empty {
+    border: 1px solid rgba(1,1,1,.12);
+    border-radius: 28px;
+    background: rgba(255,255,255,.76);
+    box-shadow: 0 26px 70px -58px rgba(1,1,1,.58);
   }
 
   .voucher-toast {
-    border: 1px solid rgba(234, 223, 212, .24);
-    background: rgba(36, 18, 7, .94);
-    color: #fff;
-    box-shadow: 0 24px 70px -45px rgba(36, 18, 7, .75);
+    z-index: 99999;
+    border: 1px solid rgba(254,249,237,.18);
+    background: rgba(1,1,1,.94);
+    color: var(--v-cream);
+    box-shadow: 0 24px 70px -45px rgba(1,1,1,.85);
     backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    transition: opacity .35s var(--mm-ease), transform .35s var(--mm-ease);
+    transition: opacity .35s var(--v-ease), transform .35s var(--v-ease);
   }
 
   @keyframes voucherRise {
     from {
       opacity: 0;
-      transform: translateY(22px);
+      transform: translateY(18px);
     }
 
     to {
@@ -233,24 +668,34 @@
   }
 
   .voucher-rise {
-    animation: voucherRise .55s var(--mm-ease) both;
+    animation: voucherRise .54s var(--v-ease) both;
   }
 
   @media (max-width: 767px) {
-    .voucher-card-inner::before,
-    .voucher-card-inner::after {
-      top: auto;
-      bottom: 92px;
+    .voucher-hero-card {
+      border-radius: 24px;
+    }
+
+    .voucher-title {
+      font-size: clamp(38px, 12vw, 58px);
+    }
+
+    .voucher-pass {
+      min-height: 210px;
+    }
+
+    .voucher-pass-inner {
+      min-height: 202px;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
     .voucher-rise,
-    .voucher-card,
-    .voucher-card:hover,
-    .voucher-image img,
-    .voucher-copy-btn,
+    .voucher-pass,
+    .voucher-pass:hover,
     .voucher-tab,
+    .voucher-copy-btn,
+    .voucher-shop-btn,
     .voucher-toast {
       animation: none !important;
       transition: none !important;
@@ -261,110 +706,116 @@
 {% endblock %}
 
 {% block content %}
-<div class="voucher-page pb-24 selection:bg-[#4a2f20] selection:text-white">
+<div class="voucher-page selection:bg-[#010101] selection:text-[#fef9ed]">
 
-  <header class="sticky top-[var(--header-h,72px)] z-40 border-b border-[#eadfd4]/80 bg-[#fffaf5]/88 backdrop-blur-xl">
-    <div class="voucher-shell px-4 py-5 md:px-8 lg:px-12">
-      <div class="voucher-rise flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p class="voucher-kicker">
-            GUAMAISON Privilege
-          </p>
+  <section class="voucher-hero">
+    <div class="voucher-shell">
+      <div class="voucher-hero-card voucher-rise">
+        <div class="voucher-hero-inner">
+          <div>
+            <p class="voucher-kicker">
+              GUAMAISON Privilege
+            </p>
 
-          <h1 class="font-editorial mt-4 text-[clamp(2.35rem,5vw,4.8rem)] leading-[1.02] tracking-[-0.045em] text-[#241207]">
-            Voucher <em class="italic text-[#75543f]">&</em> Ưu đãi
-          </h1>
+            <h1 class="voucher-title font-editorial">
+              Voucher <em class="italic">&</em> ưu đãi riêng
+            </h1>
 
-          <p class="mt-4 max-w-2xl text-sm font-medium leading-7 text-[#8a6a52]">
-            Lưu lại các mã ưu đãi dành riêng cho khách hàng GUAMAISON. Chọn voucher phù hợp trước khi mua sắm để tối ưu giá trị đơn hàng.
-          </p>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3 sm:flex sm:items-center">
-          <div class="rounded-3xl border border-[#eadfd4] bg-white px-5 py-3 shadow-sm">
-            <p class="text-[9px] font-black uppercase tracking-[0.22em] text-[#8a6a52]">Khả dụng</p>
-            <p class="mt-1 text-2xl font-black tracking-[-0.04em] text-[#241207]">
-              <span id="coupon-count">0</span>
+            <p class="voucher-intro">
+              Lưu mã ưu đãi, áp dụng khi thanh toán và tận hưởng đặc quyền mua sắm dành cho khách hàng GUAMAISON.
             </p>
           </div>
 
-          <a
-            href="/shop"
-            class="inline-flex items-center justify-center gap-2 rounded-3xl bg-[#241207] px-5 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-white shadow-[0_20px_55px_-38px_rgba(36,18,7,.75)] transition hover:bg-[#4a2f20]"
-          >
-            Mua sắm
-            <i class="fa-solid fa-arrow-right"></i>
-          </a>
-        </div>
-      </div>
+          <div class="voucher-hero-panel">
+            <p class="label">Đang khả dụng</p>
+            <p class="count"><span id="coupon-count">0</span></p>
+            <p class="desc">
+              Mã ưu đãi được cập nhật theo từng chương trình, kênh bán và điều kiện đơn hàng.
+            </p>
 
-      <div class="voucher-rise mt-7 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between" style="animation-delay:.08s">
-        <nav class="voucher-scroll flex w-full gap-2 overflow-x-auto lg:w-auto" id="filter-tabs" aria-label="Lọc voucher">
-          <button type="button" data-filter="all" class="voucher-tab is-active">Tất cả</button>
-          <button type="button" data-filter="free_shipping" class="voucher-tab">Freeship</button>
-          <button type="button" data-filter="percent" class="voucher-tab">Giảm %</button>
-          <button type="button" data-filter="fixed" class="voucher-tab">Giảm tiền</button>
-        </nav>
-
-        <div class="relative w-full lg:w-[390px]">
-          <input
-            type="search"
-            id="liveSearchInput"
-            placeholder="TÌM MÃ HOẶC MÔ TẢ..."
-            autocomplete="off"
-            class="voucher-search h-12 w-full rounded-2xl pl-5 pr-12 text-[10px] font-black uppercase tracking-[0.18em] outline-none placeholder:text-[#b49a86]"
-          >
-
-          <i class="fa-solid fa-magnifying-glass absolute right-5 top-1/2 -translate-y-1/2 text-sm text-[#8a6a52]"></i>
+            <a href="/shop" class="voucher-shop-btn">
+              Mua sắm ngay
+              <i class="fa-solid fa-arrow-right"></i>
+            </a>
+          </div>
         </div>
       </div>
     </div>
-  </header>
+  </section>
 
-  <main class="voucher-shell px-4 pt-10 md:px-8 lg:px-12">
+  <section class="voucher-toolbar">
+    <div class="voucher-shell voucher-toolbar-inner">
+      <nav class="voucher-tabs" id="filter-tabs" aria-label="Lọc voucher">
+        <button type="button" data-filter="all" class="voucher-tab is-active" aria-selected="true">Tất cả</button>
+        <button type="button" data-filter="free_shipping" class="voucher-tab" aria-selected="false">Freeship</button>
+        <button type="button" data-filter="percent" class="voucher-tab" aria-selected="false">Giảm %</button>
+        <button type="button" data-filter="fixed" class="voucher-tab" aria-selected="false">Giảm tiền</button>
+      </nav>
 
-    <section class="voucher-rise mb-8 grid grid-cols-1 gap-3 md:grid-cols-3" style="animation-delay:.14s">
-      <div class="voucher-glass rounded-[28px] p-5">
-        <p class="text-[10px] font-black uppercase tracking-[0.22em] text-[#8a6a52]">Cách dùng</p>
-        <p class="mt-2 text-sm font-bold leading-6 text-[#241207]">Sao chép mã và áp dụng ở bước thanh toán.</p>
+      <div class="voucher-search-wrap">
+        <input
+          type="search"
+          id="liveSearchInput"
+          placeholder="Tìm mã hoặc mô tả..."
+          autocomplete="off"
+          class="voucher-search"
+        >
+
+        <i class="fa-solid fa-magnifying-glass voucher-search-icon"></i>
+      </div>
+    </div>
+  </section>
+
+  <main class="voucher-shell voucher-main">
+
+    <section class="voucher-guide-row voucher-rise" style="animation-delay:.08s">
+      <div class="voucher-guide">
+        <p>Cách dùng</p>
+        <p>Sao chép mã và nhập tại bước thanh toán.</p>
       </div>
 
-      <div class="voucher-glass rounded-[28px] p-5">
-        <p class="text-[10px] font-black uppercase tracking-[0.22em] text-[#8a6a52]">Lưu ý</p>
-        <p class="mt-2 text-sm font-bold leading-6 text-[#241207]">Một số mã có điều kiện điểm thành viên hoặc kênh sử dụng.</p>
+      <div class="voucher-guide">
+        <p>Điều kiện</p>
+        <p>Có thể áp dụng theo đơn tối thiểu hoặc điểm thành viên.</p>
       </div>
 
-      <div class="voucher-glass rounded-[28px] p-5">
-        <p class="text-[10px] font-black uppercase tracking-[0.22em] text-[#8a6a52]">Kênh áp dụng</p>
-        <p class="mt-2 text-sm font-bold leading-6 text-[#241207]">Có mã dùng cho website, POS hoặc cả hai.</p>
+      <div class="voucher-guide">
+        <p>Kênh dùng</p>
+        <p>Mã có thể dùng trên website, POS hoặc toàn hệ thống.</p>
       </div>
     </section>
 
     <div
       id="empty-state"
-      class="hidden flex-col items-center justify-center rounded-[32px] border border-[#eadfd4] bg-white px-6 py-28 text-center shadow-[0_24px_70px_-58px_rgba(36,18,7,.45)]"
+      class="voucher-empty hidden flex-col items-center justify-center px-6 py-24 text-center"
     >
-      <div class="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#fffaf5] text-[#75543f]">
+      <div class="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#010101] text-[#fef9ed]">
         <i class="fa-regular fa-ticket text-3xl"></i>
       </div>
 
-      <h2 class="font-editorial text-3xl tracking-[-0.03em] text-[#241207]">Không có ưu đãi phù hợp</h2>
+      <h2 class="font-editorial text-3xl tracking-[-0.03em] text-[#010101]">
+        Không có ưu đãi phù hợp
+      </h2>
 
-      <p class="mt-3 max-w-md text-sm font-medium leading-7 text-[#8a6a52]">
+      <p class="mt-3 max-w-md text-sm font-medium leading-7 text-black/55">
         Mã ưu đãi có thể đã hết hạn hoặc không khớp với bộ lọc hiện tại.
       </p>
 
       <button
         type="button"
         onclick="resetFilters()"
-        class="mt-6 inline-flex items-center gap-2 rounded-full border border-[#4a2f20] px-5 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-[#4a2f20] transition hover:bg-[#4a2f20] hover:text-white"
+        class="mt-6 inline-flex items-center gap-2 rounded-full border border-[#010101] px-5 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-[#010101] transition hover:bg-[#010101] hover:text-[#fef9ed]"
       >
         Tải lại danh sách
       </button>
     </div>
 
     {% if coupons and coupons|length > 0 %}
-      <div id="coupon-grid" class="voucher-rise grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3" style="animation-delay:.18s">
+      <div
+        id="coupon-grid"
+        class="voucher-rise grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4"
+        style="animation-delay:.14s"
+      >
         {% for coupon in coupons %}
           {% set c_type = coupon.discount_type %}
           {% set type_class = 'fixed' if c_type not in ['percent', 'free_shipping'] else c_type %}
@@ -372,153 +823,136 @@
           {% set code = coupon.code or '' %}
           {% set value = (coupon.discount_value or 0)|float %}
           {% set min_points = (coupon.min_loyalty_points or 0)|float %}
-          {% set is_featured = loop.first %}
+          {% set min_order = (coupon.min_order_value or 0)|float %}
 
           <article
-            class="coupon-card voucher-card rounded-[30px] p-1 {% if is_featured %}xl:col-span-2{% endif %}"
+            class="coupon-card voucher-pass"
             data-type="{{ type_class }}"
             data-code="{{ code|lower|e }}"
             data-desc="{{ desc|lower|e }}"
           >
-            <div class="voucher-card-inner flex h-full flex-col overflow-hidden rounded-[26px] {% if is_featured %}md:flex-row{% endif %}">
-              {% if coupon.image_url %}
-                <a
-                  href="/promotions/{{ code }}"
-                  class="voucher-image relative block h-56 overflow-hidden bg-[#f1e8df] {% if is_featured %}md:h-auto md:w-[42%] md:min-h-[360px]{% endif %}"
-                >
-                  <img
-                    src="{{ coupon.image_url }}"
-                    alt="{{ code }}"
-                    loading="lazy"
-                    class="h-full w-full object-cover object-center opacity-95"
-                  >
+            <div class="voucher-pass-inner">
 
-                  <div class="absolute inset-0 bg-gradient-to-t from-[#241207]/28 via-transparent to-transparent"></div>
-                </a>
-              {% endif %}
+              <div class="voucher-pass-top">
+                <span class="voucher-type">
+                  {% if c_type == 'percent' %}
+                    <i class="fa-solid fa-percent"></i>
+                    Giảm %
+                  {% elif c_type == 'free_shipping' %}
+                    <i class="fa-solid fa-truck-fast"></i>
+                    Freeship
+                  {% else %}
+                    <i class="fa-solid fa-ticket"></i>
+                    Giảm tiền
+                  {% endif %}
+                </span>
 
-              <div class="flex min-h-full flex-1 flex-col p-6 md:p-7">
-                <a href="/promotions/{{ code }}" class="block flex-1 outline-none">
-                  <div class="flex items-start justify-between gap-4">
-                    <span class="inline-flex rounded-full border border-[#eadfd4] bg-[#fffaf5] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.18em] text-[#75543f]">
-                      {% if c_type == 'percent' %}
-                        Giảm %
-                      {% elif c_type == 'free_shipping' %}
-                        Freeship
-                      {% else %}
-                        Giảm tiền
-                      {% endif %}
-                    </span>
-
-                    {% if coupon.expires_at %}
-                      <div class="text-right">
-                        <p class="text-[8px] font-black uppercase tracking-[0.2em] text-[#b49a86]">Hạn dùng</p>
-                        <p class="mt-1 text-[10px] font-black uppercase tracking-widest text-[#241207]">
-                          {{ coupon.expires_at[:10]|replace('-', '.') }}
-                        </p>
-                      </div>
-                    {% endif %}
+                {% if coupon.expires_at %}
+                  <div class="voucher-exp">
+                    <span>Hạn dùng</span>
+                    <strong>{{ coupon.expires_at[:10]|replace('-', '.') }}</strong>
                   </div>
-
-                  <div class="mt-8">
-                    <p class="font-editorial text-[clamp(2.45rem,4vw,4.6rem)] leading-none tracking-[-0.055em] text-[#241207]">
-                      {% if c_type == 'percent' %}
-                        {{ value|int }}<span class="ml-1 font-sans text-2xl font-black">%</span>
-                      {% elif c_type == 'free_shipping' %}
-                        <span class="text-[clamp(2.1rem,3vw,3.8rem)] uppercase">Freeship</span>
-                      {% else %}
-                        {{ "{:,.0f}".format(value) }}<span class="ml-1 font-sans text-base font-black">₫</span>
-                      {% endif %}
-                    </p>
-
-                    <p class="mt-5 line-clamp-3 text-sm font-medium leading-7 text-[#8a6a52]">
-                      {{ desc }}
-                    </p>
-                  </div>
-
-                  <div class="mt-7 flex flex-wrap gap-2">
-                    {% if coupon.applicable_channel == 'web' %}
-                      <span class="inline-flex items-center gap-1.5 rounded-full bg-[#fffaf5] px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#75543f]">
-                        <i class="fa-solid fa-globe"></i>
-                        Web only
-                      </span>
-                    {% elif coupon.applicable_channel == 'pos' %}
-                      <span class="inline-flex items-center gap-1.5 rounded-full bg-[#fffaf5] px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#75543f]">
-                        <i class="fa-solid fa-store"></i>
-                        In-store
-                      </span>
-                    {% else %}
-                      <span class="inline-flex items-center gap-1.5 rounded-full bg-[#fffaf5] px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#75543f]">
-                        <i class="fa-solid fa-layer-group"></i>
-                        All channels
-                      </span>
-                    {% endif %}
-
-                    {% if min_points > 0 %}
-                      <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#8a640d]">
-                        <i class="fa-solid fa-star"></i>
-                        Từ {{ "{:,.0f}".format(min_points) }} PTS
-                      </span>
-                    {% endif %}
-
-                    {% if coupon.min_order_value %}
-                      {% set min_order = (coupon.min_order_value or 0)|float %}
-                      {% if min_order > 0 %}
-                        <span class="inline-flex items-center gap-1.5 rounded-full bg-[#f7f1ea] px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#75543f]">
-                          Đơn từ {{ "{:,.0f}".format(min_order) }}₫
-                        </span>
-                      {% endif %}
-                    {% endif %}
-                  </div>
-                </a>
-
-                <div class="voucher-divider mt-8 flex items-center justify-between gap-4 pt-5">
-                  <div class="min-w-0">
-                    <p class="text-[8px] font-black uppercase tracking-[0.22em] text-[#b49a86]">Mã voucher</p>
-                    <p class="mt-1 truncate text-sm font-black uppercase tracking-[0.15em] text-[#241207]">
-                      {{ code }}
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onclick="copyCode('{{ code }}', this, event)"
-                    class="voucher-copy-btn shrink-0 rounded-full px-4 py-2.5 text-[9px] font-black uppercase tracking-[0.18em]"
-                  >
-                    Sao chép
-                  </button>
-                </div>
+                {% endif %}
               </div>
+
+              <a href="/promotions/{{ code }}" class="voucher-pass-body block outline-none">
+                <p class="voucher-value">
+                  {% if c_type == 'percent' %}
+                    {{ value|int }}<span class="unit">%</span>
+                  {% elif c_type == 'free_shipping' %}
+                    <span class="free">Freeship</span>
+                  {% else %}
+                    {{ "{:,.0f}".format(value)|replace(',', '.') }}<span class="unit">₫</span>
+                  {% endif %}
+                </p>
+
+                <p class="voucher-desc">
+                  {{ desc }}
+                </p>
+
+                <div class="voucher-tags">
+                  {% if coupon.applicable_channel == 'web' %}
+                    <span class="voucher-tag">
+                      <i class="fa-solid fa-globe"></i>
+                      Web
+                    </span>
+                  {% elif coupon.applicable_channel == 'pos' %}
+                    <span class="voucher-tag">
+                      <i class="fa-solid fa-store"></i>
+                      POS
+                    </span>
+                  {% else %}
+                    <span class="voucher-tag">
+                      <i class="fa-solid fa-layer-group"></i>
+                      All
+                    </span>
+                  {% endif %}
+
+                  {% if min_points > 0 %}
+                    <span class="voucher-tag">
+                      <i class="fa-solid fa-star"></i>
+                      {{ "{:,.0f}".format(min_points)|replace(',', '.') }} PTS
+                    </span>
+                  {% endif %}
+
+                  {% if min_order > 0 %}
+                    <span class="voucher-tag">
+                      Đơn {{ "{:,.0f}".format(min_order)|replace(',', '.') }}₫
+                    </span>
+                  {% endif %}
+                </div>
+              </a>
+
+              <div class="voucher-pass-bottom">
+                <div class="min-w-0">
+                  <p class="voucher-code-label">Mã voucher</p>
+                  <p class="voucher-code truncate">
+                    {{ code }}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  data-copy-code="{{ code|e }}"
+                  onclick="copyCode(this.dataset.copyCode, this, event)"
+                  class="voucher-copy-btn"
+                >
+                  Sao chép
+                </button>
+              </div>
+
             </div>
           </article>
         {% endfor %}
       </div>
 
-      <div id="load-more-container" class="mt-14 hidden text-center">
+      <div id="load-more-container" class="mt-12 hidden text-center">
         <button
           type="button"
           id="load-more-btn"
-          class="inline-flex items-center gap-3 rounded-full border border-[#eadfd4] bg-white px-6 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-[#4a2f20] shadow-sm transition hover:border-[#4a2f20] hover:bg-[#4a2f20] hover:text-white"
+          class="inline-flex items-center gap-3 rounded-full border border-[#010101] bg-transparent px-6 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-[#010101] transition hover:bg-[#010101] hover:text-[#fef9ed]"
         >
           Xem thêm voucher
           <i class="fa-solid fa-arrow-down"></i>
         </button>
       </div>
     {% else %}
-      <div class="voucher-rise flex flex-col items-center justify-center rounded-[32px] border border-[#eadfd4] bg-white px-6 py-28 text-center shadow-[0_24px_70px_-58px_rgba(36,18,7,.45)]">
-        <div class="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#fffaf5] text-[#75543f]">
+      <div class="voucher-rise voucher-empty flex flex-col items-center justify-center px-6 py-24 text-center">
+        <div class="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#010101] text-[#fef9ed]">
           <i class="fa-regular fa-ticket text-3xl"></i>
         </div>
 
-        <h2 class="font-editorial text-3xl tracking-[-0.03em] text-[#241207]">Chưa có voucher mới</h2>
+        <h2 class="font-editorial text-3xl tracking-[-0.03em] text-[#010101]">
+          Chưa có voucher mới
+        </h2>
 
-        <p class="mt-3 max-w-md text-sm font-medium leading-7 text-[#8a6a52]">
+        <p class="mt-3 max-w-md text-sm font-medium leading-7 text-black/55">
           Các đặc quyền mới sẽ được cập nhật trong thời gian tới.
         </p>
 
         <a
           href="/shop"
-          class="mt-6 inline-flex items-center gap-2 rounded-full bg-[#241207] px-6 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-white transition hover:bg-[#4a2f20]"
+          class="mt-6 inline-flex items-center gap-2 rounded-full bg-[#010101] px-6 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-[#fef9ed] transition hover:-translate-y-0.5"
         >
           Về cửa hàng
           <i class="fa-solid fa-arrow-right"></i>
@@ -530,7 +964,7 @@
 
 <div
   id="toast-msg"
-  class="voucher-toast pointer-events-none fixed bottom-7 left-1/2 z-[160] flex -translate-x-1/2 translate-y-4 items-center gap-3 rounded-full px-6 py-4 text-[10px] font-black uppercase tracking-[0.16em] opacity-0"
+  class="voucher-toast pointer-events-none fixed bottom-7 left-1/2 flex -translate-x-1/2 translate-y-4 items-center gap-3 rounded-full px-6 py-4 text-[10px] font-black uppercase tracking-[0.16em] opacity-0"
 ></div>
 
 <script>
@@ -546,7 +980,7 @@
 
     let currentFilter = "all";
     let searchTerm = "";
-    const ITEMS_PER_PAGE = 12;
+    const ITEMS_PER_PAGE = 16;
     let visibleLimit = ITEMS_PER_PAGE;
     let filteredCards = [];
 
@@ -556,7 +990,9 @@
 
     function setActiveTab(activeTab) {
       tabs.forEach(function (tab) {
-        tab.classList.toggle("is-active", tab === activeTab);
+        const isActive = tab === activeTab;
+        tab.classList.toggle("is-active", isActive);
+        tab.setAttribute("aria-selected", isActive ? "true" : "false");
       });
     }
 
@@ -575,7 +1011,7 @@
       }
 
       cards.forEach(function (card) {
-        card.style.display = "none";
+        card.classList.add("is-hidden");
       });
 
       if (!filteredCards.length) {
@@ -601,7 +1037,7 @@
       }
 
       filteredCards.slice(0, visibleLimit).forEach(function (card) {
-        card.style.display = "flex";
+        card.classList.remove("is-hidden");
       });
 
       if (loadMoreContainer) {
@@ -628,13 +1064,14 @@
           searchTerm = normalizeText(event.target.value);
           visibleLimit = ITEMS_PER_PAGE;
           renderUI();
-        }, 180);
+        }, 150);
       });
 
       searchInput.addEventListener("keydown", function (event) {
         if (event.key === "Escape") {
           searchInput.value = "";
           searchTerm = "";
+          visibleLimit = ITEMS_PER_PAGE;
           renderUI();
         }
       });
@@ -676,7 +1113,7 @@
       }
 
       if (toast) {
-        toast.innerHTML = '<i class="fa-solid fa-check text-emerald-300"></i> Đã lưu mã: <span class="text-white">' + code + '</span>';
+        toast.innerHTML = '<i class="fa-solid fa-check text-emerald-300"></i> Đã lưu mã: <span class="text-[#fef9ed]">' + escapeToastHTML(code) + '</span>';
         toast.classList.remove("opacity-0", "translate-y-4");
       }
 
@@ -699,6 +1136,15 @@
     } else {
       fallbackCopy(code, showCopiedUI);
     }
+  }
+
+  function escapeToastHTML(value) {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
   }
 
   function fallbackCopy(text, callback) {

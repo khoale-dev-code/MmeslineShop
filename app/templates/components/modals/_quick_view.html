@@ -1,547 +1,779 @@
-{# QUICK VIEW — GUAMAISON Compact #}
+{# QUICK VIEW — GUAMAISON Minimal Editorial #}
 
 <style>
-  :root{
-    --qv-ink:#111;
-    --qv-muted:#777;
-    --qv-soft:#f6f6f6;
-    --qv-line:#e7e7e7;
-    --qv-radius:5px;
+  #quick-view-modal {
+    --qv-black: #010101;
+    --qv-cream: #fef9ed;
+    --qv-paper: #f6f1e8;
+    --qv-white: #ffffff;
+    --qv-muted: rgba(1, 1, 1, .58);
+    --qv-muted-soft: rgba(1, 1, 1, .38);
+    --qv-line: rgba(1, 1, 1, .12);
+    --qv-line-strong: rgba(1, 1, 1, .22);
+    --qv-success: #15803d;
+    --qv-danger: #dc2626;
+    --qv-radius: 8px;
+    --qv-radius-sm: 6px;
+    --qv-ease: cubic-bezier(.16, 1, .3, 1);
+
+    z-index: 100000 !important;
+    font-family: "DM Sans", "Inter", system-ui, sans-serif;
   }
 
-  #quick-view-modal *{box-sizing:border-box}
-
-  #quick-view-modal{
-    font-family:"DM Sans","Inter",system-ui,sans-serif;
+  #quick-view-modal *,
+  #quick-view-modal *::before,
+  #quick-view-modal *::after {
+    box-sizing: border-box;
   }
 
-  #quick-view-modal .qv-panel{
-    width:min(820px,calc(100vw - 24px));
-    max-height:min(82dvh,680px);
-    border-radius:var(--qv-radius);
-    background:#fff;
-    overflow:hidden;
-    box-shadow:0 24px 70px rgba(0,0,0,.22);
-    transform:translateY(10px) scale(.985);
-    transition:transform .22s cubic-bezier(.16,1,.3,1);
+  #quick-view-modal .qv-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(1, 1, 1, .64);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
 
-  #quick-view-modal.opacity-100 .qv-panel{
-    transform:translateY(0) scale(1);
+  #quick-view-modal .qv-panel {
+    position: relative;
+    z-index: 10;
+    width: min(1080px, calc(100vw - 36px));
+    max-height: min(88dvh, 760px);
+    display: grid;
+    grid-template-columns: minmax(0, 52%) minmax(0, 48%);
+    overflow: hidden;
+    border: 1px solid rgba(254, 249, 237, .18);
+    border-radius: var(--qv-radius);
+    background: var(--qv-cream);
+    box-shadow:
+      0 42px 110px -68px rgba(1, 1, 1, .96),
+      0 14px 42px -26px rgba(1, 1, 1, .74);
+    opacity: .98;
+    transform: translateY(14px) scale(.98);
+    transition:
+      transform .28s var(--qv-ease),
+      opacity .28s var(--qv-ease);
   }
 
-  #quick-view-modal .qv-media{
-    position:relative;
-    background:var(--qv-soft);
-    min-height:360px;
-    overflow:hidden;
+  #quick-view-modal.opacity-100 .qv-panel {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 
-  #quick-view-modal .qv-slide{
-    position:absolute;
-    inset:0;
-    display:grid;
-    place-items:center;
-    padding:18px;
-    opacity:0;
-    transform:translateX(16px);
-    transition:.28s cubic-bezier(.16,1,.3,1);
+  #quick-view-modal .qv-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 50;
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(1, 1, 1, .12);
+    border-radius: var(--qv-radius-sm);
+    background: rgba(255, 255, 255, .94);
+    color: var(--qv-black);
+    box-shadow: 0 16px 34px -28px rgba(1, 1, 1, .72);
+    transition:
+      background .18s ease,
+      color .18s ease,
+      border-color .18s ease,
+      transform .18s var(--qv-ease);
   }
 
-  #quick-view-modal .qv-slide.qv-active{
-    opacity:1;
-    transform:none;
-    z-index:2;
+  #quick-view-modal .qv-close:hover {
+    background: var(--qv-black);
+    border-color: var(--qv-black);
+    color: var(--qv-cream);
+    transform: translateY(-1px);
   }
 
-  #quick-view-modal .qv-slide img{
-    width:100%;
-    height:100%;
-    max-height:460px;
-    object-fit:contain;
-    display:block;
+  #quick-view-modal .qv-media {
+    position: relative;
+    min-height: 620px;
+    overflow: hidden;
+    background:
+      linear-gradient(135deg, #f2f2f2 0%, #ffffff 100%);
+    isolation: isolate;
   }
 
-  #quick-view-modal .qv-close,
-  #quick-view-modal .qv-nav{
-    position:absolute;
-    z-index:20;
-    display:grid;
-    place-items:center;
-    width:34px;
-    height:34px;
-    border:1px solid rgba(0,0,0,.08);
-    border-radius:var(--qv-radius);
-    background:rgba(255,255,255,.9);
-    color:#111;
-    transition:.16s ease;
+  #quick-view-modal .qv-media::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    opacity: .22;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(1,1,1,.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(1,1,1,.045) 1px, transparent 1px);
+    background-size: 32px 32px;
+    mask-image: linear-gradient(to bottom, black, transparent 86%);
   }
 
-  #quick-view-modal .qv-close:hover,
-  #quick-view-modal .qv-nav:hover{
-    background:#111;
-    color:#fff;
+  #quick-view-modal .qv-media::after {
+    content: "GUAMAISON";
+    position: absolute;
+    left: 22px;
+    bottom: 18px;
+    z-index: 0;
+    color: rgba(1,1,1,.045);
+    font-size: clamp(58px, 7vw, 104px);
+    font-weight: 1000;
+    letter-spacing: -.08em;
+    line-height: .8;
+    pointer-events: none;
   }
 
-  #quick-view-modal .qv-close{
-    right:12px;
-    top:12px;
+  #quick-view-modal .qv-slide {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    padding: 58px 66px 54px;
+    opacity: 0;
+    transform: translateX(20px) scale(.985);
+    transition:
+      opacity .34s var(--qv-ease),
+      transform .34s var(--qv-ease);
   }
 
-  #quick-view-modal .qv-nav{
-    top:50%;
-    transform:translateY(-50%);
+  #quick-view-modal .qv-slide.qv-active {
+    z-index: 3;
+    opacity: 1;
+    transform: translateX(0) scale(1);
   }
 
-  #quick-view-modal .qv-nav.prev{left:10px}
-  #quick-view-modal .qv-nav.next{right:10px}
-
-  #quick-view-modal .qv-dots{
-    position:absolute;
-    left:50%;
-    bottom:12px;
-    z-index:20;
-    display:flex;
-    gap:5px;
-    transform:translateX(-50%);
+  #quick-view-modal .qv-slide img {
+    width: 100%;
+    height: 100%;
+    max-height: 560px;
+    display: block;
+    object-fit: contain;
+    object-position: center;
+    filter: drop-shadow(0 24px 42px rgba(0,0,0,.14));
   }
 
-  #quick-view-modal .qv-dot{
-    width:16px;
-    height:2px;
-    border:0;
-    border-radius:99px;
-    background:rgba(0,0,0,.24);
-    padding:0;
+  #quick-view-modal .qv-img-fallback {
+    width: min(260px, 76%);
+    aspect-ratio: 4 / 5;
+    display: none;
+    place-items: center;
+    border: 1px solid rgba(1,1,1,.12);
+    border-radius: var(--qv-radius-sm);
+    background: var(--qv-black);
+    color: var(--qv-cream);
+    padding: 18px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 950;
+    letter-spacing: .22em;
+    text-transform: uppercase;
   }
 
-  #quick-view-modal .qv-dot.qv-dot-active{
-    width:28px;
-    background:#111;
+  #quick-view-modal .qv-slide.is-error img {
+    display: none;
   }
 
-  #quick-view-modal .qv-info{
-    max-height:min(82dvh,680px);
-    overflow:auto;
-    padding:26px;
+  #quick-view-modal .qv-slide.is-error .qv-img-fallback {
+    display: grid;
   }
 
-  #quick-view-modal .qv-info::-webkit-scrollbar{
-    display:none;
+  #quick-view-modal .qv-nav {
+    position: absolute;
+    top: 50%;
+    z-index: 35;
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(1,1,1,.10);
+    border-radius: var(--qv-radius-sm);
+    background: rgba(255,255,255,.94);
+    color: var(--qv-black);
+    box-shadow: 0 14px 30px -22px rgba(1,1,1,.58);
+    transform: translateY(-50%);
+    transition:
+      background .18s ease,
+      color .18s ease,
+      border-color .18s ease,
+      transform .18s var(--qv-ease);
   }
 
-  #quick-view-modal .qv-kicker{
-    font-size:9px;
-    font-weight:850;
-    letter-spacing:.2em;
-    text-transform:uppercase;
-    color:var(--qv-muted);
+  #quick-view-modal .qv-nav:hover {
+    background: var(--qv-black);
+    border-color: var(--qv-black);
+    color: var(--qv-cream);
+    transform: translateY(calc(-50% - 1px));
   }
 
-  #quick-view-modal .qv-title{
-    margin-top:8px;
-    font-size:clamp(21px,2.1vw,28px);
-    line-height:1.12;
-    font-weight:760;
-    letter-spacing:-.025em;
-    color:#111;
-    text-wrap:balance;
+  #quick-view-modal .qv-nav.prev {
+    left: 18px;
   }
 
-  #quick-view-modal .qv-price{
-    font-size:20px;
-    font-weight:850;
-    letter-spacing:-.02em;
-    color:#111;
+  #quick-view-modal .qv-nav.next {
+    right: 18px;
   }
 
-  #quick-view-modal .qv-old-price{
-    font-size:12px;
-    font-weight:700;
-    color:#aaa;
-    text-decoration:line-through;
+  #quick-view-modal .qv-dots {
+    position: absolute;
+    left: 50%;
+    bottom: 22px;
+    z-index: 35;
+    display: flex;
+    gap: 6px;
+    transform: translateX(-50%);
   }
 
-  #quick-view-modal .qv-stock{
-    min-height:18px;
-    font-size:10px;
-    font-weight:850;
-    letter-spacing:.12em;
-    text-transform:uppercase;
+  #quick-view-modal .qv-dot {
+    width: 18px;
+    height: 3px;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(1,1,1,.22);
+    padding: 0;
+    transition:
+      width .22s var(--qv-ease),
+      background .22s ease;
   }
 
-  #quick-view-modal .qv-section{
-    padding-top:17px;
-    border-top:1px solid var(--qv-line);
+  #quick-view-modal .qv-dot.qv-dot-active {
+    width: 34px;
+    background: var(--qv-black);
   }
 
-  #quick-view-modal .qv-label{
-    font-size:10px;
-    font-weight:850;
-    letter-spacing:.16em;
-    text-transform:uppercase;
-    color:#111;
+  #quick-view-modal .qv-info {
+    max-height: min(88dvh, 760px);
+    overflow: auto;
+    background:
+      radial-gradient(circle at 100% 0%, rgba(1,1,1,.035), transparent 34%),
+      linear-gradient(180deg, var(--qv-cream) 0%, #fff 100%);
+    -webkit-overflow-scrolling: touch;
   }
 
-  #quick-view-modal .qv-sub{
-    font-size:10px;
-    font-weight:750;
-    letter-spacing:.1em;
-    text-transform:uppercase;
-    color:var(--qv-muted);
+  #quick-view-modal .qv-info::-webkit-scrollbar {
+    width: 4px;
   }
 
-  #quick-view-modal .qv-swatch{
-    width:30px;
-    height:30px;
-    border:1px solid var(--qv-line);
-    border-radius:var(--qv-radius);
-    background:#ddd;
-    cursor:pointer;
+  #quick-view-modal .qv-info::-webkit-scrollbar-thumb {
+    background: rgba(1,1,1,.22);
+    border-radius: 999px;
   }
 
-  #quick-view-modal .qv-swatch.qv-sel{
-    border-color:#111;
-    box-shadow:0 0 0 2px #111 inset;
+  #quick-view-modal .qv-info-inner {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 34px 32px 28px;
   }
 
-  #quick-view-modal .qv-size{
-    min-width:44px;
-    height:36px;
-    padding:0 12px;
-    border:1px solid var(--qv-line);
-    border-radius:var(--qv-radius);
-    background:#fff;
-    color:#111;
-    font-size:10px;
-    font-weight:850;
-    letter-spacing:.12em;
-    text-transform:uppercase;
+  #quick-view-modal .qv-kicker {
+    margin: 0;
+    color: rgba(1,1,1,.44);
+    font-size: 9px;
+    font-weight: 950;
+    letter-spacing: .24em;
+    text-transform: uppercase;
   }
 
-  #quick-view-modal .qv-size.qv-sel{
-    background:#111;
-    border-color:#111;
-    color:#fff;
+  #quick-view-modal .qv-title {
+    margin: 10px 0 0;
+    color: var(--qv-black);
+    font-size: clamp(30px, 3vw, 42px);
+    font-weight: 950;
+    line-height: 1.02;
+    letter-spacing: -.055em;
+    text-wrap: balance;
   }
 
-  #quick-view-modal .qv-size:disabled{
-    background:#f4f4f4;
-    color:#aaa;
-    text-decoration:line-through;
-    cursor:not-allowed;
+  #quick-view-modal .qv-price-row {
+    margin-top: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 10px;
   }
 
-  #quick-view-modal .qv-qty{
-    display:grid;
-    grid-template-columns:34px 38px 34px;
-    height:44px;
-    border:1px solid #111;
-    border-radius:var(--qv-radius);
-    overflow:hidden;
+  #quick-view-modal .qv-price {
+    color: var(--qv-black);
+    font-size: 25px;
+    font-weight: 1000;
+    letter-spacing: -.035em;
   }
 
-  #quick-view-modal .qv-qty button{
-    font-size:17px;
-    color:#555;
+  #quick-view-modal .qv-old-price {
+    color: rgba(1,1,1,.34);
+    font-size: 13px;
+    font-weight: 800;
+    text-decoration: line-through;
   }
 
-  #quick-view-modal .qv-qty button:hover{
-    background:#f5f5f5;
-    color:#111;
+  #quick-view-modal .qv-stock {
+    min-height: 20px;
+    margin-top: 12px;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .12em;
+    text-transform: uppercase;
   }
 
-  #quick-view-modal .qv-qty input{
-    width:100%;
-    border:0;
-    outline:0;
-    text-align:center;
-    font-size:12px;
-    font-weight:850;
-    background:transparent;
-    pointer-events:none;
+  #quick-view-modal .qv-section {
+    padding-top: 20px;
+    margin-top: 22px;
+    border-top: 1px solid rgba(1,1,1,.12);
+  }
+
+  #quick-view-modal .qv-section-head {
+    margin-bottom: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  #quick-view-modal .qv-label {
+    color: var(--qv-black);
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+  }
+
+  #quick-view-modal .qv-sub {
+    color: rgba(1,1,1,.44);
+    font-size: 10px;
+    font-weight: 850;
+    letter-spacing: .11em;
+    text-transform: uppercase;
+  }
+
+  #quick-view-modal .qv-swatch {
+    position: relative;
+    width: 34px;
+    height: 34px;
+    border: 1px solid rgba(1,1,1,.16);
+    border-radius: var(--qv-radius-sm);
+    background: #ddd;
+    cursor: pointer;
+    box-shadow: inset 0 0 0 4px rgba(255,255,255,.66);
+    transition:
+      transform .18s var(--qv-ease),
+      box-shadow .18s ease,
+      border-color .18s ease;
+  }
+
+  #quick-view-modal .qv-swatch:hover {
+    transform: translateY(-1px);
+  }
+
+  #quick-view-modal .qv-swatch.qv-sel {
+    border-color: var(--qv-black);
+    box-shadow:
+      inset 0 0 0 4px rgba(255,255,255,.72),
+      0 0 0 2px var(--qv-black);
+  }
+
+  #quick-view-modal .qv-size {
+    min-width: 54px;
+    height: 42px;
+    padding: 0 15px;
+    border: 1px solid rgba(1,1,1,.14);
+    border-radius: var(--qv-radius-sm);
+    background: rgba(255,255,255,.82);
+    color: var(--qv-black);
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    transition:
+      background .18s ease,
+      color .18s ease,
+      border-color .18s ease,
+      transform .18s var(--qv-ease);
+  }
+
+  #quick-view-modal .qv-size:hover:not(:disabled) {
+    border-color: var(--qv-black);
+    transform: translateY(-1px);
+  }
+
+  #quick-view-modal .qv-size.qv-sel {
+    background: var(--qv-black);
+    border-color: var(--qv-black);
+    color: var(--qv-cream);
+  }
+
+  #quick-view-modal .qv-size:disabled {
+    background: rgba(1,1,1,.045);
+    color: rgba(1,1,1,.28);
+    text-decoration: line-through;
+    cursor: not-allowed;
+  }
+
+  #quick-view-modal .qv-action-box {
+    margin-top: auto;
+    padding-top: 24px;
+  }
+
+  #quick-view-modal .qv-action-grid {
+    display: grid;
+    grid-template-columns: 118px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  #quick-view-modal .qv-qty {
+    display: grid;
+    grid-template-columns: 36px 44px 36px;
+    height: 50px;
+    overflow: hidden;
+    border: 1px solid var(--qv-black);
+    border-radius: var(--qv-radius-sm);
+    background: #fff;
+  }
+
+  #quick-view-modal .qv-qty button {
+    color: rgba(1,1,1,.62);
+    font-size: 18px;
+    transition: background .16s ease, color .16s ease;
+  }
+
+  #quick-view-modal .qv-qty button:hover {
+    background: rgba(1,1,1,.055);
+    color: var(--qv-black);
+  }
+
+  #quick-view-modal .qv-qty input {
+    width: 100%;
+    border: 0;
+    outline: 0;
+    text-align: center;
+    color: var(--qv-black);
+    background: transparent;
+    font-size: 13px;
+    font-weight: 950;
+    pointer-events: none;
   }
 
   #quick-view-modal .qv-submit,
-  #quick-view-modal .qv-detail{
-    height:44px;
-    border-radius:var(--qv-radius);
-    font-size:10px;
-    font-weight:900;
-    letter-spacing:.16em;
-    text-transform:uppercase;
+  #quick-view-modal .qv-detail {
+    min-height: 50px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    border-radius: var(--qv-radius-sm);
+    padding: 0 18px;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    transition:
+      background .18s ease,
+      color .18s ease,
+      border-color .18s ease,
+      transform .18s var(--qv-ease);
   }
 
-  #quick-view-modal .qv-submit{
-    border:1px solid #111;
-    background:#111;
-    color:#fff;
+  #quick-view-modal .qv-submit {
+    width: 100%;
+    border: 1px solid var(--qv-black);
+    background: var(--qv-black);
+    color: var(--qv-cream);
   }
 
-  #quick-view-modal .qv-submit:hover:not(:disabled){
-    background:#333;
+  #quick-view-modal .qv-submit::before {
+    content: "\f217";
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    font-size: 12px;
+    line-height: 1;
   }
 
-  #quick-view-modal .qv-submit:disabled{
-    border-color:#e5e5e5;
-    background:#f1f1f1;
-    color:#aaa;
+  #quick-view-modal .qv-submit:hover:not(:disabled) {
+    background: transparent;
+    color: var(--qv-black);
+    transform: translateY(-1px);
   }
 
-  #quick-view-modal .qv-detail{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:8px;
-    border:1px solid var(--qv-line);
-    background:#fff;
-    color:#111;
+  #quick-view-modal .qv-submit:disabled {
+    border-color: rgba(1,1,1,.10);
+    background: rgba(1,1,1,.06);
+    color: rgba(1,1,1,.34);
+    cursor: not-allowed;
   }
 
-  #quick-view-modal .qv-detail:hover{
-    border-color:#111;
+  #quick-view-modal .qv-submit:disabled::before {
+    content: "\f05e";
   }
 
- @media(max-width:767px){
-  #quick-view-modal{
-    align-items:flex-end;
-    justify-content:center;
-    padding:0;
-    background:rgba(0,0,0,.48);
-    backdrop-filter:blur(4px);
-    -webkit-backdrop-filter:blur(4px);
+  #quick-view-modal .qv-detail {
+    width: 100%;
+    margin-top: 10px;
+    border: 1px solid rgba(1,1,1,.14);
+    background: #fff;
+    color: var(--qv-black);
   }
 
-  #quick-view-modal .qv-panel{
-    width:100%;
-    height:auto;
-    max-height:92dvh;
-    grid-template-columns:1fr;
-    border-radius:18px 18px 0 0;
-    overflow:hidden;
-    box-shadow:0 -18px 50px rgba(0,0,0,.18);
-    transform:translateY(22px);
+  #quick-view-modal .qv-detail:hover {
+    border-color: var(--qv-black);
+    transform: translateY(-1px);
   }
 
-  #quick-view-modal.opacity-100 .qv-panel{
-    transform:translateY(0);
+  #quick-view-modal .qv-toast {
+    position: absolute;
+    left: 50%;
+    bottom: 18px;
+    z-index: 80;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: calc(100% - 32px);
+    border: 1px solid rgba(254,249,237,.14);
+    border-radius: var(--qv-radius-sm);
+    background: rgba(1,1,1,.94);
+    color: var(--qv-cream);
+    padding: 12px 16px;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    box-shadow: 0 24px 70px -45px rgba(1,1,1,.85);
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, 12px);
+    transition:
+      opacity .26s var(--qv-ease),
+      transform .26s var(--qv-ease);
   }
 
-  #quick-view-modal .qv-panel::before{
-    content:"";
-    position:absolute;
-    left:50%;
-    top:8px;
-    z-index:30;
-    width:44px;
-    height:4px;
-    border-radius:999px;
-    background:rgba(0,0,0,.18);
-    transform:translateX(-50%);
+  #quick-view-modal .qv-toast.is-show {
+    opacity: 1;
+    transform: translate(-50%, 0);
   }
 
-  #quick-view-modal .qv-close{
-    top:14px;
-    right:14px;
-    width:38px;
-    height:38px;
-    border-radius:999px;
-    background:rgba(255,255,255,.94);
-    box-shadow:0 12px 26px rgba(0,0,0,.12);
+  @media (max-width: 1023px) {
+    #quick-view-modal .qv-panel {
+      width: min(760px, calc(100vw - 28px));
+      grid-template-columns: 1fr;
+      max-height: 90dvh;
+    }
+
+    #quick-view-modal .qv-media {
+      min-height: 380px;
+      height: 44dvh;
+    }
+
+    #quick-view-modal .qv-slide {
+      padding: 42px 54px 36px;
+    }
+
+    #quick-view-modal .qv-slide img {
+      max-height: none;
+    }
+
+    #quick-view-modal .qv-info {
+      max-height: 46dvh;
+    }
+
+    #quick-view-modal .qv-info-inner {
+      padding: 24px 24px 26px;
+    }
+
+    #quick-view-modal .qv-action-box {
+      margin-top: 24px;
+    }
   }
 
-  #quick-view-modal .qv-media{
-    min-height:0;
-    height:38dvh;
-    max-height:330px;
-    background:#f5f5f5;
+  @media (max-width: 767px) {
+    #quick-view-modal {
+      align-items: flex-end;
+      justify-content: center;
+      padding: 0 !important;
+    }
+
+    #quick-view-modal .qv-panel {
+      width: 100%;
+      max-height: calc(94dvh - env(safe-area-inset-bottom, 0px));
+      border-radius: 8px 8px 0 0;
+      box-shadow: 0 -24px 70px rgba(0,0,0,.26);
+      transform: translateY(28px);
+    }
+
+    #quick-view-modal.opacity-100 .qv-panel {
+      transform: translateY(0);
+    }
+
+    #quick-view-modal .qv-panel::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 9px;
+      z-index: 45;
+      width: 44px;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(1,1,1,.20);
+      transform: translateX(-50%);
+    }
+
+    #quick-view-modal .qv-close {
+      top: 14px;
+      right: 14px;
+      width: 38px;
+      height: 38px;
+    }
+
+    #quick-view-modal .qv-media {
+      min-height: 0;
+      height: min(38dvh, 330px);
+    }
+
+    #quick-view-modal .qv-slide {
+      padding: 32px 46px 24px;
+    }
+
+    #quick-view-modal .qv-nav {
+      width: 36px;
+      height: 36px;
+    }
+
+    #quick-view-modal .qv-nav.prev {
+      left: 10px;
+    }
+
+    #quick-view-modal .qv-nav.next {
+      right: 10px;
+    }
+
+    #quick-view-modal .qv-dots {
+      bottom: 12px;
+    }
+
+    #quick-view-modal .qv-info {
+      max-height: 56dvh;
+    }
+
+    #quick-view-modal .qv-info-inner {
+      padding: 20px 16px calc(108px + env(safe-area-inset-bottom, 0px));
+    }
+
+    #quick-view-modal .qv-title {
+      font-size: 23px;
+      line-height: 1.12;
+    }
+
+    #quick-view-modal .qv-price {
+      font-size: 21px;
+    }
+
+    #quick-view-modal .qv-section {
+      margin-top: 18px;
+      padding-top: 16px;
+    }
+
+    #quick-view-modal .qv-swatch {
+      width: 34px;
+      height: 34px;
+    }
+
+    #quick-view-modal .qv-size {
+      min-width: 46px;
+      height: 38px;
+      padding: 0 12px;
+    }
+
+    #quick-view-modal .qv-action-box {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 55;
+      margin: 0;
+      padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+      border-top: 1px solid rgba(1,1,1,.10);
+      background: rgba(254,249,237,.94);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 -18px 46px rgba(1,1,1,.10);
+    }
+
+    #quick-view-modal .qv-action-grid {
+      grid-template-columns: 94px minmax(0, 1fr) 44px;
+      gap: 8px;
+      align-items: center;
+    }
+
+    #quick-view-modal .qv-qty {
+      grid-template-columns: 30px 34px 30px;
+      height: 44px;
+    }
+
+    #quick-view-modal .qv-submit {
+      min-height: 44px;
+      white-space: nowrap;
+      letter-spacing: .11em;
+    }
+
+    #quick-view-modal .qv-detail {
+      width: 44px;
+      height: 44px;
+      min-height: 44px;
+      margin: 0;
+      padding: 0;
+      font-size: 0;
+    }
+
+    #quick-view-modal .qv-detail i {
+      font-size: 12px;
+    }
+
+    #quick-view-modal .qv-detail .qv-detail-text {
+      display: none;
+    }
+
+    #quick-view-modal .qv-toast {
+      bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+      font-size: 9px;
+    }
   }
 
-  #quick-view-modal .qv-slide{
-    padding:18px 42px 22px;
+  @media (max-width: 380px) {
+    #quick-view-modal .qv-action-grid {
+      grid-template-columns: 88px minmax(0, 1fr) 42px;
+    }
+
+    #quick-view-modal .qv-submit {
+      font-size: 9px;
+    }
   }
 
-  #quick-view-modal .qv-slide img{
-    width:100%;
-    height:100%;
-    max-height:none;
-    object-fit:contain;
-  }
-
-  #quick-view-modal .qv-nav{
-    width:34px;
-    height:34px;
-    border-radius:999px;
-    background:rgba(255,255,255,.92);
-    box-shadow:0 10px 22px rgba(0,0,0,.1);
-  }
-
-  #quick-view-modal .qv-nav.prev{
-    left:10px;
-  }
-
-  #quick-view-modal .qv-nav.next{
-    right:10px;
-  }
-
-  #quick-view-modal .qv-dots{
-    bottom:10px;
-  }
-
-  #quick-view-modal .qv-dot{
-    width:14px;
-    height:3px;
-    background:rgba(0,0,0,.2);
-  }
-
-  #quick-view-modal .qv-dot.qv-dot-active{
-    width:28px;
-    background:#111;
-  }
-
-  #quick-view-modal .qv-info{
-    max-height:54dvh;
-    overflow:auto;
-    padding:18px 16px calc(96px + env(safe-area-inset-bottom, 0px));
-    -webkit-overflow-scrolling:touch;
-  }
-
-  #quick-view-modal .qv-kicker{
-    font-size:8px;
-    letter-spacing:.18em;
-  }
-
-  #quick-view-modal .qv-title{
-    margin-top:7px;
-    font-size:20px;
-    line-height:1.16;
-    letter-spacing:-.035em;
-  }
-
-  #quick-view-modal .qv-price{
-    font-size:19px;
-  }
-
-  #quick-view-modal .qv-stock{
-    margin-top:8px;
-    font-size:9px;
-  }
-
-  #quick-view-modal .qv-section{
-    padding-top:14px;
-  }
-
-  #quick-view-modal .qv-label{
-    font-size:9px;
-    letter-spacing:.14em;
-  }
-
-  #quick-view-modal .qv-sub{
-    font-size:9px;
-  }
-
-  #quick-view-modal .qv-swatch{
-    width:34px;
-    height:34px;
-    border-radius:999px;
-  }
-
-  #quick-view-modal .qv-swatch.qv-sel{
-    box-shadow:0 0 0 2px #fff inset, 0 0 0 2px #111;
-  }
-
-  #quick-view-modal .qv-size{
-    min-width:42px;
-    height:34px;
-    padding:0 11px;
-    border-radius:999px;
-    font-size:10px;
-  }
-
-  #quick-view-modal .qv-mobile-action{
-    position:absolute;
-    left:0;
-    right:0;
-    bottom:0;
-    z-index:40;
-    padding:10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
-    border-top:1px solid rgba(0,0,0,.08);
-    background:rgba(255,255,255,.94);
-    backdrop-filter:blur(16px);
-    -webkit-backdrop-filter:blur(16px);
-    box-shadow:0 -16px 42px rgba(0,0,0,.08);
-  }
-
-  #quick-view-modal .qv-mobile-action-grid{
-    display:grid;
-    grid-template-columns:94px 1fr 44px;
-    gap:8px;
-    align-items:center;
-  }
-
-  #quick-view-modal .qv-qty{
-    grid-template-columns:30px 34px 30px;
-    height:42px;
-    border-radius:999px;
-    border-color:#d9d9d9;
-    background:#fff;
-  }
-
-  #quick-view-modal .qv-qty button{
-    font-size:16px;
-  }
-
-  #quick-view-modal .qv-submit{
-    height:44px;
-    border-radius:999px;
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:8px;
-    font-size:10px;
-    letter-spacing:.13em;
-    white-space:nowrap;
-  }
-
-  #quick-view-modal .qv-submit::before{
-    content:"\f217";
-    font-family:"Font Awesome 6 Free";
-    font-weight:900;
-    font-size:12px;
-    line-height:1;
-  }
-
-  #quick-view-modal .qv-submit:disabled::before{
-    content:"\f05e";
-  }
-
-  #quick-view-modal .qv-detail{
-    width:44px;
-    height:44px;
-    margin:0;
-    padding:0;
-    border-radius:999px;
-    font-size:0;
-  }
-
-  #quick-view-modal .qv-detail i{
-    font-size:12px;
-  }
-
-  #quick-view-modal .qv-detail .qv-detail-text{
-    display:none;
-  }
+  @media (prefers-reduced-motion: reduce) {
+    #quick-view-modal .qv-panel,
+    #quick-view-modal .qv-slide,
+    #quick-view-modal .qv-close,
+    #quick-view-modal .qv-nav,
+    #quick-view-modal .qv-dot,
+    #quick-view-modal .qv-swatch,
+    #quick-view-modal .qv-size,
+    #quick-view-modal .qv-submit,
+    #quick-view-modal .qv-detail,
+    #quick-view-modal .qv-toast {
+      transition: none !important;
+      transform: none !important;
+      animation: none !important;
+    }
   }
 </style>
 
 <div
   id="quick-view-modal"
-  class="fixed inset-0 z-[220] hidden items-center justify-center bg-black/50 px-3 opacity-0 backdrop-blur-[3px] transition-opacity duration-200 sm:px-5"
+  class="fixed inset-0 hidden items-center justify-center opacity-0 transition-opacity duration-200"
   aria-hidden="true"
 >
-  <button type="button" class="absolute inset-0" onclick="closeQuickView()" aria-label="Đóng"></button>
+  <button type="button" class="qv-backdrop" onclick="closeQuickView()" aria-label="Đóng"></button>
 
-  <section id="qv-inner" class="qv-panel relative z-10 grid grid-cols-1 md:grid-cols-[46%_54%]" role="dialog" aria-modal="true">
+  <section id="qv-inner" class="qv-panel" role="dialog" aria-modal="true" aria-labelledby="qv-name">
     <button type="button" class="qv-close" onclick="closeQuickView()" aria-label="Đóng">
       <i class="fa-solid fa-xmark text-sm"></i>
     </button>
@@ -561,58 +793,64 @@
     </div>
 
     <div class="qv-info">
-      <p id="qv-category" class="qv-kicker">Collection</p>
+      <div class="qv-info-inner">
+        <p id="qv-category" class="qv-kicker">Collection</p>
 
-      <h2 id="qv-name" class="qv-title">Product Name</h2>
+        <h2 id="qv-name" class="qv-title">Product Name</h2>
 
-      <div class="mt-4 flex flex-wrap items-baseline gap-3">
-        <span id="qv-price" class="qv-price">0₫</span>
-        <span id="qv-price-original" class="qv-old-price hidden"></span>
-      </div>
-
-      <div id="qv-stock-status" class="qv-stock mt-3"></div>
-
-      <form action="/cart/add" method="POST" class="mt-5">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="hidden" name="product_id" id="qv-input-id">
-        <input type="hidden" name="variant_id" id="qv-variant-id">
-
-        <section id="qv-color-section" class="qv-section hidden">
-          <div class="mb-3 flex items-center justify-between gap-3">
-            <span class="qv-label">Màu sắc</span>
-            <span id="qv-color-label" class="qv-sub"></span>
-          </div>
-          <div id="qv-colors" class="flex flex-wrap gap-2"></div>
-        </section>
-
-        <section id="qv-size-section" class="qv-section mt-5 hidden">
-          <div class="mb-3 flex items-center justify-between gap-3">
-            <span class="qv-label">Kích thước</span>
-            <span class="qv-sub">Chọn size</span>
-          </div>
-          <div id="qv-sizes" class="flex flex-wrap gap-2"></div>
-        </section>
-
-       <div class="qv-mobile-action mt-6 border-t border-[#e7e7e7] pt-4">
-        <div class="qv-mobile-action-grid">
-          <div class="qv-qty">
-            <button type="button" onclick="qvChangeQty(-1)" aria-label="Giảm số lượng">−</button>
-            <input id="qv-qty" name="quantity" type="number" value="1" readonly>
-            <button type="button" onclick="qvChangeQty(1)" aria-label="Tăng số lượng">+</button>
-          </div>
-
-          <button type="submit" id="qv-submit-btn" class="qv-submit">
-            Thêm vào giỏ
-          </button>
-
-          <a id="qv-detail-link" href="#" class="qv-detail" aria-label="Xem chi tiết sản phẩm">
-            <span class="qv-detail-text">Xem chi tiết</span>
-            <i class="fa-solid fa-arrow-right text-xs"></i>
-          </a>
+        <div class="qv-price-row">
+          <span id="qv-price" class="qv-price">0₫</span>
+          <span id="qv-price-original" class="qv-old-price hidden"></span>
         </div>
+
+        <div id="qv-stock-status" class="qv-stock"></div>
+
+        <form action="/cart/add" method="POST" id="qv-form" class="mt-0">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="product_id" id="qv-input-id">
+          <input type="hidden" name="variant_id" id="qv-variant-id">
+
+          <section id="qv-color-section" class="qv-section hidden">
+            <div class="qv-section-head">
+              <span class="qv-label">Màu sắc</span>
+              <span id="qv-color-label" class="qv-sub"></span>
+            </div>
+
+            <div id="qv-colors" class="flex flex-wrap gap-2"></div>
+          </section>
+
+          <section id="qv-size-section" class="qv-section hidden">
+            <div class="qv-section-head">
+              <span class="qv-label">Kích thước</span>
+              <span class="qv-sub">Chọn size</span>
+            </div>
+
+            <div id="qv-sizes" class="flex flex-wrap gap-2"></div>
+          </section>
+
+          <div class="qv-action-box">
+            <div class="qv-action-grid">
+              <div class="qv-qty">
+                <button type="button" onclick="qvChangeQty(-1)" aria-label="Giảm số lượng">−</button>
+                <input id="qv-qty" name="quantity" type="number" value="1" readonly>
+                <button type="button" onclick="qvChangeQty(1)" aria-label="Tăng số lượng">+</button>
+              </div>
+
+              <button type="submit" id="qv-submit-btn" class="qv-submit">
+                Thêm vào giỏ
+              </button>
+
+              <a id="qv-detail-link" href="#" class="qv-detail" aria-label="Xem chi tiết sản phẩm">
+                <span class="qv-detail-text">Xem chi tiết</span>
+                <i class="fa-solid fa-arrow-right text-xs"></i>
+              </a>
+            </div>
+          </div>
+        </form>
       </div>
-      </form>
     </div>
+
+    <div id="qv-toast" class="qv-toast" aria-live="polite"></div>
   </section>
 </div>
 
@@ -620,124 +858,256 @@
 (function(){
   "use strict";
 
-  const $ = (s,r=document) => r.querySelector(s);
-  const $$ = (s,r=document) => Array.from(r.querySelectorAll(s));
+  const $ = (selector, root = document) => root.querySelector(selector);
+  const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
 
   const COLORS = {
-    "đen":"#111","black":"#111","trắng":"#fff","white":"#fff","đỏ":"#dc2626","red":"#dc2626",
-    "xanh dương":"#2563eb","blue":"#2563eb","navy":"#1e3a8a","xanh navy":"#1e3a8a",
-    "xanh lá":"#16a34a","green":"#16a34a","vàng":"#eab308","yellow":"#eab308",
-    "cam":"#ea580c","orange":"#ea580c","hồng":"#ec4899","pink":"#ec4899",
-    "tím":"#9333ea","purple":"#9333ea","xám":"#6b7280","gray":"#6b7280","grey":"#6b7280",
-    "nâu":"#78350f","brown":"#78350f","be":"#d4c5b0","beige":"#d4c5b0","kem":"#fef3c7","cream":"#fef3c7"
+    "đen":"#111111","black":"#111111",
+    "trắng":"#ffffff","white":"#ffffff",
+    "đỏ":"#dc2626","red":"#dc2626",
+    "xanh dương":"#2563eb","blue":"#2563eb",
+    "navy":"#1e3a8a","xanh navy":"#1e3a8a",
+    "xanh lá":"#16a34a","green":"#16a34a",
+    "vàng":"#eab308","yellow":"#eab308",
+    "cam":"#ea580c","orange":"#ea580c",
+    "hồng":"#ec4899","pink":"#ec4899",
+    "tím":"#9333ea","purple":"#9333ea",
+    "xám":"#6b7280","gray":"#6b7280","grey":"#6b7280",
+    "nâu":"#78350f","brown":"#78350f",
+    "be":"#d4c5b0","beige":"#d4c5b0",
+    "kem":"#fef3c7","cream":"#fef3c7"
   };
 
-  const QV = {imgs:[],i:0,variants:[],base:0,max:1};
+  const PLACEHOLDER = "https://placehold.co/700x900/f7f1e6/010101?text=GUAMAISON";
 
-  const money = v => Number(v || 0).toLocaleString("vi-VN") + "₫";
-  const safe = v => String(v || "").replace(/"/g,"&quot;");
-  const hex = n => COLORS[String(n || "").toLowerCase().trim()] || "#ccc";
+  const QV = {
+    imgs: [],
+    i: 0,
+    variants: [],
+    base: 0,
+    max: 1,
+    lastFocus: null
+  };
 
-  function json(raw,fallback){
-    try{
-      if(!raw || raw === "None") return fallback;
-      return JSON.parse(raw);
-    }catch(_){ return fallback; }
+  const money = value => Number(value || 0).toLocaleString("vi-VN") + "₫";
+
+  function safe(value) {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
   }
 
-  function slides(images){
-    QV.imgs = images && images.length ? images : [""];
+  function colorHex(name) {
+    return COLORS[String(name || "").toLowerCase().trim()] || "#cccccc";
+  }
+
+  function parseJSON(raw, fallback) {
+    try {
+      if (!raw || raw === "None") return fallback;
+      return JSON.parse(raw);
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  function getCSRFToken() {
+    return (
+      document.querySelector('#qv-form input[name="csrf_token"]')?.value ||
+      document.querySelector('meta[name="csrf-token"]')?.content ||
+      document.querySelector('input[name="csrf_token"]')?.value ||
+      ""
+    );
+  }
+
+  function showToast(message, type) {
+    const toast = $("#qv-toast");
+    if (!toast) return;
+
+    const icon = type === "error"
+      ? '<i class="fa-solid fa-circle-exclamation text-rose-300"></i>'
+      : '<i class="fa-solid fa-check text-emerald-300"></i>';
+
+    toast.innerHTML = icon + "<span>" + safe(message) + "</span>";
+    toast.classList.add("is-show");
+
+    clearTimeout(window.__qvToastTimer);
+    window.__qvToastTimer = window.setTimeout(function () {
+      toast.classList.remove("is-show");
+    }, 2200);
+  }
+
+  function preloadImages(images) {
+    images.forEach(function (src) {
+      if (!src) return;
+
+      const img = new Image();
+      img.decoding = "async";
+      img.src = src;
+    });
+  }
+
+  function updateCartCounters(data) {
+    const count =
+      data?.cart_count ??
+      data?.count ??
+      data?.cart?.count ??
+      data?.cart_total_items ??
+      null;
+
+    if (count === null || count === undefined) return;
+
+    document
+      .querySelectorAll("[data-cart-count], .cart-count, #cart-count, .js-cart-count")
+      .forEach(function (el) {
+        el.textContent = String(count);
+        el.classList.remove("hidden");
+      });
+  }
+
+  function renderSlides(images) {
+    const cleanImages = Array.isArray(images)
+      ? images.filter(Boolean)
+      : [];
+
+    QV.imgs = cleanImages.length ? cleanImages : [PLACEHOLDER];
     QV.i = 0;
 
-    $("#qv-slides").innerHTML = QV.imgs.map((src,i)=>`
-      <div class="qv-slide${i===0 ? " qv-active" : ""}">
-        <img src="${safe(src)}" alt="Product ${i+1}" ${i ? 'loading="lazy"' : 'loading="eager"'}
-             onerror="this.src='https://placehold.co/700x900/f6f6f6/111111?text=GUAMAISON'">
-      </div>
-    `).join("");
+    preloadImages(QV.imgs);
 
-    $("#qv-dots").innerHTML = QV.imgs.map((_,i)=>`
-      <button type="button" class="qv-dot${i===0 ? " qv-dot-active" : ""}" onclick="qvGoTo(${i})"></button>
-    `).join("");
+    $("#qv-slides").innerHTML = QV.imgs.map(function (src, index) {
+      return `
+        <div class="qv-slide${index === 0 ? " qv-active" : ""}">
+          <img
+            src="${safe(src)}"
+            alt="GUAMAISON product ${index + 1}"
+            loading="eager"
+            decoding="async"
+            onerror="this.closest('.qv-slide')?.classList.add('is-error')"
+          >
+          <div class="qv-img-fallback">GUAMAISON</div>
+        </div>
+      `;
+    }).join("");
 
-    const show = QV.imgs.length > 1;
-    $$(".qv-nav").forEach(b => b.style.display = show ? "grid" : "none");
-    $("#qv-dots").style.display = show ? "flex" : "none";
+    $("#qv-dots").innerHTML = QV.imgs.map(function (_, index) {
+      return `
+        <button
+          type="button"
+          class="qv-dot${index === 0 ? " qv-dot-active" : ""}"
+          onclick="qvGoTo(${index})"
+          aria-label="Xem ảnh ${index + 1}"
+        ></button>
+      `;
+    }).join("");
+
+    const showControls = QV.imgs.length > 1;
+
+    $$(".qv-nav").forEach(function (btn) {
+      btn.style.display = showControls ? "grid" : "none";
+    });
+
+    $("#qv-dots").style.display = showControls ? "flex" : "none";
   }
 
-  window.qvGoTo = function(n){
-    const items = $$(".qv-slide");
-    if(!items.length) return;
+  window.qvGoTo = function(nextIndex) {
+    const slides = $$(".qv-slide");
+    if (!slides.length) return;
 
-    items[QV.i]?.classList.remove("qv-active");
-    QV.i = (n + items.length) % items.length;
-    items[QV.i]?.classList.add("qv-active");
+    slides[QV.i]?.classList.remove("qv-active");
 
-    $$(".qv-dot").forEach((d,i)=>d.classList.toggle("qv-dot-active", i === QV.i));
+    QV.i = (Number(nextIndex || 0) + slides.length) % slides.length;
+
+    slides[QV.i]?.classList.add("qv-active");
+
+    $$(".qv-dot").forEach(function (dot, index) {
+      dot.classList.toggle("qv-dot-active", index === QV.i);
+    });
   };
 
-  window.qvSlide = d => qvGoTo(QV.i + Number(d || 0));
+  window.qvSlide = function(direction) {
+    window.qvGoTo(QV.i + Number(direction || 0));
+  };
 
-  window.triggerQuickView = function(btn){
+  window.triggerQuickView = function(btn) {
+    if (!btn) return;
+
     const image = btn.dataset.image;
-    let images = json(btn.dataset.images, []);
-    if(!images.length && image) images = [image];
+    let images = parseJSON(btn.dataset.images, []);
 
-    openQuickView(
+    if (!images.length && image) {
+      images = [image];
+    }
+
+    window.openQuickView(
       btn.dataset.id,
       btn.dataset.slug,
       btn.dataset.name,
       btn.dataset.price,
       images,
       btn.dataset.category,
-      parseInt(btn.dataset.stock,10) || 0,
-      json(btn.dataset.variants, [])
+      parseInt(btn.dataset.stock, 10) || 0,
+      parseJSON(btn.dataset.variants, [])
     );
   };
 
-  window.openQuickView = function(id,slug,name,price,images,category,stock,variants){
+  window.openQuickView = function(id, slug, name, price, images, category, stock, variants) {
+    QV.lastFocus = document.activeElement;
     QV.variants = Array.isArray(variants) ? variants : [];
     QV.base = parseFloat(price) || 0;
-    QV.max = Math.max(1,stock || 1);
+    QV.max = Math.max(1, stock || 1);
 
     $("#qv-input-id").value = id || "";
     $("#qv-variant-id").value = "";
-    $("#qv-name").textContent = name || "Product";
+    $("#qv-name").textContent = name || "Sản phẩm GUAMAISON";
     $("#qv-category").textContent = category || "GUAMAISON";
     $("#qv-detail-link").href = "/product/" + (slug || id || "");
     $("#qv-qty").value = 1;
 
-    slides(images);
+    renderSlides(images);
+
     $("#qv-price").textContent = money(QV.base);
     $("#qv-price-original").classList.add("hidden");
 
-    if(QV.variants.length) renderColors();
-    else{
+    if (QV.variants.length) {
+      renderColors();
+    } else {
       $("#qv-color-section").classList.add("hidden");
       $("#qv-size-section").classList.add("hidden");
-      update(stock, QV.base, "");
+      updateProductState(stock, QV.base, "");
     }
 
     const modal = $("#quick-view-modal");
+
     modal.classList.remove("hidden");
     modal.classList.add("flex");
-    modal.setAttribute("aria-hidden","false");
+    modal.setAttribute("aria-hidden", "false");
 
-    requestAnimationFrame(()=>modal.classList.add("opacity-100"));
+    requestAnimationFrame(function () {
+      modal.classList.add("opacity-100");
+      $(".qv-close")?.focus();
+    });
+
+    document.documentElement.classList.add("qv-lock");
     document.body.style.overflow = "hidden";
   };
 
-  function renderColors(){
+  function renderColors() {
     const colors = [];
 
-    QV.variants.forEach(v=>{
-      const name = v.color_name || v.color || "";
-      if(name && !colors.some(c=>c.name === name)){
-        colors.push({name,hex:v.color_hex || v.hex_code || v.hex || hex(name)});
+    QV.variants.forEach(function (variant) {
+      const name = variant.color_name || variant.color || "";
+
+      if (name && !colors.some(color => color.name === name)) {
+        colors.push({
+          name: name,
+          hex: variant.color_hex || variant.hex_code || variant.hex || colorHex(name)
+        });
       }
     });
 
-    if(!colors.length){
+    if (!colors.length) {
       $("#qv-color-section").classList.add("hidden");
       $("#qv-size-section").classList.remove("hidden");
       renderSizes("");
@@ -747,95 +1117,251 @@
     $("#qv-color-section").classList.remove("hidden");
     $("#qv-size-section").classList.remove("hidden");
 
-    $("#qv-colors").innerHTML = colors.map((c,i)=>`
-      <button type="button" class="qv-swatch${i===0 ? " qv-sel" : ""}"
-              style="background:${safe(c.hex)}" data-color="${safe(c.name)}"
-              onclick="qvPickColor(this)" title="${safe(c.name)}"></button>
-    `).join("");
+    $("#qv-colors").innerHTML = colors.map(function (color, index) {
+      return `
+        <button
+          type="button"
+          class="qv-swatch${index === 0 ? " qv-sel" : ""}"
+          style="background:${safe(color.hex)}"
+          data-color="${safe(color.name)}"
+          onclick="qvPickColor(this)"
+          title="${safe(color.name)}"
+          aria-label="Chọn màu ${safe(color.name)}"
+        ></button>
+      `;
+    }).join("");
 
     renderSizes(colors[0].name);
   }
 
-  window.qvPickColor = function(btn){
-    $$("#qv-colors .qv-swatch").forEach(b=>b.classList.remove("qv-sel"));
+  window.qvPickColor = function(btn) {
+    $$("#qv-colors .qv-swatch").forEach(function (item) {
+      item.classList.remove("qv-sel");
+    });
+
     btn.classList.add("qv-sel");
     renderSizes(btn.dataset.color || "");
   };
 
-  function renderSizes(color){
+  function renderSizes(color) {
     $("#qv-color-label").textContent = color || "";
 
-    const vars = color
-      ? QV.variants.filter(v => (v.color_name || v.color || "") === color)
+    const variants = color
+      ? QV.variants.filter(variant => (variant.color_name || variant.color || "") === color)
       : QV.variants;
 
-    const first = vars.find(v => Number(v.stock || 0) > 0);
+    const firstAvailable = variants.find(variant => Number(variant.stock || 0) > 0);
 
-    $("#qv-sizes").innerHTML = vars.map(v=>{
-      const st = Number(v.stock || 0);
-      const ok = st > 0;
-      const sel = first && v.id === first.id;
+    $("#qv-sizes").innerHTML = variants.map(function (variant) {
+      const variantStock = Number(variant.stock || 0);
+      const available = variantStock > 0;
+      const selected = firstAvailable && variant.id === firstAvailable.id;
 
-      return `<button type="button" class="qv-size${sel ? " qv-sel" : ""}"
-                data-vid="${safe(v.id)}"
-                data-stock="${st}"
-                data-price="${v.price_override || v.price || QV.base}"
-                ${ok ? "" : "disabled"}
-                onclick="qvPickSize(this)">${safe(v.size || v.size_name || "OS")}</button>`;
+      return `
+        <button
+          type="button"
+          class="qv-size${selected ? " qv-sel" : ""}"
+          data-vid="${safe(variant.id)}"
+          data-stock="${variantStock}"
+          data-price="${variant.price_override || variant.price || QV.base}"
+          ${available ? "" : "disabled"}
+          onclick="qvPickSize(this)"
+        >
+          ${safe(variant.size || variant.size_name || "OS")}
+        </button>
+      `;
     }).join("");
 
-    first ? update(first.stock, first.price_override || first.price || QV.base, first.id) : update(0, QV.base, "");
+    if (firstAvailable) {
+      updateProductState(
+        firstAvailable.stock,
+        firstAvailable.price_override || firstAvailable.price || QV.base,
+        firstAvailable.id
+      );
+    } else {
+      updateProductState(0, QV.base, "");
+    }
   }
 
-  window.qvPickSize = function(btn){
-    $$("#qv-sizes .qv-size").forEach(b=>b.classList.remove("qv-sel"));
+  window.qvPickSize = function(btn) {
+    $$("#qv-sizes .qv-size").forEach(function (item) {
+      item.classList.remove("qv-sel");
+    });
+
     btn.classList.add("qv-sel");
-    update(parseInt(btn.dataset.stock,10) || 0, parseFloat(btn.dataset.price) || QV.base, btn.dataset.vid || "");
+
+    updateProductState(
+      parseInt(btn.dataset.stock, 10) || 0,
+      parseFloat(btn.dataset.price) || QV.base,
+      btn.dataset.vid || ""
+    );
   };
 
-  function update(stock,price,variantId){
+  function updateProductState(stock, price, variantId) {
     $("#qv-variant-id").value = variantId || "";
     $("#qv-price").textContent = money(price);
 
-    if(price && price < QV.base){
+    if (price && price < QV.base) {
       $("#qv-price-original").textContent = money(QV.base);
       $("#qv-price-original").classList.remove("hidden");
-    }else{
+    } else {
       $("#qv-price-original").classList.add("hidden");
     }
 
-    const ok = stock > 0;
-    QV.max = ok ? stock : 1;
-    $("#qv-submit-btn").disabled = !ok;
-    $("#qv-submit-btn").textContent = ok ? "Thêm vào giỏ" : "Hết hàng";
-    $("#qv-stock-status").innerHTML = ok
+    const available = Number(stock || 0) > 0;
+
+    QV.max = available ? Number(stock) : 1;
+
+    $("#qv-submit-btn").disabled = !available;
+    $("#qv-submit-btn").textContent = available ? "Thêm vào giỏ" : "Hết hàng";
+
+    $("#qv-stock-status").innerHTML = available
       ? '<span style="color:#15803d">● Còn hàng</span>'
       : '<span style="color:#dc2626">● Hết hàng</span>';
+
     $("#qv-qty").value = 1;
   }
 
-  window.qvChangeQty = function(delta){
-    const el = $("#qv-qty");
-    const next = Number(el.value || 1) + Number(delta || 0);
-    if(next >= 1 && next <= QV.max) el.value = next;
+  window.qvChangeQty = function(delta) {
+    const input = $("#qv-qty");
+    const nextValue = Number(input.value || 1) + Number(delta || 0);
+
+    if (nextValue >= 1 && nextValue <= QV.max) {
+      input.value = nextValue;
+    }
   };
 
-  window.closeQuickView = function(){
+  async function submitQuickViewCart(event) {
+    if (event) {
+      event.preventDefault();
+    }
+
+    const submitBtn = $("#qv-submit-btn");
+    const productId = $("#qv-input-id")?.value || "";
+    const variantId = $("#qv-variant-id")?.value || "";
+    const quantity = Number($("#qv-qty")?.value || 1);
+    const csrf = getCSRFToken();
+
+    if (!productId) {
+      showToast("Không tìm thấy sản phẩm", "error");
+      return;
+    }
+
+    if (!variantId) {
+      showToast("Vui lòng chọn màu và kích thước", "error");
+      return;
+    }
+
+    const oldText = submitBtn ? submitBtn.textContent : "";
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Đang thêm...";
+    }
+
+    try {
+      const res = await fetch("/cart/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrf,
+          "X-Requested-With": "XMLHttpRequest"
+        },
+        body: JSON.stringify({
+          product_id: productId,
+          variant_id: variantId,
+          quantity: quantity
+        })
+      });
+
+      if (res.status === 401) {
+        showToast("Vui lòng đăng nhập", "error");
+
+        window.setTimeout(function () {
+          window.location.href = "/auth/login";
+        }, 700);
+
+        return;
+      }
+
+      if (res.status === 403) {
+        showToast("Phiên đã hết hạn, vui lòng tải lại", "error");
+        return;
+      }
+
+      const data = await res.json().catch(function () {
+        return {};
+      });
+
+      if (!res.ok || data.success === false || data.status === "error") {
+        showToast(data.message || "Không thể thêm giỏ hàng", "error");
+        return;
+      }
+
+      updateCartCounters(data);
+      showToast("Đã thêm sản phẩm vào giỏ hàng", "success");
+
+      window.dispatchEvent(new CustomEvent("cart:updated", {
+        detail: {
+          product_id: productId,
+          variant_id: variantId,
+          quantity: quantity
+        }
+      }));
+    } catch (error) {
+      console.warn("[QuickViewCart] Lỗi thêm giỏ hàng:", error);
+      showToast("Lỗi kết nối giỏ hàng", "error");
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = oldText || "Thêm vào giỏ";
+      }
+    }
+  }
+
+  window.closeQuickView = function() {
     const modal = $("#quick-view-modal");
-    if(!modal) return;
+    if (!modal) return;
 
     modal.classList.remove("opacity-100");
-    modal.setAttribute("aria-hidden","true");
+    modal.setAttribute("aria-hidden", "true");
 
-    setTimeout(()=>{
+    window.setTimeout(function () {
       modal.classList.remove("flex");
       modal.classList.add("hidden");
+      document.documentElement.classList.remove("qv-lock");
       document.body.style.overflow = "";
-    },220);
+
+      if (QV.lastFocus && typeof QV.lastFocus.focus === "function") {
+        QV.lastFocus.focus();
+      }
+    }, 220);
   };
 
-  document.addEventListener("keydown", e=>{
-    if(e.key === "Escape") closeQuickView();
+  document.addEventListener("submit", function (event) {
+    if (event.target && event.target.id === "qv-form") {
+      submitQuickViewCart(event);
+    }
+  });
+
+  document.addEventListener("keydown", function(event) {
+    const modal = $("#quick-view-modal");
+
+    if (!modal || modal.classList.contains("hidden")) return;
+
+    if (event.key === "Escape") {
+      window.closeQuickView();
+      return;
+    }
+
+    if (event.key === "ArrowLeft") {
+      window.qvSlide(-1);
+      return;
+    }
+
+    if (event.key === "ArrowRight") {
+      window.qvSlide(1);
+    }
   });
 })();
 </script>
