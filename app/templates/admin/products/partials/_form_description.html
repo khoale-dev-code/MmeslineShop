@@ -896,13 +896,20 @@
         setData(html, updateQuality);
       }
 
-      function clear() {
+      async function clear() {
         const current = getData().trim();
         if (!current) return;
 
-        if (!window.confirm("Bạn có chắc muốn xóa toàn bộ mô tả sản phẩm?")) {
-          return;
-        }
+        const ok = window.GuaAdminDelete
+          ? await window.GuaAdminDelete.confirm({
+              title: "Xóa mô tả sản phẩm",
+              message: "Bạn có muốn xóa toàn bộ nội dung mô tả hiện tại?",
+              detail: "Thay đổi chỉ được ghi vào database sau khi bạn bấm Cập nhật sản phẩm.",
+              confirmText: "Xóa mô tả",
+              tone: "danger"
+            })
+          : window.confirm("Bạn có chắc muốn xóa toàn bộ mô tả sản phẩm?");
+        if (!ok) return;
 
         setData("", updateQuality);
       }

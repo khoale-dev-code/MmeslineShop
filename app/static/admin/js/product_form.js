@@ -53,8 +53,14 @@
     tagsHidden: "#tagsHidden",
     currentTagsJson: "currentTagsJson",
     tagOptionsJson: "tagOptionsJson",
+    sizeChartSelect: "#sizeChartTagSelect",
+    sizeChartOptionsJson: "sizeChartOptionsJson",
+    sizeChartPreview: "[data-size-chart-product-preview]",
+    sizeChartEmpty: "[data-size-chart-product-empty]",
 
-    descriptionEditor: "#descriptionEditor"
+    descriptionEditor: "#descriptionEditor",
+    saveState: "#mmSaveState",
+    liveStock: "[data-product-live-stock]"
   };
 
   const $ = (selector, root = document) => root.querySelector(selector);
@@ -70,6 +76,13 @@
 
   function cleanText(value) {
     return String(value || "").trim();
+  }
+
+  function confirmRemoval(options) {
+    if (window.GuaAdminDelete && typeof window.GuaAdminDelete.confirm === "function") {
+      return window.GuaAdminDelete.confirm(options || {});
+    }
+    return Promise.resolve(window.confirm((options && options.message) || "Bạn có chắc muốn xóa?"));
   }
 
   function escapeHtml(value) {
@@ -604,6 +617,7 @@
       this.renderDropdown();
       this.sync();
       this.filter();
+      SizeChartPicker.syncFromTags();
     },
 
     renderTags() {
@@ -659,6 +673,67 @@
 
       const visible = $$(".mm-tag-option:not(.is-hidden)", dropdown).length;
       dropdown.classList.toggle("hidden", visible === 0 && !input.value.trim());
+    }
+  };
+
+  const SizeChartPicker = {
+    charts: [],
+
+    normalize(value) {
+      return String(value || "").trim().replace(/\s+/g, " ").toLowerCase();
+    },
+
+    init() {
+      const select = $(SELECTOR.sizeChartSelect);
+      if (!select || select.dataset.sizeChartBound === "1") return;
+
+      select.dataset.sizeChartBound = "1";
+      const raw = readJsonScript(SELECTOR.sizeChartOptionsJson, []);
+      this.charts = Array.isArray(raw)
+        ? raw.filter((item) => item && item.name && item.image_url)
+        : [];
+
+      select.addEventListener("change", () => {
+        const selectedName = String(select.value || "").trim();
+        const chartKeys = new Set(this.charts.map((chart) => this.normalize(chart.name)));
+
+        [...Tags.items].forEach((tag) => {
+          if (chartKeys.has(this.normalize(tag))) Tags.remove(tag);
+        });
+
+        if (selectedName) Tags.add(selectedName);
+        this.syncFromTags();
+      });
+
+      this.syncFromTags();
+    },
+
+    syncFromTags() {
+      const select = $(SELECTOR.sizeChartSelect);
+      if (!select) return;
+
+      const selectedKeys = new Set((Tags.items || []).map((tag) => this.normalize(tag)));
+      const selected = this.charts.find((chart) => selectedKeys.has(this.normalize(chart.name)));
+      select.value = selected ? selected.name : "";
+      this.updatePreview(selected || null);
+    },
+
+    updatePreview(chart) {
+      const preview = $(SELECTOR.sizeChartPreview);
+      const empty = $(SELECTOR.sizeChartEmpty);
+
+      if (preview) {
+        if (chart && chart.image_url) {
+          preview.src = chart.image_url;
+          preview.alt = "Bảng size " + chart.name;
+          preview.hidden = false;
+        } else {
+          preview.removeAttribute("src");
+          preview.hidden = true;
+        }
+      }
+
+      if (empty) empty.hidden = Boolean(chart && chart.image_url);
     }
   };
 
@@ -766,6 +841,127 @@
   }
 };
 
+  const FormState = {
+    dirty: false,
+    submitting: false,
+
+    init() {
+      const form = $(SELECTOR.form);
+      if (!form || form.dataset.stateBound === "1") return;
+
+      form.dataset.stateBound = "1";
+      form.addEventListener("input", () => {
+        this.markDirty();
+        this.updateLiveStock();
+      });
+      form.addEventListener("change", () => {
+        this.markDirty();
+        this.updateLiveStock();
+      });
+
+      document.addEventListener("mm:variants-changed", (event) => {
+        const detail = event.detail || {};
+        const liveStock = $(SELECTOR.liveStock);
+        const variantCount = $("[data-product-variant-count]");
+        if (liveStock && Number.isFinite(Number(detail.totalStock))) {
+          liveStock.textContent = String(Number(detail.totalStock));
+        }
+        if (variantCount && Number.isFinite(Number(detail.count))) {
+          variantCount.textContent = String(Number(detail.count));
+        }
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "s") return;
+        event.preventDefault();
+        const saveButton = form.querySelector('[name="save_action"][value="stay"]');
+        if (saveButton && !saveButton.disabled) form.requestSubmit(saveButton);
+      });
+
+      window.addEventListener("beforeunload", (event) => {
+        if (!this.dirty || this.submitting) return;
+        event.preventDefault();
+        event.returnValue = "";
+      });
+
+      this.updateLiveStock();
+      this.render();
+    },
+
+    markDirty() {
+      if (this.submitting) return;
+      this.dirty = true;
+      this.render();
+    },
+
+    markSubmitting() {
+      this.submitting = true;
+      this.render(true);
+    },
+
+    updateLiveStock() {
+      const stockFields = $$('[name="v_stock[]"]');
+      if (!stockFields.length) return;
+      const total = stockFields.reduce((sum, input) => {
+        const value = Math.max(0, Number(input.value || 0));
+        return sum + (Number.isFinite(value) ? value : 0);
+      }, 0);
+      setText(SELECTOR.liveStock, total);
+    },
+
+    render(isSaving = false) {
+      const state = $(SELECTOR.saveState);
+      if (!state) return;
+
+      state.classList.toggle("is-dirty", this.dirty && !isSaving);
+      if (isSaving) {
+        state.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang lưu thay đổi';
+      } else if (this.dirty) {
+        state.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Có thay đổi chưa lưu';
+      } else {
+        state.innerHTML = '<i class="fa-solid fa-circle-check"></i> Chưa có thay đổi';
+      }
+    }
+  };
+
+  const ProductActions = {
+    init() {
+      const deleteButton = $("[data-delete-product]");
+      const deleteForm = $("#deleteProductForm");
+      const form = $(SELECTOR.form);
+
+      if (deleteButton && deleteForm && deleteButton.dataset.deleteBound !== "1") {
+        deleteButton.dataset.deleteBound = "1";
+        deleteButton.addEventListener("click", () => {
+          if (FormState.dirty) {
+            deleteForm.dataset.deleteDetail = "Trang đang có thay đổi chưa lưu. Nếu tiếp tục, các thay đổi đó sẽ không được giữ lại.";
+          } else {
+            delete deleteForm.dataset.deleteDetail;
+          }
+          deleteForm.requestSubmit();
+        });
+      }
+
+      const nav = $(".mm-product-section-nav");
+      if (!nav || !("IntersectionObserver" in window)) return;
+
+      const links = $$('a[href^="#section-"]', nav);
+      const sections = links
+        .map((link) => document.querySelector(link.getAttribute("href")))
+        .filter(Boolean);
+      const observer = new IntersectionObserver((entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (!visible) return;
+        links.forEach((link) => {
+          link.classList.toggle("is-active", link.getAttribute("href") === `#${visible.target.id}`);
+        });
+      }, { rootMargin: "-24% 0px -64% 0px", threshold: [0, 0.05, 0.2] });
+      sections.forEach((section) => observer.observe(section));
+    }
+  };
+
   const Submit = {
     init() {
       const form = $(SELECTOR.form);
@@ -775,6 +971,7 @@
       form.dataset.productFormJsBound = "1";
 
       form.addEventListener("submit", () => {
+        FormState.markSubmitting();
         Codes.normalizeBeforeSubmit();
         MoneyInputs.normalizeBeforeSubmit();
         Tags.sync();
@@ -801,7 +998,7 @@
     },
 
     disableSubmitButtons(form) {
-      $$(".mm-save-btn", form).forEach((button) => {
+      $$(".mm-save-btn, .mm-secondary-save-btn", form).forEach((button) => {
         button.disabled = true;
         button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang lưu...';
       });
@@ -813,7 +1010,7 @@
 
     document.documentElement.dataset.productDelegatedBound = "1";
 
-    document.addEventListener("click", (event) => {
+    document.addEventListener("click", async (event) => {
       const addTagBtn = event.target.closest("[data-add-tag]");
       if (addTagBtn) {
         Tags.add(addTagBtn.dataset.addTag);
@@ -830,7 +1027,16 @@
 
       const removeTagBtn = event.target.closest("[data-remove-tag]");
       if (removeTagBtn) {
-        Tags.remove(removeTagBtn.dataset.removeTag);
+        event.preventDefault();
+        const tag = removeTagBtn.dataset.removeTag;
+        const ok = await confirmRemoval({
+          title: "Xóa tag sản phẩm",
+          message: `Bạn có muốn xóa tag “${tag}” khỏi sản phẩm?`,
+          detail: "Thay đổi chỉ được ghi vào database sau khi bạn bấm Cập nhật sản phẩm.",
+          confirmText: "Xóa tag",
+          tone: "danger"
+        });
+        if (ok) Tags.remove(tag);
         return;
       }
 
@@ -850,11 +1056,14 @@
     PricePreview.update();
 
     Tags.init();
+    SizeChartPicker.init();
     SeoChecker.init();
     Codes.init();
     DescriptionEditor.init();
 
     bindDelegatedEvents();
+    FormState.init();
+    ProductActions.init();
     Submit.init();
 
     console.info("[MMProductForm] ready");

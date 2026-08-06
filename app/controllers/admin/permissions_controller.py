@@ -61,6 +61,7 @@ AVAILABLE_PERMISSIONS: dict[str, list[dict[str, str]]] = {
         {"code": "coupons.manage", "name": "Quản lý khuyến mãi", "icon": "fa-tags"},
         {"code": "reports.view", "name": "Xem báo cáo", "icon": "fa-chart-line"},
         {"code": "notifications.manage", "name": "Quản lý thông báo", "icon": "fa-bell"},
+        {"code": "menus.manage", "name": "Quản lý menu giao diện", "icon": "fa-bars-staggered"},
         {"code": "pos.access", "name": "Truy cập POS (Bán tại quầy)", "icon": "fa-cash-register"},
         {"code": "settings.view", "name": "Xem cài đặt hệ thống", "icon": "fa-cogs"},
         {"code": "settings.manage", "name": "Thay đổi cài đặt hệ thống", "icon": "fa-wrench"},

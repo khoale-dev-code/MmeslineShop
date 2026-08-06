@@ -114,12 +114,117 @@
       </p>
     </div>
 
+    <div class="mm-product-size-chart">
+      <style>
+        .mm-product-size-chart {
+          margin-top: 18px;
+          border: 1px solid #eadfd4;
+          border-radius: 20px;
+          background: #fffaf5;
+          padding: 15px;
+        }
+        .mm-product-size-chart-head {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 11px;
+        }
+        .mm-product-size-chart-head strong {
+          display: block;
+          color: #3b2414;
+          font-size: 12px;
+          font-weight: 950;
+        }
+        .mm-product-size-chart-head small {
+          display: block;
+          margin-top: 4px;
+          color: #8a6a52;
+          font-size: 10px;
+          font-weight: 700;
+          line-height: 1.45;
+        }
+        .mm-product-size-chart-head a {
+          flex-shrink: 0;
+          color: #5f3b1e;
+          font-size: 9px;
+          font-weight: 950;
+          letter-spacing: .08em;
+          text-transform: uppercase;
+          text-decoration: underline;
+          text-underline-offset: 3px;
+        }
+        .mm-product-size-chart-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 72px;
+          gap: 10px;
+          align-items: stretch;
+        }
+        .mm-product-size-chart-preview {
+          width: 72px;
+          height: 72px;
+          border: 1px solid #dfd0c3;
+          border-radius: 14px;
+          background: #fff;
+          object-fit: contain;
+        }
+        .mm-product-size-chart-preview[hidden] { display: none; }
+        .mm-product-size-chart-empty {
+          width: 72px;
+          height: 72px;
+          border: 1px dashed #dfd0c3;
+          border-radius: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #fff;
+          color: #b7a191;
+        }
+        @media (max-width: 520px) {
+          .mm-product-size-chart-head { flex-direction: column; }
+          .mm-product-size-chart-grid { grid-template-columns: 1fr; }
+          .mm-product-size-chart-preview,
+          .mm-product-size-chart-empty { width: 100%; height: 140px; }
+        }
+      </style>
+
+      <div class="mm-product-size-chart-head">
+        <div>
+          <strong>Bảng size hiển thị ngoài sản phẩm</strong>
+          <small>Chọn một bảng size. Hệ thống sẽ tự thêm đúng tên bảng vào tags sản phẩm.</small>
+        </div>
+        <a href="{{ url_for('admin.size_charts_page') }}" target="_blank" rel="noopener">Quản lý bảng size</a>
+      </div>
+
+      <div class="mm-product-size-chart-grid">
+        <div>
+          <select id="sizeChartTagSelect" class="mm-select">
+            <option value="">Không gắn bảng size</option>
+            {% for chart in size_charts or [] %}
+            <option value="{{ chart.name }}">{{ chart.name }}</option>
+            {% endfor %}
+          </select>
+          <p class="mm-help" id="sizeChartTagHelp">
+            Client sẽ so khớp tag không phân biệt chữ hoa/thường và mở ảnh khi khách bấm “Bảng size”.
+          </p>
+        </div>
+        <img class="mm-product-size-chart-preview" data-size-chart-product-preview alt="Xem trước bảng size" hidden>
+        <span class="mm-product-size-chart-empty" data-size-chart-product-empty>
+          <i class="fa-solid fa-ruler-combined"></i>
+        </span>
+      </div>
+    </div>
+
     <script type="application/json" id="currentTagsJson">
       {{ current_tags|tojson }}
     </script>
 
     <script type="application/json" id="tagOptionsJson">
       {{ (tag_options or [])|tojson }}
+    </script>
+
+    <script type="application/json" id="sizeChartOptionsJson">
+      {{ (size_charts or [])|tojson }}
     </script>
   </div>
 </section>

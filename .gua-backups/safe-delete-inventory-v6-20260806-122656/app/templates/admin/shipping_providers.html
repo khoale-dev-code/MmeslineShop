@@ -1,0 +1,402 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Đơn vị vận chuyển{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+    :root { --font-jakarta: 'Plus Jakarta Sans', sans-serif; }
+    body { font-family: var(--font-jakarta); background-color: #f8fafc; }
+    
+    .modern-card {
+        background: #ffffff;
+        border: 1px solid #f1f5f9;
+        border-radius: 1.5rem;
+        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .modern-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.06);
+    }
+    
+    .glass-nav { 
+        background: rgba(248, 250, 252, 0.85); 
+        backdrop-filter: blur(16px); 
+        -webkit-backdrop-filter: blur(16px); 
+    }
+    
+    .fade-up { opacity: 0; animation: fadeUpAnim 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes fadeUpAnim { 
+        from { opacity: 0; transform: translateY(20px); } 
+        to { opacity: 1; transform: translateY(0); } 
+    }
+    
+    /* Toast */
+    .sp-toast {
+      position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+      background: #0f172a; color: #fff; border-radius: 1rem;
+      padding: 12px 20px; font-size: 13px; font-weight: 600;
+      box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); transform: translateY(20px); opacity: 0;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none; display: flex; align-items: center; gap: 8px;
+    }
+    .sp-toast.show { transform: translateY(0); opacity: 1 }
+    .sp-toast--err { background: #e11d48 }
+    .sp-toast--ok::before  { content: '✓'; font-weight: 700 }
+    .sp-toast--err::before { content: '✕'; font-weight: 700 }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen pb-16 font-sans text-slate-800 selection:bg-indigo-500 selection:text-white">
+
+    {# ── STICKY TOP BAR ── #}
+    <div class="glass-nav sticky top-0 z-30 border-b border-slate-200/60 mb-8">
+        <div class="max-w-[1200px] mx-auto px-6 lg:px-12 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900">Đơn vị vận chuyển</h1>
+                <div class="flex items-center gap-2 mt-1">
+                    <a href="/admin/" class="text-slate-500 hover:text-indigo-600 text-xs font-semibold transition-colors">Dashboard</a>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
+                    <span class="text-indigo-600 text-xs font-semibold">Cấu hình vận chuyển</span>
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="openAdd()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-sm shadow-indigo-200 transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i> Thêm mới
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-[1200px] mx-auto px-6 lg:px-12 space-y-8 fade-up">
+        
+        {# ── THỐNG KÊ ── #}
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div class="modern-card p-6 flex items-center gap-5">
+                <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl"><i class="fa-solid fa-box-open"></i></div>
+                <div>
+                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Tổng cộng</p>
+                    <p class="text-3xl font-extrabold text-slate-900 mt-1" id="sTotal">{{ providers|length }}</p>
+                </div>
+            </div>
+            <div class="modern-card p-6 flex items-center gap-5">
+                <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl"><i class="fa-solid fa-check-circle"></i></div>
+                <div>
+                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Hoạt động</p>
+                    <p class="text-3xl font-extrabold text-slate-900 mt-1" id="sActive">{{ providers|selectattr('is_active')|list|length }}</p>
+                </div>
+            </div>
+            <div class="modern-card p-6 flex items-center gap-5">
+                <div class="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl"><i class="fa-solid fa-pause-circle"></i></div>
+                <div>
+                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Tạm dừng</p>
+                    <p class="text-3xl font-extrabold text-slate-900 mt-1" id="sOff">{{ providers|rejectattr('is_active')|list|length }}</p>
+                </div>
+            </div>
+        </div>
+
+        {# ── TABLE BẢNG ĐƠN VỊ ── #}
+        <div class="modern-card overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50/50 border-b border-slate-100">
+                            <th class="py-4 px-6 text-[11px] font-bold uppercase tracking-wider text-slate-500 w-16">TT</th>
+                            <th class="py-4 px-6 text-[11px] font-bold uppercase tracking-wider text-slate-500">Hãng vận chuyển</th>
+                            <th class="py-4 px-6 text-[11px] font-bold uppercase tracking-wider text-slate-500">ID / Slug</th>
+                            <th class="py-4 px-6 text-[11px] font-bold uppercase tracking-wider text-slate-500 w-36">Trạng thái</th>
+                            <th class="py-4 px-6 text-[11px] font-bold uppercase tracking-wider text-slate-500 text-right w-40">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody" class="divide-y divide-slate-100">
+                        {% for p in providers %}
+                        <tr class="hover:bg-slate-50/50 transition-colors group{% if not p.is_active %} opacity-60{% endif %}" data-id="{{ p.id }}">
+                            <td class="py-4 px-6 font-mono text-xs text-slate-400 font-bold align-middle">{{ p.sort_order or 0 }}</td>
+                            <td class="py-4 px-6 align-middle">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-10 h-10 rounded-xl border border-slate-100 bg-white flex items-center justify-center shadow-sm overflow-hidden text-indigo-500 shrink-0 font-bold text-sm">
+                                        {% if p.icon %}
+                                          {% if p.icon.startswith('fa-') or p.icon.startswith('fas ') or p.icon.startswith('far ') %}
+                                            <i class="fa-solid {{ p.icon }}"></i>
+                                          {% elif p.icon.startswith('http') %}
+                                            <img src="{{ p.icon }}" alt="" class="w-full h-full object-cover">
+                                          {% else %}
+                                            <i class="fa-solid fa-{{ p.icon }}"></i>
+                                          {% endif %}
+                                        {% else %}
+                                          {{ p.name[0]|upper }}
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <p class="font-bold text-slate-900 text-sm">{{ p.name }}</p>
+                                        {% if p.description %}<p class="text-xs text-slate-500 font-medium mt-0.5">{{ p.description }}</p>{% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-4 px-6 align-middle">
+                                <span class="bg-slate-100 text-slate-600 font-mono text-[11px] font-bold px-2 py-1 rounded">{{ p.id }}</span>
+                            </td>
+                            <td class="py-4 px-6 align-middle">
+                                <button class="toggle-btn inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest transition-colors {% if p.is_active %}bg-emerald-50 text-emerald-600 border border-emerald-200{% else %}bg-rose-50 text-rose-600 border border-rose-200{% endif %}" onclick="doToggle('{{ p.id }}', this)">
+                                    <span class="w-1.5 h-1.5 rounded-full {% if p.is_active %}bg-emerald-500{% else %}bg-rose-500{% endif %}"></span>
+                                    <span class="toggle-text">{% if p.is_active %}Hoạt động{% else %}Tạm dừng{% endif %}</span>
+                                </button>
+                            </td>
+                            <td class="py-4 px-6 align-middle text-right">
+                                <div class="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onclick="openConfig('{{ p.id }}')" class="w-8 h-8 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm flex items-center justify-center" title="Cấu hình API">
+                                        <i class="fa-solid fa-sliders text-xs"></i>
+                                    </button>
+                                    <button onclick="openEdit('{{ p.id }}')" class="w-8 h-8 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-amber-500 hover:border-amber-200 transition-all shadow-sm flex items-center justify-center" title="Sửa">
+                                        <i class="fa-solid fa-pen text-xs"></i>
+                                    </button>
+                                    <button onclick="doDel('{{ p.id }}','{{ p.name }}')" class="w-8 h-8 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-rose-600 hover:border-rose-200 transition-all shadow-sm flex items-center justify-center" title="Xoá">
+                                        <i class="fa-solid fa-trash text-xs"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="py-16 text-center text-slate-400 font-medium">Chưa có hãng vận chuyển nào.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ── MODALS (Thêm/Sửa & Config) ── #}
+<div id="ovMain" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 transition-opacity duration-300 opacity-0" aria-modal="true">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-xl transform scale-95 transition-transform duration-300">
+        <div class="flex items-center justify-between p-6 border-b border-slate-100">
+            <h3 class="text-lg font-bold text-slate-900" id="mTitle">Thêm đơn vị vận chuyển</h3>
+            <button onclick="closeAll()" class="w-8 h-8 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+        <div class="p-6 md:p-8">
+            <form id="mainForm" onsubmit="doSubmit(event)" class="space-y-5">
+                <input type="hidden" id="fEditId">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div id="fIdWrap">
+                        <label class="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">ID / Slug <span class="text-rose-500">*</span></label>
+                        <input type="text" id="fId" placeholder="ghn, ghtk..." autocomplete="off" class="w-full bg-slate-50 border border-slate-200 text-sm font-medium rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <p class="text-[10px] text-slate-400 mt-1.5 font-medium">Chữ thường, không khoảng trắng</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">Tên hãng <span class="text-rose-500">*</span></label>
+                        <input type="text" id="fName" placeholder="Giao Hàng Nhanh" required class="w-full bg-slate-50 border border-slate-200 text-sm font-medium rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">Mô tả</label>
+                    <input type="text" id="fDesc" placeholder="Mô tả ngắn..." class="w-full bg-slate-50 border border-slate-200 text-sm font-medium rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">Icon (URL/FontAwesome)</label>
+                        <input type="text" id="fIcon" placeholder="fa-truck hoặc https://..." class="w-full bg-slate-50 border border-slate-200 text-sm font-medium rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">Thứ tự hiển thị</label>
+                        <input type="number" id="fSort" value="0" min="0" class="w-full bg-slate-50 border border-slate-200 text-sm font-medium rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+                </div>
+                <label class="flex items-center gap-3 mt-4 cursor-pointer">
+                    <input type="checkbox" id="fActive" class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500">
+                    <span class="text-sm font-bold text-slate-700">Kích hoạt ngay sau khi tạo</span>
+                </label>
+                
+                <div class="pt-6 flex justify-end gap-3 mt-4 border-t border-slate-100">
+                    <button type="button" onclick="closeAll()" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-bold shadow-sm hover:bg-slate-50 transition-colors">Huỷ</button>
+                    <button type="submit" id="btnOk" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-sm shadow-indigo-200 flex items-center gap-2 transition-colors">Tạo mới</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="ovConfig" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 transition-opacity duration-300 opacity-0" aria-modal="true">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl transform scale-95 transition-transform duration-300">
+        <div class="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50 rounded-t-3xl">
+            <div>
+                <h3 class="text-lg font-bold text-slate-900">Cấu hình API</h3>
+                <p class="text-xs font-bold text-indigo-600 mt-0.5 uppercase tracking-widest" id="cfgName">GHN</p>
+            </div>
+            <button onclick="closeAll()" class="w-8 h-8 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-900 hover:bg-slate-200 transition-colors">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+        <div class="p-6 md:p-8">
+            <p class="text-xs text-slate-500 font-medium mb-4">Lưu API key, token, shop ID vào trường config dưới dạng JSON.</p>
+            <textarea id="cfgJson" class="w-full bg-slate-900 text-emerald-400 font-mono text-xs p-5 rounded-2xl h-[240px] focus:outline-none focus:ring-2 focus:ring-indigo-500" spellcheck="false"></textarea>
+            <p id="cfgErr" class="text-xs text-rose-500 font-bold mt-2 min-h-[16px]"></p>
+            
+            <div class="pt-6 flex justify-end gap-3 border-t border-slate-100 mt-4">
+                <button type="button" onclick="closeAll()" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-bold shadow-sm hover:bg-slate-50 transition-colors">Huỷ</button>
+                <button type="button" onclick="saveConfig()" class="px-5 py-2.5 bg-slate-900 hover:bg-black text-white rounded-xl text-sm font-bold shadow-sm transition-colors">Lưu cấu hình</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="sp-toast"></div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const BASE = '/admin/shipping/providers/api';
+let cfgId = null;
+
+const $  = id => document.getElementById(id);
+const getCsrf = () => document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+const api = (url, opt={}) => {
+  const headers = { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf(), ...opt.headers };
+  return fetch(url, { ...opt, headers }).then(r => r.json());
+};
+
+const toast = (msg, ok=true) => {
+  const el = $('toast');
+  el.textContent = msg;
+  el.className = `sp-toast show sp-toast--${ok?'ok':'err'}`;
+  setTimeout(()=>el.classList.remove('show'), 3000);
+};
+
+const closeAll = () => {
+    document.querySelectorAll('.fixed[id^="ov"]').forEach(o => {
+        o.classList.remove('opacity-100');
+        o.classList.add('opacity-0');
+        o.querySelector('div.transform')?.classList.replace('scale-100', 'scale-95');
+        setTimeout(() => o.classList.replace('flex', 'hidden'), 300);
+    });
+};
+
+const openOv = id => {
+    const el = $(id);
+    el.classList.replace('hidden', 'flex');
+    void el.offsetWidth;
+    el.classList.replace('opacity-0', 'opacity-100');
+    el.querySelector('div.transform')?.classList.replace('scale-95', 'scale-100');
+};
+
+const refreshStats = () => {
+  const rows = document.querySelectorAll('#tbody tr[data-id]');
+  const on   = document.querySelectorAll('#tbody tr[data-id]:not(.opacity-60)').length;
+  $('sTotal').textContent = rows.length;
+  $('sActive').textContent = on;
+  $('sOff').textContent = rows.length - on;
+};
+
+const openAdd = () => {
+  $('mTitle').textContent = 'Thêm đơn vị vận chuyển';
+  $('btnOk').textContent  = 'Tạo mới';
+  $('fEditId').value = '';
+  $('mainForm').reset();
+  $('fIdWrap').style.display = '';
+  openOv('ovMain');
+  $('fId').focus();
+};
+
+const openEdit = async id => {
+  const d = await api(`${BASE}/${id}`);
+  if (!d.id) return toast('Không tải được dữ liệu', false);
+  $('mTitle').textContent = 'Chỉnh sửa hãng vận chuyển';
+  $('btnOk').textContent  = 'Lưu thay đổi';
+  $('fEditId').value      = id;
+  $('fIdWrap').style.display = 'none';
+  $('fId').value    = d.id;
+  $('fName').value  = d.name || '';
+  $('fDesc').value  = d.description || '';
+  $('fIcon').value  = d.icon || '';
+  $('fSort').value  = d.sort_order ?? 0;
+  $('fActive').checked = !!d.is_active;
+  openOv('ovMain');
+  $('fName').focus();
+};
+
+const doSubmit = async e => {
+  e.preventDefault();
+  const editId = $('fEditId').value.trim();
+  const body = {
+    id:          $('fId').value.trim(),
+    name:        $('fName').value.trim(),
+    description: $('fDesc').value.trim(),
+    icon:        $('fIcon').value.trim(),
+    sort_order:  parseInt($('fSort').value) || 0,
+    is_active:   $('fActive').checked,
+  };
+  const res = await api(editId ? `${BASE}/${editId}` : BASE, {
+    method: editId ? 'PUT' : 'POST',
+    body: JSON.stringify(body)
+  });
+  if (!res.success) return toast(res.message || 'Lỗi hệ thống', false);
+  toast(editId ? 'Đã cập nhật!' : 'Tạo mới thành công!');
+  closeAll();
+  setTimeout(()=>location.reload(), 700);
+};
+
+const doToggle = async (id, btn) => {
+  const res = await api(`${BASE}/${id}/toggle`, { method:'PATCH' });
+  if (!res.success) return toast('Cập nhật thất bại', false);
+  const on = res.data.is_active;
+  
+  // Update classes
+  if(on) {
+      btn.classList.replace('bg-rose-50', 'bg-emerald-50');
+      btn.classList.replace('text-rose-600', 'text-emerald-600');
+      btn.classList.replace('border-rose-200', 'border-emerald-200');
+      btn.querySelector('span.rounded-full').classList.replace('bg-rose-500', 'bg-emerald-500');
+      btn.querySelector('.toggle-text').textContent = 'Hoạt động';
+      btn.closest('tr').classList.remove('opacity-60');
+  } else {
+      btn.classList.replace('bg-emerald-50', 'bg-rose-50');
+      btn.classList.replace('text-emerald-600', 'text-rose-600');
+      btn.classList.replace('border-emerald-200', 'border-rose-200');
+      btn.querySelector('span.rounded-full').classList.replace('bg-emerald-500', 'bg-rose-500');
+      btn.querySelector('.toggle-text').textContent = 'Tạm dừng';
+      btn.closest('tr').classList.add('opacity-60');
+  }
+  
+  refreshStats();
+  toast(`Đã ${on?'kích hoạt':'tạm dừng'} hãng vận chuyển.`);
+};
+
+const doDel = async (id, name) => {
+  if (!confirm(`Xóa hãng "${name}"?\n\nHành động không thể hoàn tác.`)) return;
+  const res = await api(`${BASE}/${id}`, { method:'DELETE' });
+  if (!res.success) return toast(res.message || 'Xóa thất bại', false);
+  document.querySelector(`tr[data-id="${id}"]`)?.remove();
+  refreshStats();
+  toast(`Đã xóa "${name}".`);
+};
+
+const openConfig = async id => {
+  const d = await api(`${BASE}/${id}`);
+  if (!d.id) return toast('Không tải được dữ liệu', false);
+  cfgId = id;
+  $('cfgName').textContent = d.name;
+  $('cfgJson').value = JSON.stringify(d.config || {}, null, 2);
+  $('cfgErr').textContent = '';
+  openOv('ovConfig');
+  $('cfgJson').focus();
+};
+
+const saveConfig = async () => {
+  let parsed;
+  try { parsed = JSON.parse($('cfgJson').value) }
+  catch { $('cfgErr').textContent = '⚠ JSON không hợp lệ.'; return }
+  const res = await api(`${BASE}/${cfgId}`, { method:'PUT', body:JSON.stringify({config:parsed}) });
+  if (!res.success) return toast('Lưu thất bại', false);
+  toast('Đã lưu cấu hình!');
+  closeAll();
+};
+
+$('cfgJson')?.addEventListener('input', function() {
+  try { JSON.parse(this.value); $('cfgErr').textContent='' }
+  catch { $('cfgErr').textContent='⚠ JSON chưa hợp lệ...' }
+});
+</script>
+{% endblock %}

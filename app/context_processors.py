@@ -43,6 +43,7 @@ from app.models.cart_model import CartModel
 from app.models.category_model import CategoryModel
 from app.models.collection_model import CollectionModel
 from app.models.setting_model import SettingModel
+from app.models.navigation_model import NavigationModel
 
 logger = logging.getLogger(__name__)
 
@@ -136,6 +137,11 @@ def inject_globals() -> dict:
         _TTL_SHARED
     ) or []
 
+    navigation_config = NavigationModel.normalize_config(system_settings.get("navigation"))
+    menu_product_categories = NavigationModel.select_product_categories(
+        navigation_config, categories
+    )
+
     # ── 2. User data — cache 30 giây, mỗi user một key riêng ─────
     cart_count               = 0
     unread_notification_count = 0
@@ -173,6 +179,8 @@ def inject_globals() -> dict:
         "global_categories":         categories,
         "global_collections":        collections,
         "system_settings":           system_settings,
+        "site_navigation":           navigation_config,
+        "menu_product_categories":   menu_product_categories,
         "unread_notification_count": unread_notification_count,
         "pending_returns":           0,  # xem hướng dẫn bên dưới
     }

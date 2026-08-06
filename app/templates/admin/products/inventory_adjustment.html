@@ -1,0 +1,216 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Điều chỉnh tồn kho | {{ product.name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .ia-shell { max-width: 1220px; margin: 0 auto; padding: 28px 20px 56px; }
+  .ia-card { border: 1px solid rgba(27,73,34,.13); border-radius: 24px; background: rgba(255,255,255,.94); box-shadow: 0 18px 60px -42px rgba(11,33,16,.55); }
+  .ia-step { display:flex; align-items:center; gap:10px; color:#8a9485; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; }
+  .ia-step.is-active { color:#1b4922; }
+  .ia-step-dot { display:grid; place-items:center; width:30px; height:30px; border-radius:999px; background:#eef4ec; color:#1b4922; }
+  .ia-step.is-active .ia-step-dot { background:#1b4922; color:#fff; }
+  .ia-table { width:100%; border-collapse:separate; border-spacing:0; }
+  .ia-table th { padding:13px 16px; background:#f6f8f3; border-bottom:1px solid rgba(27,73,34,.12); color:#667263; font-size:10px; font-weight:900; text-align:left; text-transform:uppercase; letter-spacing:.08em; }
+  .ia-table td { padding:16px; border-bottom:1px solid rgba(27,73,34,.08); color:#263126; font-size:13px; font-weight:700; vertical-align:middle; }
+  .ia-table tr:last-child td { border-bottom:0; }
+  .ia-number { min-width:86px; display:inline-flex; justify-content:flex-end; border:1px solid rgba(27,73,34,.13); border-radius:14px; background:#fff; padding:10px 12px; font-variant-numeric:tabular-nums; }
+  .ia-number.is-zero { color:#1b4922; background:#f1f7ef; }
+  .ia-number.is-minus { color:#b42318; background:#fff4f2; border-color:#ffd3cc; }
+  .ia-field { width:100%; min-height:46px; border:1px solid rgba(27,73,34,.16); border-radius:16px; background:#fff; padding:0 14px; color:#101510; font-size:13px; font-weight:700; outline:none; }
+  textarea.ia-field { min-height:96px; padding-top:12px; resize:vertical; }
+  .ia-field:focus { border-color:#1b4922; box-shadow:0 0 0 4px rgba(27,73,34,.08); }
+  @media (max-width:760px) { .ia-shell { padding:18px 12px 42px; } .ia-table th:nth-child(2), .ia-table td:nth-child(2) { display:none; } .ia-table th,.ia-table td { padding:12px 10px; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ia-shell">
+  <nav class="mb-5 flex flex-wrap items-center gap-2 text-xs font-bold text-stone-500" aria-label="Breadcrumb">
+    <a href="{{ url_for('admin.products') }}" class="hover:text-[#1b4922]">Sản phẩm</a>
+    <i class="fa-solid fa-chevron-right text-[9px] text-stone-300"></i>
+    <a href="{{ url_for('admin.edit_product', pid=product.id) }}" class="max-w-[360px] truncate hover:text-[#1b4922]">{{ product.name }}</a>
+    <i class="fa-solid fa-chevron-right text-[9px] text-stone-300"></i>
+    <span class="text-[#1b4922]">Điều chỉnh tồn kho</span>
+  </nav>
+
+  <header class="ia-card mb-5 overflow-hidden">
+    <div class="border-b border-stone-100 bg-gradient-to-r from-[#f5f8f1] to-white px-5 py-5 md:px-7">
+      <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+        <div class="min-w-0">
+          <p class="mb-2 text-[10px] font-black uppercase tracking-[.14em] text-[#c99e14]">Kiểm soát xóa an toàn</p>
+          <h1 class="text-2xl font-black tracking-tight text-[#0b2110] md:text-3xl">Điều chỉnh tồn kho trước khi xóa {{ 'biến thể' if target_variant else 'sản phẩm' }}</h1>
+          <p class="mt-2 max-w-3xl text-sm font-semibold leading-6 text-stone-500">
+            {{ product.name }}{% if target_variant %} · {{ target_variant.label }}{% elif product.sku %} · SKU {{ product.sku }}{% endif %}. Hệ thống chỉ cho phép xóa dữ liệu khi tồn liên quan đã bằng 0.
+          </p>
+        </div>
+        <a href="{{ url_for('admin.edit_product', pid=product.id) }}" class="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-2xl border border-stone-200 bg-white px-4 text-xs font-black text-stone-600 transition hover:border-[#1b4922] hover:text-[#1b4922]">
+          <i class="fa-solid fa-arrow-left"></i> Quay lại sản phẩm
+        </a>
+      </div>
+    </div>
+
+    <div class="grid gap-3 px-5 py-5 md:grid-cols-3 md:px-7">
+      <div class="ia-step is-active"><span class="ia-step-dot">1</span><span>Xác nhận xóa</span></div>
+      <div class="ia-step is-active"><span class="ia-step-dot">2</span><span>Điều chỉnh tồn kho</span></div>
+      <div class="ia-step"><span class="ia-step-dot">3</span><span>Hoàn tất xóa</span></div>
+    </div>
+  </header>
+
+  <div class="mb-5 grid gap-4 sm:grid-cols-3">
+    <div class="ia-card p-5">
+      <span class="text-[10px] font-black uppercase tracking-widest text-stone-400">Tồn hiện tại</span>
+      <strong class="mt-2 block text-3xl font-black text-[#0b2110]">{{ adjustment_total }}</strong>
+    </div>
+    <div class="ia-card p-5">
+      <span class="text-[10px] font-black uppercase tracking-widest text-stone-400">Số biến thể</span>
+      <strong class="mt-2 block text-3xl font-black text-[#0b2110]">{{ inventory.variant_count }}</strong>
+    </div>
+    <div class="ia-card p-5">
+      <span class="text-[10px] font-black uppercase tracking-widest text-stone-400">Sau điều chỉnh</span>
+      <strong class="mt-2 block text-3xl font-black text-emerald-700">0</strong>
+    </div>
+  </div>
+
+  <form method="POST" class="space-y-5" id="inventoryAdjustmentForm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="intent" value="{{ intent }}">
+    <input type="hidden" name="variant_id" value="{{ target_variant.id if target_variant else '' }}">
+    <input type="hidden" name="inventory_fingerprint" value="{{ inventory.fingerprint }}">
+
+    <section class="ia-card overflow-hidden">
+      <div class="flex flex-col gap-2 border-b border-stone-100 px-5 py-5 md:flex-row md:items-center md:justify-between md:px-7">
+        <div>
+          <h2 class="text-base font-black text-[#0b2110]">Chi tiết điều chỉnh</h2>
+          <p class="mt-1 text-xs font-semibold text-stone-500">Số lượng lệch được tính sẵn; không thể nhập số âm hoặc bỏ qua biến thể còn hàng.</p>
+        </div>
+        <span class="inline-flex w-fit items-center gap-2 rounded-full bg-rose-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-rose-700">
+          <i class="fa-solid fa-arrow-trend-down"></i> Giảm {{ adjustment_total }} sản phẩm
+        </span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="ia-table">
+          <thead>
+            <tr>
+              <th>Sản phẩm / biến thể</th>
+              <th>SKU / Barcode</th>
+              <th class="text-right">Tồn hiện tại</th>
+              <th class="text-right">Tồn thực tế</th>
+              <th class="text-right">Số lượng lệch</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if inventory.inventory_rows %}
+              {% for row in inventory.inventory_rows if not target_variant or row.id == target_variant.id %}
+              <tr>
+                <td>
+                  <strong class="block text-[#0b2110]">{{ row.label }}</strong>
+                  <span class="mt-1 block text-[11px] text-stone-400">{{ product.name }}</span>
+                </td>
+                <td>
+                  <span class="block font-mono text-xs">{{ row.sku or 'Chưa có SKU' }}</span>
+                  {% if row.barcode %}<span class="mt-1 block font-mono text-[10px] text-stone-400">{{ row.barcode }}</span>{% endif %}
+                </td>
+                <td class="text-right"><span class="ia-number">{{ row.stock }}</span></td>
+                <td class="text-right"><span class="ia-number is-zero">0</span></td>
+                <td class="text-right"><span class="ia-number is-minus">-{{ row.stock }}</span></td>
+              </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td>
+                  <strong class="block text-[#0b2110]">Sản phẩm mặc định</strong>
+                  <span class="mt-1 block text-[11px] text-stone-400">Không có biến thể</span>
+                </td>
+                <td><span class="font-mono text-xs">{{ product.sku or 'Chưa có SKU' }}</span></td>
+                <td class="text-right"><span class="ia-number">{{ inventory.product_stock }}</span></td>
+                <td class="text-right"><span class="ia-number is-zero">0</span></td>
+                <td class="text-right"><span class="ia-number is-minus">-{{ inventory.product_stock }}</span></td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="ia-card p-5 md:p-7">
+      <div class="grid gap-5 lg:grid-cols-2">
+        <div>
+          <label for="adjustReason" class="mb-2 block text-[10px] font-black uppercase tracking-widest text-stone-500">Lý do điều chỉnh <span class="text-rose-600">*</span></label>
+          <select id="adjustReason" name="reason" class="ia-field" required>
+            <option value="{{ 'remove_variant' if target_variant else 'delete_product' }}">{{ 'Điều chỉnh trước khi xóa biến thể' if target_variant else 'Điều chỉnh trước khi xóa sản phẩm' }}</option>
+            <option value="stocktake">Sai lệch kiểm kho</option>
+            <option value="damaged">Hàng hỏng / thất thoát</option>
+            <option value="other">Lý do khác</option>
+          </select>
+        </div>
+        <div>
+          <label for="adjustNote" class="mb-2 block text-[10px] font-black uppercase tracking-widest text-stone-500">Ghi chú</label>
+          <textarea id="adjustNote" name="note" maxlength="500" class="ia-field" placeholder="Ghi rõ nguyên nhân hoặc số phiếu kiểm kho nếu có"></textarea>
+        </div>
+      </div>
+
+      <label class="mt-5 flex cursor-pointer items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+        <input type="checkbox" name="confirm_adjust" value="1" required class="mt-1 h-4 w-4 accent-[#1b4922]">
+        <span>
+          <strong class="block text-sm font-black text-amber-950">Tôi đã kiểm tra số lượng và hiểu thao tác không thể tự hoàn tác</strong>
+          <small class="mt-1 block text-xs font-semibold leading-5 text-amber-800">Một bản ghi lịch sử gồm người thao tác, lý do và số lượng trước/sau sẽ được lưu.</small>
+        </span>
+      </label>
+    </section>
+
+    <section class="ia-card flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between md:p-6">
+      <div class="flex items-start gap-3">
+        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-rose-50 text-rose-600"><i class="fa-solid fa-shield-halved"></i></span>
+        <div>
+          <strong class="block text-sm font-black text-[#0b2110]">Backend sẽ kiểm tra tồn kho lại ngay trước khi ghi</strong>
+          <p class="mt-1 text-xs font-semibold leading-5 text-stone-500">Nếu có đơn hàng hoặc thao tác kho mới làm số lượng thay đổi, yêu cầu này sẽ bị dừng.</p>
+        </div>
+      </div>
+      <div class="flex flex-col gap-2 sm:flex-row">
+        <a href="{{ url_for('admin.edit_product', pid=product.id) }}" class="inline-flex h-12 items-center justify-center rounded-2xl border border-stone-200 bg-white px-5 text-xs font-black text-stone-600">Hủy</a>
+        <button type="submit" name="submit_action" value="adjust_only" class="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#1b4922] bg-white px-5 text-xs font-black text-[#1b4922]">
+          <i class="fa-solid fa-boxes-stacked"></i> {{ 'Điều chỉnh biến thể về 0' if target_variant else 'Chỉ điều chỉnh về 0' }}
+        </button>
+        {% if intent == 'delete' %}
+        <button type="submit" name="submit_action" value="adjust_delete" class="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-rose-600 px-5 text-xs font-black text-white shadow-lg shadow-rose-600/20 transition hover:bg-rose-700" data-adjust-and-delete>
+          <i class="fa-solid fa-trash-can"></i> Điều chỉnh về 0 & xóa
+        </button>
+        {% endif %}
+      </div>
+    </section>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var form = document.getElementById("inventoryAdjustmentForm");
+  var danger = form && form.querySelector("[data-adjust-and-delete]");
+  if (!form || !danger) return;
+  danger.addEventListener("click", function (event) {
+    if (!form.checkValidity()) return;
+    event.preventDefault();
+    var ask = window.GuaAdminDelete && window.GuaAdminDelete.confirm;
+    var promise = ask ? ask({
+      title: "Điều chỉnh và xóa sản phẩm?",
+      message: "Tồn kho sẽ được ghi về 0 trước, sau đó sản phẩm được chuyển vào thùng rác.",
+      detail: "Hệ thống sẽ dừng nếu tồn kho thay đổi trong lúc bạn xác nhận.",
+      confirmText: "Điều chỉnh & xóa",
+      tone: "danger"
+    }) : Promise.resolve(window.confirm("Điều chỉnh toàn bộ tồn kho về 0 và xóa sản phẩm?"));
+    promise.then(function (ok) {
+      if (!ok) return;
+      var hidden = document.createElement("input");
+      hidden.type = "hidden";
+      hidden.name = "submit_action";
+      hidden.value = "adjust_delete";
+      form.appendChild(hidden);
+      form.submit();
+    });
+  });
+});
+</script>
+{% endblock %}

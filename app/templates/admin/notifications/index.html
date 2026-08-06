@@ -392,11 +392,19 @@
     searchInput?.addEventListener('input', applyFilter);
 
     window.confirmDelete = function (id, title) {
-        const ok = confirm(`Bạn có chắc muốn xóa thông báo "${title}"?\n\nHành động này sẽ xóa vĩnh viễn notification và các bản ghi user_notifications liên quan.`);
-        if (!ok) return;
-
         const form = document.getElementById(`delete_${id}`);
-        if (form) form.submit();
+        if (!form) return;
+        if (window.GuaAdminDelete) {
+            window.GuaAdminDelete.submit(form, {
+                title: 'Xóa thông báo',
+                message: `Bạn có muốn xóa thông báo “${title}”?`,
+                detail: 'Thông báo và các bản ghi người nhận liên quan sẽ bị xóa vĩnh viễn.',
+                confirmText: 'Xóa thông báo',
+                tone: 'danger'
+            });
+            return;
+        }
+        if (confirm(`Bạn có chắc muốn xóa thông báo "${title}"?`)) form.submit();
     };
 })();
 </script>

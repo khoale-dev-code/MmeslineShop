@@ -108,9 +108,11 @@
   function normalizeVariant(raw) {
     const colorName = raw.color_name || raw.color || FIELD_DEFAULTS.color_name;
     const presetHex = colorHexByName(colorName);
+    const rawId = raw.id || uid();
+    const persisted = Boolean(raw.id && !String(raw.id).startsWith("v_"));
 
     return {
-      id: raw.id || uid(),
+      id: rawId,
       color_name: colorName,
       color_hex: normalizeHex(raw.color_hex || presetHex || FIELD_DEFAULTS.color_hex),
       size: raw.size || FIELD_DEFAULTS.size,
@@ -120,6 +122,8 @@
       sku: raw.sku || "",
       barcode: raw.barcode || "",
       compare_at_price: raw.compare_at_price || "",
+      persisted: persisted,
+      persisted_stock: persisted ? Number(raw.stock || 0) : 0,
       open: Boolean(raw.open)
     };
   }
@@ -163,6 +167,7 @@
   }
 
   function bindRowValues(row, variant) {
+    setInput(row, "id", variant.id);
     setInput(row, "color_name", variant.color_name);
     setInput(row, "color_hex", variant.color_hex);
     setInput(row, "color_picker", variant.color_hex);
@@ -216,6 +221,14 @@
 
     const empty = $(SELECTOR.empty);
     if (empty) empty.classList.toggle("hidden", state.length > 0);
+
+    document.dispatchEvent(new CustomEvent("mm:variants-changed", {
+      detail: {
+        count: state.length,
+        totalStock,
+        colors: colors.size
+      }
+    }));
   }
 
   function setText(selector, value) {
@@ -237,6 +250,8 @@
       id: uid(),
       sku: "",
       barcode: "",
+      persisted: false,
+      persisted_stock: 0,
       open: false
     };
 
@@ -244,7 +259,41 @@
     render();
   }
 
-  function removeVariant(id) {
+  async function removeVariant(id) {
+    const item = getVariantById(id);
+    if (!item) return;
+
+    const ask = window.GuaAdminDelete && typeof window.GuaAdminDelete.confirm === "function"
+      ? window.GuaAdminDelete.confirm
+      : (options) => Promise.resolve(window.confirm(options.message || "Bạn có chắc muốn xóa biến thể?"));
+
+    if (item.persisted && Number(item.persisted_stock || 0) > 0) {
+      const goAdjust = await ask({
+        title: "Biến thể đang còn tồn kho",
+        message: `“${item.color_name || "Mặc định"} / ${item.size || "Freesize"}” đang còn ${item.persisted_stock} sản phẩm.`,
+        detail: "Bạn phải điều chỉnh tồn kho đã lưu về 0 trước khi được xóa biến thể này.",
+        confirmText: "Điều chỉnh tồn kho",
+        tone: "warning"
+      });
+      const form = $(SELECTOR.form);
+      if (goAdjust && form && form.dataset.inventoryAdjustUrl) {
+        const url = new URL(form.dataset.inventoryAdjustUrl, window.location.origin);
+        url.searchParams.set("variant_id", item.id);
+        window.location.assign(url.toString());
+      }
+      return;
+    }
+
+    const ok = await ask({
+      title: "Xóa biến thể",
+      message: `Bạn có muốn xóa biến thể “${item.color_name || "Mặc định"} / ${item.size || "Freesize"}”?`,
+      detail: item.persisted
+        ? "Biến thể sẽ bị xóa khỏi database sau khi bạn bấm Cập nhật sản phẩm."
+        : "Biến thể mới chưa lưu sẽ bị loại khỏi biểu mẫu.",
+      confirmText: "Xóa biến thể",
+      tone: "danger"
+    });
+    if (!ok) return;
     state = state.filter((item) => item.id !== id);
     render();
   }
@@ -399,7 +448,7 @@
     const root = $(SELECTOR.root);
     if (!root) return;
 
-    root.addEventListener("click", (event) => {
+    root.addEventListener("click", async (event) => {
       const actionButton = event.target.closest("[data-mvl-action]");
       if (!actionButton) return;
 
@@ -412,7 +461,7 @@
       if (action === "toggle-size-panel") toggleSizePanel();
       if (action === "toggle-detail" && id) toggleDetail(id);
       if (action === "duplicate-row" && id) duplicateVariant(id);
-      if (action === "remove-row" && id) removeVariant(id);
+      if (action === "remove-row" && id) await removeVariant(id);
     });
 
     root.addEventListener("click", (event) => {

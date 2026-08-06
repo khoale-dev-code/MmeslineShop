@@ -1,0 +1,502 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}
+  {{ 'Chỉnh sửa sản phẩm' if product else 'Thêm sản phẩm mới' }} | GUAMAISON Admin
+{% endblock %}
+
+{% macro vnd(value) -%}
+  {%- if value is not none and value != '' -%}
+    {{ "{:,.0f}".format(value|float).replace(",", ".") }}
+  {%- endif -%}
+{%- endmacro %}
+
+{% set p = product if product is defined else none %}
+{% set images = p.product_images if p and p.product_images is defined and p.product_images else [] %}
+{% set variants = p.product_variants if p and p.product_variants is defined and p.product_variants else [] %}
+
+{% set cats = cats if cats is defined and cats else [] %}
+{% set colles = colles if colles is defined and colles else [] %}
+{% set tag_options = tag_options if tag_options is defined and tag_options else [] %}
+
+{% set selected_category_ids = p.category_ids if p and p.category_ids is defined and p.category_ids else [] %}
+{% set selected_collection_ids = p.collection_ids if p and p.collection_ids is defined and p.collection_ids else [] %}
+{% set inv = inventory_snapshot if inventory_snapshot else none %}
+{% set persisted_stock = inv.total_stock if inv and inv.known else 0 %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/css/product_form.css') }}?v=20260606-product-form">
+
+  {# CKEditor 4.22.1: tránh license LTS. Tắt version security popup trước khi editor khởi tạo. #}
+  <script>
+    window.CKEDITOR_BASEPATH = "https://cdn.ckeditor.com/4.22.1/standard/";
+    window.CKEDITOR_CONFIG_VERSION_CHECK_DISABLED = true;
+  </script>
+
+  <script src="https://cdn.ckeditor.com/4.22.1/standard/ckeditor.js"></script>
+
+  <script>
+    if (window.CKEDITOR) {
+      CKEDITOR.config.versionCheck = false;
+      CKEDITOR.config.notification_duration = 0;
+    }
+  </script>
+
+  <style>
+    /*
+      Layout page-level cho product form.
+      Không cộng padding-top ở đây vì admin_base.html đã chừa khoảng trống cho navbar fixed.
+    */
+
+    .mm-product-page {
+      width: 100%;
+      max-width: 1500px;
+      margin: 0 auto;
+      padding-top: 0 !important;
+      padding-bottom: 32px;
+      color: #241207;
+    }
+
+    .mm-product-form {
+      position: relative;
+      min-width: 0;
+      isolation: isolate;
+    }
+
+    /*
+      Ẩn cảnh báo đỏ của CKEditor 4.22.1:
+      "This CKEditor 4.22.1 version is not secure..."
+      Đây chỉ ẩn UI cảnh báo. Về lâu dài nên đổi editor hoặc dùng CKEditor LTS có license.
+    */
+    .cke_notifications_area,
+    .cke_notification,
+    .cke_notification_warning {
+      display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+
+    .mm-product-head {
+      position: relative;
+      z-index: 3;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 22px;
+      margin-bottom: 24px;
+      padding: 26px;
+      border: 1px solid #eadfd4;
+      border-radius: 32px;
+      background:
+        radial-gradient(circle at top right, rgba(185, 139, 98, 0.18), transparent 34%),
+        linear-gradient(135deg, #fffaf5, #fbf7f1);
+      box-shadow: 0 24px 70px -50px rgba(36, 18, 7, 0.62);
+      overflow: hidden;
+    }
+
+    .mm-product-head::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.54), transparent 55%),
+        radial-gradient(circle at bottom left, rgba(59, 36, 20, 0.06), transparent 38%);
+    }
+
+    .mm-product-head > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .mm-product-head-main {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .mm-back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      color: #75543f;
+      font-size: 11px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      text-decoration: none;
+      transition: color 0.16s ease, transform 0.16s ease;
+    }
+
+    .mm-back-link:hover {
+      color: #241207;
+      transform: translateX(-2px);
+    }
+
+    .mm-product-title {
+      margin: 6px 0 0;
+      color: #241207;
+      font-size: clamp(29px, 4vw, 48px);
+      font-weight: 950;
+      letter-spacing: -0.045em;
+      line-height: 0.96;
+    }
+
+    .mm-product-subtitle {
+      max-width: 800px;
+      margin: 13px 0 0;
+      color: #8a6a52;
+      font-size: 14px;
+      font-weight: 650;
+      line-height: 1.68;
+    }
+
+    .mm-product-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .mm-product-alert {
+      position: relative;
+      z-index: 2;
+      margin-bottom: 22px;
+      border: 1px solid #eadfd4;
+      border-radius: 22px;
+      background: #fffdf9;
+      padding: 14px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      color: #75543f;
+      font-size: 12px;
+      font-weight: 750;
+      line-height: 1.55;
+      box-shadow: 0 14px 34px -32px rgba(36, 18, 7, 0.65);
+    }
+
+    .mm-product-alert i {
+      margin-top: 2px;
+      color: #3b2414;
+      flex-shrink: 0;
+    }
+
+    .mm-product-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+      gap: 22px;
+      align-items: start;
+    }
+
+    .mm-product-main,
+    .mm-product-side {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+
+    .mm-product-side {
+      position: sticky;
+      top: calc(var(--admin-topbar-height, 76px) + 20px);
+      z-index: 1;
+      align-self: start;
+    }
+
+    .mm-save-btn {
+      min-height: 52px;
+      border: 0;
+      border-radius: 18px;
+      background: #3b2414;
+      color: #fff;
+      padding: 0 22px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 12px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      cursor: pointer;
+      white-space: nowrap;
+      transition:
+        transform 0.16s ease,
+        background 0.16s ease,
+        box-shadow 0.16s ease,
+        opacity 0.16s ease;
+      box-shadow: 0 18px 36px -24px rgba(36, 18, 7, 0.78);
+    }
+
+    .mm-save-btn:hover {
+      background: #241207;
+      transform: translateY(-1px);
+    }
+
+    .mm-save-btn:disabled {
+      opacity: 0.72;
+      cursor: wait;
+      transform: none;
+    }
+
+    .mm-form-mobile-save {
+      display: none;
+      position: sticky;
+      bottom: 14px;
+      z-index: 80;
+      margin-top: 22px;
+      padding: 10px;
+      border: 1px solid rgba(234, 223, 212, 0.9);
+      border-radius: 24px;
+      background: rgba(255, 250, 245, 0.86);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 24px 70px -38px rgba(36, 18, 7, 0.75);
+    }
+
+    .mm-form-mobile-save .mm-save-btn {
+      width: 100%;
+      box-shadow: none;
+    }
+
+    @media (max-width: 1180px) {
+      .mm-product-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .mm-product-side {
+        position: static;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .mm-product-page {
+        padding-bottom: 96px;
+      }
+
+      .mm-product-head {
+        padding: 20px;
+        flex-direction: column;
+        border-radius: 26px;
+      }
+
+      .mm-product-actions {
+        display: none;
+      }
+
+      .mm-product-alert {
+        border-radius: 18px;
+      }
+
+      .mm-form-mobile-save {
+        display: block;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .mm-product-head {
+        padding: 18px;
+      }
+
+      .mm-product-title {
+        font-size: 30px;
+      }
+
+      .mm-product-subtitle {
+        font-size: 13px;
+      }
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+<div class="mm-product-page">
+  <form
+    id="productForm"
+    class="mm-product-form"
+    method="POST"
+    enctype="multipart/form-data"
+    action=""
+    novalidate
+    data-product-id="{{ p.id if p and p.id else '' }}"
+    data-product-mode="{{ 'edit' if p else 'create' }}"
+    data-product-name="{{ p.name if p else '' }}"
+    data-persisted-stock="{{ persisted_stock }}"
+  >
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <section class="mm-product-head">
+      <div class="mm-product-head-main">
+        <a href="{{ url_for('admin.products') }}" class="mm-back-link">
+          <i class="fa-solid fa-arrow-left"></i>
+          Quay lại danh sách sản phẩm
+        </a>
+
+        <p class="mm-kicker">GUAMAISON Catalog</p>
+
+        <h1 class="mm-product-title">
+          {{ 'Chỉnh sửa sản phẩm' if p else 'Thêm sản phẩm mới' }}
+        </h1>
+
+        <p class="mm-product-subtitle">
+          Quản lý thông tin sản phẩm, giá bán, giá so sánh, giá vốn, tồn kho,
+          biến thể size/màu, mô tả bán hàng, SEO và hình ảnh storefront.
+        </p>
+      </div>
+
+      <div class="mm-product-actions">
+        <a href="{{ url_for('admin.products') }}" class="mm-cancel-btn">
+          Hủy
+        </a>
+        <button type="submit" name="save_action" value="stay" class="mm-save-btn">
+          <i class="fa-solid fa-check"></i>
+          {{ 'Cập nhật' if p else 'Lưu sản phẩm' }}
+        </button>
+      </div>
+    </section>
+
+    <nav class="mm-product-section-nav" aria-label="Điều hướng biểu mẫu sản phẩm">
+      <a href="#section-general"><i class="fa-regular fa-file-lines"></i> Thông tin</a>
+      <a href="#section-media"><i class="fa-regular fa-images"></i> Hình ảnh</a>
+      <a href="#section-pricing"><i class="fa-solid fa-tag"></i> Giá & kho</a>
+      <a href="#section-variants"><i class="fa-solid fa-layer-group"></i> Biến thể</a>
+      <a href="#section-seo"><i class="fa-solid fa-magnifying-glass"></i> SEO</a>
+      <a href="#section-status"><i class="fa-solid fa-sliders"></i> Hiển thị</a>
+    </nav>
+
+    <div class="mm-product-alert">
+      <i class="fa-solid fa-circle-info"></i>
+      <div>
+        <strong>Lưu ý:</strong>
+        SKU và Barcode sản phẩm có thể để trống. Với biến thể, nếu Barcode để trống hệ thống sẽ tự tạo trước khi lưu.
+        Danh mục, bộ sưu tập, tag, biến thể và media nên được kiểm tra trước khi xuất hiện ngoài storefront.
+      </div>
+    </div>
+
+    <div class="mm-product-grid">
+      <main class="mm-product-main">
+        <div id="section-general" class="mm-section-anchor mm-section-stack">
+          {% include "admin/products/partials/_form_basic.html" %}
+          {% include "admin/products/partials/_form_description.html" %}
+        </div>
+        <div id="section-media" class="mm-section-anchor">
+          {% include "admin/products/partials/_form_media.html" %}
+        </div>
+        <div id="section-pricing" class="mm-section-anchor">
+          {% include "admin/products/partials/_form_pricing_inventory.html" %}
+        </div>
+        <div id="section-variants" class="mm-section-anchor">
+          {% include "admin/products/partials/_form_variants.html" %}
+        </div>
+        <div id="section-seo" class="mm-section-anchor">
+          {% include "admin/products/partials/_form_seo.html" %}
+        </div>
+      </main>
+
+      <aside class="mm-product-side">
+        <section class="mm-card mm-product-overview">
+          <div class="mm-card-head">
+            <div>
+              <p class="mm-kicker">Overview</p>
+              <h2>Tổng quan</h2>
+            </div>
+            <span class="mm-card-icon"><i class="fa-solid fa-chart-simple"></i></span>
+          </div>
+          <div class="mm-card-body">
+            <div class="mm-overview-grid">
+              <div><span>Ảnh</span><strong data-product-image-count>{{ images|length }}</strong></div>
+              <div><span>Biến thể</span><strong data-product-variant-count>{{ variants|length }}</strong></div>
+              <div><span>Tồn đã lưu</span><strong data-product-persisted-stock>{{ persisted_stock }}</strong></div>
+              <div><span>Tồn đang sửa</span><strong data-product-live-stock>{{ persisted_stock }}</strong></div>
+            </div>
+            <p class="mm-overview-help">
+              Tồn “đã lưu” được đọc trực tiếp từ database. Hãy bấm {{ 'Cập nhật' if p else 'Lưu sản phẩm' }} để ghi các thay đổi trước khi rời trang.
+            </p>
+          </div>
+        </section>
+
+        <div id="section-status" class="mm-section-anchor mm-section-stack">
+          {% include "admin/products/partials/_form_status.html" %}
+          {% include "admin/products/partials/_form_relations.html" %}
+        </div>
+      </aside>
+    </div>
+
+    {% if p %}
+    <section class="mm-delete-zone">
+      <div>
+        <span class="mm-delete-zone-icon"><i class="fa-solid fa-shield-halved"></i></span>
+        <div>
+          <strong>Xóa sản phẩm an toàn</strong>
+          {% if inv and inv.known and inv.can_delete %}
+            <p>Tồn kho sản phẩm và tất cả biến thể đều bằng 0. Bạn có thể chuyển sản phẩm vào thùng rác.</p>
+          {% elif inv and inv.known %}
+            <p>Còn <b>{{ inv.total_stock }}</b> sản phẩm trong kho. Hãy đưa mọi mức tồn về 0 và bấm Cập nhật trước khi xóa.</p>
+          {% else %}
+            <p>Không xác minh được tồn kho. Hệ thống tạm khóa thao tác xóa để bảo vệ dữ liệu.</p>
+          {% endif %}
+        </div>
+      </div>
+      <button
+        type="button"
+        class="mm-delete-product-btn"
+        data-delete-product
+        {% if not inv or not inv.known or not inv.can_delete %}disabled{% endif %}
+        title="{% if inv and inv.known and not inv.can_delete %}Cần đưa tồn kho về 0 và cập nhật trước khi xóa{% else %}Chuyển sản phẩm vào thùng rác{% endif %}"
+      >
+        <i class="fa-regular fa-trash-can"></i>
+        Xóa sản phẩm
+      </button>
+    </section>
+    {% endif %}
+
+    <section class="mm-bottom-actions" aria-label="Thao tác lưu cuối trang">
+      <div>
+        <strong>{{ 'Hoàn tất cập nhật sản phẩm' if p else 'Hoàn tất tạo sản phẩm' }}</strong>
+        <p>Kiểm tra thông tin, hình ảnh, giá, tồn kho và biến thể trước khi lưu.</p>
+      </div>
+      <div class="mm-bottom-action-buttons">
+        <a href="{{ url_for('admin.products') }}" class="mm-cancel-btn">Hủy</a>
+        <button type="submit" name="save_action" value="list" class="mm-secondary-save-btn">
+          <i class="fa-solid fa-list"></i>
+          Lưu & quay lại
+        </button>
+        <button type="submit" name="save_action" value="stay" class="mm-save-btn">
+          <i class="fa-solid fa-check"></i>
+          {{ 'Cập nhật sản phẩm' if p else 'Lưu sản phẩm' }}
+        </button>
+      </div>
+    </section>
+
+    <div class="mm-save-dock" aria-live="polite">
+      <span class="mm-save-state" id="mmSaveState">
+        <i class="fa-solid fa-circle-check"></i>
+        Chưa có thay đổi
+      </span>
+      <button type="submit" name="save_action" value="stay" class="mm-save-btn">
+        <i class="fa-solid fa-check"></i>
+        {{ 'Cập nhật' if p else 'Lưu' }}
+      </button>
+    </div>
+  </form>
+
+  {% if p %}
+  <form
+    id="deleteProductForm"
+    method="POST"
+    action="{{ url_for('admin.delete_product', pid=p.id) }}"
+    hidden
+  >
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  </form>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+  <script src="{{ url_for('static', filename='admin/js/product_form.js') }}?v=20260806-product-editor-v4"></script>
+  <script src="{{ url_for('static', filename='admin/js/mm_variants_lite.js') }}?v=20260606-variants"></script>
+  <script src="{{ url_for('static', filename='admin/js/mm_product_media.js') }}?v=20260606-media"></script>
+{% endblock %}

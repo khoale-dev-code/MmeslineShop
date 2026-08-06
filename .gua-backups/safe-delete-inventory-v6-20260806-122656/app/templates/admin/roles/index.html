@@ -1,0 +1,1675 @@
+{# app/templates/admin/roles/index.html #}
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Phân quyền nhân sự | Trung tâm quản trị{% endblock %}
+
+{% block extra_head %}
+<style>
+ .rbac-page,
+.rbac-modal,
+.rbac-toast {
+  --rbac-ink: var(--mm-brown-950, #241207);
+  --rbac-brown: var(--mm-brown-900, #3b2414);
+  --rbac-warm: var(--mm-brown-700, #5f3b1e);
+  --rbac-caramel: var(--mm-caramel, #b98b62);
+  --rbac-muted: var(--mm-muted, #9b7b63);
+  --rbac-cream: var(--mm-cream, #fbf7f1);
+  --rbac-soft: var(--mm-soft, #fffaf5);
+  --rbac-card: var(--mm-card, #fffdf9);
+  --rbac-line: var(--mm-line, #eadfd4);
+}
+
+.rbac-page {
+  width: 100%;
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 22px 18px 42px;
+  color: var(--rbac-ink);
+}
+
+  .rbac-hero {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--rbac-line);
+    border-radius: 34px;
+    background:
+      radial-gradient(circle at top right, rgba(185, 139, 98, 0.22), transparent 32%),
+      radial-gradient(circle at bottom left, rgba(95, 59, 30, 0.10), transparent 38%),
+      linear-gradient(135deg, #fffaf5, #fbf7f1);
+    padding: 26px;
+    box-shadow: 0 28px 80px -58px rgba(36, 18, 7, 0.7);
+  }
+
+  .rbac-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(90deg, rgba(255,255,255,.62), transparent 58%);
+  }
+
+  .rbac-hero > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .rbac-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--rbac-caramel);
+    font-size: 11px;
+    font-weight: 950;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+  }
+
+  .rbac-title {
+    margin: 10px 0 0;
+    font-size: clamp(30px, 4vw, 52px);
+    line-height: .95;
+    letter-spacing: -.055em;
+    font-weight: 950;
+    color: var(--rbac-ink);
+  }
+
+  .rbac-subtitle {
+    max-width: 840px;
+    margin-top: 14px;
+    color: #80614b;
+    font-size: 14px;
+    font-weight: 650;
+    line-height: 1.7;
+  }
+
+  .rbac-hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .rbac-btn {
+    min-height: 46px;
+    border: 0;
+    border-radius: 17px;
+    padding: 0 17px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    font-size: 11px;
+    font-weight: 950;
+    letter-spacing: .10em;
+    text-transform: uppercase;
+    transition: transform .16s ease, background .16s ease, border-color .16s ease, color .16s ease, opacity .16s ease;
+  }
+
+  .rbac-btn:hover {
+    transform: translateY(-1px);
+  }
+
+  .rbac-btn-primary {
+    background: var(--rbac-brown);
+    color: #fff;
+    box-shadow: 0 18px 36px -26px rgba(36, 18, 7, .86);
+  }
+
+  .rbac-btn-primary:hover {
+    background: var(--rbac-ink);
+  }
+
+  .rbac-btn-soft {
+    border: 1px solid var(--rbac-line);
+    background: rgba(255, 253, 249, .88);
+    color: var(--rbac-brown);
+  }
+
+  .rbac-btn-soft:hover {
+    background: #fff;
+    border-color: #d6c2b0;
+  }
+
+  .rbac-btn-danger {
+    border: 1px solid rgba(220, 38, 38, .16);
+    background: #fff7f7;
+    color: #b91c1c;
+  }
+
+  .rbac-btn-danger:hover {
+    background: #fee2e2;
+  }
+
+  .rbac-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 18px;
+  }
+
+  .rbac-stat {
+    border: 1px solid rgba(234, 223, 212, .9);
+    border-radius: 24px;
+    background: rgba(255, 253, 249, .86);
+    padding: 18px;
+    box-shadow: 0 18px 50px -44px rgba(36, 18, 7, .55);
+  }
+
+  .rbac-stat span {
+    display: block;
+    color: var(--rbac-muted);
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+  }
+
+  .rbac-stat strong {
+    display: block;
+    margin-top: 8px;
+    color: var(--rbac-ink);
+    font-size: 30px;
+    line-height: 1;
+    font-weight: 950;
+    letter-spacing: -.04em;
+  }
+
+  .rbac-section {
+    margin-top: 26px;
+  }
+
+  .rbac-section-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+  }
+
+  .rbac-section-title {
+    margin: 0;
+    color: var(--rbac-ink);
+    font-size: 19px;
+    font-weight: 950;
+    letter-spacing: -.025em;
+  }
+
+  .rbac-section-desc {
+    margin: 5px 0 0;
+    color: var(--rbac-muted);
+    font-size: 12px;
+    font-weight: 650;
+  }
+
+  .rbac-search {
+    width: min(100%, 380px);
+    height: 46px;
+    border: 1px solid var(--rbac-line);
+    border-radius: 17px;
+    background: rgba(255, 253, 249, .92);
+    color: var(--rbac-ink);
+    padding: 0 15px 0 42px;
+    outline: none;
+    font-size: 13px;
+    font-weight: 750;
+  }
+
+  .rbac-search-wrap {
+    position: relative;
+  }
+
+  .rbac-search-wrap i {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--rbac-muted);
+    font-size: 13px;
+  }
+
+  .rbac-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .rbac-card {
+    border: 1px solid var(--rbac-line);
+    border-radius: 28px;
+    background: rgba(255, 253, 249, .95);
+    box-shadow: 0 18px 50px -44px rgba(36, 18, 7, .55);
+  }
+
+  .rbac-role-card {
+    padding: 20px;
+    transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+  }
+
+  .rbac-role-card:hover {
+    transform: translateY(-2px);
+    border-color: #dbc8b7;
+    box-shadow: 0 26px 60px -48px rgba(36, 18, 7, .72);
+  }
+
+  .rbac-role-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .rbac-slug {
+    display: inline-flex;
+    max-width: 100%;
+    border-radius: 999px;
+    background: #f4ece4;
+    color: var(--rbac-brown);
+    padding: 7px 10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .05em;
+    word-break: break-all;
+  }
+
+  .rbac-role-name {
+    margin: 12px 0 0;
+    color: var(--rbac-ink);
+    font-size: 16px;
+    font-weight: 950;
+    letter-spacing: -.02em;
+  }
+
+  .rbac-role-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .rbac-icon-btn {
+    width: 38px;
+    height: 38px;
+    border: 1px solid var(--rbac-line);
+    border-radius: 14px;
+    background: var(--rbac-soft);
+    color: var(--rbac-muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .16s ease, color .16s ease, border-color .16s ease, transform .16s ease;
+  }
+
+  .rbac-icon-btn:hover {
+    transform: translateY(-1px);
+    background: var(--rbac-brown);
+    border-color: var(--rbac-brown);
+    color: #fff;
+  }
+
+  .rbac-icon-btn.is-danger:hover {
+    background: #b91c1c;
+    border-color: #b91c1c;
+  }
+
+  .rbac-lock {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    background: #f5f1ed;
+    color: #80614b;
+    padding: 8px 10px;
+    font-size: 10px;
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+  }
+
+  .rbac-perms {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 16px;
+  }
+
+  .rbac-perm-chip {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    background: #fff7ef;
+    border: 1px solid #efdfd1;
+    color: #74533f;
+    padding: 7px 9px;
+    font-size: 10px;
+    font-weight: 850;
+  }
+
+  .rbac-empty {
+    padding: 42px 22px;
+    text-align: center;
+    color: var(--rbac-muted);
+  }
+
+  .rbac-guide {
+    display: grid;
+    grid-template-columns: .95fr 1.05fr;
+    gap: 16px;
+  }
+
+  .rbac-guide-card {
+    padding: 20px;
+  }
+
+  .rbac-steps {
+    display: grid;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .rbac-step {
+    display: flex;
+    gap: 12px;
+    border: 1px solid var(--rbac-line);
+    border-radius: 18px;
+    background: var(--rbac-soft);
+    padding: 13px;
+  }
+
+  .rbac-step b {
+    width: 28px;
+    height: 28px;
+    flex: 0 0 auto;
+    border-radius: 999px;
+    background: var(--rbac-brown);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 950;
+  }
+
+  .rbac-step strong {
+    display: block;
+    color: var(--rbac-ink);
+    font-size: 12px;
+    font-weight: 950;
+  }
+
+  .rbac-step span {
+    display: block;
+    margin-top: 3px;
+    color: var(--rbac-muted);
+    font-size: 12px;
+    line-height: 1.55;
+    font-weight: 650;
+  }
+
+  .rbac-table-wrap {
+    overflow: hidden;
+  }
+
+  .rbac-table-scroll {
+    overflow-x: auto;
+  }
+
+  .rbac-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 760px;
+  }
+
+  .rbac-table th {
+    background: #f8efe7;
+    color: #80614b;
+    padding: 14px 18px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--rbac-line);
+  }
+
+  .rbac-table td {
+    padding: 15px 18px;
+    border-bottom: 1px solid var(--rbac-line);
+    vertical-align: middle;
+  }
+
+  .rbac-table tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .rbac-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .rbac-avatar {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 auto;
+    border-radius: 16px;
+    background: #f0e5db;
+    color: var(--rbac-brown);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 950;
+  }
+
+  .rbac-user-name {
+    color: var(--rbac-ink);
+    font-size: 13px;
+    font-weight: 950;
+  }
+
+  .rbac-user-email {
+    margin-top: 3px;
+    color: var(--rbac-muted);
+    font-size: 12px;
+    font-weight: 650;
+    word-break: break-all;
+  }
+
+  .rbac-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    padding: 8px 10px;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .rbac-badge-admin {
+    background: var(--rbac-brown);
+    color: #fff;
+  }
+
+  .rbac-badge-role {
+    background: #fff7ef;
+    border: 1px solid #efdfd1;
+    color: var(--rbac-brown);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  .rbac-badge-muted {
+    background: #f5f1ed;
+    color: #80614b;
+  }
+
+  .rbac-badge-ok {
+    background: #ecfdf5;
+    color: #047857;
+  }
+
+  .rbac-badge-danger {
+    background: #fff1f2;
+    color: #be123c;
+  }
+
+  .rbac-mobile-staff {
+    display: none;
+  }
+
+  .rbac-toast {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 9999;
+    max-width: min(420px, calc(100vw - 36px));
+    border: 1px solid var(--rbac-line);
+    border-radius: 18px;
+    background: var(--rbac-brown);
+    color: #fff;
+    padding: 13px 15px;
+    display: none;
+    align-items: flex-start;
+    gap: 10px;
+    box-shadow: 0 28px 80px -46px rgba(36,18,7,.72);
+  }
+
+  .rbac-toast.is-show {
+    display: flex;
+  }
+
+  .rbac-toast.is-error {
+    background: #991b1b;
+  }
+
+ .rbac-modal[hidden] {
+  display: none !important;
+}
+
+.rbac-modal {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147483000 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  background: rgba(36, 18, 7, 0.58);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  padding: clamp(12px, 2vw, 26px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.rbac-modal-box {
+  width: min(940px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow: hidden;
+  border: 1px solid var(--rbac-line);
+  border-radius: 30px;
+  background: var(--rbac-card);
+  box-shadow: 0 34px 110px -54px rgba(36, 18, 7, 0.88);
+  display: flex;
+  flex-direction: column;
+  transform: translateZ(0);
+}
+
+#modal-assign .rbac-modal-box {
+  width: min(560px, calc(100vw - 32px)) !important;
+}
+
+.rbac-modal-head,
+.rbac-modal-foot {
+  flex: 0 0 auto;
+  padding: 18px 20px;
+  border-color: var(--rbac-line);
+}
+
+.rbac-modal-head {
+  border-bottom: 1px solid var(--rbac-line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: linear-gradient(135deg, #fffaf5, #fbf7f1);
+}
+
+.rbac-modal-foot {
+  border-top: 1px solid var(--rbac-line);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  background: #fffaf5;
+}
+
+.rbac-modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #c8aa92 transparent;
+}
+
+.rbac-modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.rbac-modal-body::-webkit-scrollbar-thumb {
+  background: #c8aa92;
+  border-radius: 999px;
+}
+
+.rbac-modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+body.rbac-modal-open {
+  overflow: hidden !important;
+}
+
+body.rbac-modal-open .mm-admin-topbar,
+body.rbac-modal-open .mm-admin-sidebar,
+body.rbac-modal-open #mmAdminTopbar,
+body.rbac-modal-open #mmAdminSidebar {
+  pointer-events: none;
+}
+
+@media (max-width: 760px) {
+  .rbac-modal {
+    padding: 10px;
+    align-items: flex-end;
+  }
+
+  .rbac-modal-box,
+  #modal-assign .rbac-modal-box {
+    width: 100% !important;
+    max-height: calc(100dvh - 20px);
+    border-radius: 26px 26px 18px 18px;
+  }
+
+  .rbac-modal-head,
+  .rbac-modal-foot {
+    padding: 15px;
+  }
+
+  .rbac-modal-body {
+    padding: 15px;
+  }
+}
+
+  .rbac-field {
+    margin-bottom: 16px;
+  }
+
+  .rbac-label {
+    display: block;
+    margin-bottom: 8px;
+    color: #80614b;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+  }
+
+  .rbac-input,
+  .rbac-select {
+    width: 100%;
+    height: 48px;
+    border: 1px solid var(--rbac-line);
+    border-radius: 16px;
+    background: #fffdf9;
+    color: var(--rbac-ink);
+    padding: 0 14px;
+    outline: none;
+    font-size: 14px;
+    font-weight: 750;
+  }
+
+  .rbac-input:focus,
+  .rbac-select:focus {
+    border-color: rgba(95, 59, 30, .42);
+    box-shadow: 0 0 0 4px rgba(185, 139, 98, .13);
+  }
+
+  .rbac-input[readonly],
+  .rbac-input:disabled {
+    background: #f3ebe4;
+    color: #9b7b63;
+    cursor: not-allowed;
+  }
+
+  .rbac-help {
+    margin: 7px 0 0;
+    color: var(--rbac-muted);
+    font-size: 12px;
+    font-weight: 650;
+    line-height: 1.5;
+  }
+
+  .rbac-perm-group {
+    border: 1px solid var(--rbac-line);
+    border-radius: 20px;
+    background: var(--rbac-soft);
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+
+  .rbac-perm-group-head {
+    padding: 13px 14px;
+    border-bottom: 1px solid var(--rbac-line);
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: center;
+    background: #fbf7f1;
+  }
+
+  .rbac-perm-group-head strong {
+    color: var(--rbac-ink);
+    font-size: 13px;
+    font-weight: 950;
+  }
+
+  .rbac-perm-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+    padding: 12px;
+  }
+
+  .rbac-perm-item {
+    border: 1px solid var(--rbac-line);
+    border-radius: 16px;
+    background: #fffdf9;
+    padding: 11px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+    transition: border-color .16s ease, background .16s ease;
+  }
+
+  .rbac-perm-item:hover {
+    border-color: #d8c2ae;
+    background: #fffaf5;
+  }
+
+  .rbac-perm-item input {
+    margin-top: 2px;
+    accent-color: var(--rbac-brown);
+  }
+
+  .rbac-perm-item span {
+    display: block;
+    color: var(--rbac-ink);
+    font-size: 12px;
+    font-weight: 850;
+    line-height: 1.35;
+  }
+
+  .rbac-perm-item small {
+    display: block;
+    margin-top: 4px;
+    color: var(--rbac-muted);
+    font-size: 10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    word-break: break-all;
+  }
+
+  @media (max-width: 1160px) {
+    .rbac-grid,
+    .rbac-stats,
+    .rbac-guide {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 760px) {
+    .rbac-page {
+      padding: 14px 12px 34px;
+    }
+
+    .rbac-hero {
+      border-radius: 26px;
+      padding: 20px;
+    }
+
+    .rbac-hero-actions,
+    .rbac-section-head,
+    .rbac-modal-foot {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .rbac-btn,
+    .rbac-search-wrap,
+    .rbac-search {
+      width: 100%;
+    }
+
+    .rbac-grid,
+    .rbac-stats,
+    .rbac-guide,
+    .rbac-perm-list {
+      grid-template-columns: 1fr;
+    }
+
+    .rbac-table-wrap {
+      display: none;
+    }
+
+    .rbac-mobile-staff {
+      display: grid;
+      gap: 12px;
+    }
+
+    .rbac-mobile-user-card {
+      padding: 16px;
+    }
+
+    .rbac-mobile-actions {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .rbac-modal {
+      padding: 10px;
+      align-items: flex-end;
+    }
+
+    .rbac-modal-box {
+      width: 100%;
+      max-height: 92vh;
+      border-radius: 26px 26px 18px 18px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rbac-page" id="rbacPage">
+
+  <section class="rbac-hero">
+    <div class="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-6">
+      <div>
+        <span class="rbac-kicker">
+          <i class="fa-solid fa-user-shield"></i>
+          RBAC / Admin access
+        </span>
+        <h1 class="rbac-title">Phân quyền nhân sự</h1>
+        <p class="rbac-subtitle">
+          Quản lý nhóm quyền, cấp quyền cho nhân sự và thu hồi quyền truy cập khu vực quản trị.
+          Chỉ Super Admin nên sử dụng màn hình này.
+        </p>
+      </div>
+
+      <div class="rbac-hero-actions">
+        <button type="button" class="rbac-btn rbac-btn-soft" data-action="scroll-guide">
+          <i class="fa-solid fa-circle-question"></i>
+          Hướng dẫn
+        </button>
+        <button type="button" class="rbac-btn rbac-btn-soft" data-action="open-assign-new">
+          <i class="fa-solid fa-user-plus"></i>
+          Gán nhân sự
+        </button>
+        <button type="button" class="rbac-btn rbac-btn-primary" data-action="open-create-role">
+          <i class="fa-solid fa-plus"></i>
+          Tạo vai trò
+        </button>
+      </div>
+    </div>
+
+    <div class="rbac-stats">
+      <div class="rbac-stat">
+        <span>Tổng vai trò</span>
+        <strong>{{ stats.total_roles if stats is defined else roles|length }}</strong>
+      </div>
+      <div class="rbac-stat">
+        <span>Vai trò hệ thống</span>
+        <strong>{{ stats.protected_count if stats is defined else protected_roles|length }}</strong>
+      </div>
+      <div class="rbac-stat">
+        <span>Tài khoản nhân sự</span>
+        <strong>{{ stats.total_staff if stats is defined else staff|length }}</strong>
+      </div>
+      <div class="rbac-stat">
+        <span>Mã quyền</span>
+        <strong>{{ stats.total_permissions if stats is defined else 0 }}</strong>
+      </div>
+    </div>
+  </section>
+
+  <section class="rbac-section" id="rbacGuide">
+    <div class="rbac-guide">
+      <div class="rbac-card rbac-guide-card">
+        <span class="rbac-kicker">
+          <i class="fa-solid fa-book-open"></i>
+          Hướng dẫn sử dụng
+        </span>
+        <h2 class="rbac-section-title mt-3">Quy trình phân quyền chuẩn</h2>
+
+        <div class="rbac-steps">
+          <div class="rbac-step">
+            <b>1</b>
+            <div>
+              <strong>Tạo vai trò</strong>
+              <span>Đặt tên dễ hiểu như “Nhân viên kho”, “CSKH”, “Quản lý đơn hàng”. Slug nên viết thường, không dấu.</span>
+            </div>
+          </div>
+          <div class="rbac-step">
+            <b>2</b>
+            <div>
+              <strong>Chọn quyền phù hợp</strong>
+              <span>Chỉ chọn đúng quyền nhân sự cần. Không cấp quyền cài đặt hoặc báo cáo nếu không cần thiết.</span>
+            </div>
+          </div>
+          <div class="rbac-step">
+            <b>3</b>
+            <div>
+              <strong>Gán nhân sự</strong>
+              <span>Nhập email tài khoản đã tồn tại hoặc đổi quyền cho nhân sự đang có trong danh sách.</span>
+            </div>
+          </div>
+          <div class="rbac-step">
+            <b>4</b>
+            <div>
+              <strong>Kiểm tra và thu hồi</strong>
+              <span>Khi nhân sự nghỉ việc hoặc đổi vị trí, hãy thu hồi quyền để tài khoản trở về khách hàng thường.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rbac-card rbac-guide-card">
+        <span class="rbac-kicker">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          Lưu ý an toàn
+        </span>
+        <h2 class="rbac-section-title mt-3">Không chỉnh trực tiếp trong database</h2>
+        <p class="rbac-subtitle" style="margin-top: 10px;">
+          Trang này sẽ ghi vào bảng <b>admin_roles</b> và cột <b>users.admin_role_slug</b>.
+          Vai trò hệ thống như <b>admin</b> hoặc <b>super_admin</b> được khóa để tránh mất quyền quản trị cao nhất.
+        </p>
+        <div class="rbac-steps">
+          <div class="rbac-step">
+            <b><i class="fa-solid fa-lock"></i></b>
+            <div>
+              <strong>Vai trò hệ thống</strong>
+              <span>Không thể sửa/xóa từ giao diện để tránh làm hỏng quyền Super Admin.</span>
+            </div>
+          </div>
+          <div class="rbac-step">
+            <b><i class="fa-solid fa-rotate"></i></b>
+            <div>
+              <strong>Hiệu lực quyền</strong>
+              <span>Sau khi đổi quyền, nhân sự nên tải lại trang hoặc đăng nhập lại để nhận quyền mới.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="rbac-section">
+    <div class="rbac-section-head">
+      <div>
+        <h2 class="rbac-section-title">Danh sách vai trò</h2>
+        <p class="rbac-section-desc">Tạo, chỉnh sửa và kiểm soát các nhóm quyền trong hệ thống.</p>
+      </div>
+
+      <div class="rbac-search-wrap">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input id="roleSearch" class="rbac-search" type="search" placeholder="Tìm vai trò, slug hoặc mã quyền...">
+      </div>
+    </div>
+
+    <div class="rbac-grid" id="rolesGrid">
+      {% for role in roles %}
+        {% set perms = role.permissions|default([], true) %}
+        {% if perms is string %}
+          {% set perms = [] %}
+        {% endif %}
+        {% set is_protected = role.slug in protected_roles %}
+
+        <article
+          class="rbac-card rbac-role-card"
+          data-role-card
+          data-search="{{ (role.slug ~ ' ' ~ role.name ~ ' ' ~ (perms|join(' ')))|lower }}"
+        >
+          <div class="rbac-role-top">
+            <div class="min-w-0">
+              <span class="rbac-slug">{{ role.slug }}</span>
+              <h3 class="rbac-role-name">{{ role.name }}</h3>
+            </div>
+
+            {% if is_protected %}
+              <span class="rbac-lock" title="Vai trò hệ thống, không thể sửa/xóa">
+                <i class="fa-solid fa-lock"></i>
+                System
+              </span>
+            {% else %}
+              <div class="rbac-role-actions">
+                <button
+                  type="button"
+                  class="rbac-icon-btn"
+                  title="Sửa vai trò"
+                  data-action="open-edit-role"
+                  data-slug="{{ role.slug }}"
+                  data-name="{{ role.name }}"
+                  data-permissions='{{ perms|tojson|forceescape }}'
+                >
+                  <i class="fa-solid fa-pen"></i>
+                </button>
+                <button
+                  type="button"
+                  class="rbac-icon-btn is-danger"
+                  title="Xóa vai trò"
+                  data-action="delete-role"
+                  data-slug="{{ role.slug }}"
+                  data-name="{{ role.name }}"
+                >
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="rbac-perms">
+            {% if perms|length > 0 %}
+              {% for p in perms[:7] %}
+                <span class="rbac-perm-chip">{{ p }}</span>
+              {% endfor %}
+              {% if perms|length > 7 %}
+                <span class="rbac-perm-chip">+{{ perms|length - 7 }} quyền khác</span>
+              {% endif %}
+            {% else %}
+              <span class="rbac-badge rbac-badge-muted">Chưa có quyền</span>
+            {% endif %}
+          </div>
+        </article>
+      {% else %}
+        <div class="rbac-card rbac-empty" style="grid-column: 1 / -1;">
+          <i class="fa-solid fa-shield-halved text-4xl mb-4" style="color:#c8aa92;"></i>
+          <h3 class="rbac-section-title">Chưa có vai trò nào</h3>
+          <p class="rbac-section-desc">Hãy tạo vai trò đầu tiên để bắt đầu phân quyền.</p>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="rbac-section">
+    <div class="rbac-section-head">
+      <div>
+        <h2 class="rbac-section-title">Tài khoản nhân sự</h2>
+        <p class="rbac-section-desc">Danh sách tài khoản admin/staff đang có quyền vào khu vực quản trị.</p>
+      </div>
+
+      <button type="button" class="rbac-btn rbac-btn-primary" data-action="open-assign-new">
+        <i class="fa-solid fa-user-plus"></i>
+        Gán nhân sự
+      </button>
+    </div>
+
+    <div class="rbac-card rbac-table-wrap">
+      <div class="rbac-table-scroll">
+        <table class="rbac-table">
+          <thead>
+            <tr>
+              <th>Tài khoản</th>
+              <th>Vai trò</th>
+              <th>Trạng thái</th>
+              <th style="text-align:right;">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in staff %}
+              {% set is_super = u.role == 'Super Admin' or u.role == 'admin' %}
+              <tr>
+                <td>
+                  <div class="rbac-user">
+                    <div class="rbac-avatar">{{ u.initials or '?' }}</div>
+                    <div>
+                      <div class="rbac-user-name">{{ u.full_name or 'Chưa có tên' }}</div>
+                      <div class="rbac-user-email">{{ u.email }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  {% if is_super %}
+                    <span class="rbac-badge rbac-badge-admin">
+                      <i class="fa-solid fa-crown"></i>
+                      Super Admin
+                    </span>
+                  {% elif u.admin_role_slug %}
+                    <span class="rbac-badge rbac-badge-role">{{ u.admin_role_slug }}</span>
+                  {% else %}
+                    <span class="rbac-badge rbac-badge-muted">Chưa gán</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if u.is_suspended %}
+                    <span class="rbac-badge rbac-badge-danger">Bị khóa</span>
+                  {% else %}
+                    <span class="rbac-badge rbac-badge-ok">Hoạt động</span>
+                  {% endif %}
+                </td>
+                <td style="text-align:right;">
+                  {% if is_super %}
+                    <span class="rbac-badge rbac-badge-muted">Được bảo vệ</span>
+                  {% else %}
+                    <div class="inline-flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        class="rbac-btn rbac-btn-soft"
+                        data-action="open-assign-existing"
+                        data-user-id="{{ u.id }}"
+                        data-email="{{ u.email }}"
+                        data-name="{{ u.full_name or u.email }}"
+                        data-current-slug="{{ u.admin_role_slug or '' }}"
+                      >
+                        Đổi quyền
+                      </button>
+                      <button
+                        type="button"
+                        class="rbac-btn rbac-btn-danger"
+                        data-action="revoke-user"
+                        data-user-id="{{ u.id }}"
+                        data-email="{{ u.email }}"
+                      >
+                        Thu hồi
+                      </button>
+                    </div>
+                  {% endif %}
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="4">
+                  <div class="rbac-empty">
+                    <i class="fa-solid fa-users text-3xl mb-3" style="color:#c8aa92;"></i>
+                    <p>Chưa có tài khoản nhân sự.</p>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="rbac-mobile-staff">
+      {% for u in staff %}
+        {% set is_super = u.role == 'Super Admin' or u.role == 'admin' %}
+        <article class="rbac-card rbac-mobile-user-card">
+          <div class="rbac-user">
+            <div class="rbac-avatar">{{ u.initials or '?' }}</div>
+            <div>
+              <div class="rbac-user-name">{{ u.full_name or 'Chưa có tên' }}</div>
+              <div class="rbac-user-email">{{ u.email }}</div>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-2 mt-4">
+            {% if is_super %}
+              <span class="rbac-badge rbac-badge-admin">
+                <i class="fa-solid fa-crown"></i>
+                Super Admin
+              </span>
+            {% elif u.admin_role_slug %}
+              <span class="rbac-badge rbac-badge-role">{{ u.admin_role_slug }}</span>
+            {% else %}
+              <span class="rbac-badge rbac-badge-muted">Chưa gán</span>
+            {% endif %}
+
+            {% if u.is_suspended %}
+              <span class="rbac-badge rbac-badge-danger">Bị khóa</span>
+            {% else %}
+              <span class="rbac-badge rbac-badge-ok">Hoạt động</span>
+            {% endif %}
+          </div>
+
+          {% if not is_super %}
+            <div class="rbac-mobile-actions">
+              <button
+                type="button"
+                class="rbac-btn rbac-btn-soft"
+                data-action="open-assign-existing"
+                data-user-id="{{ u.id }}"
+                data-email="{{ u.email }}"
+                data-name="{{ u.full_name or u.email }}"
+                data-current-slug="{{ u.admin_role_slug or '' }}"
+              >
+                Đổi quyền
+              </button>
+              <button
+                type="button"
+                class="rbac-btn rbac-btn-danger"
+                data-action="revoke-user"
+                data-user-id="{{ u.id }}"
+                data-email="{{ u.email }}"
+              >
+                Thu hồi quyền
+              </button>
+            </div>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% include "admin/roles/_modal_role.html" %}
+  {% include "admin/roles/_modal_assign.html" %}
+
+  <div id="rbacToast" class="rbac-toast" role="status" aria-live="polite">
+    <i id="rbacToastIcon" class="fa-solid fa-circle-check mt-0.5"></i>
+    <div id="rbacToastText" class="text-sm font-bold leading-relaxed"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+  "use strict";
+
+  const API = {
+    createRole: "/admin/roles/create",
+    updateRole: (slug) => "/admin/roles/" + encodeURIComponent(slug) + "/update",
+    deleteRole: (slug) => "/admin/roles/" + encodeURIComponent(slug) + "/delete",
+    assignRole: "/admin/roles/assign",
+    revokeRole: "/admin/roles/revoke"
+  };
+
+  const state = {
+    editingSlug: null,
+    toastTimer: null
+  };
+
+  const $ = (selector, root = document) => root.querySelector(selector);
+  const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+
+  function csrfToken() {
+    return $('meta[name="csrf-token"]')?.getAttribute("content") || "";
+  }
+
+  function parseJson(value, fallback) {
+    try {
+      return JSON.parse(value || "");
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  function slugify(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/g, "d")
+      .replace(/Đ/g, "d")
+      .toLowerCase()
+      .replace(/[^a-z0-9_ -]+/g, "")
+      .trim()
+      .replace(/[\s-]+/g, "_")
+      .replace(/_+/g, "_")
+      .replace(/^_+|_+$/g, "");
+  }
+
+  async function apiPost(url, payload) {
+    const headers = {
+      "Content-Type": "application/json"
+    };
+
+    const token = csrfToken();
+    if (token) {
+      headers["X-CSRFToken"] = token;
+      headers["X-CSRF-Token"] = token;
+    }
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload || {})
+    });
+
+    let data = {};
+    try {
+      data = await response.json();
+    } catch (_) {
+      data = {};
+    }
+
+    if (!response.ok && !data.message) {
+      data.message = "Lỗi máy chủ. Vui lòng thử lại.";
+    }
+
+    return data;
+  }
+
+  function showToast(message, isError) {
+    const toast = $("#rbacToast");
+    const text = $("#rbacToastText");
+    const icon = $("#rbacToastIcon");
+
+    if (!toast || !text || !icon) return;
+
+    text.textContent = message || "";
+    toast.classList.toggle("is-error", Boolean(isError));
+    icon.className = isError
+      ? "fa-solid fa-triangle-exclamation mt-0.5"
+      : "fa-solid fa-circle-check mt-0.5";
+
+    toast.classList.add("is-show");
+
+    clearTimeout(state.toastTimer);
+    state.toastTimer = setTimeout(() => {
+      toast.classList.remove("is-show");
+    }, 3200);
+  }
+
+ function liftModalToBody(id) {
+  const modal = document.getElementById(id);
+
+  if (!modal) return null;
+
+  if (modal.parentElement !== document.body) {
+    document.body.appendChild(modal);
+  }
+
+  return modal;
+}
+
+function liftFloatingUiToBody() {
+  ["modal-role", "modal-assign", "rbacToast"].forEach((id) => {
+    const el = document.getElementById(id);
+
+    if (el && el.parentElement !== document.body) {
+      document.body.appendChild(el);
+    }
+  });
+}
+
+function hasOpenModal() {
+  return Boolean(document.querySelector(".rbac-modal:not([hidden])"));
+}
+
+function lockModalPage() {
+  document.body.classList.add("rbac-modal-open");
+  document.documentElement.classList.add("rbac-modal-open");
+}
+
+function unlockModalPage() {
+  if (hasOpenModal()) return;
+
+  document.body.classList.remove("rbac-modal-open");
+  document.documentElement.classList.remove("rbac-modal-open");
+}
+
+function openModal(id) {
+  const modal = liftModalToBody(id);
+
+  if (!modal) return;
+
+  modal.hidden = false;
+  lockModalPage();
+
+  const firstInput = modal.querySelector("input:not([type='hidden']):not(:disabled), select:not(:disabled), button:not(:disabled)");
+  window.setTimeout(() => firstInput?.focus(), 60);
+}
+
+function closeModal(id) {
+  const modal = document.getElementById(id);
+
+  if (!modal) return;
+
+  modal.hidden = true;
+  unlockModalPage();
+}
+
+  function getCheckedPermissions() {
+    return $$('input[name="role_permissions"]:checked').map((input) => input.value);
+  }
+
+  function setCheckedPermissions(values) {
+    const selected = new Set(Array.isArray(values) ? values : []);
+
+    $$('input[name="role_permissions"]').forEach((input) => {
+      input.checked = selected.has(input.value);
+    });
+  }
+
+  function setAllPermissions(checked) {
+    $$('input[name="role_permissions"]').forEach((input) => {
+      input.checked = Boolean(checked);
+    });
+  }
+
+  function openCreateRole() {
+    state.editingSlug = null;
+
+    $("#modal-role-title").textContent = "Tạo vai trò mới";
+    $("#role-form-name").value = "";
+    $("#role-form-slug").value = "";
+    $("#role-form-slug").readOnly = false;
+    $("#role-slug-lock").hidden = true;
+    $("#btn-save-role").innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Tạo vai trò';
+
+    setAllPermissions(false);
+    openModal("modal-role");
+  }
+
+  function openEditRole(button) {
+    const slug = button.dataset.slug || "";
+    const name = button.dataset.name || "";
+    const permissions = parseJson(button.dataset.permissions, []);
+
+    state.editingSlug = slug;
+
+    $("#modal-role-title").textContent = "Chỉnh sửa vai trò";
+    $("#role-form-name").value = name;
+    $("#role-form-slug").value = slug;
+    $("#role-form-slug").readOnly = true;
+    $("#role-slug-lock").hidden = false;
+    $("#btn-save-role").innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Lưu thay đổi';
+
+    setCheckedPermissions(permissions);
+    openModal("modal-role");
+  }
+
+  async function submitRole() {
+    const saveBtn = $("#btn-save-role");
+    const nameInput = $("#role-form-name");
+    const slugInput = $("#role-form-slug");
+
+    const name = nameInput.value.trim();
+    const slug = slugify(slugInput.value);
+    const permissions = getCheckedPermissions();
+
+    slugInput.value = slug;
+
+    if (!name) {
+      showToast("Vui lòng nhập tên vai trò.", true);
+      nameInput.focus();
+      return;
+    }
+
+    if (!slug) {
+      showToast("Vui lòng nhập slug hợp lệ.", true);
+      slugInput.focus();
+      return;
+    }
+
+    const oldHtml = saveBtn.innerHTML;
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Đang lưu...';
+
+    const url = state.editingSlug ? API.updateRole(state.editingSlug) : API.createRole;
+    const payload = { slug, name, permissions };
+    const data = await apiPost(url, payload);
+
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = oldHtml;
+
+    if (data.success) {
+      showToast(data.message || "Đã lưu vai trò.");
+      window.setTimeout(() => window.location.reload(), 800);
+    } else {
+      showToast(data.message || "Không thể lưu vai trò.", true);
+    }
+  }
+
+  async function deleteRole(button) {
+    const slug = button.dataset.slug || "";
+    const name = button.dataset.name || slug;
+
+    if (!slug) return;
+
+    const ok = window.confirm(
+      'Bạn có chắc muốn xóa vai trò "' + name + '"?\n\nNhân sự đang dùng vai trò này có thể bị mất quyền.'
+    );
+
+    if (!ok) return;
+
+    const data = await apiPost(API.deleteRole(slug), {});
+
+    if (data.success) {
+      showToast(data.message || "Đã xóa vai trò.");
+      window.setTimeout(() => window.location.reload(), 800);
+    } else {
+      showToast(data.message || "Không thể xóa vai trò.", true);
+    }
+  }
+
+  function openAssignNew() {
+    $("#modal-assign-title").textContent = "Gán quyền cho nhân sự";
+    $("#assign-user-id").value = "";
+    $("#assign-user-email").value = "";
+    $("#assign-user-email").disabled = false;
+    $("#assign-user-name").textContent = "Nhân sự mới";
+    $("#assign-current-role").textContent = "Chưa có";
+    $("#assign-role-slug").value = "";
+
+    $("#assign-email-help").hidden = false;
+
+    openModal("modal-assign");
+  }
+
+  function openAssignExisting(button) {
+    const userId = button.dataset.userId || "";
+    const email = button.dataset.email || "";
+    const name = button.dataset.name || email;
+    const currentSlug = button.dataset.currentSlug || "";
+
+    $("#modal-assign-title").textContent = "Đổi quyền nhân sự";
+    $("#assign-user-id").value = userId;
+    $("#assign-user-email").value = email;
+    $("#assign-user-email").disabled = true;
+    $("#assign-user-name").textContent = name;
+    $("#assign-current-role").textContent = currentSlug || "Chưa gán";
+    $("#assign-role-slug").value = currentSlug;
+
+    $("#assign-email-help").hidden = true;
+
+    openModal("modal-assign");
+  }
+
+  async function submitAssign() {
+    const saveBtn = $("#btn-save-assign");
+    const userId = $("#assign-user-id").value.trim();
+    const email = $("#assign-user-email").value.trim();
+    const roleSlug = $("#assign-role-slug").value.trim();
+
+    if (!email && !userId) {
+      showToast("Vui lòng nhập email nhân sự.", true);
+      $("#assign-user-email").focus();
+      return;
+    }
+
+    if (!roleSlug) {
+      showToast("Vui lòng chọn vai trò cần gán.", true);
+      $("#assign-role-slug").focus();
+      return;
+    }
+
+    const oldHtml = saveBtn.innerHTML;
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Đang gán...';
+
+    const data = await apiPost(API.assignRole, {
+      user_id: userId,
+      email: email,
+      role_slug: roleSlug
+    });
+
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = oldHtml;
+
+    if (data.success) {
+      showToast(data.message || "Đã gán quyền.");
+      window.setTimeout(() => window.location.reload(), 800);
+    } else {
+      showToast(data.message || "Không thể gán quyền.", true);
+    }
+  }
+
+  async function revokeUser(button) {
+    const userId = button.dataset.userId || "";
+    const email = button.dataset.email || "";
+
+    if (!userId) return;
+
+    const ok = window.confirm(
+      'Bạn có chắc muốn thu hồi toàn bộ quyền quản trị của "' + email + '"?\n\nTài khoản sẽ trở về khách hàng thường.'
+    );
+
+    if (!ok) return;
+
+    const data = await apiPost(API.revokeRole, { user_id: userId });
+
+    if (data.success) {
+      showToast(data.message || "Đã thu hồi quyền.");
+      window.setTimeout(() => window.location.reload(), 800);
+    } else {
+      showToast(data.message || "Không thể thu hồi quyền.", true);
+    }
+  }
+
+  function filterRoles() {
+    const keyword = ($("#roleSearch")?.value || "").trim().toLowerCase();
+
+    $$("[data-role-card]").forEach((card) => {
+      const haystack = card.dataset.search || "";
+      card.style.display = haystack.includes(keyword) ? "" : "none";
+    });
+  }
+
+  function bindEvents() {
+    document.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-action]");
+      if (!button) return;
+
+      const action = button.dataset.action;
+
+      if (action === "open-create-role") openCreateRole();
+      if (action === "open-edit-role") openEditRole(button);
+      if (action === "delete-role") deleteRole(button);
+      if (action === "open-assign-new") openAssignNew();
+      if (action === "open-assign-existing") openAssignExisting(button);
+      if (action === "revoke-user") revokeUser(button);
+      if (action === "close-role") closeModal("modal-role");
+      if (action === "close-assign") closeModal("modal-assign");
+      if (action === "submit-role") submitRole();
+      if (action === "submit-assign") submitAssign();
+      if (action === "check-all-permissions") setAllPermissions(true);
+      if (action === "uncheck-all-permissions") setAllPermissions(false);
+      if (action === "scroll-guide") {
+        $("#rbacGuide")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      closeModal("modal-role");
+      closeModal("modal-assign");
+    });
+
+    $("#roleSearch")?.addEventListener("input", filterRoles);
+
+    $("#role-form-name")?.addEventListener("input", () => {
+      if (state.editingSlug) return;
+      const slugInput = $("#role-form-slug");
+      if (!slugInput.dataset.touched) {
+        slugInput.value = slugify($("#role-form-name").value);
+      }
+    });
+
+    $("#role-form-slug")?.addEventListener("input", () => {
+      $("#role-form-slug").dataset.touched = "1";
+      $("#role-form-slug").value = slugify($("#role-form-slug").value);
+    });
+
+  $$(".rbac-modal").forEach((modal) => {
+    modal.addEventListener("click", (event) => {
+        if (event.target !== modal) return;
+
+        modal.hidden = true;
+        unlockModalPage();
+    });
+    });
+  }
+
+document.addEventListener("DOMContentLoaded", function () {
+  liftFloatingUiToBody();
+  bindEvents();
+});
+})();
+</script>
+{% endblock %}

@@ -12,10 +12,14 @@
 #}
 
 {% set path = request.path %}
-{% set shop_name = 'GUAMAISON' %}
+{% set navigation_config = site_navigation|default({}, true) %}
+{% set navbar_config = navigation_config.get('navbar', {}) %}
+{% set product_menu_config = navigation_config.get('product_menu', {}) %}
+{% set navbar_items = navbar_config.get('items', []) %}
+{% set shop_name = navbar_config.get('brand_label')|default('GUAMAISON', true) %}
 {% set is_homepage = path == '/' or path == '/home' %}
-{% set is_voucher_page = path.startswith('/vouchers') or path.startswith('/voucher') or path.startswith('/coupons') %}
 {% set categories_nav = global_categories|default([], true) %}
+{% set product_categories_nav = menu_product_categories|default(categories_nav, true) %}
 {% set collections_nav = global_collections|default([], true) %}
 
 {% set is_logged_in = current_user is defined and current_user and current_user.id %}
@@ -187,7 +191,7 @@
 <nav
   id="mainNav"
   aria-label="Điều hướng chính"
-  data-transparent="{{ 'true' if is_homepage else 'false' }}"
+  data-transparent="{{ 'true' if is_homepage and navbar_config.get('transparent_home', true) else 'false' }}"
   class="mm-nav fixed left-0 top-0 z-[120] w-full"
 >
   {# DESKTOP #}
@@ -195,141 +199,85 @@
 
     {# Left menu #}
     <div class="flex h-full flex-1 items-center gap-8 text-[11px] font-black uppercase tracking-[.2em]">
-      <div class="mm-mega-trigger flex h-full items-center">
-        <a
-          href="/shop"
-          data-nav
-          class="mm-nav-link {{ 'is-active' if path.startswith('/shop') else '' }}"
-        >
-          Shop
-        </a>
+      {% for item in navbar_items if item.get('enabled', true) %}
+        {% set item_url = item.get('url', '#') %}
+        {% set item_path = item_url.split('?')[0] %}
+        {% set item_active = item_path != '/' and item_path != '#' and path.startswith(item_path) %}
+        {% set target_attrs = 'target="_blank" rel="noopener"' if item.get('new_tab') else '' %}
 
-        <div class="mm-mega absolute left-0 top-[76px] z-[125] w-full border-y border-[#eadfd4] bg-[#fffaf5] shadow-[0_24px_70px_-55px_rgba(36,18,7,.6)]">
-          <div class="mx-auto grid max-w-[1360px] grid-cols-4">
-            <div class="border-r border-[#eadfd4] px-8 py-7">
-              <p class="mb-5 text-[10px] font-black uppercase tracking-[.26em] text-[#b98b62]">
-                Shop
-              </p>
-
-              <a
-                href="/shop?sort=new"
-                data-nav
-                class="block text-[12px] font-black uppercase tracking-[.18em] text-[#241207] transition-colors hover:text-[#b98b62]"
-              >
-                New Arrival
-              </a>
-
-              <a
-                href="/shop"
-                data-nav
-                class="mt-4 block text-[12px] font-black uppercase tracking-[.18em] text-[#75543f] transition-colors hover:text-[#241207]"
-              >
-                All Products
-              </a>
-            </div>
-
-            {% if categories_nav %}
-              {% for group in [categories_nav[:4], categories_nav[4:8], categories_nav[8:12]] %}
-                <div class="border-r border-[#eadfd4] px-8 py-7 last:border-r-0">
-                  <div class="flex flex-col gap-4">
-                    {% for cat in group %}
-                      <a
-                        href="/shop?category={{ cat.slug }}"
-                        data-nav
-                        class="text-[12px] font-black uppercase tracking-[.17em] text-[#75543f] transition-colors hover:text-[#241207]"
-                      >
-                        {{ cat.name }}
-                      </a>
-                    {% endfor %}
+        {% if item.get('children') and item.get('kind') in ['mega', 'link'] %}
+          <div class="mm-mega-trigger flex h-full items-center">
+            <a href="{{ item_url }}" data-nav {{ target_attrs|safe }} class="mm-nav-link {{ 'is-active' if item_active else '' }}">{{ item.get('label') }}</a>
+            <div class="mm-mega absolute left-0 top-[76px] z-[125] w-full border-y border-[#eadfd4] bg-[#fffaf5] shadow-[0_24px_70px_-55px_rgba(36,18,7,.6)]">
+              <div class="mx-auto grid max-w-[1360px] grid-cols-4">
+                {% for child in item.get('children', [])[:4] if child.get('enabled', true) %}
+                  <div class="min-h-[150px] border-r border-[#eadfd4] px-8 py-7 last:border-r-0">
+                    <a href="{{ child.get('url', '#') }}" data-nav {% if child.get('new_tab') %}target="_blank" rel="noopener"{% endif %} class="mb-5 block text-[12px] font-black uppercase tracking-[.18em] text-[#241207] transition-colors hover:text-[#b98b62]">{{ child.get('label') }}</a>
+                    {% if child.get('children') %}
+                      <div class="flex flex-col gap-4">
+                        {% for sub in child.get('children', []) if sub.get('enabled', true) %}
+                          <a href="{{ sub.get('url', '#') }}" data-nav {% if sub.get('new_tab') %}target="_blank" rel="noopener"{% endif %} class="text-[11px] font-black uppercase tracking-[.15em] text-[#75543f] transition-colors hover:text-[#241207]">{{ sub.get('label') }}</a>
+                        {% endfor %}
+                      </div>
+                    {% endif %}
                   </div>
-                </div>
-              {% endfor %}
-            {% else %}
-              <div class="col-span-3 px-8 py-7">
-                <p class="text-xs font-semibold text-[#8a6a52]">
-                  Chưa có danh mục hiển thị.
-                </p>
+                {% endfor %}
               </div>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-
-      <div class="mm-mega-trigger flex h-full items-center">
-        <a
-          href="/collections"
-          data-nav
-          class="mm-nav-link {{ 'is-active' if path.startswith('/collections') else '' }}"
-        >
-          Collection
-        </a>
-
-        <div class="mm-mega absolute left-0 top-[76px] z-[125] w-full border-y border-[#eadfd4] bg-[#fffaf5] shadow-[0_24px_70px_-55px_rgba(36,18,7,.6)]">
-          <div class="mx-auto grid max-w-[1360px] grid-cols-4">
-            <div class="border-r border-[#eadfd4] px-8 py-7">
-              <a
-                href="/collections"
-                data-nav
-                class="mb-3 block text-[12px] font-black uppercase tracking-[.18em] text-[#241207] transition-colors hover:text-[#b98b62]"
-              >
-                View All
-              </a>
-
-              <p class="max-w-[220px] text-xs font-semibold leading-6 normal-case tracking-normal text-[#8a6a52]">
-                Khám phá lookbook và chiến dịch mới nhất từ GUAMAISON.
-              </p>
             </div>
-
-            {% if collections_nav %}
-              {% for group in [collections_nav[:3], collections_nav[3:6], collections_nav[6:9]] %}
-                <div class="border-r border-[#eadfd4] px-8 py-7 last:border-r-0">
-                  <div class="flex flex-col gap-4">
-                    {% for coll in group %}
-                      <a
-                        href="/shop?collection={{ coll.slug }}"
-                        data-nav
-                        class="text-[12px] font-black uppercase tracking-[.17em] text-[#75543f] transition-colors hover:text-[#241207]"
-                      >
-                        {{ coll.name }}
-                      </a>
-                    {% endfor %}
-                  </div>
-                </div>
-              {% endfor %}
-            {% else %}
-              <div class="col-span-3 px-8 py-7">
-                <p class="text-xs font-semibold text-[#8a6a52]">
-                  Chưa có bộ sưu tập hiển thị.
-                </p>
-              </div>
-            {% endif %}
           </div>
-        </div>
-      </div>
-      
-     <a
-        href="/vouchers"
-        data-nav
-        class="mm-nav-link {{ 'is-active' if is_voucher_page else '' }}"
-      >
-        Voucher
-      </a>
-
-      <a
-        href="/contact"
-        data-nav
-        class="mm-nav-link {{ 'is-active' if path.startswith('/contact') else '' }}"
-      >
-        Contact
-      </a>
-
-      <a
-        href="/about"
-        data-nav
-        class="mm-nav-link {{ 'is-active' if path.startswith('/about') else '' }}"
-      >
-        About
-      </a>
+        {% elif item.get('kind') == 'products' %}
+          <div class="mm-mega-trigger flex h-full items-center">
+            <a href="{{ item_url }}" data-nav {{ target_attrs|safe }} class="mm-nav-link {{ 'is-active' if item_active else '' }}">{{ item.get('label') }}</a>
+            <div class="mm-mega absolute left-0 top-[76px] z-[125] w-full border-y border-[#eadfd4] bg-[#fffaf5] shadow-[0_24px_70px_-55px_rgba(36,18,7,.6)]">
+              <div class="mx-auto grid max-w-[1360px] grid-cols-4">
+                <div class="border-r border-[#eadfd4] px-8 py-7">
+                  <p class="mb-5 text-[10px] font-black uppercase tracking-[.26em] text-[#b98b62]">{{ product_menu_config.get('heading', item.get('label')) }}</p>
+                  {% if product_menu_config.get('show_new_arrivals', true) %}
+                    <a href="{{ product_menu_config.get('new_arrivals_url', '/shop?sort=new') }}" data-nav class="block text-[12px] font-black uppercase tracking-[.18em] text-[#241207] transition-colors hover:text-[#b98b62]">{{ product_menu_config.get('new_arrivals_label', 'New Arrival') }}</a>
+                  {% endif %}
+                  {% if product_menu_config.get('show_all_products', true) %}
+                    <a href="{{ product_menu_config.get('all_products_url', '/shop') }}" data-nav class="mt-4 block text-[12px] font-black uppercase tracking-[.18em] text-[#75543f] transition-colors hover:text-[#241207]">{{ product_menu_config.get('all_products_label', 'All Products') }}</a>
+                  {% endif %}
+                </div>
+                {% if product_categories_nav %}
+                  {% for group in [product_categories_nav[:8], product_categories_nav[8:16], product_categories_nav[16:24]] %}
+                    <div class="border-r border-[#eadfd4] px-8 py-7 last:border-r-0">
+                      <div class="flex flex-col gap-4">
+                        {% for cat in group %}<a href="/shop?category={{ cat.slug }}" data-nav class="text-[12px] font-black uppercase tracking-[.17em] text-[#75543f] transition-colors hover:text-[#241207]">{{ cat.name }}</a>{% endfor %}
+                      </div>
+                    </div>
+                  {% endfor %}
+                {% else %}
+                  <div class="col-span-3 px-8 py-7"><p class="text-xs font-semibold text-[#8a6a52]">Chưa có danh mục hiển thị.</p></div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        {% elif item.get('kind') == 'collections' %}
+          <div class="mm-mega-trigger flex h-full items-center">
+            <a href="{{ item_url }}" data-nav {{ target_attrs|safe }} class="mm-nav-link {{ 'is-active' if item_active else '' }}">{{ item.get('label') }}</a>
+            <div class="mm-mega absolute left-0 top-[76px] z-[125] w-full border-y border-[#eadfd4] bg-[#fffaf5] shadow-[0_24px_70px_-55px_rgba(36,18,7,.6)]">
+              <div class="mx-auto grid max-w-[1360px] grid-cols-4">
+                <div class="border-r border-[#eadfd4] px-8 py-7">
+                  <a href="/collections" data-nav class="mb-3 block text-[12px] font-black uppercase tracking-[.18em] text-[#241207] transition-colors hover:text-[#b98b62]">View All</a>
+                  <p class="max-w-[220px] text-xs font-semibold leading-6 normal-case tracking-normal text-[#8a6a52]">Khám phá lookbook và chiến dịch mới nhất từ {{ shop_name }}.</p>
+                </div>
+                {% if collections_nav %}
+                  {% for group in [collections_nav[:3], collections_nav[3:6], collections_nav[6:9]] %}
+                    <div class="border-r border-[#eadfd4] px-8 py-7 last:border-r-0"><div class="flex flex-col gap-4">
+                      {% for coll in group %}<a href="/collections/{{ coll.slug }}" data-nav class="text-[12px] font-black uppercase tracking-[.17em] text-[#75543f] transition-colors hover:text-[#241207]">{{ coll.name }}</a>{% endfor %}
+                    </div></div>
+                  {% endfor %}
+                {% else %}
+                  <div class="col-span-3 px-8 py-7"><p class="text-xs font-semibold text-[#8a6a52]">Chưa có bộ sưu tập hiển thị.</p></div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        {% else %}
+          <a href="{{ item_url }}" data-nav {{ target_attrs|safe }} class="mm-nav-link {{ 'is-active' if item_active else '' }}">{{ item.get('label') }}</a>
+        {% endif %}
+      {% endfor %}
     </div>
 
     {# Center logo #}
@@ -511,53 +459,49 @@
 
   <div class="min-h-0 flex-1 overflow-y-auto px-5 py-6 no-scrollbar">
     <nav class="space-y-5">
-      <div>
-        <a href="/shop" data-nav class="block text-sm font-black uppercase tracking-[.18em] {{ 'text-[#241207]' if path.startswith('/shop') else 'text-[#75543f]' }}">
-          Shop
-        </a>
-
-        {% if categories_nav %}
-          <div class="mt-4 space-y-3 border-l border-[#eadfd4] pl-4">
-            {% for cat in categories_nav[:8] %}
-              <a href="/shop?category={{ cat.slug }}" data-nav class="block text-[11px] font-black uppercase tracking-[.16em] text-[#8a6a52] transition-colors hover:text-[#241207]">
-                {{ cat.name }}
-              </a>
-            {% endfor %}
+      {% for item in navbar_items if item.get('enabled', true) %}
+        {% set item_url = item.get('url', '#') %}
+        {% set item_path = item_url.split('?')[0] %}
+        {% set item_active = item_path != '/' and item_path != '#' and path.startswith(item_path) %}
+        {% set target_attrs = 'target="_blank" rel="noopener"' if item.get('new_tab') else '' %}
+        {% if item.get('children') and item.get('kind') in ['mega', 'link'] %}
+          <div>
+            <a href="{{ item_url }}" data-nav {{ target_attrs|safe }} class="block text-sm font-black uppercase tracking-[.18em] {{ 'text-[#241207]' if item_active else 'text-[#75543f]' }}">{{ item.get('label') }}</a>
+            <div class="mt-4 space-y-4 border-l border-[#eadfd4] pl-4">
+              {% for child in item.get('children', []) if child.get('enabled', true) %}
+                <div>
+                  <a href="{{ child.get('url', '#') }}" data-nav {% if child.get('new_tab') %}target="_blank" rel="noopener"{% endif %} class="block text-[11px] font-black uppercase tracking-[.16em] text-[#241207]">{{ child.get('label') }}</a>
+                  {% if child.get('children') %}
+                    <div class="mt-3 space-y-2 border-l border-[#eadfd4] pl-3">
+                      {% for sub in child.get('children', []) if sub.get('enabled', true) %}<a href="{{ sub.get('url', '#') }}" data-nav class="block text-[10px] font-black uppercase tracking-[.14em] text-[#8a6a52]">{{ sub.get('label') }}</a>{% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
           </div>
+        {% elif item.get('kind') == 'products' %}
+          <div>
+            <a href="{{ item_url }}" data-nav {{ target_attrs|safe }} class="block text-sm font-black uppercase tracking-[.18em] {{ 'text-[#241207]' if item_active else 'text-[#75543f]' }}">{{ item.get('label') }}</a>
+            {% if product_categories_nav %}
+              <div class="mt-4 space-y-3 border-l border-[#eadfd4] pl-4">
+                {% if product_menu_config.get('show_new_arrivals', true) %}<a href="{{ product_menu_config.get('new_arrivals_url', '/shop?sort=new') }}" data-nav class="block text-[11px] font-black uppercase tracking-[.16em] text-[#241207]">{{ product_menu_config.get('new_arrivals_label', 'New Arrival') }}</a>{% endif %}
+                {% for cat in product_categories_nav[:12] %}<a href="/shop?category={{ cat.slug }}" data-nav class="block text-[11px] font-black uppercase tracking-[.16em] text-[#8a6a52] transition-colors hover:text-[#241207]">{{ cat.name }}</a>{% endfor %}
+              </div>
+            {% endif %}
+          </div>
+        {% elif item.get('kind') == 'collections' %}
+          <div>
+            <a href="{{ item_url }}" data-nav {{ target_attrs|safe }} class="block text-sm font-black uppercase tracking-[.18em] {{ 'text-[#241207]' if item_active else 'text-[#75543f]' }}">{{ item.get('label') }}</a>
+            <div class="mt-4 space-y-3 border-l border-[#eadfd4] pl-4">
+              <a href="/collections" data-nav class="block text-[11px] font-black uppercase tracking-[.16em] text-[#241207]">View All</a>
+              {% for coll in collections_nav[:6] %}<a href="/collections/{{ coll.slug }}" data-nav class="block text-[11px] font-black uppercase tracking-[.16em] text-[#8a6a52] transition-colors hover:text-[#241207]">{{ coll.name }}</a>{% endfor %}
+            </div>
+          </div>
+        {% else %}
+          <a href="{{ item_url }}" data-nav {{ target_attrs|safe }} class="block text-sm font-black uppercase tracking-[.18em] {{ 'text-[#241207]' if item_active else 'text-[#75543f]' }}">{{ item.get('label') }}</a>
         {% endif %}
-      </div>
-
-      <div>
-        <a href="/collections" data-nav class="block text-sm font-black uppercase tracking-[.18em] {{ 'text-[#241207]' if path.startswith('/collections') else 'text-[#75543f]' }}">
-          Collection
-        </a>
-
-        <div class="mt-4 space-y-3 border-l border-[#eadfd4] pl-4">
-          <a href="/collections" data-nav class="block text-[11px] font-black uppercase tracking-[.16em] text-[#241207]">
-            View All
-          </a>
-
-          {% if collections_nav %}
-            {% for coll in collections_nav[:6] %}
-              <a href="/shop?collection={{ coll.slug }}" data-nav class="block text-[11px] font-black uppercase tracking-[.16em] text-[#8a6a52] transition-colors hover:text-[#241207]">
-                {{ coll.name }}
-              </a>
-            {% endfor %}
-          {% endif %}
-        </div>
-      </div>
-
-      <a href="/vouchers" data-nav class="block text-sm font-black uppercase tracking-[.18em] {{ 'text-[#241207]' if is_voucher_page else 'text-[#75543f]' }}">
-       Voucher
-      </a>
-
-      <a href="/contact" data-nav class="block text-sm font-black uppercase tracking-[.18em] {{ 'text-[#241207]' if path.startswith('/contact') else 'text-[#75543f]' }}">
-        Contact
-      </a>
-
-      <a href="/about" data-nav class="block text-sm font-black uppercase tracking-[.18em] {{ 'text-[#241207]' if path.startswith('/about') else 'text-[#75543f]' }}">
-        About
-      </a>
+      {% endfor %}
     </nav>
   </div>
 

@@ -1,432 +1,191 @@
 {% extends "admin/admin_base.html" %}
-{% block title %}{{ 'Chỉnh sửa' if cat else 'Thêm mới' }} Bộ sưu tập | GUA Admin{% endblock %}
+{% block title %}{{ 'Chỉnh sửa' if cat else 'Tạo' }} nhóm sản phẩm | GUAMAISON Admin{% endblock %}
+
+{% set group = group_config|default({}, true) %}
+{% set selection_mode = group.get('selection_mode', 'manual') %}
+{% set current_media = cat.video_url if cat and cat.video_url else (cat.image_url if cat and cat.image_url else '') %}
+{% set is_video = cat and cat.video_url %}
 
 {% block extra_head %}
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
+<script>window.CKEDITOR_BASEPATH="https://cdn.ckeditor.com/4.22.1/standard/";window.CKEDITOR_CONFIG_VERSION_CHECK_DISABLED=true;</script>
+<script src="https://cdn.ckeditor.com/4.22.1/standard/ckeditor.js"></script>
 <style>
-    body {
-        font-family: 'Plus Jakarta Sans', sans-serif;
-        background-color: #f8fafc;
-    }
-
-    .gm-card {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 1.75rem;
-        box-shadow: 0 8px 30px -18px rgba(15, 23, 42, .25);
-    }
-
-    .gm-input {
-        width: 100%;
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 1rem;
-        padding: .85rem 1rem;
-        font-size: .875rem;
-        color: #0f172a;
-        transition: all .18s ease;
-    }
-
-    .gm-input:focus {
-        outline: none;
-        background: #ffffff;
-        border-color: #0f172a;
-        box-shadow: 0 0 0 4px rgba(15, 23, 42, .06);
-    }
-
-    .gm-label {
-        display: block;
-        margin-bottom: .5rem;
-        font-size: .68rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: .12em;
-        color: #64748b;
-    }
-
-    .gm-upload {
-        border: 2px dashed #cbd5e1;
-        border-radius: 1.5rem;
-        background: #f8fafc;
-        transition: all .18s ease;
-    }
-
-    .gm-upload:hover {
-        border-color: #0f172a;
-        background: #ffffff;
-    }
-
-    .gm-preview {
-        aspect-ratio: 16 / 10;
-        background: linear-gradient(135deg, #f8fafc, #e2e8f0);
-    }
-
-    .gm-switch-dot::after {
-        content: "";
-        position: absolute;
-        top: 2px;
-        left: 2px;
-        height: 1.25rem;
-        width: 1.25rem;
-        border-radius: 999px;
-        background: #ffffff;
-        border: 1px solid #cbd5e1;
-        transition: transform .18s ease;
-    }
-
-    .peer:checked + .gm-switch-dot::after {
-        transform: translateX(1.25rem);
-    }
+  .pg { --ink:#241207;--muted:#8a6a52;--line:#eadfd4;--paper:#fffaf5;--brand:#5a2f1f; }
+  .pg-card{border:1px solid var(--line);border-radius:22px;background:#fff;box-shadow:0 18px 55px -48px rgba(36,18,7,.75)}
+  .pg-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+  .pg-label{display:block;margin:0 0 7px;color:var(--ink);font-size:10px;font-weight:950;letter-spacing:.09em;text-transform:uppercase}
+  .pg-input,.pg-select,.pg-textarea{width:100%;border:1px solid var(--line);border-radius:14px;background:#fff;color:var(--ink);padding:11px 12px;font-size:13px;font-weight:750;outline:0}
+  .pg-input:focus,.pg-select:focus,.pg-textarea:focus{border-color:#b98b62;box-shadow:0 0 0 4px rgba(185,139,98,.12)}
+  .pg-btn{display:inline-flex;min-height:42px;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);border-radius:13px;padding:0 14px;color:var(--ink);background:#fff;font-size:11px;font-weight:950}
+  .pg-primary{border-color:var(--brand);color:#fff;background:var(--brand)}
+  .pg-mode{display:flex;align-items:flex-start;gap:10px;border:1px solid var(--line);border-radius:16px;padding:14px;background:#fff;cursor:pointer}
+  .pg-mode:has(input:checked){border-color:#b98b62;background:var(--paper);box-shadow:0 0 0 3px rgba(185,139,98,.1)}
+  .pg-product{display:flex;align-items:center;gap:11px;border:1px solid var(--line);border-radius:14px;padding:9px;background:#fff;cursor:pointer}
+  .pg-rule{display:grid;grid-template-columns:minmax(150px,.9fr) minmax(150px,.8fr) minmax(180px,1.2fr) 38px;gap:8px;align-items:center}
+  .pg-upload{border:2px dashed #d8c6b6;border-radius:18px;background:var(--paper);cursor:pointer}
+  .pg-preview{aspect-ratio:4/3;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:var(--paper)}
+  .cke_notifications_area,.cke_notification{display:none!important}
+  @media(max-width:760px){.pg-rule{grid-template-columns:1fr}.pg-rule-remove{width:100%!important}.pg-head{flex-direction:column}}
 </style>
 {% endblock %}
 
 {% block content %}
-{% set current_media = cat.video_url if cat and cat.video_url else (cat.image_url if cat and cat.image_url else '') %}
-{% set is_video = cat and cat.video_url %}
-
-<div class="max-w-6xl mx-auto px-4 md:px-8 py-10">
-
-    <div class="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-        <div>
-            <p class="text-[10px] font-extrabold uppercase tracking-[0.24em] text-slate-400 mb-2">
-                Campaign / Lookbook
-            </p>
-            <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-950">
-                {{ 'Chỉnh sửa bộ sưu tập' if cat else 'Tạo bộ sưu tập mới' }}
-            </h1>
-            <p class="text-sm text-slate-500 mt-2">
-                Quản lý ảnh, video và trạng thái hiển thị của chiến dịch trên storefront.
-            </p>
-        </div>
-
-        <a href="{{ url_for('admin.collections') }}"
-           class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-white border border-slate-200 text-sm font-bold text-slate-600 hover:text-slate-950 hover:border-slate-950 transition-all">
-            <i class="fa-solid fa-arrow-left text-xs"></i>
-            Quay lại danh sách
-        </a>
+<div class="pg mx-auto max-w-[1500px] space-y-5 px-3 py-6 md:px-6">
+  <header class="rounded-[28px] bg-gradient-to-br from-[#241207] to-[#6e3b26] p-6 text-white md:p-8">
+    <div class="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+      <div>
+        <p class="text-[10px] font-black uppercase tracking-[.24em] text-white/55">Sản phẩm / Nhóm sản phẩm</p>
+        <h1 class="mt-2 text-3xl font-black tracking-[-.04em]">{{ 'Chỉnh sửa nhóm sản phẩm' if cat else 'Tạo nhóm sản phẩm' }}</h1>
+        <p class="mt-3 max-w-2xl text-sm font-semibold leading-6 text-white/70">Nhóm thủ công hoặc tự động theo điều kiện, có URL riêng và có thể đưa thẳng vào menu cửa hàng.</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        {% if cat %}<a class="pg-btn border-white/20 bg-white/10 text-white" href="/collections/{{ cat.slug }}" target="_blank"><i class="fa-regular fa-eye"></i>Xem nhóm</a>{% endif %}
+        <a class="pg-btn border-white/20 bg-white/10 text-white" href="{{ url_for('admin.collections') }}"><i class="fa-solid fa-arrow-left"></i>Danh sách</a>
+      </div>
     </div>
+  </header>
 
-    <form method="POST"
-          enctype="multipart/form-data"
-          id="collectionForm"
-          class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+  <form id="productGroupForm" method="POST" enctype="multipart/form-data" class="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" id="rulesJson" name="rules_json" value="">
 
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <main class="space-y-5">
+      <section class="pg-card p-5 md:p-6">
+        <div class="pg-head"><div><h2 class="text-base font-black text-[#241207]">Thông tin chung</h2><p class="mt-1 text-xs font-semibold text-[#8a6a52]">Tên và nội dung khách hàng nhìn thấy.</p></div><span class="rounded-full bg-[#f4ece5] px-3 py-1 text-[9px] font-black uppercase tracking-widest text-[#75543f]">{{ 'Edit' if cat else 'New' }}</span></div>
+        <div class="mt-5 space-y-5">
+          <div><label class="pg-label" for="name">Tên nhóm sản phẩm *</label><input class="pg-input" id="name" name="name" required maxlength="120" value="{{ cat.name if cat else '' }}" placeholder="Ví dụ: Balloon Curve"></div>
+          <div><label class="pg-label" for="description">Mô tả</label><textarea class="pg-textarea" id="description" name="description" rows="10">{{ cat.description if cat else '' }}</textarea><p class="mt-2 text-[10px] font-bold text-[#9b7b63]">Nội dung dùng cho trang nhóm và mô tả chiến dịch.</p></div>
+        </div>
+      </section>
 
-        <div class="lg:col-span-2 space-y-8">
-
-            <section class="gm-card p-6 md:p-7">
-                <div class="flex items-start justify-between gap-4 pb-5 border-b border-slate-100 mb-6">
-                    <div>
-                        <h2 class="text-base font-extrabold text-slate-950">Thông tin chính</h2>
-                        <p class="text-xs text-slate-500 mt-1">Tên, mô tả và nội dung truyền thông cho bộ sưu tập.</p>
-                    </div>
-
-                    {% if cat %}
-                    <span class="shrink-0 px-3 py-1 rounded-full bg-slate-100 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                        Edit mode
-                    </span>
-                    {% else %}
-                    <span class="shrink-0 px-3 py-1 rounded-full bg-indigo-50 text-[10px] font-bold uppercase tracking-widest text-indigo-600">
-                        New
-                    </span>
-                    {% endif %}
-                </div>
-
-                <div class="space-y-5">
-                    <div>
-                        <label class="gm-label" for="name">Tên bộ sưu tập *</label>
-                        <input id="name"
-                               type="text"
-                               name="name"
-                               value="{{ cat.name if cat else '' }}"
-                               required
-                               maxlength="120"
-                               placeholder="Ví dụ: Summer Lookbook 2026"
-                               class="gm-input font-bold">
-                    </div>
-
-                    <div>
-                        <label class="gm-label" for="description">Mô tả thông điệp</label>
-                        <textarea id="description"
-                                  name="description"
-                                  rows="4"
-                                  maxlength="500"
-                                  placeholder="Mô tả ngắn về tinh thần campaign, chất liệu, mood styling..."
-                                  class="gm-input resize-none">{{ cat.description if cat else '' }}</textarea>
-                        <div class="flex justify-between mt-2 text-[11px] text-slate-400">
-                            <span>Nên giữ ngắn để hiển thị đẹp trên card.</span>
-                            <span id="descCount">0/500</span>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="gm-card p-6 md:p-7">
-                <div class="pb-5 border-b border-slate-100 mb-6">
-                    <h2 class="text-base font-extrabold text-slate-950">Media bộ sưu tập</h2>
-                    <p class="text-xs text-slate-500 mt-1">
-                        Chọn một trong hai cách: dán URL media hoặc upload file từ máy. Nếu chọn file, hệ thống sẽ ưu tiên file upload.
-                    </p>
-                </div>
-
-                <div class="space-y-5">
-
-                    <div>
-                        <label class="gm-label" for="external_url">Dán URL ảnh hoặc video</label>
-                        <input id="external_url"
-                               type="url"
-                               name="external_url"
-                               value="{{ current_media }}"
-                               placeholder="https://.../campaign.webp hoặc https://.../campaign.mp4"
-                               class="gm-input text-xs font-mono">
-                        <p class="text-[11px] text-slate-400 mt-2">
-                            Dùng khi media đã nằm trên Cloudinary, Supabase Storage, iCloud, Google Drive public hoặc CDN.
-                        </p>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 items-stretch">
-                        <div>
-                            <label class="gm-label">Upload từ máy</label>
-
-                            <div id="uploadBox"
-                                 class="gm-upload h-full min-h-[220px] p-6 flex flex-col items-center justify-center text-center cursor-pointer"
-                                 onclick="document.getElementById('collection_media').click()">
-
-                                <input type="file"
-                                       id="collection_media"
-                                       name="collection_media"
-                                       accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"
-                                       class="hidden">
-
-                                <div class="w-14 h-14 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 mb-4 shadow-sm">
-                                    <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
-                                </div>
-
-                                <p class="text-sm font-extrabold text-slate-800">
-                                    Bấm để chọn ảnh/video
-                                </p>
-
-                                <p class="text-xs text-slate-400 mt-2 leading-relaxed">
-                                    JPG, PNG, WEBP, GIF, MP4, WEBM, MOV.
-                                    <br>
-                                    Nên dùng ảnh WebP dưới 1MB để storefront tải nhanh.
-                                </p>
-
-                                <p id="fileName"
-                                   class="mt-4 text-xs font-bold text-indigo-600 break-all">
-                                    Chưa chọn file
-                                </p>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="gm-label">Xem trước media</label>
-
-                            <div class="gm-preview rounded-3xl overflow-hidden border border-slate-200 relative">
-                                <div id="emptyPreview"
-                                     class="{% if current_media %}hidden{% endif %} absolute inset-0 flex flex-col items-center justify-center text-slate-400">
-                                    <i class="fa-regular fa-image text-3xl mb-3"></i>
-                                    <p class="text-xs font-bold uppercase tracking-widest">Chưa có media</p>
-                                </div>
-
-                                <img id="imagePreview"
-                                     src="{% if current_media and not is_video %}{{ current_media }}{% endif %}"
-                                     alt="Collection preview"
-                                     class="{% if not current_media or is_video %}hidden{% endif %} w-full h-full object-cover">
-
-                                <video id="videoPreview"
-                                       src="{% if current_media and is_video %}{{ current_media }}{% endif %}"
-                                       class="{% if not current_media or not is_video %}hidden{% endif %} w-full h-full object-cover"
-                                       muted
-                                       playsinline
-                                       controls></video>
-                            </div>
-
-                            {% if current_media %}
-                            <a href="{{ current_media }}"
-                               target="_blank"
-                               class="inline-flex items-center gap-2 mt-3 text-xs font-bold text-slate-500 hover:text-slate-950 transition-colors">
-                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                                Mở media hiện tại
-                            </a>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </section>
+      <section class="pg-card p-5 md:p-6">
+        <div class="pg-head"><div><h2 class="text-base font-black text-[#241207]">Cách chọn sản phẩm</h2><p class="mt-1 text-xs font-semibold text-[#8a6a52]">Giống Haravan: chọn tay hoặc tự cập nhật theo điều kiện.</p></div><span id="selectedCountBadge" class="rounded-full bg-[#241207] px-3 py-1 text-[10px] font-black text-white">0 sản phẩm</span></div>
+        <div class="mt-5 grid gap-3 md:grid-cols-2">
+          <label class="pg-mode"><input type="radio" name="selection_mode" value="manual" class="mt-1 accent-[#5a2f1f]" {% if selection_mode != 'automatic' %}checked{% endif %}><span><strong class="block text-sm font-black text-[#241207]">Tự chọn sản phẩm</strong><small class="mt-1 block text-[11px] font-semibold leading-5 text-[#8a6a52]">Chủ shop kiểm soát chính xác từng sản phẩm.</small></span></label>
+          <label class="pg-mode"><input type="radio" name="selection_mode" value="automatic" class="mt-1 accent-[#5a2f1f]" {% if selection_mode == 'automatic' %}checked{% endif %}><span><strong class="block text-sm font-black text-[#241207]">Tự động theo điều kiện</strong><small class="mt-1 block text-[11px] font-semibold leading-5 text-[#8a6a52]">Tự thêm/gỡ sản phẩm mỗi khi sản phẩm được lưu.</small></span></label>
         </div>
 
-        <aside class="space-y-6">
+        <div id="manualPanel" class="mt-5">
+          <div class="flex flex-col gap-3 md:flex-row">
+            <div class="relative flex-1"><i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-xs text-[#b7a191]"></i><input id="groupProductSearch" class="pg-input !pl-10" type="search" placeholder="Tìm sản phẩm theo tên hoặc slug..."></div>
+            <button id="selectVisibleProducts" type="button" class="pg-btn">Chọn kết quả</button><button id="clearVisibleProducts" type="button" class="pg-btn">Bỏ chọn</button>
+          </div>
+          <div id="groupProductList" class="mt-4 grid max-h-[520px] grid-cols-1 gap-2 overflow-y-auto pr-1 md:grid-cols-2">
+            {% for product in collection_products_catalog|default([], true) %}
+            <label class="pg-product group-product-item" data-product-name="{{ (product.name ~ ' ' ~ product.slug)|lower }}">
+              <input type="checkbox" name="product_ids[]" value="{{ product.id }}" class="h-4 w-4 shrink-0 accent-[#5a2f1f]" {% if product.selected_in_group %}checked{% endif %}>
+              <span class="h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-[#f4ece5]">{% if product.thumbnail_url %}<img src="{{ product.thumbnail_url }}" alt="" class="h-full w-full object-cover" loading="lazy">{% endif %}</span>
+              <span class="min-w-0"><strong class="block truncate text-xs font-black text-[#241207]">{{ product.name }}</strong><small class="mt-1 block truncate font-mono text-[10px] text-[#9b7b63]">{{ product.slug }}</small></span>
+            </label>
+            {% else %}<div class="md:col-span-2 rounded-2xl border border-dashed border-[#d8c6b6] bg-[#fffaf5] p-8 text-center text-xs font-bold text-[#8a6a52]">Chưa có sản phẩm để chọn.</div>{% endfor %}
+          </div>
+        </div>
 
-            <section class="gm-card p-6 sticky top-6">
-                <h2 class="text-sm font-extrabold uppercase tracking-widest text-slate-950 mb-5">
-                    Cấu hình hiển thị
-                </h2>
+        <div id="automaticPanel" class="mt-5 hidden space-y-4">
+          <div class="flex flex-col gap-3 rounded-2xl border border-[#eadfd4] bg-[#fffaf5] p-4 md:flex-row md:items-center md:justify-between">
+            <p class="text-xs font-bold text-[#75543f]">Sản phẩm phải phù hợp với</p>
+            <div class="flex gap-4"><label class="text-xs font-black text-[#241207]"><input type="radio" name="match_mode" value="all" class="mr-2 accent-[#5a2f1f]" {% if group.get('match_mode', 'all') != 'any' %}checked{% endif %}>Tất cả điều kiện</label><label class="text-xs font-black text-[#241207]"><input type="radio" name="match_mode" value="any" class="mr-2 accent-[#5a2f1f]" {% if group.get('match_mode') == 'any' %}checked{% endif %}>Bất kỳ điều kiện</label></div>
+          </div>
+          <div id="ruleList" class="space-y-2"></div>
+          <button id="addRuleBtn" type="button" class="pg-btn pg-primary"><i class="fa-solid fa-plus"></i>Thêm điều kiện</button>
+          <p class="text-[11px] font-semibold leading-5 text-[#8a6a52]">Hỗ trợ tên, SKU, barcode, thương hiệu, giới tính, tag, giá, tồn kho, trạng thái và danh mục. Tối đa 12 điều kiện.</p>
+        </div>
+      </section>
 
-                <div class="space-y-4">
+      <section class="pg-card p-5 md:p-6">
+        <div class="pg-head"><div><h2 class="text-base font-black text-[#241207]">Tối ưu SEO</h2><p class="mt-1 text-xs font-semibold text-[#8a6a52]">URL nhóm sản phẩm: /collections/&lt;slug&gt;</p></div></div>
+        <div class="mt-5 grid gap-4 md:grid-cols-2">
+          <div class="md:col-span-2"><label class="pg-label" for="slug">Đường dẫn</label><div class="flex items-center rounded-[14px] border border-[#eadfd4] bg-[#fffaf5] pl-3"><span class="shrink-0 text-[11px] font-bold text-[#9b7b63]">/collections/</span><input class="min-w-0 flex-1 border-0 bg-transparent p-3 text-sm font-black outline-none" id="slug" name="slug" maxlength="120" value="{{ cat.slug if cat else '' }}" placeholder="balloon-curve"></div></div>
+          <div><label class="pg-label" for="metaTitle">Tiêu đề SEO</label><input class="pg-input" id="metaTitle" name="meta_title" maxlength="160" value="{{ cat.meta_title if cat else '' }}"><p id="metaTitleCount" class="mt-1 text-right text-[10px] font-bold text-[#9b7b63]"></p></div>
+          <div><label class="pg-label" for="metaDescription">Mô tả SEO</label><textarea class="pg-textarea min-h-[94px]" id="metaDescription" name="meta_description" maxlength="320">{{ cat.meta_description if cat else '' }}</textarea><p id="metaDescriptionCount" class="mt-1 text-right text-[10px] font-bold text-[#9b7b63]"></p></div>
+          <div class="md:col-span-2 rounded-2xl border border-[#eadfd4] bg-[#fffaf5] p-4"><p id="seoPreviewTitle" class="text-base font-bold text-[#1a0dab]">{{ cat.meta_title or cat.name if cat else 'Tên nhóm sản phẩm' }}</p><p id="seoPreviewUrl" class="mt-1 text-xs text-emerald-700">/collections/{{ cat.slug if cat else 'duong-dan' }}</p><p id="seoPreviewDescription" class="mt-1 line-clamp-2 text-xs leading-5 text-[#5f6368]">{{ cat.meta_description if cat else 'Mô tả ngắn giúp khách hàng hiểu nội dung nhóm sản phẩm.' }}</p></div>
+        </div>
+      </section>
+    </main>
 
-                    <label class="flex items-center justify-between gap-4 cursor-pointer p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                        <div>
-                            <p class="text-sm font-extrabold text-slate-800">Kích hoạt chiến dịch</p>
-                            <p class="text-[11px] text-slate-400 mt-1">Tắt sẽ ẩn khỏi storefront.</p>
-                        </div>
+    <aside class="space-y-5 xl:sticky xl:top-24 xl:self-start">
+      <section class="pg-card p-5">
+        <div class="pg-head"><div><h2 class="text-sm font-black text-[#241207]">Hiển thị</h2><p class="mt-1 text-[11px] font-semibold text-[#8a6a52]">Kênh bán hàng Website.</p></div></div>
+        <label class="mt-4 flex cursor-pointer items-center justify-between rounded-2xl bg-[#fffaf5] p-4"><span class="text-sm font-black text-[#241207]"><i class="fa-solid fa-globe mr-2 text-[#b98b62]"></i>Website</span><input type="checkbox" name="is_active" class="h-5 w-5 accent-[#5a2f1f]" {% if not cat or cat.is_active %}checked{% endif %}></label>
+        <label class="mt-3 flex cursor-pointer items-center justify-between rounded-2xl bg-amber-50 p-4"><span><strong class="block text-sm font-black text-amber-900">Trang chủ</strong><small class="mt-1 block text-[10px] font-bold text-amber-700">Đưa vào khu vực campaign</small></span><input type="checkbox" name="show_on_home" class="h-5 w-5 accent-amber-500" {% if cat and cat.show_on_home %}checked{% endif %}></label>
+      </section>
 
-                        <span class="relative inline-flex items-center">
-                            <input type="checkbox"
-                                   name="is_active"
-                                   class="sr-only peer"
-                                   {% if not cat or cat.is_active %}checked{% endif %}>
-                            <span class="gm-switch-dot relative block w-11 h-6 rounded-full bg-slate-300 peer-checked:bg-slate-950 transition-colors"></span>
-                        </span>
-                    </label>
+      <section class="pg-card p-5">
+        <div class="pg-head"><div><h2 class="text-sm font-black text-[#241207]">Menu</h2><p class="mt-1 text-[11px] font-semibold text-[#8a6a52]">Thêm nhóm vào một menu sau khi lưu.</p></div><a href="{{ url_for('admin.menus_page') }}" class="text-[10px] font-black text-[#5a2f1f]">Chỉnh menu</a></div>
+        {% if menu_usage %}<div class="mt-4 space-y-2">{% for usage in menu_usage %}<div class="rounded-xl bg-emerald-50 px-3 py-2 text-[10px] font-bold text-emerald-800"><i class="fa-solid fa-check mr-1"></i>{{ usage.menu_title }} » {{ usage.item_label }}</div>{% endfor %}</div>{% endif %}
+        <label class="mt-4 flex items-center gap-2 text-xs font-black text-[#241207]"><input id="addToMenu" type="checkbox" name="add_to_menu" class="h-4 w-4 accent-[#5a2f1f]">Thêm/cập nhật liên kết menu</label>
+        <div id="menuFields" class="mt-3 hidden space-y-3"><div><label class="pg-label" for="menuHandle">Chọn menu</label><select class="pg-select" id="menuHandle" name="menu_handle">{% for menu in menu_library %}<option value="{{ menu.handle }}">{{ menu.title }}</option>{% endfor %}</select></div><div><label class="pg-label" for="menuParent">Mục cha (không bắt buộc)</label><select class="pg-select" id="menuParent" name="menu_parent_id"><option value="">Cấp ngoài cùng</option></select></div><div><label class="pg-label" for="menuLabel">Tên hiển thị</label><input class="pg-input" id="menuLabel" name="menu_label" maxlength="100" value="{{ cat.name if cat else '' }}"></div></div>
+      </section>
 
-                    <label class="flex items-center justify-between gap-4 cursor-pointer p-4 rounded-2xl bg-amber-50/70 border border-amber-100">
-                        <div>
-                            <p class="text-sm font-extrabold text-amber-900">Đưa ra trang chủ</p>
-                            <p class="text-[11px] text-amber-700/70 mt-1">Hiển thị trong khu vực campaign/homepage.</p>
-                        </div>
+      <section class="pg-card p-5">
+        <div class="pg-head"><div><h2 class="text-sm font-black text-[#241207]">Hình đại diện</h2><p class="mt-1 text-[11px] font-semibold text-[#8a6a52]">Ảnh hoặc video cho trang nhóm.</p></div></div>
+        <div class="pg-preview mt-4 relative"><div id="emptyPreview" class="{% if current_media %}hidden{% endif %} absolute inset-0 flex flex-col items-center justify-center text-[#b7a191]"><i class="fa-regular fa-image text-3xl"></i><span class="mt-2 text-[10px] font-black uppercase">Chưa có media</span></div><img id="imagePreview" src="{% if current_media and not is_video %}{{ current_media }}{% endif %}" class="{% if not current_media or is_video %}hidden{% endif %} h-full w-full object-cover" alt=""><video id="videoPreview" src="{% if current_media and is_video %}{{ current_media }}{% endif %}" class="{% if not current_media or not is_video %}hidden{% endif %} h-full w-full object-cover" muted controls></video></div>
+        <div class="pg-upload mt-3 p-4 text-center" onclick="document.getElementById('collectionMedia').click()"><input id="collectionMedia" name="collection_media" type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" class="hidden"><i class="fa-solid fa-cloud-arrow-up text-[#b98b62]"></i><p id="fileName" class="mt-2 text-[11px] font-black text-[#75543f]">Tải tệp từ máy</p></div>
+        <div class="mt-3"><label class="pg-label" for="externalUrl">Hoặc URL media mới</label><input class="pg-input font-mono text-[10px]" id="externalUrl" name="external_url" type="url" value="" placeholder="https://..."></div>
+        {% if current_media %}<label class="mt-3 flex items-center gap-2 text-[11px] font-bold text-rose-600"><input type="checkbox" name="remove_media" class="accent-rose-600">Xóa media hiện tại</label>{% endif %}
+      </section>
 
-                        <span class="relative inline-flex items-center">
-                            <input type="checkbox"
-                                   name="show_on_home"
-                                   class="sr-only peer"
-                                   {% if cat and cat.show_on_home %}checked{% endif %}>
-                            <span class="gm-switch-dot relative block w-11 h-6 rounded-full bg-amber-200 peer-checked:bg-amber-500 transition-colors"></span>
-                        </span>
-                    </label>
-                </div>
+      <section class="pg-card p-5"><label class="pg-label" for="template">Giao diện</label><select class="pg-select" id="template" name="template"><option value="collection" {% if group.get('template') == 'collection' %}selected{% endif %}>collection</option><option value="collection-grid" {% if group.get('template') == 'collection-grid' %}selected{% endif %}>collection-grid</option><option value="collection-lookbook" {% if group.get('template') == 'collection-lookbook' %}selected{% endif %}>collection-lookbook</option></select><p class="mt-2 text-[10px] font-bold leading-5 text-[#9b7b63]">Hiện dùng chung storefront shop; giá trị được lưu để sẵn sàng mở rộng theme.</p></section>
 
-                <div class="mt-6 pt-6 border-t border-slate-100 space-y-3">
-                    <button type="submit"
-                            id="submitBtn"
-                            class="w-full inline-flex items-center justify-center gap-2 bg-slate-950 hover:bg-slate-800 text-white font-extrabold py-3.5 rounded-2xl text-xs uppercase tracking-widest transition-all active:scale-[.99]">
-                        <i class="fa-solid fa-floppy-disk text-xs"></i>
-                        {{ 'Cập nhật bộ sưu tập' if cat else 'Tạo bộ sưu tập' }}
-                    </button>
-
-                    <a href="{{ url_for('admin.collections') }}"
-                       class="w-full inline-flex items-center justify-center gap-2 bg-white border border-slate-200 hover:border-slate-950 text-slate-600 hover:text-slate-950 font-bold py-3 rounded-2xl text-xs uppercase tracking-widest transition-all">
-                        Hủy bỏ
-                    </a>
-                </div>
-
-                <div class="mt-5 rounded-2xl bg-slate-50 border border-slate-100 p-4">
-                    <p class="text-[11px] text-slate-500 leading-relaxed">
-                        <strong class="text-slate-800">Gợi ý:</strong>
-                        Trang thời trang nên ưu tiên ảnh WebP nhẹ. Video nên dùng khi thật sự cần vì có thể làm trang chủ tải chậm.
-                    </p>
-                </div>
-            </section>
-
-        </aside>
-    </form>
+      <button id="submitBtn" type="submit" class="pg-btn pg-primary w-full !min-h-[50px]"><i class="fa-solid fa-floppy-disk"></i>{{ 'Cập nhật nhóm sản phẩm' if cat else 'Tạo nhóm sản phẩm' }}</button>
+    </aside>
+  </form>
 </div>
+
+<script id="groupRulesData" type="application/json">{{ group.get('rules', [])|tojson }}</script>
+<script id="menuLibraryData" type="application/json">{{ menu_library|tojson }}</script>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-(function () {
-    const fileInput = document.getElementById('collection_media');
-    const fileName = document.getElementById('fileName');
-    const externalUrl = document.getElementById('external_url');
+(function(){
+  "use strict";
+  const $=(s,r=document)=>r.querySelector(s);const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
+  const form=$("#productGroupForm"), rulesJson=$("#rulesJson"), ruleList=$("#ruleList");
+  let rules=JSON.parse($("#groupRulesData").textContent||"[]");
+  const menuLibrary=JSON.parse($("#menuLibraryData").textContent||"[]");
+  const fields=[['name','Tên sản phẩm'],['sku','SKU'],['barcode','Barcode'],['brand','Thương hiệu'],['gender','Giới tính'],['tag','Tag'],['price','Giá bán'],['stock','Tồn kho'],['status','Trạng thái'],['category','Danh mục']];
+  const textOps=[['equals','bằng'],['not_equals','không bằng'],['contains','chứa'],['not_contains','không chứa'],['starts_with','bắt đầu bằng'],['ends_with','kết thúc bằng']];
+  const numberOps=[['equals','bằng'],['not_equals','không bằng'],['gt','lớn hơn'],['gte','lớn hơn hoặc bằng'],['lt','nhỏ hơn'],['lte','nhỏ hơn hoặc bằng']];
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const slugify=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,120);
 
-    const emptyPreview = document.getElementById('emptyPreview');
-    const imagePreview = document.getElementById('imagePreview');
-    const videoPreview = document.getElementById('videoPreview');
+  function operatorOptions(field,selected){return (['price','stock'].includes(field)?numberOps:textOps).map(([v,l])=>`<option value="${v}" ${v===selected?'selected':''}>${l}</option>`).join('')}
+  function renderRules(){
+    if(!rules.length) rules=[{field:'name',operator:'contains',value:''}];
+    ruleList.innerHTML=rules.slice(0,12).map((rule,index)=>`<div class="pg-rule" data-rule-index="${index}"><select class="pg-select" data-rule-field>${fields.map(([v,l])=>`<option value="${v}" ${v===rule.field?'selected':''}>${l}</option>`).join('')}</select><select class="pg-select" data-rule-operator>${operatorOptions(rule.field,rule.operator)}</select><input class="pg-input" data-rule-value value="${esc(rule.value)}" placeholder="Nhập giá trị điều kiện"><button type="button" class="pg-btn pg-rule-remove !h-[42px] !w-[38px] !min-h-0 !p-0 text-rose-600" data-remove-rule title="Xóa"><i class="fa-solid fa-xmark"></i></button></div>`).join('');
+    syncRules();
+  }
+  function syncRules(){rules=$$('.pg-rule',ruleList).map(row=>({field:$('[data-rule-field]',row).value,operator:$('[data-rule-operator]',row).value,value:$('[data-rule-value]',row).value.trim()}));rulesJson.value=JSON.stringify(rules.filter(r=>r.value));}
+  ruleList.addEventListener('change',e=>{const row=e.target.closest('.pg-rule');if(e.target.matches('[data-rule-field]')){$('[data-rule-operator]',row).innerHTML=operatorOptions(e.target.value,'equals')}syncRules()});
+  ruleList.addEventListener('input',syncRules);ruleList.addEventListener('click',e=>{if(!e.target.closest('[data-remove-rule]'))return;rules.splice(Number(e.target.closest('.pg-rule').dataset.ruleIndex),1);renderRules()});
+  $('#addRuleBtn').addEventListener('click',()=>{syncRules();if(rules.length>=12)return;rules.push({field:'name',operator:'contains',value:''});renderRules()});
 
-    const description = document.getElementById('description');
-    const descCount = document.getElementById('descCount');
-    const form = document.getElementById('collectionForm');
-    const submitBtn = document.getElementById('submitBtn');
+  const productItems=$$('.group-product-item');
+  function updateCount(){const count=productItems.filter(i=>$('input',i).checked).length;$('#selectedCountBadge').textContent=`${count} sản phẩm`}
+  function filterProducts(){const q=$('#groupProductSearch').value.trim().toLowerCase();productItems.forEach(i=>i.classList.toggle('hidden',q&&!i.dataset.productName.includes(q)))}
+  $('#groupProductSearch').addEventListener('input',filterProducts);productItems.forEach(i=>$('input',i).addEventListener('change',updateCount));
+  $('#selectVisibleProducts').addEventListener('click',()=>{productItems.filter(i=>!i.classList.contains('hidden')).forEach(i=>$('input',i).checked=true);updateCount()});
+  $('#clearVisibleProducts').addEventListener('click',()=>{productItems.filter(i=>!i.classList.contains('hidden')).forEach(i=>$('input',i).checked=false);updateCount()});
+  function switchMode(){const automatic=$('input[name="selection_mode"]:checked').value==='automatic';$('#manualPanel').classList.toggle('hidden',automatic);$('#automaticPanel').classList.toggle('hidden',!automatic);$('#selectedCountBadge').classList.toggle('hidden',automatic)}
+  $$('input[name="selection_mode"]').forEach(i=>i.addEventListener('change',switchMode));
 
-    function isVideoUrl(url) {
-        const clean = (url || '').toLowerCase().split('?')[0];
-        return clean.endsWith('.mp4') || clean.endsWith('.webm') || clean.endsWith('.mov') || clean.includes('video');
-    }
+  function flattenMenu(items,depth=1,out=[]){(items||[]).forEach(item=>{out.push({item,depth});if(depth<2)flattenMenu(item.children,depth+1,out)});return out}
+  function renderMenuParents(){const menu=menuLibrary.find(m=>m.handle===$('#menuHandle').value);$('#menuParent').innerHTML='<option value="">Cấp ngoài cùng</option>'+flattenMenu(menu?.items||[]).map(({item,depth})=>`<option value="${esc(item.id)}">${'— '.repeat(depth)}${esc(item.label)}</option>`).join('')}
+  $('#addToMenu').addEventListener('change',e=>$('#menuFields').classList.toggle('hidden',!e.target.checked));$('#menuHandle').addEventListener('change',renderMenuParents);
+  $('#name').addEventListener('input',e=>{if(!$('#slug').dataset.touched)$('#slug').value=slugify(e.target.value);if(!$('#menuLabel').dataset.touched)$('#menuLabel').value=e.target.value;updateSeo()});
+  $('#slug').addEventListener('input',e=>{e.target.dataset.touched='1';e.target.value=slugify(e.target.value);updateSeo()});$('#menuLabel').addEventListener('input',e=>e.target.dataset.touched='1');
+  function updateSeo(){const title=$('#metaTitle').value.trim()||$('#name').value.trim()||'Tên nhóm sản phẩm';const desc=$('#metaDescription').value.trim()||'Mô tả ngắn giúp khách hàng hiểu nội dung nhóm sản phẩm.';$('#metaTitleCount').textContent=`${$('#metaTitle').value.length}/160`;$('#metaDescriptionCount').textContent=`${$('#metaDescription').value.length}/320`;$('#seoPreviewTitle').textContent=title;$('#seoPreviewDescription').textContent=desc;$('#seoPreviewUrl').textContent=`/collections/${$('#slug').value||'duong-dan'}`}
+  $('#metaTitle').addEventListener('input',updateSeo);$('#metaDescription').addEventListener('input',updateSeo);
 
-    function showEmptyPreview() {
-        emptyPreview.classList.remove('hidden');
-        imagePreview.classList.add('hidden');
-        videoPreview.classList.add('hidden');
-        imagePreview.removeAttribute('src');
-        videoPreview.removeAttribute('src');
-    }
+  const file=$('#collectionMedia'),ext=$('#externalUrl'),empty=$('#emptyPreview'),img=$('#imagePreview'),video=$('#videoPreview');
+  function showMedia(src,isVideo){empty.classList.add('hidden');img.classList.toggle('hidden',isVideo);video.classList.toggle('hidden',!isVideo);if(isVideo)video.src=src;else img.src=src}
+  file.addEventListener('change',()=>{const selected=file.files?.[0];if(!selected)return;$('#fileName').textContent=selected.name;showMedia(URL.createObjectURL(selected),selected.type.startsWith('video/'))});
+  ext.addEventListener('change',()=>{const url=ext.value.trim();if(url)showMedia(url,/\.(mp4|webm|mov)(\?|$)/i.test(url))});
 
-    function showImagePreview(src) {
-        emptyPreview.classList.add('hidden');
-        videoPreview.classList.add('hidden');
-        videoPreview.removeAttribute('src');
-        imagePreview.src = src;
-        imagePreview.classList.remove('hidden');
-    }
-
-    function showVideoPreview(src) {
-        emptyPreview.classList.add('hidden');
-        imagePreview.classList.add('hidden');
-        imagePreview.removeAttribute('src');
-        videoPreview.src = src;
-        videoPreview.classList.remove('hidden');
-    }
-
-    function refreshUrlPreview() {
-        const url = externalUrl.value.trim();
-        if (!url || fileInput.files.length > 0) return;
-
-        if (isVideoUrl(url)) {
-            showVideoPreview(url);
-        } else {
-            showImagePreview(url);
-        }
-    }
-
-    function refreshDescCount() {
-        if (!description || !descCount) return;
-        descCount.textContent = `${description.value.length}/500`;
-    }
-
-    fileInput?.addEventListener('change', function () {
-        const file = this.files && this.files[0];
-
-        if (!file) {
-            fileName.textContent = 'Chưa chọn file';
-            refreshUrlPreview();
-            return;
-        }
-
-        fileName.textContent = file.name;
-
-        const objectUrl = URL.createObjectURL(file);
-
-        if (file.type.startsWith('video/')) {
-            showVideoPreview(objectUrl);
-        } else if (file.type.startsWith('image/')) {
-            showImagePreview(objectUrl);
-        } else {
-            showEmptyPreview();
-            fileName.textContent = 'Định dạng file chưa hỗ trợ';
-        }
-    });
-
-    externalUrl?.addEventListener('input', function () {
-        if (fileInput.files.length > 0) return;
-        const url = this.value.trim();
-        if (!url) {
-            showEmptyPreview();
-            return;
-        }
-        refreshUrlPreview();
-    });
-
-    description?.addEventListener('input', refreshDescCount);
-    refreshDescCount();
-
-    form?.addEventListener('submit', function () {
-        submitBtn.disabled = true;
-        submitBtn.classList.add('opacity-70', 'cursor-not-allowed');
-        submitBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-xs"></i> Đang lưu...';
-    });
+  if(window.CKEDITOR){CKEDITOR.config.versionCheck=false;CKEDITOR.replace('description',{height:260,removePlugins:'elementspath',resize_enabled:true,toolbar:[{name:'basicstyles',items:['Bold','Italic','Underline']},{name:'paragraph',items:['NumberedList','BulletedList','Blockquote']},{name:'links',items:['Link','Unlink']},{name:'styles',items:['Format']},{name:'tools',items:['Maximize','Source']} ]})}
+  form.addEventListener('submit',()=>{syncRules();if(window.CKEDITOR?.instances.description)CKEDITOR.instances.description.updateElement();const btn=$('#submitBtn');btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>Đang lưu...'});
+  renderRules();renderMenuParents();switchMode();updateCount();updateSeo();
 })();
 </script>
 {% endblock %}

@@ -1,0 +1,630 @@
+<section class="mm-card mm-relations-card" id="mmProductRelations">
+  <style>
+    .mm-relations-card .mm-card-body {
+      padding: 0;
+    }
+
+    .mm-relation-block {
+      padding: 18px;
+      border-bottom: 1px solid #eadfd4;
+    }
+
+    .mm-relation-block:last-child {
+      border-bottom: 0;
+    }
+
+    .mm-relation-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .mm-relation-top strong {
+      display: block;
+      color: #241207;
+      font-size: 13px;
+      font-weight: 950;
+    }
+
+    .mm-relation-top small {
+      display: block;
+      margin-top: 3px;
+      color: #9b7b63;
+      font-size: 11px;
+      font-weight: 750;
+      line-height: 1.45;
+    }
+
+    .mm-relation-count {
+      min-width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      background: #3b2414;
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 950;
+      flex-shrink: 0;
+    }
+
+    .mm-relation-search {
+      position: relative;
+      margin-bottom: 12px;
+    }
+
+    .mm-relation-search i {
+      position: absolute;
+      left: 13px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #b7a191;
+      font-size: 12px;
+      pointer-events: none;
+    }
+
+    .mm-relation-search input {
+      width: 100%;
+      height: 44px;
+      border: 1px solid #eadfd4;
+      border-radius: 16px;
+      background: #fffaf5;
+      color: #241207;
+      padding: 0 13px 0 35px;
+      font-size: 13px;
+      font-weight: 800;
+      outline: none;
+      transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+    }
+
+    .mm-relation-search input:focus {
+      border-color: rgba(95, 59, 30, .45);
+      background: #fff;
+      box-shadow: 0 0 0 4px rgba(185, 139, 98, .14);
+    }
+
+    .mm-relation-list {
+      max-height: 220px;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-right: 2px;
+    }
+
+    .mm-relation-item {
+      border: 1px solid #eadfd4;
+      border-radius: 16px;
+      background: #fffdf9;
+      min-height: 44px;
+      padding: 9px 11px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: all .16s ease;
+    }
+
+    .mm-relation-item:hover {
+      border-color: #d8c6b6;
+      background: #fffaf5;
+    }
+
+    .mm-relation-item input {
+      width: 16px;
+      height: 16px;
+      accent-color: #3b2414;
+      flex-shrink: 0;
+    }
+
+    .mm-relation-item span {
+      color: #3b2414;
+      font-size: 12px;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+
+    .mm-relation-empty {
+      display: none;
+      border: 1px dashed #d8c6b6;
+      border-radius: 16px;
+      background: #fffaf5;
+      padding: 14px;
+      color: #8a6a52;
+      font-size: 12px;
+      font-weight: 750;
+      line-height: 1.5;
+      text-align: center;
+    }
+
+    .mm-relation-create {
+      margin-top: 14px;
+      border: 1px dashed #d8c6b6;
+      border-radius: 18px;
+      background: #fffaf5;
+      padding: 12px;
+    }
+
+    .mm-relation-create label {
+      display: block;
+      margin-bottom: 8px;
+      color: #5f3b1e;
+      font-size: 10px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+    }
+
+    .mm-relation-create-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 42px;
+      gap: 8px;
+    }
+
+    .mm-relation-create-row input {
+      width: 100%;
+      height: 42px;
+      border: 1px solid #eadfd4;
+      border-radius: 15px;
+      background: #fff;
+      color: #241207;
+      padding: 0 12px;
+      font-size: 13px;
+      font-weight: 800;
+      outline: none;
+    }
+
+    .mm-relation-create-row button {
+      width: 42px;
+      height: 42px;
+      border: 0;
+      border-radius: 15px;
+      background: #3b2414;
+      color: #fff;
+      cursor: pointer;
+      transition: all .16s ease;
+    }
+
+    .mm-relation-create-row button:hover {
+      background: #241207;
+      transform: translateY(-1px);
+    }
+
+    .mm-relation-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 10px;
+    }
+
+    .mm-relation-chip {
+      min-height: 30px;
+      border-radius: 999px;
+      background: #3b2414;
+      color: #fff;
+      padding: 0 8px 0 11px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 11px;
+      font-weight: 850;
+    }
+
+    .mm-relation-chip button {
+      width: 18px;
+      height: 18px;
+      border: 0;
+      border-radius: 999px;
+      background: rgba(255,255,255,.18);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 10px;
+    }
+
+    .mm-relation-help {
+      margin-top: 9px;
+      color: #9b7b63;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 640px) {
+      .mm-relation-block {
+        padding: 16px;
+      }
+
+      .mm-relation-list {
+        max-height: 260px;
+      }
+    }
+  </style>
+
+  <div class="mm-card-head">
+    <div>
+      <p class="mm-kicker">Organize</p>
+      <h2>Danh mục & bộ sưu tập</h2>
+    </div>
+    <span class="mm-card-icon">
+      <i class="fa-solid fa-folder-tree"></i>
+    </span>
+  </div>
+
+  <div class="mm-card-body">
+    <div class="mm-relation-block" data-relation-group="categories">
+      <div class="mm-relation-top">
+        <div>
+          <strong>Danh mục sản phẩm</strong>
+          <small>Chọn một hoặc nhiều danh mục để khách dễ lọc sản phẩm ngoài shop.</small>
+        </div>
+        <span class="mm-relation-count" data-relation-count="categories">0</span>
+      </div>
+
+      <div class="mm-relation-search">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" data-relation-search="categories" placeholder="Tìm danh mục...">
+      </div>
+
+      <div class="mm-relation-list" data-relation-list="categories">
+        {% for cat in cats %}
+        <label class="mm-relation-item" data-relation-item data-name="{{ cat.name|lower }}">
+          <input
+            type="checkbox"
+            name="category_ids[]"
+            value="{{ cat.id }}"
+            {% if cat.id in selected_category_ids %}checked{% endif %}
+          >
+          <span>{{ cat.name }}</span>
+        </label>
+        {% endfor %}
+      </div>
+
+      <div class="mm-relation-empty" data-relation-empty="categories">
+        Không tìm thấy danh mục phù hợp. Bạn có thể tạo nhanh bên dưới.
+      </div>
+
+      <div class="mm-relation-create">
+        <label>Tạo nhanh danh mục mới</label>
+        <div class="mm-relation-create-row">
+          <input
+            type="text"
+            data-relation-new-input="categories"
+            placeholder="Ví dụ: Áo thun"
+          >
+          <button type="button" data-relation-add="categories" title="Thêm danh mục">
+            <i class="fa-solid fa-plus"></i>
+          </button>
+        </div>
+
+        <div class="mm-relation-chips" data-relation-chips="categories"></div>
+
+        <input type="hidden" name="new_categories" data-relation-hidden="categories" value="">
+
+        <p class="mm-relation-help">
+          Có thể nhập nhiều tên bằng dấu phẩy, hoặc nhập từng tên rồi bấm Enter.
+        </p>
+      </div>
+    </div>
+
+    <div class="mm-relation-block" data-relation-group="collections">
+      <div class="mm-relation-top">
+        <div>
+          <strong>Bộ sưu tập</strong>
+          <small>Gắn sản phẩm vào campaign, lookbook hoặc collection bán hàng.</small>
+        </div>
+        <span class="mm-relation-count" data-relation-count="collections">0</span>
+      </div>
+
+      <div class="mm-relation-search">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" data-relation-search="collections" placeholder="Tìm bộ sưu tập...">
+      </div>
+
+      <div class="mm-relation-list" data-relation-list="collections">
+        {% for col in colles %}
+        <label class="mm-relation-item" data-relation-item data-name="{{ col.name|lower }}">
+          <input
+            type="checkbox"
+            name="collection_ids[]"
+            value="{{ col.id }}"
+            {% if col.id in selected_collection_ids %}checked{% endif %}
+          >
+          <span>{{ col.name }}</span>
+        </label>
+        {% endfor %}
+      </div>
+
+      <div class="mm-relation-empty" data-relation-empty="collections">
+        Không tìm thấy bộ sưu tập phù hợp. Bạn có thể tạo nhanh bên dưới.
+      </div>
+
+      <div class="mm-relation-create">
+        <label>Tạo nhanh bộ sưu tập mới</label>
+        <div class="mm-relation-create-row">
+          <input
+            type="text"
+            data-relation-new-input="collections"
+            placeholder="Ví dụ: GUAMAISON Essentials"
+          >
+          <button type="button" data-relation-add="collections" title="Thêm bộ sưu tập">
+            <i class="fa-solid fa-plus"></i>
+          </button>
+        </div>
+
+        <div class="mm-relation-chips" data-relation-chips="collections"></div>
+
+        <input type="hidden" name="new_collections" data-relation-hidden="collections" value="">
+
+        <p class="mm-relation-help">
+          Bộ sưu tập mới sẽ được backend tạo và tự gắn vào sản phẩm sau khi lưu.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  window.MMProductRelations = (function () {
+    "use strict";
+
+    const state = {
+      categories: [],
+      collections: []
+    };
+
+    function normalizeText(value) {
+      return String(value || "")
+        .trim()
+        .replace(/\s+/g, " ")
+        .slice(0, 80);
+    }
+
+    function parseMany(value) {
+      return String(value || "")
+        .split(/[,;\n|]+/)
+        .map(normalizeText)
+        .filter(Boolean)
+        .filter((item, index, arr) => {
+          return arr.findIndex((x) => x.toLowerCase() === item.toLowerCase()) === index;
+        });
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function rootOf(type) {
+      return document.querySelector('[data-relation-group="' + type + '"]');
+    }
+
+    function showMessage(type, message, isError) {
+      const root = rootOf(type);
+      if (!root) return;
+
+      let msg = root.querySelector("[data-relation-message]");
+
+      if (!msg) {
+        msg = document.createElement("p");
+        msg.setAttribute("data-relation-message", "1");
+        msg.className = "mm-relation-help";
+        const createBox = root.querySelector(".mm-relation-create");
+        if (createBox) createBox.appendChild(msg);
+      }
+
+      msg.textContent = message || "";
+      msg.style.color = isError ? "#b91c1c" : "#75543f";
+
+      if (message) {
+        clearTimeout(msg._timer);
+        msg._timer = setTimeout(() => {
+          msg.textContent = "";
+        }, 2500);
+      }
+    }
+
+    function existingNames(type) {
+      return Array.from(
+        document.querySelectorAll('[data-relation-list="' + type + '"] [data-relation-item]')
+      ).map((item) => String(item.dataset.name || "").toLowerCase());
+    }
+
+    function updateCount(type) {
+      const root = rootOf(type);
+      if (!root) return;
+
+      const checked = root.querySelectorAll('input[type="checkbox"]:checked').length;
+      const count = document.querySelector('[data-relation-count="' + type + '"]');
+
+      if (count) {
+        count.textContent = String(checked + state[type].length);
+      }
+    }
+
+    function syncHidden(type) {
+      const hidden = document.querySelector('[data-relation-hidden="' + type + '"]');
+      if (hidden) {
+        hidden.value = state[type].join("\n");
+      }
+    }
+
+    function renderChips(type) {
+      const wrap = document.querySelector('[data-relation-chips="' + type + '"]');
+      if (!wrap) return;
+
+      wrap.innerHTML = state[type].map((name) => {
+        return `
+          <span class="mm-relation-chip">
+            <span>${escapeHtml(name)}</span>
+            <button type="button" data-relation-remove="${type}" data-name="${escapeHtml(name)}">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </span>
+        `;
+      }).join("");
+
+      syncHidden(type);
+      updateCount(type);
+    }
+
+    function addNames(type, value) {
+      const names = parseMany(value);
+
+      if (!names.length) {
+        showMessage(type, "Vui lòng nhập tên trước khi bấm thêm.", true);
+        return false;
+      }
+
+      const exists = existingNames(type);
+      let added = 0;
+      let duplicated = 0;
+
+      names.forEach((name) => {
+        const key = name.toLowerCase();
+
+        const alreadyNew = state[type].some((item) => item.toLowerCase() === key);
+        const alreadyExists = exists.includes(key);
+
+        if (alreadyNew || alreadyExists) {
+          duplicated += 1;
+          return;
+        }
+
+        state[type].push(name);
+        added += 1;
+      });
+
+      renderChips(type);
+
+      if (added > 0) {
+        showMessage(type, "Đã thêm " + added + " mục mới. Mục này sẽ được tạo khi lưu sản phẩm.", false);
+        return true;
+      }
+
+      if (duplicated > 0) {
+        showMessage(type, "Tên này đã tồn tại hoặc đã được thêm.", true);
+      }
+
+      return false;
+    }
+
+    function removeName(type, name) {
+      const key = normalizeText(name).toLowerCase();
+
+      state[type] = state[type].filter((item) => item.toLowerCase() !== key);
+
+      renderChips(type);
+      showMessage(type, "Đã xóa khỏi danh sách tạo mới.", false);
+    }
+
+    function filterList(type, query) {
+      const q = normalizeText(query).toLowerCase();
+      const items = Array.from(
+        document.querySelectorAll('[data-relation-list="' + type + '"] [data-relation-item]')
+      );
+      const empty = document.querySelector('[data-relation-empty="' + type + '"]');
+
+      let visible = 0;
+
+      items.forEach((item) => {
+        const name = String(item.dataset.name || "").toLowerCase();
+        const show = !q || name.includes(q);
+
+        item.style.display = show ? "flex" : "none";
+        if (show) visible += 1;
+      });
+
+      if (empty) {
+        empty.style.display = visible ? "none" : "block";
+      }
+    }
+
+    function handleAdd(type) {
+      const input = document.querySelector('[data-relation-new-input="' + type + '"]');
+      if (!input) return;
+
+      const ok = addNames(type, input.value);
+
+      if (ok) {
+        input.value = "";
+      }
+
+      input.focus();
+    }
+
+    function bind() {
+      document.addEventListener("input", function (event) {
+        const search = event.target.closest("[data-relation-search]");
+
+        if (search) {
+          filterList(search.dataset.relationSearch, search.value);
+        }
+      });
+
+      document.addEventListener("change", function (event) {
+        const checkbox = event.target.closest('[data-relation-group] input[type="checkbox"]');
+
+        if (checkbox) {
+          const root = checkbox.closest("[data-relation-group]");
+          if (root) updateCount(root.dataset.relationGroup);
+        }
+      });
+
+      document.addEventListener("click", function (event) {
+        const addBtn = event.target.closest("[data-relation-add]");
+
+        if (addBtn) {
+          event.preventDefault();
+          handleAdd(addBtn.dataset.relationAdd);
+          return;
+        }
+
+        const removeBtn = event.target.closest("[data-relation-remove]");
+
+        if (removeBtn) {
+          event.preventDefault();
+          removeName(removeBtn.dataset.relationRemove, removeBtn.dataset.name);
+        }
+      });
+
+      document.addEventListener("keydown", function (event) {
+        const input = event.target.closest("[data-relation-new-input]");
+        if (!input) return;
+
+        if (event.key === "Enter") {
+          event.preventDefault();
+          handleAdd(input.dataset.relationNewInput);
+        }
+      });
+    }
+
+    function init() {
+      ["categories", "collections"].forEach((type) => {
+        updateCount(type);
+        syncHidden(type);
+        filterList(type, "");
+      });
+
+      bind();
+
+      console.log("[MMProductRelations] ready");
+    }
+
+    document.addEventListener("DOMContentLoaded", init);
+
+    return {
+      addNames: addNames,
+      removeName: removeName
+    };
+  })();
+</script>
+</section>

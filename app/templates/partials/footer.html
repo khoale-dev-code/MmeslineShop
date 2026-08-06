@@ -13,9 +13,14 @@
   - Luôn set biến footer_shop_name trước rồi mới slice.
 #}
 
-{% set footer_shop_name = footer_shop_name|default(shop_name|default('GUAMAISON', true), true) %}
+{% set navigation_config = site_navigation|default({}, true) %}
+{% set footer_config = navigation_config.get('footer', {}) %}
+{% set footer_shop_name = footer_config.get('brand_name')|default(shop_name|default('GUAMAISON', true), true) %}
 {% set footer_brand_first = footer_shop_name[:4] %}
 {% set footer_brand_rest = footer_shop_name[4:] %}
+{% set footer_columns = footer_config.get('columns', []) %}
+{% set footer_socials = footer_config.get('socials', {}) %}
+{% set social_icons = {'instagram': 'fa-instagram', 'facebook': 'fa-facebook-f', 'tiktok': 'fa-tiktok', 'youtube': 'fa-youtube', 'pinterest': 'fa-pinterest-p'} %}
 
 <footer class="mm-footer mt-auto">
   <style>
@@ -456,12 +461,12 @@
 
     <div class="mm-footer-topline">
       <p class="mm-footer-kicker">
-        Official Online Store
+        {{ footer_config.get('kicker', 'Official Online Store') }}
       </p>
 
       <p class="mm-footer-seal">
         <i class="fa-solid fa-circle"></i>
-        Curated Fashion / Vietnam
+        {{ footer_config.get('seal', 'Curated Fashion / Vietnam') }}
       </p>
     </div>
 
@@ -477,10 +482,10 @@
         </h2>
 
         <p class="mm-footer-copy">
-          {{ footer_shop_name }} mang đến những thiết kế thời trang chọn lọc,
-          tối giản và hiện đại, dành cho phong cách sống tinh tế mỗi ngày.
+          {{ footer_config.get('description', footer_shop_name ~ ' mang đến những thiết kế thời trang chọn lọc, tối giản và hiện đại, dành cho phong cách sống tinh tế mỗi ngày.') }}
         </p>
 
+        {% if footer_config.get('newsletter_enabled', true) %}
         <div class="mm-footer-newsletter">
           <form method="POST" action="#">
             {% if csrf_token is defined %}
@@ -497,63 +502,49 @@
               name="email"
               required
               autocomplete="email"
-              placeholder="Địa chỉ email"
+              placeholder="{{ footer_config.get('newsletter_placeholder', 'Địa chỉ email') }}"
             >
 
             <button type="submit">
-              <span>Đăng ký</span>
+              <span>{{ footer_config.get('newsletter_button_label', 'Đăng ký') }}</span>
             </button>
           </form>
         </div>
+        {% endif %}
       </div>
 
-      <div class="mm-footer-col">
-        <h3 class="mm-footer-title">Mua sắm</h3>
-
-        <ul class="mm-footer-list">
-          <li><a href="/shop" data-nav>Sản phẩm</a></li>
-          <li><a href="/shop?sort=new" data-nav>Hàng mới</a></li>
-          <li><a href="/collections" data-nav>Bộ sưu tập</a></li>
-          <li><a href="/profile/favorites" data-nav>Yêu thích</a></li>
-        </ul>
-      </div>
-
-      <div class="mm-footer-col">
-        <h3 class="mm-footer-title">Hỗ trợ</h3>
-
-        <ul class="mm-footer-list">
-          <li><a href="/contact" data-nav>Liên hệ</a></li>
-          <li><a href="#" data-nav>Vận chuyển</a></li>
-          <li><a href="#" data-nav>Đổi trả</a></li>
-          <li><a href="#" data-nav>Bảo mật</a></li>
-        </ul>
-      </div>
+      {% for column in footer_columns %}
+        <div class="mm-footer-col">
+          <h3 class="mm-footer-title">{{ column.get('title') }}</h3>
+          <ul class="mm-footer-list">
+            {% for link in column.get('links', []) %}
+              <li><a href="{{ link.get('url', '#') }}" data-nav {% if link.get('new_tab') %}target="_blank" rel="noopener"{% endif %}>{{ link.get('label') }}</a></li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endfor %}
 
       <div class="mm-footer-col">
-        <h3 class="mm-footer-title">Thông tin</h3>
+        <h3 class="mm-footer-title">{{ footer_config.get('contact_title', 'Thông tin') }}</h3>
 
         <p class="mm-footer-contact">
-          <strong>{{ footer_shop_name }}</strong><br>
-          Official Online Store<br>
-          Vietnam<br>
-          Email:
-          <a href="mailto:support@guamaison.vn">
-            support@guamaison.vn
-          </a>
+          {% for line in footer_config.get('contact_text', '').splitlines() %}
+            {{ line }}<br>
+          {% endfor %}
+          {% if footer_config.get('contact_email') %}
+            Email: <a href="mailto:{{ footer_config.get('contact_email') }}">{{ footer_config.get('contact_email') }}</a>
+          {% endif %}
         </p>
 
         <div class="mm-footer-social">
-          <a href="#" aria-label="Instagram">
-            <i class="fa-brands fa-instagram"></i>
-          </a>
-
-          <a href="#" aria-label="Facebook">
-            <i class="fa-brands fa-facebook-f"></i>
-          </a>
-
-          <a href="#" aria-label="TikTok">
-            <i class="fa-brands fa-tiktok"></i>
-          </a>
+          {% for platform, icon in social_icons.items() %}
+            {% set social_url = footer_socials.get(platform) %}
+            {% if social_url %}
+              <a href="{{ social_url }}" aria-label="{{ platform|capitalize }}" {% if social_url.startswith('http') %}target="_blank" rel="noopener"{% endif %}>
+                <i class="fa-brands {{ icon }}"></i>
+              </a>
+            {% endif %}
+          {% endfor %}
         </div>
       </div>
 
@@ -561,13 +552,13 @@
 
     <div class="mm-footer-bottom">
       <p>
-        &copy; 2026 {{ footer_shop_name }}. All Rights Reserved.
+        {{ footer_config.get('copyright', '© 2026 ' ~ footer_shop_name ~ '. All Rights Reserved.') }}
       </p>
 
       <div class="mm-footer-mini-links">
-        <a href="#">Terms</a>
-        <a href="#">Privacy</a>
-        <a href="#">Cookies</a>
+        {% for link in footer_config.get('bottom_links', []) %}
+          <a href="{{ link.get('url', '#') }}" {% if link.get('new_tab') %}target="_blank" rel="noopener"{% endif %}>{{ link.get('label') }}</a>
+        {% endfor %}
       </div>
     </div>
   </div>

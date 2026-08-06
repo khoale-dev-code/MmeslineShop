@@ -1,0 +1,458 @@
+{% extends "base.html" %}
+
+{% block title %}Bộ sưu tập | GUAMAISON{% endblock %}
+
+{% block extra_head %}
+<style>
+  .mm-collections {
+    --ink: #111;
+    --muted: #74706b;
+    --soft: #faf8f5;
+    --line: rgba(17, 17, 17, 0.12);
+    --brown: #3b2414;
+    background: #fff;
+    color: var(--ink);
+    overflow-x: hidden;
+  }
+
+  .mm-collections-container {
+    width: min(100% - 32px, 1560px);
+    margin: 0 auto;
+  }
+
+  .mm-collections-kicker {
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .mm-collections-title {
+    font-family: "DM Sans", system-ui, sans-serif;
+    font-size: clamp(48px, 10vw, 126px);
+    font-weight: 950;
+    line-height: 0.86;
+    letter-spacing: -0.075em;
+    text-transform: uppercase;
+  }
+
+  .mm-collections-title em {
+    color: var(--brown);
+    font-style: normal;
+  }
+
+  .mm-collections-copy {
+    color: #57514b;
+    font-size: 14px;
+    line-height: 1.8;
+    font-weight: 650;
+  }
+
+  .mm-collection-reveal {
+    opacity: 0.001;
+    transform: translateY(42px);
+    transition:
+      opacity 820ms cubic-bezier(0.16, 1, 0.3, 1),
+      transform 820ms cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform;
+  }
+
+  .mm-collection-reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .mm-collection-card {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    background: #f3f0ec;
+    isolation: isolate;
+  }
+
+  .mm-collection-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background:
+      linear-gradient(to top, rgba(0, 0, 0, 0.82), rgba(0, 0, 0, 0.18) 54%, rgba(0, 0, 0, 0.04)),
+      linear-gradient(to right, rgba(0, 0, 0, 0.26), transparent 62%);
+    transition: opacity 520ms ease;
+  }
+
+  .mm-collection-card:hover::after {
+    opacity: 0.9;
+  }
+
+  .mm-collection-media {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: #eee9e3;
+  }
+
+  .mm-collection-media img,
+  .mm-collection-media video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+    transform: translate3d(0, 0, 0) scale(1.012);
+    transition:
+      transform 1200ms cubic-bezier(0.16, 1, 0.3, 1),
+      filter 420ms ease;
+    backface-visibility: hidden;
+  }
+
+  .mm-collection-card:hover .mm-collection-media img,
+  .mm-collection-card:hover .mm-collection-media video {
+    transform: translate3d(0, 0, 0) scale(1.055);
+    filter: saturate(1.08) contrast(1.04);
+  }
+
+  .mm-collection-content {
+    position: absolute;
+    inset: auto 0 0 0;
+    z-index: 4;
+    padding: clamp(20px, 3vw, 42px);
+    color: #fff;
+  }
+
+  .mm-collection-index {
+    position: absolute;
+    top: clamp(18px, 2vw, 28px);
+    left: clamp(18px, 2vw, 28px);
+    z-index: 4;
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+  }
+
+  .mm-collection-name {
+    font-size: clamp(32px, 5vw, 72px);
+    font-weight: 950;
+    line-height: 0.9;
+    letter-spacing: -0.065em;
+    text-transform: uppercase;
+    text-wrap: balance;
+  }
+
+  .mm-collection-desc {
+    margin-top: 14px;
+    max-width: 420px;
+    color: rgba(255, 255, 255, 0.74);
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 1.7;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .mm-collection-link {
+    margin-top: 22px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.78);
+    padding-bottom: 6px;
+    transition: gap 220ms ease;
+  }
+
+  .mm-collection-card:hover .mm-collection-link {
+    gap: 16px;
+  }
+
+  .mm-editorial-line {
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    background: #fff;
+  }
+
+  .mm-empty-box {
+    min-height: 420px;
+    border: 1px solid var(--line);
+    background: var(--soft);
+  }
+
+  @media (max-width: 767px) {
+    .mm-collections-container {
+      width: min(100% - 24px, 1560px);
+    }
+
+    .mm-collection-content {
+      padding: 22px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mm-collection-reveal,
+    .mm-collection-media img,
+    .mm-collection-media video,
+    .mm-collection-link {
+      opacity: 1 !important;
+      transform: none !important;
+      transition: none !important;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="mm-collections">
+
+  <section class="bg-[#faf8f5] border-b border-black/10">
+    <div class="mm-collections-container min-h-[calc(70vh-var(--header-h,115px)-var(--topbar-h,0px))] pt-16 md:pt-24 pb-14 md:pb-20 flex items-end">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 w-full items-end">
+        <div class="lg:col-span-8">
+          <p class="mm-collections-kicker mm-collection-reveal">
+            GUAMAISON Lookbook
+          </p>
+
+          <h1 class="mm-collections-title mt-6 mm-collection-reveal">
+            All<br>
+            <em>Collections</em>
+          </h1>
+        </div>
+
+        <div class="lg:col-span-4 lg:pb-3 mm-collection-reveal">
+          <p class="mm-collections-copy">
+            Khám phá các bộ sưu tập của GUAMAISON qua tinh thần editorial, hình ảnh rõ nét
+            và câu chuyện thị giác được tuyển chọn cho từng mùa.
+          </p>
+
+          <div class="mt-7 flex items-center gap-4">
+            <span class="h-px w-12 bg-black"></span>
+            <span class="text-[10px] font-black uppercase tracking-[0.28em] text-neutral-500">
+              {{ collections|length }} bộ sưu tập
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="mm-editorial-line">
+    <div class="mm-collections-container py-4 flex items-center justify-between gap-4">
+      <p class="text-[10px] font-black uppercase tracking-[0.28em] text-neutral-500">
+        Editorial Selection
+      </p>
+
+      <a
+        href="/shop"
+        class="text-[10px] font-black uppercase tracking-[0.22em] text-black border-b border-black pb-1 hover:text-[#3b2414] hover:border-[#3b2414] transition-colors"
+      >
+        Shop all
+      </a>
+    </div>
+  </section>
+
+  {% if collections %}
+  <section class="w-full bg-white">
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-px bg-black/10">
+
+      {% for col in collections %}
+      <a
+        href="/shop?collection={{ col.slug }}"
+        class="mm-collection-card mm-collection-reveal min-h-[560px] md:min-h-[680px] xl:min-h-[760px] aspect-[4/5]"
+        aria-label="Xem bộ sưu tập {{ col.name }}"
+      >
+        <span class="mm-collection-index">
+          {{ "%02d"|format(loop.index) }} / {{ "%02d"|format(collections|length) }}
+        </span>
+
+        <div class="mm-collection-media">
+          {% if col.video_url %}
+            <video
+              muted
+              loop
+              playsinline
+              preload="metadata"
+              data-collection-video
+              poster="{{ col.image_url if col.image_url else '' }}"
+            >
+              <source src="{{ col.video_url }}" type="video/mp4">
+            </video>
+          {% else %}
+            <img
+              src="{{ col.image_url if col.image_url else 'https://placehold.co/1000x1250/f3f0ec/111?text=' ~ (col.name|urlencode) }}"
+              alt="{{ col.name }}"
+              width="1000"
+              height="1250"
+              decoding="async"
+              {% if loop.index <= 3 %}
+                loading="eager"
+                fetchpriority="high"
+              {% else %}
+                loading="lazy"
+              {% endif %}
+            >
+          {% endif %}
+        </div>
+
+        <div class="mm-collection-content">
+          <h2 class="mm-collection-name">
+            {{ col.name }}
+          </h2>
+
+          {% if col.description %}
+            <p class="mm-collection-desc">
+              {{ col.description }}
+            </p>
+          {% endif %}
+
+          <span class="mm-collection-link">
+            Khám phá
+            <i class="fa-solid fa-arrow-right"></i>
+          </span>
+        </div>
+      </a>
+      {% endfor %}
+
+    </div>
+  </section>
+  {% else %}
+  <section class="py-16 md:py-24 bg-white">
+    <div class="mm-collections-container">
+      <div class="mm-empty-box flex flex-col items-center justify-center text-center px-6">
+        <i class="fa-regular fa-folder-open text-4xl text-neutral-300 mb-5"></i>
+
+        <p class="mm-collections-kicker">
+          No Collections Found
+        </p>
+
+        <h2 class="mt-5 text-4xl md:text-6xl font-black uppercase tracking-[-0.06em] leading-[0.9]">
+          Chưa có<br>bộ sưu tập
+        </h2>
+
+        <p class="mt-5 max-w-md text-sm text-neutral-500 leading-7 font-semibold">
+          Các bộ sưu tập mới của GUAMAISON sẽ sớm được cập nhật.
+        </p>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="bg-[#111] text-white py-14 md:py-20">
+    <div class="mm-collections-container grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+      <div class="lg:col-span-8 mm-collection-reveal">
+        <p class="text-[10px] font-black uppercase tracking-[0.3em] text-white/50">
+          GUAMAISON Archive
+        </p>
+
+        <h2 class="mt-5 text-4xl md:text-7xl font-black uppercase tracking-[-0.07em] leading-[0.88]">
+          Wear your<br>
+          identity.
+        </h2>
+      </div>
+
+      <div class="lg:col-span-4 mm-collection-reveal">
+        <p class="text-sm text-white/65 leading-7 font-semibold">
+          Mỗi bộ sưu tập là một góc nhìn về bản sắc, chuyển động và phong cách sống hiện đại.
+          Chọn một collection để bắt đầu hành trình của bạn.
+        </p>
+
+        <a
+          href="/shop"
+          class="mt-8 inline-flex min-h-[52px] items-center justify-center gap-3 border border-white bg-white px-6 text-[11px] font-black uppercase tracking-[0.22em] text-black transition hover:bg-[#3b2414] hover:text-white hover:border-[#3b2414]"
+        >
+          Xem tất cả sản phẩm
+          <i class="fa-solid fa-arrow-right"></i>
+        </a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  function initCollectionReveal() {
+    const items = document.querySelectorAll(".mm-collection-reveal");
+
+    if (!("IntersectionObserver" in window)) {
+      items.forEach((item) => item.classList.add("is-visible"));
+      return;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+
+        entry.target.classList.add("is-visible");
+        observer.unobserve(entry.target);
+      });
+    }, {
+      root: null,
+      rootMargin: "0px 0px -10% 0px",
+      threshold: 0.12
+    });
+
+    items.forEach((item, index) => {
+      item.style.transitionDelay = Math.min(index % 3, 2) * 80 + "ms";
+      observer.observe(item);
+    });
+  }
+
+  function initCollectionVideos() {
+    const videos = document.querySelectorAll("[data-collection-video]");
+
+    if (!videos.length) return;
+
+    videos.forEach((video) => {
+      video.muted = true;
+      video.playsInline = true;
+      video.setAttribute("muted", "");
+      video.setAttribute("playsinline", "");
+    });
+
+    if (!("IntersectionObserver" in window)) {
+      videos.forEach((video) => video.play().catch(() => {}));
+      return;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        const video = entry.target;
+
+        if (entry.isIntersecting) {
+          video.play().catch(() => {});
+        } else {
+          video.pause();
+        }
+      });
+    }, {
+      root: null,
+      rootMargin: "180px 0px",
+      threshold: 0.16
+    });
+
+    videos.forEach((video) => observer.observe(video));
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        videos.forEach((video) => video.pause());
+      }
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    initCollectionReveal();
+    initCollectionVideos();
+  });
+})();
+</script>
+{% endblock %}

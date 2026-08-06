@@ -1,5 +1,5 @@
 {% extends "admin/admin_base.html" %}
-{% block title %}Bộ sưu tập Campaigns | GUA Admin{% endblock %}
+{% block title %}Nhóm sản phẩm | GUA Admin{% endblock %}
 
 {% block extra_head %}
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -66,19 +66,20 @@
 {% set active_count = colles|selectattr('is_active', 'equalto', true)|list|length if colles else 0 %}
 {% set home_count = colles|selectattr('show_on_home', 'equalto', true)|list|length if colles else 0 %}
 {% set video_count = colles|selectattr('video_url')|list|length if colles else 0 %}
+{% set automatic_count = colles|selectattr('selection_mode', 'equalto', 'automatic')|list|length if colles else 0 %}
 
 <div class="max-w-screen-2xl mx-auto px-4 md:px-8 py-10">
 
     <div class="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-6 mb-8">
         <div>
             <p class="text-[10px] font-extrabold uppercase tracking-[0.24em] text-slate-400 mb-2">
-                Campaigns / Lookbook / Homepage
+                Products / Groups / Menu
             </p>
             <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-950">
-                Quản lý Bộ sưu tập
+                Quản lý Nhóm sản phẩm
             </h1>
             <p class="text-sm text-slate-500 mt-2 max-w-2xl">
-                Tạo campaign, chọn ảnh/video đại diện, bật/tắt hiển thị và sắp xếp những bộ sưu tập xuất hiện ngoài trang chủ.
+                Tạo nhóm thủ công hoặc tự động, quản lý sản phẩm, ảnh đại diện, SEO và liên kết trực tiếp tới menu cửa hàng.
             </p>
         </div>
 
@@ -93,14 +94,14 @@
             <a href="{{ url_for('admin.add_collection') }}"
                class="inline-flex items-center justify-center gap-2 bg-slate-950 text-white px-6 py-3 rounded-full text-sm font-extrabold hover:bg-slate-800 transition-all shadow-sm">
                 <i class="fa-solid fa-plus text-xs"></i>
-                Thêm bộ sưu tập
+                Thêm nhóm sản phẩm
             </a>
         </div>
     </div>
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div class="gm-card p-5">
-            <p class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Tổng bộ sưu tập</p>
+            <p class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Tổng nhóm</p>
             <p class="text-3xl font-extrabold text-slate-950 mt-2">{{ total_count }}</p>
         </div>
 
@@ -115,8 +116,8 @@
         </div>
 
         <div class="gm-card p-5">
-            <p class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Dùng video</p>
-            <p class="text-3xl font-extrabold text-indigo-600 mt-2">{{ video_count }}</p>
+            <p class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Nhóm tự động</p>
+            <p class="text-3xl font-extrabold text-indigo-600 mt-2">{{ automatic_count }}</p>
         </div>
     </div>
 
@@ -164,6 +165,10 @@
                     {% endif %}
 
                     <div class="absolute top-3 right-3 flex flex-col gap-2 items-end">
+                        <span class="gm-badge {{ 'bg-indigo-50 text-indigo-700 border border-indigo-100' if c.selection_mode == 'automatic' else 'bg-white/90 text-slate-700 border border-slate-200' }}">
+                            <i class="fa-solid {{ 'fa-wand-magic-sparkles' if c.selection_mode == 'automatic' else 'fa-hand-pointer' }} text-[9px]"></i>
+                            {{ 'Tự động' if c.selection_mode == 'automatic' else 'Thủ công' }}
+                        </span>
                         {% if is_visible %}
                             <span class="gm-badge bg-emerald-50 text-emerald-700 border border-emerald-100">
                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
@@ -196,12 +201,14 @@
                         </p>
 
                         <p class="text-sm text-slate-500 leading-relaxed line-clamp-2 mt-3 min-h-[2.6rem]">
-                            {{ c.description or 'Chưa có mô tả cho bộ sưu tập này.' }}
+                            {{ c.description|striptags if c.description else 'Chưa có mô tả cho nhóm sản phẩm này.' }}
                         </p>
+                        <div class="mt-4 flex flex-wrap gap-2"><span class="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-extrabold text-slate-600"><i class="fa-solid fa-shirt mr-1"></i>{{ c.product_count|default(0) }} sản phẩm</span>{% if c.selection_mode == 'automatic' %}<span class="rounded-full bg-indigo-50 px-2.5 py-1 text-[10px] font-extrabold text-indigo-700">{{ c.group_rule_count|default(0) }} điều kiện</span>{% endif %}</div>
                     </div>
 
                     <div class="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
                         <div class="flex items-center gap-2">
+                            <a href="/collections/{{ c.slug }}" target="_blank" title="Xem nhóm" class="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200 text-slate-500 hover:text-slate-950 hover:border-slate-950 flex items-center justify-center transition-all"><i class="fa-regular fa-eye text-xs"></i></a>
                             {% if media_url %}
                                 <a href="{{ media_url }}"
                                    target="_blank"
@@ -242,15 +249,15 @@
                 <i class="fa-regular fa-images text-3xl"></i>
             </div>
 
-            <h2 class="text-xl font-extrabold text-slate-950">Chưa có bộ sưu tập nào</h2>
+            <h2 class="text-xl font-extrabold text-slate-950">Chưa có nhóm sản phẩm nào</h2>
             <p class="text-sm text-slate-500 mt-2 max-w-md mx-auto">
-                Tạo bộ sưu tập đầu tiên để đưa campaign, lookbook hoặc seasonal drop ra trang chủ.
+                Tạo nhóm đầu tiên để khách duyệt sản phẩm thuận tiện và dùng trực tiếp trong menu.
             </p>
 
             <a href="{{ url_for('admin.add_collection') }}"
                class="inline-flex items-center gap-2 mt-6 px-6 py-3 bg-slate-950 text-white rounded-full text-sm font-extrabold hover:bg-slate-800 transition-all">
                 <i class="fa-solid fa-plus text-xs"></i>
-                Thêm bộ sưu tập
+                Thêm nhóm sản phẩm
             </a>
         </div>
     {% endif %}
@@ -426,11 +433,19 @@
     };
 
     window.confirmDeleteCollection = function (id, name) {
-        const ok = confirm(`Bạn có chắc chắn muốn xóa bộ sưu tập "${name}"?\n\nHành động này không thể hoàn tác.`);
-        if (!ok) return;
-
         const form = document.getElementById(`del_${id}`);
-        if (form) form.submit();
+        if (!form) return;
+        if (window.GuaAdminDelete) {
+            window.GuaAdminDelete.submit(form, {
+                title: 'Xóa nhóm sản phẩm',
+                message: `Bạn có muốn xóa nhóm sản phẩm “${name}”?`,
+                detail: 'Liên kết menu tới nhóm này cũng sẽ được dọn. Hãy kiểm tra kỹ trước khi tiếp tục.',
+                confirmText: 'Xóa nhóm',
+                tone: 'danger'
+            });
+            return;
+        }
+        if (confirm(`Bạn có chắc chắn muốn xóa nhóm sản phẩm "${name}"?`)) form.submit();
     };
 
     function removeEmptyHints(list) {

@@ -264,7 +264,7 @@
 
       {% for col in collections %}
       <a
-        href="/shop?collection={{ col.slug }}"
+        href="/collections/{{ col.slug }}"
         class="mm-collection-card mm-collection-reveal min-h-[560px] md:min-h-[680px] xl:min-h-[760px] aspect-[4/5]"
         aria-label="Xem bộ sưu tập {{ col.name }}"
       >
@@ -308,7 +308,7 @@
 
           {% if col.description %}
             <p class="mm-collection-desc">
-              {{ col.description }}
+              {{ col.description|striptags }}
             </p>
           {% endif %}
 

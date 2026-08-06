@@ -20,6 +20,8 @@
 
 {% set selected_category_ids = p.category_ids if p and p.category_ids is defined and p.category_ids else [] %}
 {% set selected_collection_ids = p.collection_ids if p and p.collection_ids is defined and p.collection_ids else [] %}
+{% set inv = inventory_snapshot if inventory_snapshot else none %}
+{% set persisted_stock = inv.total_stock if inv and inv.known else 0 %}
 
 {% block extra_head %}
   <link rel="stylesheet" href="{{ url_for('static', filename='admin/css/product_form.css') }}?v=20260606-product-form">
@@ -320,6 +322,9 @@
     novalidate
     data-product-id="{{ p.id if p and p.id else '' }}"
     data-product-mode="{{ 'edit' if p else 'create' }}"
+    data-product-name="{{ p.name if p else '' }}"
+    data-persisted-stock="{{ persisted_stock }}"
+    data-inventory-adjust-url="{{ url_for('admin.adjust_product_inventory', pid=p.id, intent='edit') if p else '' }}"
   >
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
@@ -343,12 +348,24 @@
       </div>
 
       <div class="mm-product-actions">
-        <button type="submit" class="mm-save-btn">
+        <a href="{{ url_for('admin.products') }}" class="mm-cancel-btn">
+          Hủy
+        </a>
+        <button type="submit" name="save_action" value="stay" class="mm-save-btn">
           <i class="fa-solid fa-check"></i>
-          Lưu sản phẩm
+          {{ 'Cập nhật' if p else 'Lưu sản phẩm' }}
         </button>
       </div>
     </section>
+
+    <nav class="mm-product-section-nav" aria-label="Điều hướng biểu mẫu sản phẩm">
+      <a href="#section-general"><i class="fa-regular fa-file-lines"></i> Thông tin</a>
+      <a href="#section-media"><i class="fa-regular fa-images"></i> Hình ảnh</a>
+      <a href="#section-pricing"><i class="fa-solid fa-tag"></i> Giá & kho</a>
+      <a href="#section-variants"><i class="fa-solid fa-layer-group"></i> Biến thể</a>
+      <a href="#section-seo"><i class="fa-solid fa-magnifying-glass"></i> SEO</a>
+      <a href="#section-status"><i class="fa-solid fa-sliders"></i> Hiển thị</a>
+    </nav>
 
     <div class="mm-product-alert">
       <i class="fa-solid fa-circle-info"></i>
@@ -361,32 +378,130 @@
 
     <div class="mm-product-grid">
       <main class="mm-product-main">
-        {% include "admin/products/partials/_form_basic.html" %}
-        {% include "admin/products/partials/_form_pricing_inventory.html" %}
-        {% include "admin/products/partials/_form_description.html" %}
-        {% include "admin/products/partials/_form_variants.html" %}
-        {% include "admin/products/partials/_form_seo.html" %}
+        <div id="section-general" class="mm-section-anchor mm-section-stack">
+          {% include "admin/products/partials/_form_basic.html" %}
+          {% include "admin/products/partials/_form_description.html" %}
+        </div>
+        <div id="section-media" class="mm-section-anchor">
+          {% include "admin/products/partials/_form_media.html" %}
+        </div>
+        <div id="section-pricing" class="mm-section-anchor">
+          {% include "admin/products/partials/_form_pricing_inventory.html" %}
+        </div>
+        <div id="section-variants" class="mm-section-anchor">
+          {% include "admin/products/partials/_form_variants.html" %}
+        </div>
+        <div id="section-seo" class="mm-section-anchor">
+          {% include "admin/products/partials/_form_seo.html" %}
+        </div>
       </main>
 
       <aside class="mm-product-side">
-        {% include "admin/products/partials/_form_status.html" %}
-        {% include "admin/products/partials/_form_relations.html" %}
-        {% include "admin/products/partials/_form_media.html" %}
+        <section class="mm-card mm-product-overview">
+          <div class="mm-card-head">
+            <div>
+              <p class="mm-kicker">Overview</p>
+              <h2>Tổng quan</h2>
+            </div>
+            <span class="mm-card-icon"><i class="fa-solid fa-chart-simple"></i></span>
+          </div>
+          <div class="mm-card-body">
+            <div class="mm-overview-grid">
+              <div><span>Ảnh</span><strong data-product-image-count>{{ images|length }}</strong></div>
+              <div><span>Biến thể</span><strong data-product-variant-count>{{ variants|length }}</strong></div>
+              <div><span>Tồn đã lưu</span><strong data-product-persisted-stock>{{ persisted_stock }}</strong></div>
+              <div><span>Tồn đang sửa</span><strong data-product-live-stock>{{ persisted_stock }}</strong></div>
+            </div>
+            <p class="mm-overview-help">
+              Tồn “đã lưu” được đọc trực tiếp từ database. Hãy bấm {{ 'Cập nhật' if p else 'Lưu sản phẩm' }} để ghi các thay đổi trước khi rời trang.
+            </p>
+          </div>
+        </section>
+
+        <div id="section-status" class="mm-section-anchor mm-section-stack">
+          {% include "admin/products/partials/_form_status.html" %}
+          {% include "admin/products/partials/_form_relations.html" %}
+        </div>
       </aside>
     </div>
 
-    <div class="mm-form-mobile-save">
-      <button type="submit" class="mm-save-btn">
+    {% if p %}
+    <section class="mm-delete-zone">
+      <div>
+        <span class="mm-delete-zone-icon"><i class="fa-solid fa-shield-halved"></i></span>
+        <div>
+          <strong>Xóa sản phẩm an toàn</strong>
+          {% if inv and inv.known and inv.can_delete %}
+            <p>Tồn kho sản phẩm và tất cả biến thể đều bằng 0. Bạn có thể chuyển sản phẩm vào thùng rác.</p>
+          {% elif inv and inv.known %}
+            <p>Còn <b>{{ inv.total_stock }}</b> sản phẩm trong kho. Khi bấm Xóa, hệ thống sẽ đưa bạn qua công đoạn điều chỉnh tồn kho riêng.</p>
+          {% else %}
+            <p>Không xác minh được tồn kho. Hệ thống tạm khóa thao tác xóa để bảo vệ dữ liệu.</p>
+          {% endif %}
+        </div>
+      </div>
+      <button
+        type="button"
+        class="mm-delete-product-btn"
+        data-delete-product
+        title="{% if inv and inv.known and not inv.can_delete %}Xác nhận và chuyển sang điều chỉnh tồn kho{% else %}Chuyển sản phẩm vào thùng rác{% endif %}"
+      >
+        <i class="fa-regular fa-trash-can"></i>
+        Xóa sản phẩm
+      </button>
+    </section>
+    {% endif %}
+
+    <section class="mm-bottom-actions" aria-label="Thao tác lưu cuối trang">
+      <div>
+        <strong>{{ 'Hoàn tất cập nhật sản phẩm' if p else 'Hoàn tất tạo sản phẩm' }}</strong>
+        <p>Kiểm tra thông tin, hình ảnh, giá, tồn kho và biến thể trước khi lưu.</p>
+      </div>
+      <div class="mm-bottom-action-buttons">
+        <a href="{{ url_for('admin.products') }}" class="mm-cancel-btn">Hủy</a>
+        <button type="submit" name="save_action" value="list" class="mm-secondary-save-btn">
+          <i class="fa-solid fa-list"></i>
+          Lưu & quay lại
+        </button>
+        <button type="submit" name="save_action" value="stay" class="mm-save-btn">
+          <i class="fa-solid fa-check"></i>
+          {{ 'Cập nhật sản phẩm' if p else 'Lưu sản phẩm' }}
+        </button>
+      </div>
+    </section>
+
+    <div class="mm-save-dock" aria-live="polite">
+      <span class="mm-save-state" id="mmSaveState">
+        <i class="fa-solid fa-circle-check"></i>
+        Chưa có thay đổi
+      </span>
+      <button type="submit" name="save_action" value="stay" class="mm-save-btn">
         <i class="fa-solid fa-check"></i>
-        Lưu sản phẩm
+        {{ 'Cập nhật' if p else 'Lưu' }}
       </button>
     </div>
   </form>
+
+  {% if p %}
+  <form
+    id="deleteProductForm"
+    method="POST"
+    action="{{ url_for('admin.delete_product', pid=p.id) }}"
+    data-product-delete
+    data-product-name="{{ p.name|e }}"
+    data-inventory-known="{{ 1 if inv and inv.known else 0 }}"
+    data-inventory-stock="{{ inv.total_stock if inv and inv.known else 0 }}"
+    data-inventory-adjust-url="{{ url_for('admin.adjust_product_inventory', pid=p.id, intent='delete') }}"
+    hidden
+  >
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  </form>
+  {% endif %}
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
-  <script src="{{ url_for('static', filename='admin/js/product_form.js') }}?v=20260606-ckeditor-fix"></script>
-  <script src="{{ url_for('static', filename='admin/js/mm_variants_lite.js') }}?v=20260606-variants"></script>
-  <script src="{{ url_for('static', filename='admin/js/mm_product_media.js') }}?v=20260606-media"></script>
+  <script src="{{ url_for('static', filename='admin/js/product_form.js') }}?v=20260806-delete-flow-v6"></script>
+  <script src="{{ url_for('static', filename='admin/js/mm_variants_lite.js') }}?v=20260806-delete-flow-v6"></script>
+  <script src="{{ url_for('static', filename='admin/js/mm_product_media.js') }}?v=20260806-delete-flow-v6"></script>
 {% endblock %}

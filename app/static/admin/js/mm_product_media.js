@@ -290,8 +290,27 @@
     }
   }
 
-  function removeCard(card) {
+  function askRemoval(options) {
+    if (window.GuaAdminDelete && typeof window.GuaAdminDelete.confirm === "function") {
+      return window.GuaAdminDelete.confirm(options);
+    }
+    return Promise.resolve(window.confirm(options.message || "Bạn có chắc muốn xóa ảnh?"));
+  }
+
+  async function removeCard(card) {
     if (!card) return;
+
+    const source = card.dataset.source === "file" ? "ảnh mới chọn" : "ảnh sản phẩm";
+    const ok = await askRemoval({
+      title: "Xóa hình ảnh",
+      message: `Bạn có muốn xóa ${source} này?`,
+      detail: card.dataset.source === "file"
+        ? "Ảnh chưa tải lên sẽ được loại khỏi biểu mẫu."
+        : "Ảnh đã lưu sẽ bị gỡ khỏi sản phẩm sau khi bạn bấm Cập nhật.",
+      confirmText: "Xóa ảnh",
+      tone: "danger"
+    });
+    if (!ok) return;
 
     const fileName = card.dataset.fileName;
 
@@ -309,7 +328,17 @@
     refreshOrder();
   }
 
-  function clearNewFiles() {
+  async function clearNewFiles() {
+    const count = $$('[data-media-card][data-source="file"]', getGrid()).length;
+    if (!count) return;
+    const ok = await askRemoval({
+      title: "Xóa ảnh mới",
+      message: `Bạn có muốn loại bỏ cả ${count} ảnh mới đã chọn?`,
+      detail: "Các ảnh đã lưu trước đó không bị ảnh hưởng.",
+      confirmText: "Xóa ảnh mới",
+      tone: "danger"
+    });
+    if (!ok) return;
     selectedFiles = [];
     syncFileInput();
 
@@ -442,7 +471,7 @@
       }
     });
 
-    root.addEventListener("click", (event) => {
+    root.addEventListener("click", async (event) => {
       if (event.target.closest(SELECTOR.pick)) {
         event.preventDefault();
         input.click();
@@ -458,13 +487,13 @@
       const removeBtn = event.target.closest("[data-media-remove]");
       if (removeBtn) {
         event.preventDefault();
-        removeCard(removeBtn.closest("[data-media-card]"));
+        await removeCard(removeBtn.closest("[data-media-card]"));
         return;
       }
 
       if (event.target.closest(SELECTOR.clearNew)) {
         event.preventDefault();
-        clearNewFiles();
+        await clearNewFiles();
       }
     });
 

@@ -67,6 +67,82 @@ class SettingModel:
             "logo_url": "",
             "banner_url": "",
         },
+        "size_charts": {
+            "items": [],
+        },
+        "navigation": {
+            "navbar": {
+                "brand_label": "GUAMAISON",
+                "transparent_home": True,
+                "items": [
+                    {"id": "shop", "label": "Shop", "url": "/shop", "kind": "products", "enabled": True, "new_tab": False},
+                    {"id": "collections", "label": "Collection", "url": "/collections", "kind": "collections", "enabled": True, "new_tab": False},
+                    {"id": "vouchers", "label": "Voucher", "url": "/vouchers", "kind": "link", "enabled": True, "new_tab": False},
+                    {"id": "contact", "label": "Contact", "url": "/contact", "kind": "link", "enabled": True, "new_tab": False},
+                    {"id": "about", "label": "About", "url": "/about", "kind": "link", "enabled": True, "new_tab": False},
+                ],
+            },
+            "product_menu": {
+                "heading": "Shop",
+                "show_new_arrivals": True,
+                "new_arrivals_label": "New Arrival",
+                "new_arrivals_url": "/shop?sort=new",
+                "show_all_products": True,
+                "all_products_label": "All Products",
+                "all_products_url": "/shop",
+                "show_categories": True,
+                "category_mode": "automatic",
+                "category_limit": 12,
+                "selected_category_ids": [],
+            },
+            "footer": {
+                "kicker": "Official Online Store",
+                "seal": "Curated Fashion / Vietnam",
+                "brand_name": "GUAMAISON",
+                "description": "GUAMAISON mang đến những thiết kế thời trang chọn lọc, tối giản và hiện đại, dành cho phong cách sống tinh tế mỗi ngày.",
+                "newsletter_enabled": True,
+                "newsletter_placeholder": "Địa chỉ email",
+                "newsletter_button_label": "Đăng ký",
+                "columns": [
+                    {
+                        "id": "column-1",
+                        "title": "Mua sắm",
+                        "links": [
+                            {"id": "shopping-products", "label": "Sản phẩm", "url": "/shop", "new_tab": False},
+                            {"id": "shopping-new", "label": "Hàng mới", "url": "/shop?sort=new", "new_tab": False},
+                            {"id": "shopping-collections", "label": "Bộ sưu tập", "url": "/collections", "new_tab": False},
+                            {"id": "shopping-favorites", "label": "Yêu thích", "url": "/profile/favorites", "new_tab": False},
+                        ],
+                    },
+                    {
+                        "id": "column-2",
+                        "title": "Hỗ trợ",
+                        "links": [
+                            {"id": "support-contact", "label": "Liên hệ", "url": "/contact", "new_tab": False},
+                            {"id": "support-shipping", "label": "Vận chuyển", "url": "#", "new_tab": False},
+                            {"id": "support-returns", "label": "Đổi trả", "url": "#", "new_tab": False},
+                            {"id": "support-privacy", "label": "Bảo mật", "url": "#", "new_tab": False},
+                        ],
+                    },
+                ],
+                "contact_title": "Thông tin",
+                "contact_text": "GUAMAISON\nOfficial Online Store\nVietnam",
+                "contact_email": "support@guamaison.vn",
+                "socials": {
+                    "instagram": "#",
+                    "facebook": "#",
+                    "tiktok": "#",
+                    "youtube": "#",
+                    "pinterest": "#",
+                },
+                "copyright": "© 2026 GUAMAISON. All Rights Reserved.",
+                "bottom_links": [
+                    {"id": "terms", "label": "Terms", "url": "#", "new_tab": False},
+                    {"id": "privacy", "label": "Privacy", "url": "#", "new_tab": False},
+                    {"id": "cookies", "label": "Cookies", "url": "#", "new_tab": False},
+                ],
+            },
+        },
     }
 
     # Danh sách section hợp lệ — chặn đứng mã độc phá hoại payload cấu trúc bảng
@@ -77,6 +153,8 @@ class SettingModel:
         "shipping_rules",
         "language",
         "admin_ui",
+        "size_charts",
+        "navigation",
     ]
 
     # ═══════════════════════════════════════════════════════════════

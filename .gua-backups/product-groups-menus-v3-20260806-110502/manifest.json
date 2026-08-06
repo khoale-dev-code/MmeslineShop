@@ -1,0 +1,24 @@
+{
+    "feature":  "product-groups-menus-v3",
+    "created_at":  "2026-08-06T11:05:03.0011114+07:00",
+    "project_root":  "D:\\freetime\\fashion_store_2026\\fashion_store",
+    "modified_files":  [
+                           "app/controllers/admin/menus.py",
+                           "app/controllers/admin/products.py",
+                           "app/controllers/product_controller.py",
+                           "app/models/collection_model.py",
+                           "app/models/navigation_model.py",
+                           "app/static/admin/js/menus.js",
+                           "app/templates/admin/collection_form.html",
+                           "app/templates/admin/collections.html",
+                           "app/templates/admin/menus/index.html",
+                           "app/templates/admin/products/partials/_form_relations.html",
+                           "app/templates/partials/navbar.html",
+                           "app/templates/products/collections.html",
+                           "app/templates/products/index.html",
+                           "app/templates/products/shop.html"
+                       ],
+    "new_files":  [
+                      "app/models/product_group_model.py"
+                  ]
+}

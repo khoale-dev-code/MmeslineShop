@@ -29,6 +29,7 @@ def _env_enabled(name: str, default: str = "false") -> bool:
 from app.models.cart_model import CartModel
 from app.models.category_model import CategoryModel
 from app.models.setting_model import SettingModel
+from app.models.navigation_model import NavigationModel
 
 
 ERROR_TEMPLATE = """<!DOCTYPE html>
@@ -362,6 +363,8 @@ def create_app() -> Flask:
         pending_returns = 0
         system_settings = {}
         unread_notification_count = 0
+        navigation_config = NavigationModel.normalize_config({})
+        menu_product_categories = []
 
         user_id = session.get("user_id")
         role = session.get("role") or session.get("user_role")
@@ -395,6 +398,13 @@ def create_app() -> Flask:
         except Exception:
             categories = []
 
+        navigation_config = NavigationModel.normalize_config(
+            system_settings.get("navigation") if isinstance(system_settings, dict) else {}
+        )
+        menu_product_categories = NavigationModel.select_product_categories(
+            navigation_config, categories
+        )
+
         if role == "admin":
             try:
                 from app.utils.supabase_client import get_supabase_admin
@@ -423,8 +433,10 @@ def create_app() -> Flask:
             "system_settings": system_settings,
             "unread_notification_count": unread_notification_count,
             "admin_notification_count": unread_notification_count,
-            "shop_name": "GUAMAISON",
-            "shop_description": "GUAMAISON | Official Online Store",
+            "site_navigation": navigation_config,
+            "menu_product_categories": menu_product_categories,
+            "shop_name": navigation_config["navbar"].get("brand_label") or "GUAMAISON",
+            "shop_description": navigation_config["footer"].get("description") or "GUAMAISON | Official Online Store",
         }
 
     # 11. Error Handlers

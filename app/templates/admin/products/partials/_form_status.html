@@ -6,15 +6,12 @@
   Đồng bộ backend:
   - is_active
   - is_featured
-  - allow_backorder
-  - low_stock_threshold
 
   Lưu ý:
   - Checkbox không tick sẽ không gửi field.
   - Controller đang xử lý bằng:
     "is_active": "is_active" in form
     "is_featured": "is_featured" in form
-    "allow_backorder": "allow_backorder" in form
 #}
 
 {% set p = product if product is defined else p|default(None) %}
@@ -34,24 +31,6 @@
     {% set is_featured = p.get('is_featured', false) %}
   {% else %}
     {% set is_featured = p.is_featured %}
-  {% endif %}
-{% endif %}
-
-{% set allow_backorder = false %}
-{% if p %}
-  {% if p is mapping %}
-    {% set allow_backorder = p.get('allow_backorder', false) %}
-  {% else %}
-    {% set allow_backorder = p.allow_backorder %}
-  {% endif %}
-{% endif %}
-
-{% set low_stock_threshold = 5 %}
-{% if p %}
-  {% if p is mapping %}
-    {% set low_stock_threshold = p.get('low_stock_threshold', 5) %}
-  {% else %}
-    {% set low_stock_threshold = p.low_stock_threshold %}
   {% endif %}
 {% endif %}
 
@@ -102,45 +81,13 @@
       >
     </label>
 
-    {# Cho phép đặt trước #}
-    <label class="mm-switch-row mm-field-block">
+    <a href="#section-pricing" class="mm-switch-row mm-field-block no-underline">
       <span>
-        <strong>Cho phép đặt trước</strong>
-        <small>
-          Khách vẫn có thể thêm vào giỏ hàng khi sản phẩm hoặc biến thể đã hết tồn kho.
-        </small>
+        <strong>Thiết lập tồn kho</strong>
+        <small>Ngưỡng cảnh báo và cho phép đặt khi hết hàng được quản lý tập trung tại phần Giá & kho.</small>
       </span>
-
-      <input
-        type="checkbox"
-        name="allow_backorder"
-        value="1"
-        {% if allow_backorder %}checked{% endif %}
-      >
-    </label>
-
-    {# Ngưỡng cảnh báo tồn kho #}
-    <div class="mm-field-block">
-      <label class="mm-label" for="low_stock_threshold">
-        Ngưỡng cảnh báo tồn kho thấp
-      </label>
-
-      <input
-        id="low_stock_threshold"
-        type="number"
-        name="low_stock_threshold"
-        min="0"
-        step="1"
-        value="{{ low_stock_threshold or 5 }}"
-        class="mm-input"
-        placeholder="Ví dụ: 5"
-      >
-
-      <p class="mt-2 text-[11px] font-semibold leading-relaxed text-[#9b7b63]">
-        Khi tổng tồn kho nhỏ hơn hoặc bằng số này, storefront sẽ hiển thị trạng thái
-        “Sắp hết hàng”.
-      </p>
-    </div>
+      <i class="fa-solid fa-arrow-right text-[#9b7b63]"></i>
+    </a>
 
     {# Gợi ý logic featured #}
     <div class="rounded-[18px] border border-[#eadfd4] bg-[#fffaf5] p-4">

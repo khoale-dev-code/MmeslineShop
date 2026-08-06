@@ -20,10 +20,12 @@ Quản lý Admin:
 """
 
 import logging
+import json
 import re
 import unicodedata
 from datetime import datetime, timezone
 from typing import Any
+from urllib.parse import urlparse
 
 from flask import (
     current_app,
@@ -37,7 +39,11 @@ from flask import (
 from app.middleware.auth_required import admin_required
 from app.models.category_model import CategoryModel
 from app.models.collection_model import CollectionModel
+from app.models.navigation_model import NavigationModel
 from app.models.product_model import ProductModel
+from app.models.product_group_model import ProductGroupModel
+from app.models.size_chart_model import SizeChartModel
+from app.services.audit_service import AuditService
 from app.utils.supabase_client import get_supabase_admin
 
 from . import admin_bp
@@ -147,6 +153,15 @@ def _none_if_empty(value: Any) -> str | None:
     return text or None
 
 
+def _safe_http_url(value: Any) -> str:
+    """Chỉ nhận URL ảnh/video http(s), chặn javascript/data URL từ request sửa tay."""
+    value = _clean_text(value, 1000)
+    if not value:
+        return ""
+    parsed = urlparse(value)
+    return value if parsed.scheme.lower() in {"http", "https"} and parsed.netloc else ""
+
+
 def _upper_or_none(value: Any, max_len: int = 80) -> str | None:
     text = _clean_text(value, max_len).upper()
     return text or None
@@ -188,6 +203,16 @@ def _get_existing_tags(limit: int = 500) -> list[str]:
     except Exception as e:
         logger.warning("[products] Không lấy được existing tags: %s", e)
 
+    # Tên bảng size cũng là tag liên kết. Luôn đưa vào danh sách gợi ý kể cả
+    # khi chưa có sản phẩm nào dùng để chủ shop không phải gõ lại thủ công.
+    try:
+        for chart in SizeChartModel.get_all(active_only=True):
+            name = _clean_text(chart.get("name"), 60)
+            if name:
+                tags.add(name)
+    except Exception as e:
+        logger.warning("[products] Không lấy được tag bảng size: %s", e)
+
     return sorted(tags, key=lambda x: x.lower())
 
 
@@ -199,18 +224,106 @@ def _render_product_form(
     tag_options: list[str],
     status_code: int | None = None,
 ):
+    inventory_snapshot = None
+    if product and product.get("id"):
+        inventory_snapshot = ProductModel.get_inventory_snapshot(product["id"])
+
     response = render_template(
         "admin/product_form.html",
         product=product,
         cats=cats,
         colles=colles,
         tag_options=tag_options,
+        size_charts=SizeChartModel.get_all(active_only=True),
+        inventory_snapshot=inventory_snapshot,
     )
 
     if status_code:
         return response, status_code
 
     return response
+
+
+def _inventory_state_from_embedded(product: dict) -> dict:
+    """Tạo trạng thái kho cho danh sách sản phẩm mà không phát sinh truy vấn N+1."""
+    product_stock = _safe_int(product.get("stock"), default=0, min_value=0)
+    variants = product.get("product_variants") or []
+    variant_stock = sum(
+        _safe_int(row.get("stock"), default=0, min_value=0)
+        for row in variants
+        if isinstance(row, dict)
+    )
+    total_stock = max(product_stock, variant_stock)
+    return {
+        "known": True,
+        "product_stock": product_stock,
+        "variant_stock": variant_stock,
+        "total_stock": total_stock,
+        "variant_count": len(variants),
+        "can_delete": product_stock == 0 and variant_stock == 0,
+    }
+
+
+def _audit_product_action(
+    action: str,
+    product_id: str,
+    *,
+    old_values: dict | None = None,
+    new_values: dict | None = None,
+) -> None:
+    """Audit không được phép làm hỏng luồng kho/xóa nếu bảng log tạm lỗi."""
+    try:
+        AuditService.log_action(
+            action=action,
+            table_name="products",
+            record_id=product_id,
+            old_values=old_values,
+            new_values=new_values,
+        )
+    except Exception as exc:
+        logger.warning("[products] Không ghi được audit %s/%s: %s", action, product_id, exc)
+
+
+def _blocking_removed_variants(product_id: str) -> list[dict]:
+    """Chặn xóa biến thể đang có tồn, kể cả request được gửi ngoài giao diện."""
+    submitted_ids = {
+        _clean_text(value, 100)
+        for value in _getlist("v_id[]")
+        if _clean_text(value, 100) and not _clean_text(value, 100).startswith("v_")
+    }
+    try:
+        rows = (
+            _db_admin()
+            .table("product_variants")
+            .select("id,size,color_name,sku,stock")
+            .eq("product_id", product_id)
+            .execute()
+            .data
+            or []
+        )
+    except Exception as exc:
+        logger.error("[products] Không xác minh được biến thể trước khi lưu: %s", exc, exc_info=True)
+        return [{"label": "Không thể xác minh tồn kho biến thể", "stock": "?"}]
+
+    blocking = []
+    for row in rows:
+        row_id = str(row.get("id") or "")
+        stock = _safe_int(row.get("stock"), default=0, min_value=0)
+        if row_id in submitted_ids or stock <= 0:
+            continue
+        blocking.append({
+            "id": row_id,
+            "label": " / ".join(
+                value
+                for value in [
+                    _clean_text(row.get("color_name"), 80),
+                    _clean_text(row.get("size"), 50),
+                ]
+                if value
+            ) or _clean_text(row.get("sku"), 80) or "Biến thể",
+            "stock": stock,
+        })
+    return blocking
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -276,54 +389,137 @@ def _get_or_create_collection(db, name: str) -> str | None:
         return None
 
     slug = _slugify_vi(name)
-
     try:
         existed = (
-            db.table("collections")
-            .select("id")
-            .eq("slug", slug)
-            .limit(1)
-            .execute()
-            .data
+            db.table("collections").select("id").eq("slug", slug).limit(1).execute().data
             or []
         )
         if existed:
             return existed[0]["id"]
-
         existed = (
-            db.table("collections")
-            .select("id")
-            .eq("name", name)
-            .limit(1)
-            .execute()
-            .data
+            db.table("collections").select("id").eq("name", name).limit(1).execute().data
             or []
         )
         if existed:
             return existed[0]["id"]
-
         created = (
             db.table("collections")
             .insert({
-                "name": name,
-                "slug": slug,
-                "description": "",
-                "is_active": True,
-                "show_on_home": False,
-                "image_url": None,
-                "video_url": None,
-                "sort_order": 0,
+                "name": name, "slug": slug, "description": "", "is_active": True,
+                "show_on_home": False, "image_url": None, "video_url": None, "sort_order": 0,
             })
-            .execute()
-            .data
+            .execute().data
             or []
         )
-
         return created[0]["id"] if created else None
-
     except Exception as e:
         logger.error("[products] Không tạo được collection '%s': %s", name, e, exc_info=True)
         return None
+
+
+def _collection_product_picker(collection_id: str | None = None) -> list[dict]:
+    """Danh sách sản phẩm cho màn hình tạo/sửa nhóm sản phẩm."""
+    db = _db_admin()
+    try:
+        products = (
+            db.table("products").select("id,name,slug,thumbnail_url,is_active")
+            .order("name").limit(2000).execute().data or []
+        )
+        selected_ids: set[str] = set()
+        if collection_id:
+            rows = (
+                db.table("collection_products").select("product_id")
+                .eq("collection_id", collection_id).execute().data or []
+            )
+            selected_ids = {str(row.get("product_id")) for row in rows if row.get("product_id")}
+        for product in products:
+            product["selected_in_group"] = str(product.get("id")) in selected_ids
+        return products
+    except Exception as exc:
+        logger.warning("[collections] Không tải được product picker: %s", exc)
+        return []
+
+
+def _collection_group_payload(form: dict) -> dict[str, Any]:
+    """Đọc và chuẩn hóa điều kiện nhóm từ form; model sẽ kiểm tra lần cuối."""
+    raw_rules: Any = []
+    try:
+        raw_rules = json.loads(_clean_text(form.get("rules_json"), 12000) or "[]")
+    except (TypeError, ValueError, json.JSONDecodeError):
+        raw_rules = []
+
+    return ProductGroupModel.normalize_group({
+        "selection_mode": form.get("selection_mode"),
+        "match_mode": form.get("match_mode"),
+        "rules": raw_rules,
+        "template": form.get("template"),
+    })
+
+
+def _collection_form_context(cat: dict | None, product_picker: list[dict], group: dict | None = None) -> dict:
+    menu_config = NavigationModel.get_config(force_reload=True)
+    collection_id = str((cat or {}).get("id") or "")
+    return {
+        "cat": cat,
+        "collection_products_catalog": product_picker,
+        "group_config": group or ProductGroupModel.get_group(collection_id),
+        "menu_library": menu_config.get("menus") or [],
+        "menu_usage": NavigationModel.find_target_usage(menu_config, "collection", collection_id) if collection_id else [],
+    }
+
+
+def _add_collection_to_menu(collection: dict, form: dict) -> None:
+    if "add_to_menu" not in form:
+        return
+    menu_handle = _clean_text(form.get("menu_handle"), 100)
+    if not menu_handle:
+        return
+    NavigationModel.upsert_target_link(
+        menu_handle=menu_handle,
+        link_type="collection",
+        target_id=str(collection.get("id") or ""),
+        label=_clean_text(form.get("menu_label"), 100) or _clean_text(collection.get("name"), 100),
+        parent_id=_clean_text(form.get("menu_parent_id"), 100),
+    )
+
+
+def _invalidate_storefront_catalog_cache() -> None:
+    """Cho thay đổi nhóm/sản phẩm xuất hiện ngay, không chờ cache storefront hết hạn."""
+    try:
+        from app.controllers import product_controller
+        cache = getattr(product_controller, "_CACHE", None)
+        if isinstance(cache, dict):
+            cache.clear()
+    except Exception as exc:
+        logger.debug("[products] Không xóa được product controller cache: %s", exc)
+    try:
+        from app.context_processors import invalidate_shared_cache
+        invalidate_shared_cache()
+    except Exception as exc:
+        logger.debug("[products] Không xóa được shared context cache: %s", exc)
+
+
+def _sync_collection_members(collection_id: str) -> int:
+    db = _db_admin()
+    product_ids = _unique_keep_order(
+        request.form.getlist("product_ids[]") or request.form.getlist("product_ids")
+    )[:2000]
+    if product_ids:
+        valid_ids: set[str] = set()
+        for start in range(0, len(product_ids), 200):
+            valid_rows = (
+                db.table("products").select("id")
+                .in_("id", product_ids[start:start + 200]).execute().data or []
+            )
+            valid_ids.update(str(row.get("id")) for row in valid_rows if row.get("id"))
+        product_ids = [product_id for product_id in product_ids if product_id in valid_ids]
+    db.table("collection_products").delete().eq("collection_id", collection_id).execute()
+    for start in range(0, len(product_ids), 200):
+        db.table("collection_products").insert([
+            {"collection_id": collection_id, "product_id": product_id}
+            for product_id in product_ids[start:start + 200]
+        ]).execute()
+    return len(product_ids)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -519,6 +715,7 @@ def _get_indexed(values: list[Any], index: int, default: Any = "") -> Any:
 def _save_product_variants(db, product_id: str) -> None:
     """
     Field nhận từ form:
+    - v_id[]
     - v_color[]
     - v_color_hex[]
     - v_size[]
@@ -529,8 +726,7 @@ def _save_product_variants(db, product_id: str) -> None:
     - v_sku[]
     - v_barcode[]
     """
-    db.table("product_variants").delete().eq("product_id", product_id).execute()
-
+    ids = _getlist("v_id[]")
     colors = _getlist("v_color[]")
     hexes = _getlist("v_color_hex[]")
     sizes = _getlist("v_size[]")
@@ -541,8 +737,19 @@ def _save_product_variants(db, product_id: str) -> None:
     skus = _getlist("v_sku[]")
     barcodes = _getlist("v_barcode[]")
 
+    existing_rows = (
+        db.table("product_variants")
+        .select("id,stock")
+        .eq("product_id", product_id)
+        .execute()
+        .data
+        or []
+    )
+    existing = {str(row.get("id")): row for row in existing_rows if row.get("id")}
+    submitted_existing_ids: set[str] = set()
     total_stock = 0
-    variants = []
+    inserts = []
+    updates: list[tuple[str, dict]] = []
 
     # Form variant lấy size làm trục chính.
     for i, raw_size in enumerate(sizes):
@@ -566,7 +773,7 @@ def _save_product_variants(db, product_id: str) -> None:
         variant_sku = _upper_or_none(_get_indexed(skus, i))
         variant_barcode = _upper_or_none(_get_indexed(barcodes, i))
 
-        variants.append({
+        payload = {
             "product_id": product_id,
             "size": size,
             "color_name": color_name,
@@ -578,10 +785,43 @@ def _save_product_variants(db, product_id: str) -> None:
             "sku": variant_sku,
             "barcode": variant_barcode,
             "sort_order": i,
-        })
+        }
 
-    if variants:
-        db.table("product_variants").insert(variants).execute()
+        raw_id = _clean_text(_get_indexed(ids, i), 100)
+        if raw_id in existing:
+            submitted_existing_ids.add(raw_id)
+            payload.pop("product_id", None)
+            updates.append((raw_id, payload))
+        else:
+            inserts.append(payload)
+
+    # Không xóa trắng rồi tạo lại: giữ ID ổn định cho lịch sử kho và chặn xóa
+    # biến thể có tồn ngay tại backend nếu request cố tình bỏ qua giao diện.
+    for variant_id, payload in updates:
+        db.table("product_variants").update(payload).eq("id", variant_id).execute()
+
+    if inserts:
+        db.table("product_variants").insert(inserts).execute()
+
+    for variant_id, old_row in existing.items():
+        if variant_id in submitted_existing_ids:
+            continue
+        old_stock = _safe_int(old_row.get("stock"), default=0, min_value=0)
+        if old_stock > 0:
+            raise ValueError(
+                "Không thể xóa biến thể còn tồn kho. Hãy điều chỉnh tồn về 0 trước."
+            )
+        deleted = (
+            db.table("product_variants")
+            .delete()
+            .eq("id", variant_id)
+            .eq("stock", 0)
+            .execute()
+        )
+        if not deleted.data:
+            raise ValueError(
+                "Tồn kho biến thể vừa thay đổi. Hệ thống đã dừng xóa để bảo vệ dữ liệu."
+            )
 
     db.table("products").update({"stock": total_stock}).eq("id", product_id).execute()
 
@@ -623,6 +863,8 @@ def _after_save_product(db, product_id: str, form: dict) -> None:
     _save_product_variants(db, product_id)
     _sync_product_categories(db, product_id, form)
     _sync_product_collections(db, product_id, form)
+    ProductGroupModel.sync_automatic_for_product(product_id)
+    _invalidate_storefront_catalog_cache()
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -676,6 +918,9 @@ def products():
         products_list = result.data or []
         total = result.count or 0
 
+        for product in products_list:
+            product["inventory_state"] = _inventory_state_from_embedded(product)
+
     except Exception as e:
         products_list, total = [], 0
         current_app.logger.error("[Admin Products] Lỗi truy vấn: %s", e, exc_info=True)
@@ -697,7 +942,7 @@ def products():
 @handle_errors("Lỗi hệ thống.", "admin.products")
 def add_product():
     cats = CategoryModel.get_all()
-    colles = CollectionModel.get_all(admin_mode=True)
+    colles = ProductGroupModel.enrich_collections(CollectionModel.get_all(admin_mode=True), include_counts=False)
     tag_options = _get_existing_tags()
 
     if request.method == "POST":
@@ -738,7 +983,9 @@ def add_product():
             return redirect(url_for("admin.edit_product", pid=product_id))
 
         flash(f"Đã thêm sản phẩm: {payload['name']}", "success")
-        return redirect(url_for("admin.products"))
+        if _clean_text(form.get("save_action")) == "list":
+            return redirect(url_for("admin.products"))
+        return redirect(url_for("admin.edit_product", pid=product_id))
 
     return _render_product_form(
         product=None,
@@ -754,7 +1001,7 @@ def add_product():
 def edit_product(pid):
     product = ProductModel.get_by_id(pid)
     cats = CategoryModel.get_all()
-    colles = CollectionModel.get_all(admin_mode=True)
+    colles = ProductGroupModel.enrich_collections(CollectionModel.get_all(admin_mode=True), include_counts=False)
     tag_options = _get_existing_tags()
 
     if not product:
@@ -777,6 +1024,26 @@ def edit_product(pid):
                 status_code=400,
             )
 
+        blocking_variants = _blocking_removed_variants(pid)
+        if blocking_variants:
+            preview = ", ".join(
+                f"{row.get('label')} (tồn {row.get('stock')})"
+                for row in blocking_variants[:3]
+            )
+            flash(
+                "Chưa thể xóa biến thể đang còn tồn kho: " + preview + ". "
+                "Hãy điều chỉnh tồn về 0 ở công đoạn riêng rồi quay lại xóa biến thể.",
+                "warning",
+            )
+            return redirect(
+                url_for(
+                    "admin.adjust_product_inventory",
+                    pid=pid,
+                    intent="edit",
+                    variant_id=blocking_variants[0].get("id"),
+                )
+            )
+
         updated = ProductModel.update(pid, payload)
 
         if not updated:
@@ -796,8 +1063,10 @@ def edit_product(pid):
             flash("Sản phẩm đã lưu nhưng có lỗi khi cập nhật ảnh / biến thể / danh mục.", "warning")
             return redirect(url_for("admin.edit_product", pid=pid))
 
-        flash("Lưu sản phẩm thành công.", "success")
-        return redirect(url_for("admin.products"))
+        flash("Cập nhật sản phẩm thành công.", "success")
+        if _clean_text(form.get("save_action")) == "list":
+            return redirect(url_for("admin.products"))
+        return redirect(url_for("admin.edit_product", pid=pid))
 
     return _render_product_form(
         product=product,
@@ -807,14 +1076,172 @@ def edit_product(pid):
     )
 
 
+@admin_bp.route("/products/<pid>/inventory-adjustment", methods=["GET", "POST"])
+@admin_required
+@handle_errors("Lỗi điều chỉnh tồn kho.", "admin.products")
+def adjust_product_inventory(pid):
+    """Công đoạn bắt buộc đưa tồn về 0 trước khi xóa sản phẩm/biến thể."""
+    product = ProductModel.get_by_id(pid)
+    if not product:
+        flash("Sản phẩm không tồn tại.", "danger")
+        return redirect(url_for("admin.products"))
+
+    intent = _clean_text(request.values.get("intent"), 20).lower()
+    if intent not in {"delete", "edit"}:
+        intent = "delete"
+    variant_id = _clean_text(request.values.get("variant_id"), 100) if intent == "edit" else ""
+
+    inventory = ProductModel.get_inventory_snapshot(pid)
+    if not inventory.get("known"):
+        flash(
+            "Không thể đọc tồn kho. Hệ thống đã dừng thao tác để tránh xóa nhầm dữ liệu.",
+            "danger",
+        )
+        return redirect(url_for("admin.edit_product", pid=pid))
+
+    target_variant = None
+    if variant_id:
+        target_variant = next(
+            (
+                row for row in (inventory.get("inventory_rows") or [])
+                if str(row.get("id") or "") == variant_id
+            ),
+            None,
+        )
+        if not target_variant:
+            flash("Biến thể cần điều chỉnh không còn tồn tại.", "warning")
+            return redirect(url_for("admin.edit_product", pid=pid))
+
+    def redirect_adjust():
+        params = {"pid": pid, "intent": intent}
+        if variant_id:
+            params["variant_id"] = variant_id
+        return redirect(url_for("admin.adjust_product_inventory", **params))
+
+    if request.method == "POST":
+        if request.form.get("confirm_adjust") != "1":
+            flash("Bạn cần xác nhận đã kiểm tra số lượng trước khi điều chỉnh.", "warning")
+            return redirect_adjust()
+
+        reason_code = _clean_text(request.form.get("reason"), 40).lower()
+        reason_labels = {
+            "delete_product": "Điều chỉnh trước khi xóa sản phẩm",
+            "remove_variant": "Điều chỉnh trước khi xóa biến thể",
+            "stocktake": "Sai lệch kiểm kho",
+            "damaged": "Hàng hỏng / thất thoát",
+            "other": "Lý do khác",
+        }
+        if reason_code not in reason_labels:
+            flash("Vui lòng chọn lý do điều chỉnh tồn kho.", "warning")
+            return redirect_adjust()
+
+        note = _clean_text(request.form.get("note"), 500)
+        if reason_code == "other" and not note:
+            flash("Vui lòng nhập ghi chú cho lý do khác.", "warning")
+            return redirect_adjust()
+
+        result = ProductModel.adjust_inventory_to_zero(
+            pid,
+            expected_fingerprint=_clean_text(request.form.get("inventory_fingerprint"), 100),
+            variant_id=variant_id,
+        )
+        if not result.get("ok"):
+            flash(result.get("message") or "Không thể điều chỉnh tồn kho.", "danger")
+            return redirect_adjust()
+
+        after_inventory = result.get("after") or {}
+        audit_values = {
+            "reason": reason_labels[reason_code],
+            "reason_code": reason_code,
+            "note": note,
+            "intent": intent,
+            "product_stock": after_inventory.get("product_stock", 0),
+            "variant_stock": after_inventory.get("variant_stock", 0),
+            "variant_id": variant_id,
+            "changed_variants": result.get("changed_variants") or [],
+        }
+        _audit_product_action(
+            "INVENTORY_ADJUST_TO_ZERO",
+            pid,
+            old_values=result.get("before"),
+            new_values=audit_values,
+        )
+
+        submit_action = _clean_text(request.form.get("submit_action"), 30).lower()
+        if submit_action == "adjust_delete" and intent == "delete":
+            before_delete = ProductModel.get_by_id(pid) or product
+            if ProductModel.delete(pid, permanent=False, require_zero_stock=True):
+                _audit_product_action(
+                    "DELETE",
+                    pid,
+                    old_values=before_delete,
+                    new_values={"deleted_at": _now_iso(), "is_active": False},
+                )
+                flash(
+                    "Đã điều chỉnh toàn bộ tồn kho về 0 và đưa sản phẩm vào thùng rác.",
+                    "success",
+                )
+                return redirect(url_for("admin.products"))
+
+            flash(
+                "Tồn kho đã về 0 nhưng sản phẩm chưa được xóa vì dữ liệu vừa thay đổi. "
+                "Hãy kiểm tra lại rồi bấm Xóa sản phẩm.",
+                "warning",
+            )
+            return redirect(url_for("admin.edit_product", pid=pid))
+
+        flash("Đã điều chỉnh toàn bộ tồn kho về 0. Bây giờ có thể thực hiện thao tác xóa.", "success")
+        return redirect(url_for("admin.edit_product", pid=pid))
+
+    return render_template(
+        "admin/products/inventory_adjustment.html",
+        product=product,
+        inventory=inventory,
+        intent=intent,
+        target_variant=target_variant,
+        adjustment_total=(target_variant.get("stock", 0) if target_variant else inventory.get("total_stock", 0)),
+    )
+
+
 @admin_bp.route("/products/delete/<pid>", methods=["POST"])
 @admin_required
 @handle_errors("Lỗi khi xóa.", "admin.products")
 def delete_product(pid):
-    if ProductModel.delete(pid, permanent=False):
+    product = ProductModel.get_by_id(pid)
+    if not product:
+        flash("Sản phẩm không tồn tại.", "danger")
+        return redirect(url_for("admin.products"))
+
+    inventory = ProductModel.get_inventory_snapshot(pid)
+    if not inventory.get("known"):
+        flash(
+            "Không thể xác minh tồn kho nên hệ thống đã chặn xóa để bảo vệ dữ liệu. "
+            "Vui lòng thử lại hoặc kiểm tra kết nối database.",
+            "danger",
+        )
+        return redirect(url_for("admin.edit_product", pid=pid))
+
+    if not inventory.get("can_delete"):
+        flash(
+            f"Chưa thể xóa sản phẩm vì tồn kho hiện tại là {inventory.get('total_stock', 0)}. "
+            "Hãy hoàn tất công đoạn điều chỉnh tồn kho trước khi xóa.",
+            "warning",
+        )
+        return redirect(url_for("admin.adjust_product_inventory", pid=pid, intent="delete"))
+
+    if ProductModel.delete(pid, permanent=False, require_zero_stock=True):
+        _audit_product_action(
+            "DELETE",
+            pid,
+            old_values=product,
+            new_values={"deleted_at": _now_iso(), "is_active": False},
+        )
         flash("Đã đưa sản phẩm vào thùng rác.", "success")
     else:
-        flash("Lỗi khi xóa sản phẩm.", "danger")
+        flash(
+            "Không thể xóa sản phẩm. Tồn kho có thể vừa thay đổi; hãy tải lại trang và kiểm tra lại.",
+            "danger",
+        )
 
     return redirect(url_for("admin.products"))
 
@@ -931,9 +1358,12 @@ def delete_category(cat_id):
 @admin_bp.route("/collections")
 @admin_required
 def collections():
+    collection_rows = ProductGroupModel.enrich_collections(
+        CollectionModel.get_all(admin_mode=True)
+    )
     return render_template(
         "admin/collections.html",
-        colles=CollectionModel.get_all(admin_mode=True),
+        colles=collection_rows,
     )
 
 
@@ -941,22 +1371,35 @@ def collections():
 @admin_required
 @handle_errors("Lỗi thêm bộ sưu tập.", "admin.collections")
 def add_collection():
+    product_picker = _collection_product_picker()
     if request.method == "POST":
         form = _form()
 
         name = _clean_text(form.get("name"), 120)
-        slug = _clean_text(form.get("slug"), 120) or _slugify_vi(name)
-        description = _clean_text(form.get("description"), 1000)
+        slug = _slugify_vi(_clean_text(form.get("slug"), 120) or name)
+        description = _clean_text(form.get("description"), 12000)
+        meta_title = _clean_text(form.get("meta_title"), 160) or name
+        meta_description = _clean_text(form.get("meta_description"), 320)
         is_active = "is_active" in form
         show_on_home = "show_on_home" in form
+        group_config = _collection_group_payload(form)
 
         if not name:
-            flash("Tên bộ sưu tập không được để trống.", "danger")
-            return render_template("admin/collection_form.html", cat=None)
+            flash("Tên nhóm sản phẩm không được để trống.", "danger")
+            return render_template("admin/collection_form.html", **_collection_form_context(None, product_picker, group_config))
+
+        if group_config["selection_mode"] == "automatic" and not group_config["rules"]:
+            flash("Nhóm tự động cần ít nhất một điều kiện hợp lệ.", "danger")
+            return render_template("admin/collection_form.html", **_collection_form_context(None, product_picker, group_config))
 
         image_url, video_url = None, None
-        ext_url = _clean_text(form.get("external_url"))
+        raw_ext_url = _clean_text(form.get("external_url"), 1000)
+        ext_url = _safe_http_url(raw_ext_url)
         file = request.files.get("collection_media")
+
+        if raw_ext_url and not ext_url:
+            flash("URL ảnh/video phải bắt đầu bằng http:// hoặc https://.", "danger")
+            return render_template("admin/collection_form.html", **_collection_form_context(None, product_picker, group_config))
 
         if ext_url:
             lowered = ext_url.lower()
@@ -977,7 +1420,7 @@ def add_collection():
                     "Không tải được media lên Storage. Kiểm tra bucket `store-assets`, service_role key, định dạng file hoặc dung lượng file.",
                     "danger",
                 )
-                return render_template("admin/collection_form.html", cat=None)
+                return render_template("admin/collection_form.html", **_collection_form_context(None, product_picker, group_config))
 
             if (file.content_type or "").startswith("video/"):
                 video_url = uploaded_url
@@ -993,16 +1436,35 @@ def add_collection():
             "image_url": image_url,
             "video_url": video_url,
             "sort_order": 0,
+            "meta_title": meta_title,
+            "meta_description": meta_description,
         })
 
         if not created:
-            flash("Không tạo được bộ sưu tập. Vui lòng kiểm tra slug có bị trùng hoặc database bị chặn quyền.", "danger")
-            return render_template("admin/collection_form.html", cat=None)
+            flash("Không tạo được nhóm sản phẩm. Vui lòng kiểm tra đường dẫn có bị trùng.", "danger")
+            return render_template("admin/collection_form.html", **_collection_form_context(None, product_picker, group_config))
 
-        flash(f"Đã thêm bộ sưu tập: {name}", "success")
+        collection_id = str(created.get("id") or "")
+        settings_saved, group_config = ProductGroupModel.save_group(collection_id, group_config)
+        member_count = 0
+        if group_config["selection_mode"] == "automatic" and settings_saved:
+            member_count = ProductGroupModel.sync_collection(collection_id)
+        else:
+            member_count = _sync_collection_members(collection_id)
+
+        try:
+            _add_collection_to_menu(created, form)
+        except Exception as exc:
+            logger.warning("[collections] Nhóm đã tạo nhưng chưa thêm được vào menu: %s", exc)
+            flash("Nhóm đã tạo nhưng chưa thêm được vào menu. Bạn có thể thêm lại tại Menu & liên kết.", "warning")
+
+        if not settings_saved:
+            flash("Nhóm đã tạo nhưng chưa lưu được cấu hình điều kiện; hệ thống đang dùng chế độ thủ công.", "warning")
+        _invalidate_storefront_catalog_cache()
+        flash(f"Đã tạo nhóm sản phẩm “{name}” với {member_count} sản phẩm.", "success")
         return redirect(url_for("admin.collections"))
 
-    return render_template("admin/collection_form.html", cat=None)
+    return render_template("admin/collection_form.html", **_collection_form_context(None, product_picker))
 
 
 @admin_bp.route("/collections/edit/<cid>", methods=["GET", "POST"])
@@ -1010,6 +1472,8 @@ def add_collection():
 @handle_errors("Lỗi cập nhật lookbook.", "admin.collections")
 def edit_collection(cid):
     cat = CollectionModel.get_by_id(cid)
+    product_picker = _collection_product_picker(cid)
+    group_config = ProductGroupModel.get_group(cid)
 
     if not cat:
         flash("Bộ sưu tập không tồn tại.", "danger")
@@ -1019,20 +1483,37 @@ def edit_collection(cid):
         form = _form()
 
         name = _clean_text(form.get("name"), 120)
-        slug = _clean_text(form.get("slug"), 120) or _slugify_vi(name)
-        description = _clean_text(form.get("description"), 1000)
+        slug = _slugify_vi(_clean_text(form.get("slug"), 120) or name)
+        description = _clean_text(form.get("description"), 12000)
+        meta_title = _clean_text(form.get("meta_title"), 160) or name
+        meta_description = _clean_text(form.get("meta_description"), 320)
         is_active = "is_active" in form
         show_on_home = "show_on_home" in form
+        group_config = _collection_group_payload(form)
 
         if not name:
-            flash("Tên bộ sưu tập không được để trống.", "danger")
-            return render_template("admin/collection_form.html", cat=cat)
+            flash("Tên nhóm sản phẩm không được để trống.", "danger")
+            return render_template("admin/collection_form.html", **_collection_form_context(cat, product_picker, group_config))
+
+        if group_config["selection_mode"] == "automatic" and not group_config["rules"]:
+            flash("Nhóm tự động cần ít nhất một điều kiện hợp lệ.", "danger")
+            return render_template("admin/collection_form.html", **_collection_form_context(cat, product_picker, group_config))
 
         image_url = cat.get("image_url")
         video_url = cat.get("video_url")
 
-        ext_url = _clean_text(form.get("external_url"))
+        raw_ext_url = _clean_text(form.get("external_url"), 1000)
+        ext_url = _safe_http_url(raw_ext_url)
         file = request.files.get("collection_media")
+
+        if raw_ext_url and not ext_url:
+            flash("URL ảnh/video phải bắt đầu bằng http:// hoặc https://.", "danger")
+            return render_template("admin/collection_form.html", **_collection_form_context(cat, product_picker, group_config))
+
+        if "remove_media" in form:
+            CollectionModel.delete_media_from_url(image_url)
+            CollectionModel.delete_media_from_url(video_url)
+            image_url, video_url = None, None
 
         if ext_url:
             lowered = ext_url.lower()
@@ -1055,7 +1536,7 @@ def edit_collection(cid):
                     "Không tải được media lên Storage. Kiểm tra bucket `store-assets`, service_role key, định dạng file hoặc dung lượng file.",
                     "danger",
                 )
-                return render_template("admin/collection_form.html", cat=cat)
+                return render_template("admin/collection_form.html", **_collection_form_context(cat, product_picker, group_config))
 
             CollectionModel.delete_media_from_url(cat.get("image_url"))
             CollectionModel.delete_media_from_url(cat.get("video_url"))
@@ -1075,24 +1556,45 @@ def edit_collection(cid):
             "show_on_home": show_on_home,
             "image_url": image_url,
             "video_url": video_url,
+            "meta_title": meta_title,
+            "meta_description": meta_description,
         })
 
         if not updated:
             flash("Không cập nhật được bộ sưu tập. Vui lòng kiểm tra database hoặc slug bị trùng.", "danger")
-            return render_template("admin/collection_form.html", cat=cat)
+            return render_template("admin/collection_form.html", **_collection_form_context(cat, product_picker, group_config))
 
-        flash("Cập nhật bộ sưu tập thành công.", "success")
+        settings_saved, group_config = ProductGroupModel.save_group(cid, group_config)
+        if group_config["selection_mode"] == "automatic" and settings_saved:
+            member_count = ProductGroupModel.sync_collection(cid)
+        else:
+            member_count = _sync_collection_members(cid)
+
+        try:
+            _add_collection_to_menu(updated or cat, form)
+        except Exception as exc:
+            logger.warning("[collections] Nhóm đã lưu nhưng chưa thêm được vào menu: %s", exc)
+            flash("Nhóm đã lưu nhưng chưa thêm được vào menu. Bạn có thể thêm lại tại Menu & liên kết.", "warning")
+
+        if not settings_saved:
+            flash("Thông tin nhóm đã lưu nhưng cấu hình điều kiện chưa được cập nhật.", "warning")
+        _invalidate_storefront_catalog_cache()
+        flash(f"Cập nhật nhóm sản phẩm thành công ({member_count} sản phẩm).", "success")
         return redirect(url_for("admin.collections"))
 
-    return render_template("admin/collection_form.html", cat=cat)
+    return render_template("admin/collection_form.html", **_collection_form_context(cat, product_picker, group_config))
 
 
 @admin_bp.route("/collections/delete/<cid>", methods=["POST"])
 @admin_required
 def delete_collection(cid):
-    CollectionModel.delete(cid)
-
-    flash("Đã xóa bộ sưu tập.", "success")
+    if CollectionModel.delete(cid):
+        ProductGroupModel.delete_group(cid)
+        NavigationModel.remove_target_links("collection", cid)
+        _invalidate_storefront_catalog_cache()
+        flash("Đã xóa nhóm sản phẩm và dọn các liên kết menu liên quan.", "success")
+    else:
+        flash("Không thể xóa nhóm sản phẩm.", "danger")
     return redirect(url_for("admin.collections"))
 
 

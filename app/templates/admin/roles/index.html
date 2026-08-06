@@ -1492,9 +1492,15 @@ function closeModal(id) {
 
     if (!slug) return;
 
-    const ok = window.confirm(
-      'Bạn có chắc muốn xóa vai trò "' + name + '"?\n\nNhân sự đang dùng vai trò này có thể bị mất quyền.'
-    );
+    const ok = window.GuaAdminDelete
+      ? await window.GuaAdminDelete.confirm({
+          title: "Xóa vai trò",
+          message: 'Bạn có muốn xóa vai trò “' + name + '”?',
+          detail: "Nhân sự đang dùng vai trò này sẽ bị thay đổi quyền truy cập.",
+          confirmText: "Xóa vai trò",
+          tone: "danger"
+        })
+      : window.confirm('Bạn có chắc muốn xóa vai trò "' + name + '"?');
 
     if (!ok) return;
 

@@ -17,6 +17,7 @@ except ImportError:
 from flask import request, jsonify
 from app import create_app
 from app.models.setting_model import SettingModel
+from app.models.navigation_model import NavigationModel
 from app.utils.supabase_client import get_supabase
 
 logger = logging.getLogger(__name__)
@@ -211,12 +212,16 @@ def _build_default_context() -> Dict[str, Any]:
     """
     defaults = copy.deepcopy(SettingModel.DEFAULT_SETTINGS)
 
+    navigation_config = NavigationModel.normalize_config(defaults.get("navigation"))
+
     return {
         "system_settings": defaults,
         "global_settings": defaults.get("general", {}),
         "global_storefront": defaults.get("storefront", {}),
         "global_categories": [],
         "global_collections": [],
+        "site_navigation": navigation_config,
+        "menu_product_categories": [],
     }
 
 
@@ -247,6 +252,12 @@ def _build_global_context(force_reload: bool = False) -> Dict[str, Any]:
         context["global_storefront"] = all_settings.get("storefront", {})
         context["global_categories"] = _fetch_categories(db)
         context["global_collections"] = _fetch_collections(db)
+        context["site_navigation"] = NavigationModel.normalize_config(
+            all_settings.get("navigation")
+        )
+        context["menu_product_categories"] = NavigationModel.select_product_categories(
+            context["site_navigation"], context["global_categories"]
+        )
 
         return context
 
@@ -268,7 +279,7 @@ def _should_force_context_reload() -> bool:
         if request.args.get("no_cache") in ("1", "true", "yes"):
             return True
 
-        if request.path.startswith("/admin/settings"):
+        if request.path.startswith(("/admin/settings", "/admin/menus")):
             return True
 
     except RuntimeError:

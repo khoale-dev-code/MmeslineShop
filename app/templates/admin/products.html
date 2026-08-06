@@ -384,7 +384,7 @@
 
 {% set ns = namespace(active=0, featured=0, out_stock=0, low_stock=0, hidden=0, deleted=0) %}
 {% for item in products %}
-  {% set stock_value = item.stock or 0 %}
+  {% set stock_value = item.inventory_state.total_stock if item.inventory_state is defined else (item.stock or 0) %}
 
   {% if item.deleted_at %}
     {% set ns.deleted = ns.deleted + 1 %}
@@ -551,7 +551,7 @@
 
         <tbody>
           {% for p in products %}
-          {% set stock_value = p.stock or 0 %}
+          {% set stock_value = p.inventory_state.total_stock if p.inventory_state is defined else (p.stock or 0) %}
 
           {% if stock_value == 0 %}
             {% set stock_cls = 'bg-rose-50 text-rose-700' %}
@@ -716,18 +716,22 @@
                   <i class="fa-solid fa-pen text-sm"></i>
                 </a>
 
-                {% if not p.deleted_at %}
+                {% if not p.deleted_at and p.inventory_state is defined %}
                 <form
                   action="{{ url_for('admin.delete_product', pid=p.id) }}"
                   method="POST"
                   class="m-0"
-                  onsubmit="return confirm('Chuyển sản phẩm vào thùng rác?')"
+                  data-product-delete
+                  data-product-name="{{ p.name|e }}"
+                  data-inventory-known="{{ 1 if p.inventory_state.known else 0 }}"
+                  data-inventory-stock="{{ p.inventory_state.total_stock }}"
+                  data-inventory-adjust-url="{{ url_for('admin.adjust_product_inventory', pid=p.id, intent='delete') }}"
                 >
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button
                     type="submit"
                     class="gua-action-btn is-danger"
-                    title="Xóa"
+                    title="{{ 'Xóa' if p.inventory_state.can_delete else 'Xóa và điều chỉnh tồn kho' }}"
                   >
                     <i class="fa-solid fa-trash-can text-sm"></i>
                   </button>
@@ -760,7 +764,7 @@
 
   <section id="view-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-5">
     {% for p in products %}
-    {% set stock_value = p.stock or 0 %}
+    {% set stock_value = p.inventory_state.total_stock if p.inventory_state is defined else (p.stock or 0) %}
 
     <article class="gua-product-card group {% if p.deleted_at %}opacity-60 grayscale{% endif %}">
       <div class="relative aspect-[4/5] overflow-hidden bg-[var(--gua-green-soft)]">

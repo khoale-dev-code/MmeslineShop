@@ -941,6 +941,31 @@
     padding: 18px;
   }
 
+  .pd-size-chart-image-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 220px;
+    border: 1px solid var(--pd-line);
+    background: #fafafa;
+  }
+
+  .pd-size-chart-image {
+    display: block;
+    width: 100%;
+    max-height: 72dvh;
+    object-fit: contain;
+  }
+
+  .pd-size-chart-note {
+    margin: 12px 0 0;
+    color: #777;
+    font-size: 10px;
+    font-weight: 750;
+    line-height: 1.55;
+    text-align: center;
+  }
+
   .pd-table {
     width: 100%;
     border-collapse: collapse;
@@ -1177,7 +1202,7 @@
             <div class="pd-field pd-block">
               <div class="pd-size-head">
                 <div class="pd-label mb-0">Kích cỡ</div>
-                <button type="button" onclick="openSizeGuide()" class="pd-size-guide">Bảng size</button>
+                <button type="button" onclick="openSizeGuide()" class="pd-size-guide" aria-haspopup="dialog">Bảng size</button>
               </div>
 
               <div id="size-wrapper" class="mt-3">
@@ -1345,13 +1370,24 @@
 
   <div class="pd-modal-card">
     <div class="pd-modal-head">
-      <h2 class="pd-modal-title">Bảng quy định kích cỡ</h2>
+      <h2 class="pd-modal-title">{{ size_chart.name if size_chart else 'Bảng quy định kích cỡ' }}</h2>
       <button type="button" onclick="closeSizeGuide()" aria-label="Đóng">
         <i class="fa-solid fa-xmark"></i>
       </button>
     </div>
 
     <div class="pd-modal-body">
+      {% if size_chart and size_chart.image_url %}
+      <div class="pd-size-chart-image-wrap">
+        <img
+          class="pd-size-chart-image"
+          src="{{ size_chart.image_url }}"
+          alt="Bảng size {{ size_chart.name }} của {{ product.name }}"
+          loading="lazy"
+        >
+      </div>
+      <p class="pd-size-chart-note">Thông số có thể chênh lệch nhẹ tùy chất liệu và kiểu dáng sản phẩm.</p>
+      {% else %}
       <div class="overflow-x-auto">
         <table class="pd-table">
           <thead>
@@ -1371,6 +1407,7 @@
           </tbody>
         </table>
       </div>
+      {% endif %}
     </div>
   </div>
 </div>

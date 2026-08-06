@@ -1,4 +1,6 @@
 """app/models/product_model.py"""
+import hashlib
+import json
 import logging
 import re
 import uuid
@@ -560,19 +562,20 @@ class ProductModel:
             product = res.data[0]
             product_id = product["id"]
 
-            barcode = ProductModel.generate_barcode(product_id)
+            # Tôn trọng barcode chủ shop đã nhập; chỉ tự sinh khi form để trống.
+            if not product.get("barcode"):
+                barcode = ProductModel.generate_barcode(product_id)
+                barcode_res = (
+                    db.table("products")
+                    .update({"barcode": barcode})
+                    .eq("id", product_id)
+                    .execute()
+                )
 
-            barcode_res = (
-                db.table("products")
-                .update({"barcode": barcode})
-                .eq("id", product_id)
-                .execute()
-            )
-
-            if barcode_res.data:
-                product["barcode"] = barcode_res.data[0].get("barcode", barcode)
-            else:
-                product["barcode"] = barcode
+                if barcode_res.data:
+                    product["barcode"] = barcode_res.data[0].get("barcode", barcode)
+                else:
+                    product["barcode"] = barcode
 
             return product
 
@@ -590,7 +593,7 @@ class ProductModel:
         clean_data = {
             key: value
             for key, value in data.items()
-            if key not in ("barcode",) and value is not None
+            if value is not None
         }
 
         if not clean_data.get("slug"):
@@ -615,7 +618,272 @@ class ProductModel:
             return False
 
     @staticmethod
-    def delete(pid: str, permanent: bool = False) -> bool:
+    def get_inventory_snapshot(pid: str) -> dict:
+        """
+        Đọc tồn kho trực tiếp từ database để quyết định sản phẩm có được xóa hay không.
+
+        Không chỉ tin vào products.stock vì dữ liệu cũ có thể chưa được đồng bộ với
+        product_variants. Một sản phẩm chỉ được phép xóa khi cả tồn tổng trên product
+        và tồn của từng biến thể đều bằng 0.
+        """
+        empty = {
+            "known": False,
+            "product_id": str(pid or "").strip(),
+            "product_name": "",
+            "product_sku": "",
+            "product_stock": 0,
+            "variant_stock": 0,
+            "total_stock": 0,
+            "variant_count": 0,
+            "inventory_rows": [],
+            "blocking_variants": [],
+            "fingerprint": "",
+            "can_delete": False,
+        }
+
+        if not pid:
+            return empty
+
+        product_id = str(pid).strip()
+        db = ProductModel._db_admin()
+
+        try:
+            product_rows = (
+                db.table("products")
+                .select("id,name,sku,barcode,stock,deleted_at")
+                .eq("id", product_id)
+                .limit(1)
+                .execute()
+                .data
+                or []
+            )
+
+            if not product_rows:
+                return empty
+
+            variant_rows = (
+                db.table("product_variants")
+                .select("id,size,color_name,sku,barcode,stock,sort_order")
+                .eq("product_id", product_id)
+                .order("sort_order")
+                .execute()
+                .data
+                or []
+            )
+
+            product_stock = max(ProductModel._safe_int(product_rows[0].get("stock")), 0)
+            variant_stock = 0
+            blocking_variants = []
+            inventory_rows = []
+
+            for row in variant_rows:
+                stock = max(ProductModel._safe_int(row.get("stock")), 0)
+                variant_stock += stock
+                normalized_row = {
+                    "id": str(row.get("id") or ""),
+                    "label": " / ".join(
+                        value
+                        for value in [
+                            str(row.get("color_name") or "").strip(),
+                            str(row.get("size") or "").strip(),
+                        ]
+                        if value
+                    ) or "Biến thể",
+                    "color_name": str(row.get("color_name") or "").strip(),
+                    "size": str(row.get("size") or "").strip(),
+                    "sku": str(row.get("sku") or "").strip(),
+                    "barcode": str(row.get("barcode") or "").strip(),
+                    "stock": stock,
+                }
+                inventory_rows.append(normalized_row)
+                if stock > 0:
+                    blocking_variants.append(normalized_row.copy())
+
+            # max() giúp giao diện không báo thiếu khi dữ liệu tổng và biến thể lệch nhau.
+            total_stock = max(product_stock, variant_stock)
+            can_delete = product_stock == 0 and variant_stock == 0
+
+            snapshot = {
+                "known": True,
+                "product_id": product_id,
+                "product_name": str(product_rows[0].get("name") or "").strip(),
+                "product_sku": str(product_rows[0].get("sku") or "").strip(),
+                "product_stock": product_stock,
+                "variant_stock": variant_stock,
+                "total_stock": total_stock,
+                "variant_count": len(variant_rows),
+                "inventory_rows": inventory_rows,
+                "blocking_variants": blocking_variants[:12],
+                "can_delete": can_delete,
+            }
+            snapshot["fingerprint"] = ProductModel.inventory_fingerprint(snapshot)
+            return snapshot
+
+        except Exception as e:
+            # Không đọc được kho thì mặc định chặn xóa; đây là lựa chọn fail-closed.
+            logger.error("ProductModel.get_inventory_snapshot '%s': %s", pid, e, exc_info=True)
+            return empty
+
+    @staticmethod
+    def inventory_fingerprint(snapshot: dict) -> str:
+        """Dấu vân tay dùng để phát hiện tồn kho đổi giữa lúc mở và lúc xác nhận."""
+        payload = {
+            "product_id": str((snapshot or {}).get("product_id") or ""),
+            "product_stock": ProductModel._safe_int((snapshot or {}).get("product_stock")),
+            "variants": sorted(
+                [
+                    {
+                        "id": str(row.get("id") or ""),
+                        "stock": ProductModel._safe_int(row.get("stock")),
+                    }
+                    for row in ((snapshot or {}).get("inventory_rows") or [])
+                    if isinstance(row, dict)
+                ],
+                key=lambda row: row["id"],
+            ),
+        }
+        raw = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def adjust_inventory_to_zero(
+        pid: str,
+        expected_fingerprint: str = "",
+        variant_id: str = "",
+    ) -> dict:
+        """
+        Đưa tồn sản phẩm và từng biến thể về 0 bằng kiểm tra lạc quan.
+
+        Nếu tồn kho thay đổi sau khi trang điều chỉnh được mở, thao tác dừng lại để
+        admin xem lại thay vì vô tình ghi đè một giao dịch mới.
+        """
+        current = ProductModel.get_inventory_snapshot(pid)
+        if not current.get("known"):
+            return {"ok": False, "conflict": False, "message": "Không thể đọc tồn kho hiện tại."}
+
+        expected = str(expected_fingerprint or "").strip()
+        if expected and expected != current.get("fingerprint"):
+            return {
+                "ok": False,
+                "conflict": True,
+                "message": "Tồn kho vừa thay đổi. Trang đã được tải lại để tránh ghi đè dữ liệu mới.",
+                "snapshot": current,
+            }
+
+        target_variant_id = str(variant_id or "").strip()
+        target_rows = list(current.get("inventory_rows") or [])
+        if target_variant_id:
+            target_rows = [row for row in target_rows if str(row.get("id") or "") == target_variant_id]
+            if not target_rows:
+                return {
+                    "ok": False,
+                    "conflict": True,
+                    "message": "Biến thể cần điều chỉnh không còn tồn tại. Vui lòng tải lại sản phẩm.",
+                }
+
+        db = ProductModel._db_admin()
+        changed_variants = []
+
+        try:
+            for row in target_rows:
+                stock = ProductModel._safe_int(row.get("stock"))
+                if stock == 0:
+                    continue
+                result = (
+                    db.table("product_variants")
+                    .update({"stock": 0})
+                    .eq("id", row.get("id"))
+                    .eq("stock", stock)
+                    .execute()
+                )
+                if not result.data:
+                    return {
+                        "ok": False,
+                        "conflict": True,
+                        "message": f"Tồn kho của {row.get('label') or 'một biến thể'} vừa thay đổi. Vui lòng kiểm tra lại.",
+                    }
+                changed_variants.append({
+                    "id": row.get("id"),
+                    "label": row.get("label"),
+                    "from": stock,
+                    "to": 0,
+                })
+
+            product_stock = ProductModel._safe_int(current.get("product_stock"))
+            if target_variant_id:
+                desired_product_stock = sum(
+                    ProductModel._safe_int(row.get("stock"))
+                    for row in (current.get("inventory_rows") or [])
+                    if str(row.get("id") or "") != target_variant_id
+                )
+            else:
+                desired_product_stock = 0
+
+            if product_stock != desired_product_stock:
+                product_query = (
+                    db.table("products")
+                    .update({"stock": desired_product_stock})
+                    .eq("id", str(pid).strip())
+                )
+                if product_stock == 0:
+                    product_query = product_query.or_("stock.eq.0,stock.is.null")
+                else:
+                    product_query = product_query.eq("stock", product_stock)
+                result = product_query.execute()
+                if not result.data:
+                    return {
+                        "ok": False,
+                        "conflict": True,
+                        "message": "Tồn tổng vừa thay đổi. Vui lòng kiểm tra lại trước khi điều chỉnh.",
+                    }
+
+            verified = ProductModel.get_inventory_snapshot(pid)
+            if target_variant_id:
+                target_after = next(
+                    (
+                        row for row in (verified.get("inventory_rows") or [])
+                        if str(row.get("id") or "") == target_variant_id
+                    ),
+                    None,
+                )
+                verified_ok = bool(
+                    verified.get("known")
+                    and target_after
+                    and ProductModel._safe_int(target_after.get("stock")) == 0
+                    and ProductModel._safe_int(verified.get("product_stock"))
+                    == ProductModel._safe_int(verified.get("variant_stock"))
+                )
+            else:
+                verified_ok = bool(verified.get("known") and verified.get("can_delete"))
+
+            if not verified_ok:
+                return {
+                    "ok": False,
+                    "conflict": True,
+                    "message": "Điều chỉnh chưa hoàn tất vì tồn kho tiếp tục thay đổi. Sản phẩm chưa bị xóa.",
+                    "snapshot": verified,
+                }
+
+            return {
+                "ok": True,
+                "conflict": False,
+                "message": "Đã điều chỉnh toàn bộ tồn kho về 0.",
+                "before": current,
+                "after": verified,
+                "changed_variants": changed_variants,
+                "variant_id": target_variant_id,
+            }
+
+        except Exception as e:
+            logger.error("ProductModel.adjust_inventory_to_zero '%s': %s", pid, e, exc_info=True)
+            return {
+                "ok": False,
+                "conflict": False,
+                "message": "Không thể hoàn tất điều chỉnh tồn kho. Sản phẩm chưa bị xóa.",
+            }
+
+    @staticmethod
+    def delete(pid: str, permanent: bool = False, require_zero_stock: bool = True) -> bool:
         if not pid:
             return False
 
@@ -623,10 +891,23 @@ class ProductModel:
         product_id = str(pid).strip()
 
         try:
+            if require_zero_stock:
+                inventory = ProductModel.get_inventory_snapshot(product_id)
+                if not inventory.get("known") or not inventory.get("can_delete"):
+                    logger.warning(
+                        "ProductModel.delete blocked '%s': inventory=%s",
+                        product_id,
+                        inventory,
+                    )
+                    return False
+
             if permanent:
-                res = db.table("products").delete().eq("id", product_id).execute()
+                query = db.table("products").delete().eq("id", product_id)
+                if require_zero_stock:
+                    query = query.or_("stock.eq.0,stock.is.null")
+                res = query.execute()
             else:
-                res = (
+                query = (
                     db.table("products")
                     .update(
                         {
@@ -635,8 +916,12 @@ class ProductModel:
                         }
                     )
                     .eq("id", product_id)
-                    .execute()
                 )
+                # Optimistic guard: nếu stock đổi giữa lúc kiểm tra và cập nhật,
+                # câu lệnh sẽ không xóa mềm sản phẩm.
+                if require_zero_stock:
+                    query = query.or_("stock.eq.0,stock.is.null")
+                res = query.execute()
 
             return bool(res.data)
 

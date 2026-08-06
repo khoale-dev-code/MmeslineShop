@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="vi" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  {% if csrf_token is defined %}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+  {% endif %}
+
+  {% set general_settings = system_settings.get('general', {}) if system_settings is defined and system_settings else {} %}
+  {% set support_email = general_settings.get('email') %}
+  {% set display_shop_name = display_shop_name|default('GUAMAISON') %}
+  {% set admin_logo_url = admin_logo_url if admin_logo_url is defined else url_for('static', filename='images/logo.svg') %}
+  {% set favicon_url = favicon_url if favicon_url is defined else admin_logo_url %}
+
+  <title>
+    {% block title %}
+      {{ display_shop_name }} | Trung tâm quản trị
+    {% endblock %}
+  </title>
+
+  <link rel="icon" href="{{ favicon_url }}?v=GUAMAISON-2026" type="image/svg+xml">
+
+  {# Apply collapsed sớm để tránh giật layout khi reload. #}
+  <script>
+    (function () {
+      try {
+        var collapsed =
+          localStorage.getItem("mm_admin_sidebar_collapsed") === "1" ||
+          localStorage.getItem("mmAdminSidebarCollapsed") === "1" ||
+          localStorage.getItem("admin_sidebar_collapsed") === "1";
+
+        if (collapsed) {
+          document.documentElement.classList.add("mm-admin-sidebar-collapsed");
+          document.documentElement.classList.add("mm-sidebar-collapsed");
+          document.documentElement.classList.add("admin-sidebar-collapsed");
+        }
+      } catch (_) {}
+    })();
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,500;0,600;0,700;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet"
+  >
+
+  {% if config.get('USE_TAILWIND_CDN', True) %}
+    <script>
+      window.tailwind = window.tailwind || {};
+      tailwind.config = {
+        content: [],
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+              display: ['"Cormorant"', 'serif'],
+              mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
+            },
+            boxShadow: {
+              soft: '0 14px 38px -28px rgb(11 33 16 / 0.38)',
+              card: '0 12px 34px -28px rgb(11 33 16 / 0.32)',
+              float: '0 28px 80px -44px rgb(11 33 16 / 0.62)'
+            }
+          }
+        }
+      };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+  {% else %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin/css/tailwind_admin.css') }}">
+  {% endif %}
+
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+  >
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/css/mm_admin_nav.css') }}?v=GUAMAISON-green-gold-2026">
+
+  <style>
+    :root {
+      /* GUAMAISON MAIN THEME */
+      --gm-green: #1b4922;
+      --gm-green-950: #0b2110;
+      --gm-green-900: #123418;
+      --gm-green-800: #163c1d;
+      --gm-green-700: #1b4922;
+      --gm-green-600: #245a2b;
+
+      --gm-gold: #c99e14;
+      --gm-gold-700: #a78310;
+      --gm-gold-600: #c99e14;
+      --gm-gold-500: #d9b01d;
+      --gm-gold-soft: rgba(201, 158, 20, .16);
+      --gm-gold-softer: rgba(201, 158, 20, .08);
+
+      --gm-ink: #101510;
+      --gm-muted: #667263;
+      --gm-subtle: #8a9485;
+      --gm-paper: #fbfaf4;
+      --gm-cream: #f7f9f2;
+      --gm-soft: #ffffff;
+      --gm-card: #fffefa;
+      --gm-line: rgba(27, 73, 34, .13);
+
+      --gm-shadow-soft: 0 14px 38px -28px rgba(11, 33, 16, .38);
+      --gm-shadow-card: 0 12px 34px -28px rgba(11, 33, 16, .32);
+      --gm-shadow-float: 0 28px 80px -44px rgba(11, 33, 16, .62);
+
+      /*
+        Backward compatibility:
+        mm_admin_nav.css cũ có thể đang dùng biến brown.
+        Map các biến cũ sang green/gold để navbar đồng bộ màu.
+      */
+      --mm-brown-950: var(--gm-green-950);
+      --mm-brown-900: var(--gm-green-900);
+      --mm-brown-800: var(--gm-green-800);
+      --mm-brown-700: var(--gm-green-700);
+      --mm-caramel: var(--gm-gold);
+      --mm-muted: var(--gm-muted);
+      --mm-sand: rgba(201, 158, 20, .18);
+      --mm-cream: var(--gm-paper);
+      --mm-soft: #fffefa;
+      --mm-card: var(--gm-card);
+      --mm-line: var(--gm-line);
+
+      --admin-sidebar-width: 300px;
+      --admin-sidebar-mini-width: 92px;
+      --admin-topbar-height: 76px;
+      --admin-topbar-mobile-height: 68px;
+      --admin-content-ml: var(--admin-sidebar-width);
+      --admin-bg: var(--gm-paper);
+
+      --mm-admin-sidebar-w: var(--admin-sidebar-width);
+      --mm-admin-sidebar-collapsed-w: var(--admin-sidebar-mini-width);
+      --mm-admin-topbar-h: var(--admin-topbar-height);
+    }
+
+    html.mm-sidebar-collapsed,
+    html.admin-sidebar-collapsed,
+    html.mm-admin-sidebar-collapsed,
+    body.mm-sidebar-collapsed,
+    body.admin-sidebar-collapsed,
+    body.mm-admin-sidebar-collapsed {
+      --admin-content-ml: var(--admin-sidebar-mini-width);
+      --mm-admin-sidebar-w: var(--admin-sidebar-mini-width);
+    }
+
+    html,
+    body {
+      min-height: 100%;
+      background:
+        radial-gradient(circle at top left, rgba(201, 158, 20, .16), transparent 34%),
+        radial-gradient(circle at 92% 4%, rgba(27, 73, 34, .12), transparent 30%),
+        linear-gradient(180deg, #fbfaf4 0%, #f7f9f2 52%, #ffffff 100%);
+    }
+
+    body {
+      margin: 0;
+      color: var(--gm-ink);
+      font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+      overflow-x: hidden;
+    }
+
+    ::selection {
+      color: #fff;
+      background: var(--gm-green);
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #edf2e9;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(27, 73, 34, .32);
+      border-radius: 999px;
+      border: 2px solid #edf2e9;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--gm-gold);
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    #mmAdminProgress,
+    .mm-admin-progress {
+      pointer-events: none !important;
+    }
+
+    .admin-main,
+    .admin-footer {
+      margin-left: 0;
+      transition:
+        margin-left .22s cubic-bezier(.16, 1, .3, 1),
+        padding-top .2s ease,
+        background-color .2s ease;
+    }
+
+    .admin-main {
+      min-width: 0;
+      min-height: 100dvh;
+      padding-top: var(--admin-topbar-mobile-height);
+    }
+
+    .admin-page-shell {
+      min-height: 100dvh;
+    }
+
+    .admin-page-inner {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .admin-footer {
+      margin-left: 0;
+    }
+
+    .mm-admin-sidebar {
+      width: var(--admin-sidebar-width) !important;
+      transition:
+        width .22s cubic-bezier(.16, 1, .3, 1),
+        transform .24s cubic-bezier(.16, 1, .3, 1);
+    }
+
+    body.mm-sidebar-collapsed .mm-admin-sidebar,
+    body.admin-sidebar-collapsed .mm-admin-sidebar,
+    body.mm-admin-sidebar-collapsed .mm-admin-sidebar,
+    html.mm-sidebar-collapsed body .mm-admin-sidebar,
+    html.admin-sidebar-collapsed body .mm-admin-sidebar,
+    html.mm-admin-sidebar-collapsed body .mm-admin-sidebar {
+      width: var(--admin-sidebar-mini-width) !important;
+    }
+
+    body.mm-sidebar-collapsed .mm-sidebar-brand-text,
+    body.mm-sidebar-collapsed .mm-sidebar-label,
+    body.mm-sidebar-collapsed .mm-sidebar-section-title,
+    body.mm-sidebar-collapsed .mm-sidebar-badge,
+    body.mm-sidebar-collapsed .mm-sidebar-footer-text,
+    body.admin-sidebar-collapsed .mm-sidebar-brand-text,
+    body.admin-sidebar-collapsed .mm-sidebar-label,
+    body.admin-sidebar-collapsed .mm-sidebar-section-title,
+    body.admin-sidebar-collapsed .mm-sidebar-badge,
+    body.admin-sidebar-collapsed .mm-sidebar-footer-text,
+    body.mm-admin-sidebar-collapsed .mm-sidebar-brand-text,
+    body.mm-admin-sidebar-collapsed .mm-sidebar-label,
+    body.mm-admin-sidebar-collapsed .mm-sidebar-section-title,
+    body.mm-admin-sidebar-collapsed .mm-sidebar-badge,
+    body.mm-admin-sidebar-collapsed .mm-sidebar-footer-text {
+      width: 0 !important;
+      max-width: 0 !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      overflow: hidden !important;
+      white-space: nowrap !important;
+      pointer-events: none !important;
+    }
+
+    body.mm-sidebar-collapsed .mm-sidebar-link,
+    body.admin-sidebar-collapsed .mm-sidebar-link,
+    body.mm-admin-sidebar-collapsed .mm-sidebar-link {
+      justify-content: center !important;
+      gap: 0 !important;
+      padding-left: 12px !important;
+      padding-right: 12px !important;
+    }
+
+    body.mm-sidebar-collapsed .mm-sidebar-section,
+    body.admin-sidebar-collapsed .mm-sidebar-section,
+    body.mm-admin-sidebar-collapsed .mm-sidebar-section {
+      margin-bottom: 18px !important;
+    }
+
+    body.mm-sidebar-collapsed .mm-sidebar-nav-scroll,
+    body.admin-sidebar-collapsed .mm-sidebar-nav-scroll,
+    body.mm-admin-sidebar-collapsed .mm-sidebar-nav-scroll,
+    body.mm-sidebar-collapsed .mm-admin-sidebar .custom-scrollbar,
+    body.admin-sidebar-collapsed .mm-admin-sidebar .custom-scrollbar,
+    body.mm-admin-sidebar-collapsed .mm-admin-sidebar .custom-scrollbar {
+      padding-left: 12px !important;
+      padding-right: 12px !important;
+    }
+
+    body.mm-sidebar-collapsed [data-admin-sidebar-toggle] i,
+    body.admin-sidebar-collapsed [data-admin-sidebar-toggle] i,
+    body.mm-admin-sidebar-collapsed [data-admin-sidebar-toggle] i {
+      transform: rotate(180deg);
+    }
+
+    .mm-topbar {
+      left: 0;
+    }
+
+    @media (min-width: 1024px) {
+      .admin-main,
+      .admin-footer {
+        margin-left: var(--admin-content-ml);
+      }
+
+      .admin-main {
+        padding-top: var(--admin-topbar-height);
+      }
+
+      .mm-topbar {
+        left: var(--admin-content-ml) !important;
+      }
+    }
+
+    @media (max-width: 1023.98px) {
+      .admin-main {
+        padding-top: var(--admin-topbar-mobile-height);
+      }
+
+      .admin-footer {
+        margin-left: 0;
+      }
+
+      .mm-admin-sidebar {
+        width: min(320px, 88vw) !important;
+      }
+
+      .mm-topbar {
+        left: 0 !important;
+      }
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(18px);
+      transition:
+        opacity .5s cubic-bezier(.16, 1, .3, 1),
+        transform .5s cubic-bezier(.16, 1, .3, 1);
+    }
+
+    .reveal.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .card-hover {
+      transition:
+        transform .22s cubic-bezier(.16, 1, .3, 1),
+        box-shadow .22s cubic-bezier(.16, 1, .3, 1),
+        border-color .22s cubic-bezier(.16, 1, .3, 1);
+    }
+
+    .card-hover:hover {
+      transform: translateY(-3px);
+      border-color: rgba(201, 158, 20, .34);
+      box-shadow: var(--gm-shadow-float);
+    }
+
+    .btn-admin {
+      transition:
+        transform .16s ease,
+        box-shadow .16s ease,
+        background-color .16s ease,
+        border-color .16s ease;
+    }
+
+    .btn-admin:hover {
+      transform: translateY(-1px);
+    }
+
+    .mm-footer-link {
+      color: var(--gm-muted);
+      font-weight: 800;
+      transition: color .16s ease;
+    }
+
+    .mm-footer-link:hover {
+      color: var(--gm-green);
+    }
+
+    .mm-toast {
+      background: rgba(255, 254, 250, .96);
+      border: 1px solid var(--gm-line);
+      box-shadow: var(--gm-shadow-float);
+      backdrop-filter: blur(18px);
+    }
+
+    .mm-toast-success {
+      border-color: #bbf7d0;
+    }
+
+    .mm-toast-warning {
+      border-color: rgba(201, 158, 20, .42);
+    }
+
+    .mm-toast-error {
+      border-color: #fecdd3;
+    }
+
+    .mm-skip-link {
+      position: fixed;
+      left: 16px;
+      top: 16px;
+      z-index: 10000;
+
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      border: 0;
+      overflow: hidden;
+
+      clip: rect(0 0 0 0);
+      clip-path: inset(50%);
+      white-space: nowrap;
+
+      background: var(--gm-green);
+      color: #fff;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+      pointer-events: none;
+    }
+
+    .mm-skip-link:focus,
+    .mm-skip-link:focus-visible {
+      width: auto;
+      height: auto;
+      padding: 10px 16px;
+      overflow: visible;
+
+      clip: auto;
+      clip-path: none;
+      white-space: normal;
+      pointer-events: auto;
+      outline: 3px solid rgba(201, 158, 20, .42);
+    }
+
+    /*
+      Override nhẹ cho các component admin cũ nếu đang dùng màu nâu hardcode.
+      Giúp toàn bộ UI đồng bộ green/gold mà không cần sửa quá nhiều file con.
+    */
+    .text-\[\#241207\],
+    .text-\[\#3b2414\],
+    .text-\[\#4c2d18\],
+    .text-\[\#5f3b1e\] {
+      color: var(--gm-green-950) !important;
+    }
+
+    .text-\[\#9b7b63\],
+    .text-\[\#9a7a62\] {
+      color: var(--gm-muted) !important;
+    }
+
+    .text-\[\#b98b62\],
+    .text-\[\#b98558\],
+    .text-\[\#9a5a2f\] {
+      color: var(--gm-gold) !important;
+    }
+
+    .bg-\[\#3b2414\],
+    .bg-\[\#4c2d18\],
+    .bg-\[\#5f3b1e\],
+    .bg-\[\#3b1d0f\] {
+      background-color: var(--gm-green) !important;
+    }
+
+    .bg-\[\#b98b62\],
+    .bg-\[\#b98558\] {
+      background-color: var(--gm-gold) !important;
+    }
+
+    .bg-\[\#fbf7f1\],
+    .bg-\[\#fffaf5\],
+    .bg-\[\#fffdf9\] {
+      background-color: var(--gm-card) !important;
+    }
+
+    .border-\[\#eadfd4\] {
+      border-color: var(--gm-line) !important;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
+  </style>
+
+  {% block extra_head %}{% endblock %}
+</head>
+
+<body
+  class="min-h-screen"
+  data-admin-logo="{{ admin_logo_url }}"
+  data-shop-name="{{ display_shop_name }}"
+>
+  <a href="#adminContent" class="mm-skip-link" aria-label="Bỏ qua menu và vào nội dung chính">
+    Bỏ qua menu và vào nội dung
+  </a>
+
+  {% include "admin/admin_navbar.html" %}
+
+  <main
+    id="adminContent"
+    class="admin-main admin-page-shell"
+    tabindex="-1"
+  >
+    <div class="admin-page-inner max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <footer
+    id="adminFooter"
+    class="admin-footer border-t border-[var(--gm-line)] bg-white/86 backdrop-blur-xl mt-auto"
+  >
+    <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 text-xs">
+
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 text-[var(--gm-muted)]">
+          <div class="inline-flex items-center gap-2">
+            <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="font-bold">
+              Hệ thống {{ display_shop_name }} đang hoạt động ổn định
+            </span>
+          </div>
+
+          {% if pending_returns is defined and pending_returns > 0 %}
+          <a
+            href="{{ url_for('admin.return_requests', status='pending') }}"
+            class="inline-flex items-center gap-1.5 text-[var(--gm-gold)] font-extrabold hover:text-[var(--gm-green)] transition-colors"
+          >
+            <span class="flex h-2 w-2 rounded-full bg-[var(--gm-gold)] animate-pulse"></span>
+            {{ pending_returns }} yêu cầu đổi/trả chờ duyệt
+          </a>
+          {% endif %}
+
+          {% if admin_notification_count is defined and admin_notification_count > 0 %}
+          <a
+            href="{{ url_for('admin.notifications_index') }}"
+            class="inline-flex items-center gap-1.5 text-[var(--gm-green)] font-extrabold hover:text-[var(--gm-green-950)] transition-colors"
+          >
+            <i class="fa-solid fa-bell text-[10px]"></i>
+            {{ admin_notification_count }} thông báo đang bật
+          </a>
+          {% endif %}
+        </div>
+
+        <p class="text-[var(--gm-muted)]">
+          © 2026
+          <span class="font-extrabold text-[var(--gm-green-950)]">
+            {{ display_shop_name }}
+          </span>.
+          Phát triển bởi
+          <span class="font-semibold text-[var(--gm-green)]">Lê Trần Đăng Khoa</span>
+        </p>
+
+        <div class="text-[var(--gm-muted)] flex items-center gap-4 sm:gap-5">
+          {% if support_email %}
+            <a href="mailto:{{ support_email }}" class="mm-footer-link">
+              Hỗ trợ
+            </a>
+          {% else %}
+            <a href="#" class="mm-footer-link">
+              Hỗ trợ
+            </a>
+          {% endif %}
+
+          <a href="#" class="mm-footer-link">
+            Tài liệu
+          </a>
+
+          <span class="font-bold">
+            v1.0.31
+          </span>
+        </div>
+
+      </div>
+    </div>
+  </footer>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div
+        id="mm-snackbar-container"
+        class="fixed bottom-5 right-5 z-[9999] flex w-[calc(100vw-2.5rem)] max-w-sm flex-col gap-3 pointer-events-none"
+      >
+        {% for category, message in messages %}
+          {% set is_success = category == 'success' %}
+          {% set is_warning = category in ['warning', 'info'] %}
+          {% set icon = 'fa-circle-check text-emerald-500' if is_success else ('fa-circle-info text-[var(--gm-gold)]' if is_warning else 'fa-circle-exclamation text-rose-500') %}
+          {% set toast_type = 'mm-toast-success' if is_success else ('mm-toast-warning' if is_warning else 'mm-toast-error') %}
+
+          <div
+            class="mm-toast {{ toast_type }} mm-admin-toast pointer-events-auto flex items-start gap-3 rounded-2xl p-4 transform transition-all duration-500 translate-y-8 opacity-0"
+            role="status"
+            aria-live="polite"
+          >
+            <div class="w-9 h-9 rounded-2xl bg-[var(--gm-gold-softer)] flex items-center justify-center shrink-0">
+              <i class="fa-solid {{ icon }} text-lg"></i>
+            </div>
+
+            <div class="min-w-0 flex-1 pt-0.5">
+              <p class="text-sm font-extrabold text-[var(--gm-green-950)] leading-snug">
+                {{ message }}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onclick="this.closest('.mm-admin-toast').remove()"
+              class="w-7 h-7 flex items-center justify-center text-[var(--gm-muted)] hover:bg-[var(--gm-gold-softer)] hover:text-[var(--gm-green)] rounded-full transition-colors shrink-0"
+              aria-label="Đóng thông báo"
+            >
+              <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <script>
+    /*
+      Base chỉ xử lý toast + reveal + đồng bộ class collapsed vào body.
+      Sidebar/mobile menu/user dropdown do static/admin/js/mm_admin_nav.js xử lý.
+    */
+    (function () {
+      "use strict";
+
+      function syncSidebarClassToBody() {
+        var root = document.documentElement;
+        var collapsed =
+          root.classList.contains("mm-admin-sidebar-collapsed") ||
+          root.classList.contains("mm-sidebar-collapsed") ||
+          root.classList.contains("admin-sidebar-collapsed");
+
+        if (!collapsed) return;
+
+        document.body.classList.add("mm-admin-sidebar-collapsed");
+        document.body.classList.add("mm-sidebar-collapsed");
+        document.body.classList.add("admin-sidebar-collapsed");
+      }
+
+      function initToasts() {
+        var toasts = document.querySelectorAll(".mm-admin-toast");
+
+        toasts.forEach(function (toast, index) {
+          setTimeout(function () {
+            toast.classList.remove("translate-y-8", "opacity-0");
+            toast.classList.add("translate-y-0", "opacity-100");
+          }, 90 * index);
+
+          setTimeout(function () {
+            toast.classList.remove("translate-y-0", "opacity-100");
+            toast.classList.add("translate-y-8", "opacity-0");
+
+            setTimeout(function () {
+              if (toast && toast.parentNode) toast.remove();
+            }, 500);
+          }, 4200 + (index * 250));
+        });
+      }
+
+      function initReveal() {
+        var items = document.querySelectorAll(".reveal");
+
+        if (!("IntersectionObserver" in window)) {
+          items.forEach(function (el) {
+            el.classList.add("active");
+          });
+          return;
+        }
+
+        var observer = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (!entry.isIntersecting) return;
+
+            entry.target.classList.add("active");
+            observer.unobserve(entry.target);
+          });
+        }, {
+          threshold: 0.08,
+          rootMargin: "0px 0px -40px 0px"
+        });
+
+        items.forEach(function (el) {
+          observer.observe(el);
+        });
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        syncSidebarClassToBody();
+        initToasts();
+        initReveal();
+
+        var shopName = document.body.getAttribute("data-shop-name") || "GUAMAISON";
+
+        console.log(
+          "%c" + shopName + " Admin Dashboard loaded",
+          "color:#1b4922;font-weight:900;"
+        );
+      });
+    })();
+  </script>
+
+  <script src="{{ url_for('static', filename='admin/js/mm_admin_nav.js') }}?v=GUAMAISON-green-gold-2026" defer></script>
+
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

@@ -1,7 +1,9 @@
 {% extends "base.html" %}
 
 {% block title %}
-  {% if keyword %}
+  {% if collection_info is defined and collection_info %}
+    {{ collection_info.meta_title or collection_info.name }} — GUAMAISON
+  {% elif keyword %}
     {{ keyword }} — GUAMAISON
   {% elif category %}
     {{ category|replace('-', ' ')|title }} — GUAMAISON
@@ -512,7 +514,8 @@
   </style>
 {% endblock %}
 {% block content %}
-{% set shop_banner = storefront.shop_banner_url if storefront is defined and storefront and storefront.shop_banner_url else 'https://d2w9rnfcy7mm78.cloudfront.net/29334430/original_f3ab732e0aeafd6b8cd6002334dcc905.gif?1720621365?bc=0' %}
+{% set collection_media = (collection_info.video_url or collection_info.image_url) if collection_info is defined and collection_info else '' %}
+{% set shop_banner = collection_media or (storefront.shop_banner_url if storefront is defined and storefront and storefront.shop_banner_url else 'https://d2w9rnfcy7mm78.cloudfront.net/29334430/original_f3ab732e0aeafd6b8cd6002334dcc905.gif?1720621365?bc=0') %}
 
 <div class="mm-shop">
   {# HERO #}
@@ -548,11 +551,14 @@
           {% elif category %}
             {{ category|replace('-', ' ')|title }}
           {% elif collection %}
-            {{ collection|replace('-', ' ')|title }}
+            {{ collection_info.name if collection_info is defined and collection_info else collection|replace('-', ' ')|title }}
           {% else %}
             Shop <br><em>All</em>
           {% endif %}
         </h1>
+        {% if collection_info is defined and collection_info and collection_info.description %}
+          <p class="mt-4 max-w-2xl text-sm font-semibold leading-6 text-white/80 line-clamp-3">{{ collection_info.description|striptags }}</p>
+        {% endif %}
       </div>
 
       <div>
@@ -573,12 +579,12 @@
           Filter
         </button>
 
-        <form class="mm-search" method="GET" action="{{ url_for('products.shop') }}">
+        <form class="mm-search" method="GET" action="{{ request.path if collection_info is defined and collection_info else url_for('products.shop') }}">
           {% if category %}
             <input type="hidden" name="category" value="{{ category }}">
           {% endif %}
 
-          {% if collection %}
+          {% if collection and not (collection_info is defined and collection_info) %}
             <input type="hidden" name="collection" value="{{ collection }}">
           {% endif %}
 
@@ -861,7 +867,8 @@
       <div class="md:hidden">
         <div class="mm-filter-title mb-3">Tìm kiếm</div>
 
-        <form class="mm-search !flex !w-full" method="GET" action="{{ url_for('products.shop') }}">
+        <form class="mm-search !flex !w-full" method="GET" action="{{ request.path if collection_info is defined and collection_info else url_for('products.shop') }}">
+          {% if collection and not (collection_info is defined and collection_info) %}<input type="hidden" name="collection" value="{{ collection }}">{% endif %}
           <i class="fa-solid fa-magnifying-glass text-[#b7a191] text-xs"></i>
 
           <input

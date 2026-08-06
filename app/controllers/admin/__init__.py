@@ -17,6 +17,8 @@ from . import products
 from . import reports
 from . import pos_controller  # <--- BẠN CHỈ CẦN THÊM DÒNG NÀY VÀO ĐÂY
 from . import settings
+from . import menus
+from . import size_charts
 from . import permissions_controller
 from . import notifications   
 from . import audit_controller

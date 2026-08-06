@@ -92,6 +92,13 @@
   ]
 %}
 
+{% set size_charts_active = current_ep in [
+  'admin.size_charts_page',
+  'admin.create_size_chart',
+  'admin.update_size_chart',
+  'admin.delete_size_chart'
+] %}
+
 {% set coupons_active =
   current_ep.startswith('admin.coupons')
   or current_ep in [
@@ -116,6 +123,11 @@
 {% set settings_active = current_ep in [
   'admin.settings_page',
   'admin.settings'
+] %}
+
+{% set menus_active = current_ep in [
+  'admin.menus_page',
+  'admin.update_menus'
 ] %}
 
 {% set permissions_active = current_ep in [
@@ -147,6 +159,9 @@
     'title': 'Bán hàng',
     'items': [
       ('Sản phẩm', 'admin.products', 'fa-shirt', 0),
+      ('Nhóm sản phẩm', 'admin.collections', 'fa-layer-group', 0),
+      ('Danh mục sản phẩm', 'admin.categories', 'fa-tags', 0),
+      ('Bảng size', 'admin.size_charts_page', 'fa-ruler-combined', 0),
       ('Đơn hàng', 'admin.orders', 'fa-box', 0),
       ('Khách hàng', 'admin.customers', 'fa-users', 0),
       ('POS tại quầy', 'admin.pos_terminal', 'fa-cash-register', 0)
@@ -155,8 +170,7 @@
   {
     'title': 'Nội dung',
     'items': [
-      ('Danh mục', 'admin.categories', 'fa-layer-group', 0),
-      ('Bộ sưu tập', 'admin.collections', 'fa-images', 0),
+      ('Menu & liên kết', 'admin.menus_page', 'fa-bars-staggered', 0),
       ('Khuyến mãi', 'admin.coupons', 'fa-ticket', 0),
       ('Thông báo', 'admin.notifications_index', 'fa-bell', admin_notification_count)
     ]

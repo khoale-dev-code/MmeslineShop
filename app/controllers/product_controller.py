@@ -15,7 +15,9 @@ Mục tiêu:
 from __future__ import annotations
 
 import logging
+import re
 import time
+from html import unescape
 from math import ceil
 from typing import Any, Optional
 
@@ -33,6 +35,7 @@ from flask import (
 
 from app.models.collection_model import CollectionModel
 from app.models.product_model import ProductModel
+from app.models.size_chart_model import SizeChartModel
 from app.utils.supabase_client import get_supabase
 
 logger = logging.getLogger(__name__)
@@ -120,6 +123,36 @@ def _safe_bool(value: Any) -> bool:
         return False
 
     return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _rich_text_to_plain(value: Any) -> str:
+    """Đổi mô tả HTML/JSON/list cũ thành text an toàn cho SEO và template."""
+    if value is None:
+        return ""
+
+    if isinstance(value, str):
+        raw = value
+    elif isinstance(value, (list, tuple, set)):
+        raw = " ".join(_rich_text_to_plain(item) for item in value)
+    elif isinstance(value, dict):
+        preferred = next(
+            (
+                value.get(key)
+                for key in ("html", "text", "content", "value", "description")
+                if value.get(key) not in (None, "")
+            ),
+            None,
+        )
+        if preferred is not None:
+            raw = _rich_text_to_plain(preferred)
+        else:
+            raw = " ".join(_rich_text_to_plain(item) for item in value.values())
+    else:
+        raw = str(value)
+
+    raw = re.sub(r"<(script|style)\b[^>]*>.*?</\1>", " ", raw, flags=re.I | re.S)
+    raw = re.sub(r"<[^>]+>", " ", raw)
+    return " ".join(unescape(raw).split())
 
 
 def _format_vnd(value: Any) -> str:
@@ -932,6 +965,11 @@ def detail(slug: str):
     product = _normalize_product(product)
     product["color_groups"] = _build_color_groups(product)
     product["default_variant"] = _select_default_variant(product)
+    try:
+        size_chart = SizeChartModel.find_for_tags(product.get("tags"))
+    except Exception as exc:
+        logger.warning("[detail] Không tải được bảng size product=%s: %s", product.get("id"), exc)
+        size_chart = None
 
     related_products = _get_related_products(product, limit=4)
 
@@ -939,13 +977,14 @@ def detail(slug: str):
         "products/detail.html",
         product=product,
         related_products=related_products,
+        size_chart=size_chart,
     )
 
 
 @products_bp.route("/collections")
 def collections():
     try:
-        all_collections = CollectionModel.get_all(admin_mode=False)
+        all_collections = CollectionModel.get_all(active_only=True, admin_mode=False)
     except Exception as exc:
         logger.error("[collections] failed: %s", exc, exc_info=True)
         all_collections = []
@@ -953,6 +992,49 @@ def collections():
     return render_template(
         "products/collections.html",
         collections=all_collections,
+    )
+
+
+@products_bp.route("/collections/<slug>")
+def collection_detail(slug: str):
+    """Trang nhóm sản phẩm có URL/SEO ổn định như Haravan."""
+    slug = _clean(slug)
+    collection_info = CollectionModel.get_by_slug(slug, active_only=True)
+    if not collection_info:
+        abort(404)
+
+    page = max(1, _safe_int(request.args.get("page"), 1))
+    keyword = _clean(request.args.get("q"))
+    sort = _clean(request.args.get("sort"))
+    per_page = 30
+    try:
+        result = _query_storefront_products(
+            page=page,
+            per_page=per_page,
+            collection_slug=slug,
+            keyword=keyword,
+            sort=sort,
+        )
+        products = result["items"]
+        total = result["total"]
+    except Exception as exc:
+        logger.error("[collection detail] query failed slug=%s: %s", slug, exc, exc_info=True)
+        products, total = [], 0
+
+    plain_description = _rich_text_to_plain(collection_info.get("description"))[:320]
+    return render_template(
+        "products/shop.html",
+        products=products,
+        total=total,
+        total_pages=max(1, ceil(total / per_page)) if total else 1,
+        page=page,
+        category=None,
+        collection=slug,
+        collection_info=collection_info,
+        current_gender=None,
+        keyword=keyword,
+        sort=sort,
+        shop_description=collection_info.get("meta_description") or plain_description,
     )
 
 

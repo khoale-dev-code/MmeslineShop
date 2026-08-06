@@ -700,7 +700,7 @@
             {% endif %}
 
             <a
-              href="/shop?collection={{ collection.slug }}"
+              href="/collections/{{ collection.slug }}"
               class="mm-collection-card {{ count_class }} group"
               draggable="false"
               aria-label="{{ collection.name }}"
@@ -751,7 +751,7 @@
 
                 {% if collection.description %}
                   <p class="mm-collection-desc">
-                    {{ collection.description }}
+                    {{ collection.description|striptags }}
                   </p>
                 {% endif %}
               </div>

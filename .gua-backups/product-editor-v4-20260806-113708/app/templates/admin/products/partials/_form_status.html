@@ -1,0 +1,167 @@
+{#
+  app/templates/admin/products/partials/_form_status.html
+  ======================================================
+  GUAMAISON Product Form — Status Card
+
+  Đồng bộ backend:
+  - is_active
+  - is_featured
+  - allow_backorder
+  - low_stock_threshold
+
+  Lưu ý:
+  - Checkbox không tick sẽ không gửi field.
+  - Controller đang xử lý bằng:
+    "is_active": "is_active" in form
+    "is_featured": "is_featured" in form
+    "allow_backorder": "allow_backorder" in form
+#}
+
+{% set p = product if product is defined else p|default(None) %}
+
+{% set is_active = true %}
+{% if p %}
+  {% if p is mapping %}
+    {% set is_active = p.get('is_active', true) %}
+  {% else %}
+    {% set is_active = p.is_active %}
+  {% endif %}
+{% endif %}
+
+{% set is_featured = false %}
+{% if p %}
+  {% if p is mapping %}
+    {% set is_featured = p.get('is_featured', false) %}
+  {% else %}
+    {% set is_featured = p.is_featured %}
+  {% endif %}
+{% endif %}
+
+{% set allow_backorder = false %}
+{% if p %}
+  {% if p is mapping %}
+    {% set allow_backorder = p.get('allow_backorder', false) %}
+  {% else %}
+    {% set allow_backorder = p.allow_backorder %}
+  {% endif %}
+{% endif %}
+
+{% set low_stock_threshold = 5 %}
+{% if p %}
+  {% if p is mapping %}
+    {% set low_stock_threshold = p.get('low_stock_threshold', 5) %}
+  {% else %}
+    {% set low_stock_threshold = p.low_stock_threshold %}
+  {% endif %}
+{% endif %}
+
+<section class="mm-card">
+  <div class="mm-card-head">
+    <div>
+      <p class="mm-kicker">Status</p>
+      <h2>Trạng thái</h2>
+    </div>
+
+    <span class="mm-card-icon">
+      <i class="fa-solid fa-toggle-on"></i>
+    </span>
+  </div>
+
+  <div class="mm-card-body space-y-4">
+
+    {# Hiển thị sản phẩm #}
+    <label class="mm-switch-row">
+      <span>
+        <strong>Hiển thị sản phẩm</strong>
+        <small>Sản phẩm có thể xuất hiện trên storefront, trang shop và trang chi tiết.</small>
+      </span>
+
+      <input
+        type="checkbox"
+        name="is_active"
+        value="1"
+        {% if is_active %}checked{% endif %}
+      >
+    </label>
+
+    {# Sản phẩm nổi bật #}
+    <label class="mm-switch-row mm-field-block">
+      <span>
+        <strong>Sản phẩm nổi bật</strong>
+        <small>
+          Khi bật, sản phẩm sẽ được hiển thị tại khu vực sản phẩm nổi bật trên trang chủ
+          <code>_featured.html</code>.
+        </small>
+      </span>
+
+      <input
+        type="checkbox"
+        name="is_featured"
+        value="1"
+        {% if is_featured %}checked{% endif %}
+      >
+    </label>
+
+    {# Cho phép đặt trước #}
+    <label class="mm-switch-row mm-field-block">
+      <span>
+        <strong>Cho phép đặt trước</strong>
+        <small>
+          Khách vẫn có thể thêm vào giỏ hàng khi sản phẩm hoặc biến thể đã hết tồn kho.
+        </small>
+      </span>
+
+      <input
+        type="checkbox"
+        name="allow_backorder"
+        value="1"
+        {% if allow_backorder %}checked{% endif %}
+      >
+    </label>
+
+    {# Ngưỡng cảnh báo tồn kho #}
+    <div class="mm-field-block">
+      <label class="mm-label" for="low_stock_threshold">
+        Ngưỡng cảnh báo tồn kho thấp
+      </label>
+
+      <input
+        id="low_stock_threshold"
+        type="number"
+        name="low_stock_threshold"
+        min="0"
+        step="1"
+        value="{{ low_stock_threshold or 5 }}"
+        class="mm-input"
+        placeholder="Ví dụ: 5"
+      >
+
+      <p class="mt-2 text-[11px] font-semibold leading-relaxed text-[#9b7b63]">
+        Khi tổng tồn kho nhỏ hơn hoặc bằng số này, storefront sẽ hiển thị trạng thái
+        “Sắp hết hàng”.
+      </p>
+    </div>
+
+    {# Gợi ý logic featured #}
+    <div class="rounded-[18px] border border-[#eadfd4] bg-[#fffaf5] p-4">
+      <div class="flex items-start gap-3">
+        <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[13px] bg-[#f7eee7] text-[#b98b62]">
+          <i class="fa-solid fa-star text-[12px]"></i>
+        </span>
+
+        <div>
+          <p class="text-[12px] font-black uppercase tracking-[0.16em] text-[#3b2414]">
+            Ghi chú sản phẩm nổi bật
+          </p>
+
+          <p class="mt-1 text-[11px] font-semibold leading-relaxed text-[#9b7b63]">
+            Để sản phẩm xuất hiện ở khu vực nổi bật, cần bật đồng thời
+            <strong>Hiển thị sản phẩm</strong> và <strong>Sản phẩm nổi bật</strong>.
+            Nếu sản phẩm bị ẩn, hệ thống sẽ không lấy ra ngoài storefront.
+          </p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>

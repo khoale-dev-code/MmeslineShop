@@ -249,7 +249,7 @@
   <div class="mm-card-head">
     <div>
       <p class="mm-kicker">Organize</p>
-      <h2>Danh mục & bộ sưu tập</h2>
+      <h2>Danh mục & nhóm sản phẩm</h2>
     </div>
     <span class="mm-card-icon">
       <i class="fa-solid fa-folder-tree"></i>
@@ -315,27 +315,29 @@
     <div class="mm-relation-block" data-relation-group="collections">
       <div class="mm-relation-top">
         <div>
-          <strong>Bộ sưu tập</strong>
-          <small>Gắn sản phẩm vào campaign, lookbook hoặc collection bán hàng.</small>
+          <strong>Nhóm sản phẩm</strong>
+          <small>Nhóm thủ công có thể chọn tại đây; nhóm tự động do điều kiện của nhóm quản lý.</small>
         </div>
         <span class="mm-relation-count" data-relation-count="collections">0</span>
       </div>
 
       <div class="mm-relation-search">
         <i class="fa-solid fa-magnifying-glass"></i>
-        <input type="text" data-relation-search="collections" placeholder="Tìm bộ sưu tập...">
+        <input type="text" data-relation-search="collections" placeholder="Tìm nhóm sản phẩm...">
       </div>
 
       <div class="mm-relation-list" data-relation-list="collections">
         {% for col in colles %}
+        {% set automatic_group = col.selection_mode|default('manual') == 'automatic' %}
         <label class="mm-relation-item" data-relation-item data-name="{{ col.name|lower }}">
           <input
             type="checkbox"
-            name="collection_ids[]"
+            {% if not automatic_group %}name="collection_ids[]"{% endif %}
             value="{{ col.id }}"
             {% if col.id in selected_collection_ids %}checked{% endif %}
+            {% if automatic_group %}disabled{% endif %}
           >
-          <span>{{ col.name }}</span>
+          <span>{{ col.name }}{% if automatic_group %} <small class="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-black uppercase text-amber-700">Tự động</small>{% endif %}</span>
         </label>
         {% endfor %}
       </div>
@@ -345,14 +347,14 @@
       </div>
 
       <div class="mm-relation-create">
-        <label>Tạo nhanh bộ sưu tập mới</label>
+        <label>Tạo nhanh nhóm thủ công mới</label>
         <div class="mm-relation-create-row">
           <input
             type="text"
             data-relation-new-input="collections"
             placeholder="Ví dụ: GUAMAISON Essentials"
           >
-          <button type="button" data-relation-add="collections" title="Thêm bộ sưu tập">
+          <button type="button" data-relation-add="collections" title="Thêm nhóm sản phẩm">
             <i class="fa-solid fa-plus"></i>
           </button>
         </div>
@@ -362,7 +364,7 @@
         <input type="hidden" name="new_collections" data-relation-hidden="collections" value="">
 
         <p class="mm-relation-help">
-          Bộ sưu tập mới sẽ được backend tạo và tự gắn vào sản phẩm sau khi lưu.
+          Nhóm mới sẽ được tạo ở chế độ thủ công và tự gắn vào sản phẩm sau khi lưu.
         </p>
       </div>
     </div>

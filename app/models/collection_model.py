@@ -94,6 +94,19 @@ class CollectionModel:
             return None
 
     @staticmethod
+    def get_by_slug(slug: str, active_only: bool = True) -> Optional[Dict]:
+        db = CollectionModel._db()
+        try:
+            query = db.table("collections").select("*").eq("slug", str(slug or "").strip())
+            if active_only:
+                query = query.eq("is_active", True)
+            result = query.limit(1).execute()
+            return result.data[0] if result.data else None
+        except Exception as e:
+            logger.error(f"[CollectionModel] get_by_slug error slug={slug}: {e}")
+            return None
+
+    @staticmethod
     def create(data: Dict[str, Any]) -> Dict:
         db = CollectionModel._db_admin()
 

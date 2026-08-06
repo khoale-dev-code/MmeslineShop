@@ -365,7 +365,16 @@ const doToggle = async (id, btn) => {
 };
 
 const doDel = async (id, name) => {
-  if (!confirm(`Xóa hãng "${name}"?\n\nHành động không thể hoàn tác.`)) return;
+  const ok = window.GuaAdminDelete
+    ? await window.GuaAdminDelete.confirm({
+        title: 'Xóa hãng vận chuyển',
+        message: `Bạn có muốn xóa hãng “${name}”?`,
+        detail: 'Cấu hình của hãng sẽ bị xóa và có thể ảnh hưởng phương thức giao hàng đang sử dụng.',
+        confirmText: 'Xóa hãng',
+        tone: 'danger'
+      })
+    : confirm(`Xóa hãng "${name}"?`);
+  if (!ok) return;
   const res = await api(`${BASE}/${id}`, { method:'DELETE' });
   if (!res.success) return toast(res.message || 'Xóa thất bại', false);
   document.querySelector(`tr[data-id="${id}"]`)?.remove();
