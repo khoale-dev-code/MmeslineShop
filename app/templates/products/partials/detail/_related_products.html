@@ -1,0 +1,39 @@
+{% if related_products %}
+      <section class="pd-related">
+        <div class="pd-related-head">
+          <div>
+            <p class="pd-kicker">Dành riêng cho bạn</p>
+            <h2 class="pd-related-title">Có thể bạn sẽ thích</h2>
+          </div>
+
+          <a href="{{ url_for('products.shop') }}" class="pd-related-link">Xem tất cả</a>
+        </div>
+
+        <div class="pd-related-grid">
+          {% for rp in related_products %}
+            <article class="pd-rp">
+              <a href="{{ url_for('products.detail', slug=rp.slug) }}" class="pd-rp-img block">
+                <img
+                  src="{{ rp.thumbnail_url or 'https://placehold.co/600x800/f6f6f6/111111?text=GUAMAISON' }}"
+                  alt="{{ rp.name }}"
+                  width="600"
+                  height="800"
+                  loading="{{ 'eager' if loop.index <= 4 else 'lazy' }}"
+                  decoding="async"
+                  onerror="this.src='https://placehold.co/600x800/f6f6f6/111111?text=GUAMAISON'"
+                >
+              </a>
+
+              <div class="pd-rp-info">
+                <a href="{{ url_for('products.detail', slug=rp.slug) }}" class="pd-rp-name">{{ rp.name }}</a>
+                <p class="pd-rp-price">{{ rp.price_formatted }}</p>
+
+                {% if rp.compare_at_price_formatted %}
+                  <del class="text-[11px] font-bold text-[#999]">{{ rp.compare_at_price_formatted }}</del>
+                {% endif %}
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}

@@ -1,0 +1,12 @@
+{
+  "created_at": "2026-08-07T15:47:49",
+  "existing_files": [
+    "app/static/js/pages/product_detail.js",
+    "app/templates/products/detail.html"
+  ],
+  "new_files": [
+    "app/static/css/components/product_cart_feedback.css",
+    "app/static/js/pages/product_detail_cart.js",
+    "app/templates/products/partials/detail/_cart_feedback.html"
+  ]
+}

@@ -1,0 +1,12 @@
+{% set gallery = about.get('gallery', []) %}
+{% if gallery %}
+<section class="mm-about-gallery" data-about-section="gallery" aria-label="GUAMAISON lookbook">
+  <div class="mm-about-gallery-grid">
+    {% for image in gallery %}
+      <div class="mm-about-image is-loading aspect-[3/4] mm-about-reveal">
+        <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" data-mm-src="{{ image.get('url') }}" alt="{{ image.get('alt', 'GUAMAISON look') }}" width="700" height="933" decoding="async">
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}

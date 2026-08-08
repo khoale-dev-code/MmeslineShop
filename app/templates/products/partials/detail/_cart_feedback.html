@@ -1,0 +1,37 @@
+<aside
+  class="pd-cart-feedback"
+  data-cart-feedback
+  data-type="success"
+  role="status"
+  aria-live="polite"
+  aria-atomic="true"
+  hidden
+>
+  <span class="pd-cart-feedback__icon" aria-hidden="true">
+    <i class="fa-solid fa-check" data-cart-feedback-icon></i>
+  </span>
+
+  <span class="pd-cart-feedback__copy">
+    <strong data-cart-feedback-title>Đã thêm vào giỏ</strong>
+    <span data-cart-feedback-message>Sản phẩm đã sẵn sàng trong giỏ hàng.</span>
+  </span>
+
+  <a
+    class="pd-cart-feedback__action"
+    href="{{ url_for('cart.index') }}"
+    data-cart-feedback-action
+  >
+    Xem giỏ
+  </a>
+
+  <button
+    type="button"
+    class="pd-cart-feedback__close"
+    data-cart-feedback-close
+    aria-label="Đóng thông báo"
+  >
+    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+  </button>
+
+  <span class="pd-cart-feedback__progress" aria-hidden="true"></span>
+</aside>

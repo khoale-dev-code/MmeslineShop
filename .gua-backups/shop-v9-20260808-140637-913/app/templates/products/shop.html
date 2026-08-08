@@ -1,0 +1,1071 @@
+{% extends "base.html" %}
+
+{% block title %}
+  {% if collection_info is defined and collection_info %}
+    {{ collection_info.meta_title or collection_info.name }} — GUAMAISON
+  {% elif keyword %}
+    {{ keyword }} — GUAMAISON
+  {% elif category %}
+    {{ category|replace('-', ' ')|title }} — GUAMAISON
+  {% elif collection %}
+    {{ collection|replace('-', ' ')|title }} — GUAMAISON
+  {% else %}
+    Shop All — GUAMAISON
+  {% endif %}
+{% endblock %}
+
+{% block extra_head %}
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/shop.css') }}?v=20260608-13">
+
+  <style>
+    /*
+      SHOP MOBILE TAP FIX + QUICK VIEW MOBILE UI
+      --------------------------------------------------
+      - Link sản phẩm không bị tràn khỏi card.
+      - Chat khi đóng không phủ lên shop.
+      - Quick view mobile chuyển thành bottom sheet gọn hơn.
+    */
+
+    .mm-shop {
+      position: relative;
+      z-index: 1;
+    }
+
+    .mm-card {
+      position: relative !important;
+      isolation: isolate !important;
+      contain: layout paint !important;
+      overflow: hidden !important;
+      z-index: 1 !important;
+    }
+
+    .mm-media,
+    .mm-info {
+      position: relative !important;
+      isolation: isolate !important;
+    }
+
+    .mm-media {
+      overflow: hidden !important;
+    }
+
+    .mm-media-link {
+      position: absolute !important;
+      inset: 0 !important;
+      z-index: 2 !important;
+      display: block !important;
+      width: 100% !important;
+      height: 100% !important;
+      max-width: 100% !important;
+      max-height: 100% !important;
+      overflow: hidden !important;
+      transform: none !important;
+      pointer-events: auto !important;
+      touch-action: manipulation !important;
+      -webkit-tap-highlight-color: transparent !important;
+    }
+
+    .mm-media-link img {
+      pointer-events: none !important;
+      user-select: none !important;
+      -webkit-user-drag: none !important;
+    }
+
+    .mm-name {
+      position: relative !important;
+      z-index: 3 !important;
+      pointer-events: auto !important;
+      touch-action: manipulation !important;
+      -webkit-tap-highlight-color: transparent !important;
+      text-decoration: none !important;
+    }
+
+    .mm-actions,
+    .mm-addbar {
+      position: absolute !important;
+      z-index: 20 !important;
+      pointer-events: auto !important;
+    }
+
+    .mm-badge {
+      z-index: 18 !important;
+      pointer-events: none !important;
+    }
+
+    @media (max-width: 767px) {
+      body:not(.mm-chat-open) .mm-chat-header,
+      body:not(.mm-chat-open) .mm-chat-body,
+      body:not(.mm-chat-open) .mm-chat-panel,
+      body:not(.mm-chat-open) .mm-chat-window,
+      body:not(.mm-chat-open) .mm-chat-box,
+      body:not(.mm-chat-open) .mm-chat-content,
+      body:not(.mm-chat-open) [data-chat-panel],
+      body:not(.mm-chat-open) [data-chat-window],
+      body:not(.mm-chat-open) [data-chat-body] {
+        pointer-events: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+      }
+
+      body:not(.mm-chat-open) .mm-chat,
+      body:not(.mm-chat-open) .mm-chat-widget,
+      body:not(.mm-chat-open) #mmChat,
+      body:not(.mm-chat-open) #mmChatWidget,
+      body:not(.mm-chat-open) [data-chat-widget] {
+        pointer-events: none !important;
+      }
+
+      body:not(.mm-chat-open) .mm-chat-toggle,
+      body:not(.mm-chat-open) #mmChatToggle,
+      body:not(.mm-chat-open) [data-chat-toggle] {
+        pointer-events: auto !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+      }
+
+      body.mm-chat-open .mm-chat,
+      body.mm-chat-open .mm-chat-widget,
+      body.mm-chat-open #mmChat,
+      body.mm-chat-open #mmChatWidget,
+      body.mm-chat-open [data-chat-widget] {
+        pointer-events: auto !important;
+      }
+    }
+
+    /*
+      QUICK VIEW — dùng trực tiếp trong shop.html để ghi đè modal cũ.
+    */
+
+    .mm-qv-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 2200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .mm-qv-modal.open {
+      display: flex !important;
+    }
+
+    .mm-qv-backdrop {
+      position: absolute;
+      inset: 0;
+      border: 0;
+      background: rgba(0, 0, 0, .52);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+
+    .mm-qv-sheet {
+      position: relative;
+      z-index: 2;
+      width: min(920px, calc(100vw - 28px));
+      max-height: min(86dvh, 720px);
+      overflow: hidden;
+      border: 1px solid rgba(16, 21, 16, .12);
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: 0 32px 90px -48px rgba(0, 0, 0, .55);
+      transform: translateY(12px) scale(.985);
+      opacity: 0;
+      transition:
+        transform .24s cubic-bezier(.16, 1, .3, 1),
+        opacity .2s ease;
+    }
+
+    .mm-qv-modal.open .mm-qv-sheet {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+
+    .mm-qv-handle {
+      display: none;
+    }
+
+    .mm-qv-close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 10;
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(16, 21, 16, .1);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .94);
+      color: #101510;
+      box-shadow: 0 14px 30px -22px rgba(0, 0, 0, .35);
+      transition:
+        transform .18s ease,
+        background .18s ease,
+        color .18s ease;
+    }
+
+    .mm-qv-close:hover {
+      background: #101510;
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    .mm-qv-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 46%) minmax(0, 54%);
+      min-height: 520px;
+    }
+
+    .mm-qv-media {
+      position: relative;
+      overflow: hidden;
+      background: #f6f6f6;
+    }
+
+    .mm-qv-media img {
+      width: 100%;
+      height: 100%;
+      min-height: 520px;
+      display: block;
+      object-fit: cover;
+      object-position: top center;
+    }
+
+    .mm-qv-content {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 34px 30px 28px;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .mm-qv-kicker {
+      margin: 0 0 10px;
+      color: #b98b62;
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .2em;
+      line-height: 1.25;
+      text-transform: uppercase;
+    }
+
+    .mm-qv-title {
+      margin: 0;
+      color: #241207;
+      font-size: clamp(25px, 2.6vw, 36px);
+      font-weight: 950;
+      line-height: 1.06;
+      letter-spacing: -.045em;
+      text-transform: uppercase;
+      text-wrap: balance;
+    }
+
+    .mm-qv-price {
+      margin: 22px 0 0;
+      color: #241207;
+      font-size: 26px;
+      font-weight: 950;
+      letter-spacing: -.04em;
+    }
+
+    .mm-qv-field {
+      margin-top: 26px;
+      padding-top: 22px;
+      border-top: 1px solid rgba(36, 18, 7, .1);
+    }
+
+    .mm-qv-label {
+      display: block;
+      margin-bottom: 10px;
+      color: #b98b62;
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+
+    .mm-qv-select {
+      width: 100%;
+      height: 48px;
+      border: 1px solid rgba(36, 18, 7, .14);
+      border-radius: 8px;
+      background: #fff;
+      padding: 0 14px;
+      color: #241207;
+      font-size: 13px;
+      font-weight: 800;
+      outline: none;
+    }
+
+    .mm-qv-select:focus {
+      border-color: #241207;
+      box-shadow: 0 0 0 4px rgba(36, 18, 7, .08);
+    }
+
+    .mm-qv-actions {
+      margin-top: auto;
+      padding-top: 28px;
+      display: grid;
+      grid-template-columns: 1fr 150px;
+      gap: 10px;
+    }
+
+    .mm-qv-add,
+    .mm-qv-detail {
+      height: 48px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .15em;
+      line-height: 1;
+      text-transform: uppercase;
+      transition:
+        transform .18s cubic-bezier(.16, 1, .3, 1),
+        background .18s ease,
+        color .18s ease,
+        border-color .18s ease;
+    }
+
+    .mm-qv-add {
+      border: 1px solid #241207;
+      background: #241207;
+      color: #fff;
+    }
+
+    .mm-qv-add:hover {
+      background: #1b4922;
+      border-color: #1b4922;
+    }
+
+    .mm-qv-detail {
+      border: 1px solid rgba(36, 18, 7, .14);
+      background: #fff;
+      color: #241207;
+      text-decoration: none;
+    }
+
+    .mm-qv-detail:hover {
+      border-color: #241207;
+    }
+
+    .mm-qv-add:active,
+    .mm-qv-detail:active {
+      transform: scale(.97);
+    }
+
+    .mm-qv-add:disabled {
+      border-color: #e5e5e5;
+      background: #f1f1f1;
+      color: #aaa;
+      cursor: not-allowed;
+    }
+
+    @media (max-width: 767px) {
+      .mm-qv-modal {
+        align-items: flex-end;
+        justify-content: center;
+      }
+
+      .mm-qv-sheet {
+        width: 100%;
+        max-height: 92dvh;
+        border-radius: 18px 18px 0 0;
+        border-left: 0;
+        border-right: 0;
+        border-bottom: 0;
+        transform: translateY(32px);
+      }
+
+      .mm-qv-handle {
+        position: absolute;
+        top: 8px;
+        left: 50%;
+        z-index: 12;
+        display: block;
+        width: 44px;
+        height: 4px;
+        border-radius: 999px;
+        background: rgba(36, 18, 7, .18);
+        transform: translateX(-50%);
+      }
+
+      .mm-qv-close {
+        top: 14px;
+        right: 14px;
+        width: 36px;
+        height: 36px;
+      }
+
+      .mm-qv-layout {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        max-height: 92dvh;
+      }
+
+      .mm-qv-media {
+        height: 34dvh;
+        max-height: 300px;
+        min-height: 230px;
+        flex: 0 0 auto;
+      }
+
+      .mm-qv-media img {
+        height: 100%;
+        min-height: 0;
+        object-fit: contain;
+        object-position: center;
+        padding: 14px 34px 10px;
+      }
+
+      .mm-qv-content {
+        max-height: calc(92dvh - 230px);
+        min-height: 0;
+        padding: 16px 16px calc(92px + env(safe-area-inset-bottom, 0px));
+        overflow: auto;
+      }
+
+      .mm-qv-kicker {
+        margin-bottom: 8px;
+        font-size: 9px;
+        letter-spacing: .17em;
+      }
+
+      .mm-qv-title {
+        font-size: 21px;
+        line-height: 1.15;
+        letter-spacing: -.04em;
+      }
+
+      .mm-qv-price {
+        margin-top: 16px;
+        font-size: 23px;
+      }
+
+      .mm-qv-field {
+        margin-top: 18px;
+        padding-top: 16px;
+      }
+
+      .mm-qv-label {
+        font-size: 9px;
+      }
+
+      .mm-qv-select {
+        height: 46px;
+        border-radius: 8px;
+        font-size: 12px;
+      }
+
+      .mm-qv-actions {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 20;
+        margin: 0;
+        padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+        grid-template-columns: 1fr 48px;
+        gap: 8px;
+        border-top: 1px solid rgba(36, 18, 7, .1);
+        background: rgba(255, 255, 255, .95);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        box-shadow: 0 -18px 44px -34px rgba(0, 0, 0, .38);
+      }
+
+      .mm-qv-add,
+      .mm-qv-detail {
+        height: 48px;
+        border-radius: 999px;
+      }
+
+      .mm-qv-add {
+        font-size: 10px;
+        letter-spacing: .13em;
+      }
+
+      .mm-qv-detail {
+        width: 48px;
+        padding: 0;
+        font-size: 0;
+      }
+
+      .mm-qv-detail span {
+        display: none;
+      }
+
+      .mm-qv-detail i {
+        font-size: 13px;
+      }
+
+      body.mm-qv-open #gua-ai-chat,
+      body.mm-qv-open .mm-chat-widget {
+        display: none !important;
+        pointer-events: none !important;
+      }
+    }
+  </style>
+{% endblock %}
+{% block content %}
+{% set collection_media = (collection_info.video_url or collection_info.image_url) if collection_info is defined and collection_info else '' %}
+{% set shop_banner = collection_media or (storefront.shop_banner_url if storefront is defined and storefront and storefront.shop_banner_url else 'https://d2w9rnfcy7mm78.cloudfront.net/29334430/original_f3ab732e0aeafd6b8cd6002334dcc905.gif?1720621365?bc=0') %}
+
+<div class="mm-shop">
+  {# HERO #}
+  <section class="mm-hero">
+    {% if '.mp4' in shop_banner|lower or '.webm' in shop_banner|lower %}
+      <video
+        src="{{ shop_banner }}"
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="auto"
+      ></video>
+    {% else %}
+      <img
+        src="{{ shop_banner }}"
+        alt="GUAMAISON Campaign"
+        width="1920"
+        height="1080"
+        loading="eager"
+        fetchpriority="high"
+        decoding="async"
+      >
+    {% endif %}
+
+    <div class="mm-hero-inner">
+      <div>
+        <p class="mm-kicker">GUAMAISON — Official Store</p>
+
+        <h1 class="mm-title">
+          {% if keyword %}
+            “<em>{{ keyword }}</em>”
+          {% elif category %}
+            {{ category|replace('-', ' ')|title }}
+          {% elif collection %}
+            {{ collection_info.name if collection_info is defined and collection_info else collection|replace('-', ' ')|title }}
+          {% else %}
+            Shop <br><em>All</em>
+          {% endif %}
+        </h1>
+        {% if collection_info is defined and collection_info and collection_info.description %}
+          <p class="mt-4 max-w-2xl text-sm font-semibold leading-6 text-white/80 line-clamp-3">{{ collection_info.description|striptags }}</p>
+        {% endif %}
+      </div>
+
+      <div>
+        <div class="mm-count" id="shopHeroCount">
+          {{ total if total else products|length }}
+        </div>
+        <p class="mm-kicker text-right">Products</p>
+      </div>
+    </div>
+  </section>
+
+  {# TOOLBAR #}
+  <div class="mm-toolbar">
+    <div class="mm-toolbar-inner">
+      <div class="flex items-center gap-3 min-w-0">
+        <button type="button" class="mm-btn" data-open-filter>
+          <i class="fa-solid fa-sliders"></i>
+          Filter
+        </button>
+
+        <form class="mm-search" method="GET" action="{{ request.path if collection_info is defined and collection_info else url_for('products.shop') }}">
+          {% if category %}
+            <input type="hidden" name="category" value="{{ category }}">
+          {% endif %}
+
+          {% if collection and not (collection_info is defined and collection_info) %}
+            <input type="hidden" name="collection" value="{{ collection }}">
+          {% endif %}
+
+          {% if current_gender %}
+            <input type="hidden" name="gender" value="{{ current_gender }}">
+          {% endif %}
+
+          <i class="fa-solid fa-magnifying-glass text-[#b7a191] text-xs"></i>
+
+          <input
+            type="search"
+            name="q"
+            id="shopLiveSearch"
+            value="{{ keyword or '' }}"
+            placeholder="Tìm sản phẩm..."
+            autocomplete="off"
+          >
+        </form>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <span class="mm-meta">
+          <span id="shopCount">{{ total if total else products|length }}</span> Items
+        </span>
+
+        <button type="button" class="mm-btn hidden lg:inline-flex" data-grid="large">3</button>
+        <button type="button" class="mm-btn hidden lg:inline-flex" data-grid="normal">4</button>
+        <button type="button" class="mm-btn hidden lg:inline-flex" data-grid="compact">5</button>
+      </div>
+    </div>
+  </div>
+
+  {# PRODUCT GRID #}
+  <main class="mm-wrap">
+    <div class="mm-empty" id="shopEmpty">
+      <div>
+        <h2 class="text-4xl md:text-6xl font-black uppercase tracking-[-.06em] text-[#241207]">
+          Không tìm thấy
+        </h2>
+
+        <p class="mt-3 mb-6 text-sm font-semibold text-[#8a6a52]">
+          Thử xóa bộ lọc hoặc tìm kiếm bằng từ khóa khác.
+        </p>
+
+        <button type="button" class="mm-btn" data-clear-filter>
+          Xóa bộ lọc
+        </button>
+      </div>
+    </div>
+
+    {% if products and products|length > 0 %}
+      {% set ns = namespace(sizes=[], colors=[]) %}
+
+      {% for p in products %}
+        {% for v in (p.product_variants or []) %}
+          {% if v.size and v.size not in ns.sizes %}
+            {% set _ = ns.sizes.append(v.size) %}
+          {% endif %}
+
+          {% if v.color_name and v.color_name not in ns.colors %}
+            {% set _ = ns.colors.append(v.color_name) %}
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+
+      <div class="mm-grid" id="shopGrid">
+        {% for product in products %}
+          {% set variants = product.product_variants or [] %}
+          {% set images = product.product_images or [] %}
+          {% set imgs = images|map(attribute='url')|list %}
+
+          {% if product.thumbnail_url and product.thumbnail_url not in imgs %}
+            {% set _ = imgs.insert(0, product.thumbnail_url) %}
+          {% endif %}
+
+          {% set img1 = imgs[0] if imgs else 'https://placehold.co/800x1067/f4ece5/241207?text=GUAMAISON' %}
+          {% set img2 = imgs[1] if imgs|length > 1 else img1 %}
+
+          {% set category_names = [] %}
+          {% set category_names_lower = [] %}
+          {% set category_slugs = [] %}
+
+          {% if product.product_categories %}
+            {% for pc in product.product_categories %}
+              {% if pc.categories %}
+                {% if pc.categories.name and pc.categories.name not in category_names %}
+                  {% set _ = category_names.append(pc.categories.name) %}
+                  {% set _ = category_names_lower.append(pc.categories.name|lower) %}
+                {% endif %}
+
+                {% if pc.categories.slug and pc.categories.slug not in category_slugs %}
+                  {% set _ = category_slugs.append(pc.categories.slug) %}
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+
+          {% if product.categories %}
+            {% if product.categories.name and product.categories.name not in category_names %}
+              {% set _ = category_names.append(product.categories.name) %}
+              {% set _ = category_names_lower.append(product.categories.name|lower) %}
+            {% endif %}
+
+            {% if product.categories.slug and product.categories.slug not in category_slugs %}
+              {% set _ = category_slugs.append(product.categories.slug) %}
+            {% endif %}
+          {% endif %}
+
+          {% set display_cat = category_names[0] if category_names else 'GUAMAISON' %}
+
+          {% set size_list = [] %}
+          {% set color_list = [] %}
+
+          {% for v in variants %}
+            {% if v.size and v.size not in size_list %}
+              {% set _ = size_list.append(v.size) %}
+            {% endif %}
+
+            {% if v.color_name and v.color_name not in color_list %}
+              {% set _ = color_list.append(v.color_name) %}
+            {% endif %}
+          {% endfor %}
+
+          {% set stock = variants|sum(attribute='stock') if variants else (product.stock or 0) %}
+          {% set price = product.price or 0 %}
+          {% set compare_price = product.compare_at_price or 0 %}
+          {% set product_slug_or_id = product.slug or product.id %}
+          {% set product_url = url_for('products.detail', slug=product_slug_or_id) %}
+
+          {% set first_variant = namespace(id='') %}
+
+          {% for v in variants %}
+            {% if not first_variant.id and (v.stock or 0) > 0 %}
+              {% set first_variant.id = v.id %}
+            {% endif %}
+          {% endfor %}
+
+          <article
+            class="mm-card"
+            data-id="{{ product.id }}"
+            data-slug="{{ product_slug_or_id }}"
+            data-name="{{ product.name|lower }}"
+            data-title="{{ product.name }}"
+            data-url="{{ product_url }}"
+            data-img="{{ img1 }}"
+            data-price="{{ price }}"
+            data-price-text="{{ '{:,.0f}'.format(price|float).replace(',', '.') }}₫"
+            data-category="{{ display_cat }}"
+            data-stock="{{ stock }}"
+            data-first-variant="{{ first_variant.id }}"
+            data-category-slugs='{{ category_slugs|tojson }}'
+            data-category-names='{{ category_names_lower|tojson }}'
+            data-created="{{ product.created_at or '' }}"
+            data-sold="{{ product.sold_count|default(0) }}"
+            data-sizes='{{ size_list|tojson }}'
+            data-colors='{{ color_list|tojson }}'
+          >
+            <div class="mm-media">
+              <a
+                href="{{ product_url }}"
+                class="mm-media-link"
+                aria-label="Xem chi tiết {{ product.name }}"
+              >
+                <img
+                  class="mm-img main"
+                  src="{{ img1 }}"
+                  alt="{{ product.name }}"
+                  width="800"
+                  height="1067"
+                  loading="{{ 'eager' if loop.index <= 4 else 'lazy' }}"
+                  decoding="async"
+                  draggable="false"
+                >
+
+                <img
+                  class="mm-img alt"
+                  src="{{ img2 }}"
+                  alt="{{ product.name }}"
+                  width="800"
+                  height="1067"
+                  loading="lazy"
+                  decoding="async"
+                  draggable="false"
+                >
+              </a>
+
+              <div class="mm-actions">
+                <button type="button" class="mm-icon" data-fav aria-label="Yêu thích sản phẩm">
+                  <i class="fa-regular fa-heart"></i>
+                </button>
+
+                <button type="button" class="mm-icon" data-quick aria-label="Xem nhanh sản phẩm">
+                  <i class="fa-regular fa-eye"></i>
+                </button>
+              </div>
+
+          <div class="mm-addbar mm-addbar-icon">
+          <button
+            type="button"
+            class="mm-add mm-add-icon"
+            data-add
+            aria-label="{% if stock <= 0 %}Sản phẩm hết hàng{% else %}Thêm {{ product.name }} vào giỏ hàng{% endif %}"
+            title="{% if stock <= 0 %}Hết hàng{% else %}Thêm vào giỏ{% endif %}"
+            {% if stock <= 0 %}disabled{% endif %}
+          >
+            {% if stock <= 0 %}
+              <i class="fa-solid fa-ban" aria-hidden="true"></i>
+            {% else %}
+              <i class="fa-solid fa-cart-plus" aria-hidden="true"></i>
+            {% endif %}
+          </button>
+        </div>
+
+              {% if stock <= 0 %}
+                <span class="mm-badge sold">Sold Out</span>
+              {% elif loop.index <= 8 %}
+                <span class="mm-badge">New</span>
+              {% endif %}
+            </div>
+
+            <div class="mm-info">
+              <p class="mm-cat">{{ display_cat }}</p>
+
+              <a
+                href="{{ product_url }}"
+                class="mm-name"
+              >
+                {{ product.name }}
+              </a>
+
+              <div class="mm-price">
+                <strong>{{ "{:,.0f}".format(price|float).replace(",", ".") }}₫</strong>
+
+                {% if compare_price and compare_price > price %}
+                  <del>{{ "{:,.0f}".format(compare_price|float).replace(",", ".") }}₫</del>
+                  <span>-{{ (((compare_price - price) / compare_price) * 100)|round|int }}%</span>
+                {% endif %}
+              </div>
+
+              <select class="hidden" data-variant-select-source>
+                {% for v in variants %}
+                  <option value="{{ v.id }}" {% if (v.stock or 0) <= 0 %}disabled{% endif %}>
+                    {% if v.color_name %}{{ v.color_name }}{% endif %}
+                    {% if v.size %}{% if v.color_name %} / {% endif %}Size {{ v.size }}{% endif %}
+                    {% if (v.stock or 0) <= 0 %} — Hết hàng{% endif %}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+
+      <script id="shopFilterMeta" type="application/json">
+        {
+          "sizes": {{ ns.sizes|sort|tojson }},
+          "colors": {{ ns.colors|sort|tojson }}
+        }
+      </script>
+    {% endif %}
+  </main>
+</div>
+
+{# FILTER DRAWER #}
+<div class="mm-drawer" id="filterDrawer">
+  <div class="mm-backdrop" data-close-filter></div>
+
+  <aside class="mm-panel">
+    <div class="mm-panel-head">
+      <h2 class="text-xl font-black uppercase tracking-[-.03em]">
+        Filter
+      </h2>
+
+      <button type="button" class="mm-btn !w-10 !px-0" data-close-filter>
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="mm-panel-body">
+      <div class="md:hidden">
+        <div class="mm-filter-title mb-3">Tìm kiếm</div>
+
+        <form class="mm-search !flex !w-full" method="GET" action="{{ request.path if collection_info is defined and collection_info else url_for('products.shop') }}">
+          {% if collection and not (collection_info is defined and collection_info) %}<input type="hidden" name="collection" value="{{ collection }}">{% endif %}
+          <i class="fa-solid fa-magnifying-glass text-[#b7a191] text-xs"></i>
+
+          <input
+            type="search"
+            name="q"
+            id="shopMobileSearch"
+            value="{{ keyword or '' }}"
+            placeholder="Tìm sản phẩm..."
+            autocomplete="off"
+          >
+        </form>
+      </div>
+
+      <div class="space-y-3">
+        <div class="mm-filter-title">Sắp xếp</div>
+
+        <label class="mm-choice">
+          <input type="radio" name="shopSort" value="newest" checked>
+          <span>Mới nhất</span>
+        </label>
+
+        <label class="mm-choice">
+          <input type="radio" name="shopSort" value="best">
+          <span>Bán chạy</span>
+        </label>
+
+        <label class="mm-choice">
+          <input type="radio" name="shopSort" value="price_asc">
+          <span>Giá thấp đến cao</span>
+        </label>
+
+        <label class="mm-choice">
+          <input type="radio" name="shopSort" value="price_desc">
+          <span>Giá cao đến thấp</span>
+        </label>
+      </div>
+
+      <div class="space-y-3">
+        <div class="mm-filter-title">Danh mục</div>
+
+        {% for cat in global_categories or [] %}
+          <label class="mm-choice">
+            <input
+              type="checkbox"
+              class="filter-category"
+              value="{{ cat.slug }}"
+              {% if category == cat.slug %}checked{% endif %}
+            >
+            <span>{{ cat.name }}</span>
+          </label>
+        {% endfor %}
+      </div>
+
+      <div class="space-y-3 hidden" id="sizeGroup">
+        <div class="mm-filter-title">Kích cỡ</div>
+        <div class="mm-chips" id="sizeChips"></div>
+      </div>
+
+      <div class="space-y-3 hidden" id="colorGroup">
+        <div class="mm-filter-title">Màu sắc</div>
+        <div class="mm-chips" id="colorChips"></div>
+      </div>
+    </div>
+
+    <div class="mm-panel-foot">
+      <button type="button" class="mm-btn" data-clear-filter>
+        Bỏ lọc
+      </button>
+
+      <button type="button" class="mm-btn !bg-[#241207] !text-white" data-close-filter>
+        Áp dụng
+      </button>
+    </div>
+  </aside>
+</div>
+
+{# QUICK VIEW MODAL — Mobile Optimized #}
+<div
+  class="mm-modal mm-qv-modal"
+  id="quickModal"
+  aria-hidden="true"
+>
+  <button
+    type="button"
+    class="mm-qv-backdrop"
+    data-close-quick
+    aria-label="Đóng xem nhanh"
+  ></button>
+
+  <section
+    class="mm-qv-sheet"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="qvTitle"
+  >
+    <div class="mm-qv-handle" aria-hidden="true"></div>
+
+    <button
+      type="button"
+      class="mm-qv-close"
+      data-close-quick
+      aria-label="Đóng"
+    >
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+
+    <div class="mm-qv-layout">
+      <div class="mm-qv-media">
+        <img
+          id="qvImg"
+          src=""
+          alt=""
+          width="900"
+          height="1200"
+          loading="eager"
+          decoding="async"
+        >
+      </div>
+
+      <div class="mm-qv-content">
+        <div class="mm-qv-main-info">
+          <p id="qvCat" class="mm-qv-kicker">GUAMAISON</p>
+
+          <h2 id="qvTitle" class="mm-qv-title"></h2>
+
+          <p id="qvPrice" class="mm-qv-price"></p>
+
+          <div class="mm-qv-field">
+            <label for="qvVariant" class="mm-qv-label">
+              Phân loại
+            </label>
+
+            <select id="qvVariant" class="mm-qv-select"></select>
+          </div>
+        </div>
+
+        <div class="mm-qv-actions">
+          <button
+            type="button"
+            id="qvAdd"
+            class="mm-qv-add"
+          >
+            <i class="fa-solid fa-cart-plus"></i>
+            <span>Thêm vào giỏ</span>
+          </button>
+
+          <a
+            id="qvLink"
+            href="#"
+            class="mm-qv-detail"
+            aria-label="Xem chi tiết sản phẩm"
+          >
+            <span>Xem chi tiết</span>
+            <i class="fa-solid fa-arrow-right"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="mm-toast" id="shopToast"></div>
+{% endblock %}
+{% block extra_scripts %}
+  <script src="{{ url_for('static', filename='js/shop.js') }}?v=20260608-13" defer></script>
+
+  <script>
+    /*
+      Quick View body-state bridge:
+      Nếu shop.js hiện tại chưa thêm body.mm-qv-open thì đoạn này tự đồng bộ,
+      giúp ẩn chat khi quick view mở ở mobile.
+    */
+    document.addEventListener("DOMContentLoaded", function () {
+      var quickModal = document.getElementById("quickModal");
+
+      if (!quickModal) return;
+
+      function syncQuickViewState() {
+        document.body.classList.toggle(
+          "mm-qv-open",
+          quickModal.classList.contains("open")
+        );
+
+        quickModal.setAttribute(
+          "aria-hidden",
+          quickModal.classList.contains("open") ? "false" : "true"
+        );
+      }
+
+      var observer = new MutationObserver(syncQuickViewState);
+
+      observer.observe(quickModal, {
+        attributes: true,
+        attributeFilter: ["class"]
+      });
+
+      syncQuickViewState();
+    });
+  </script>
+{% endblock %}

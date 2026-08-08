@@ -1,0 +1,49 @@
+{% set hero = about.get('hero', {}) %}
+{% set title_lines = hero.get('title', 'Wear\nYour\nIdentity').split('\n') %}
+<section class="mm-about-hero" data-about-section="hero">
+  <div class="mm-about-container">
+    <div class="mm-about-hero-grid">
+      <div>
+        <p class="mm-about-kicker mm-about-reveal">{{ hero.get('kicker', 'About GUAMAISON') }}</p>
+
+        <h1 class="mm-about-title mm-about-reveal">
+          {% for line in title_lines %}
+            {% if not loop.first %}<br>{% endif %}
+            {% if loop.last %}<em>{{ line }}</em>{% else %}{{ line }}{% endif %}
+          {% endfor %}
+        </h1>
+
+        <p class="mm-about-copy mm-about-hero-copy mm-about-reveal">{{ hero.get('description', '') }}</p>
+
+        <div class="mm-about-hero-actions mm-about-reveal">
+          {% set primary = hero.get('primary_cta', {}) %}
+          {% if primary.get('label') %}
+            <a href="{{ primary.get('url', '/shop') }}" class="mm-about-btn" data-magnetic>
+              {{ primary.get('label') }} <i class="fa-solid fa-arrow-right"></i>
+            </a>
+          {% endif %}
+
+          {% set secondary = hero.get('secondary_cta', {}) %}
+          {% if secondary.get('label') %}
+            <a href="{{ secondary.get('url', '/collections') }}" class="mm-about-btn is-light" data-magnetic>
+              {{ secondary.get('label') }}
+            </a>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="mm-about-collage mm-about-reveal mm-about-slide-right" data-tilt>
+        <div class="mm-about-image is-loading aspect-[3/4]" data-parallax="0.08">
+          <img src="{{ hero.get('primary_image') }}" alt="{{ hero.get('primary_image_alt', 'GUAMAISON campaign') }}" width="900" height="1200" loading="eager" fetchpriority="high" decoding="async" data-about-eager>
+        </div>
+
+        <div class="mm-about-small-stack">
+          <div class="mm-about-image is-loading aspect-[4/5]" data-parallax="0.13">
+            <img src="{{ hero.get('secondary_image') }}" alt="{{ hero.get('secondary_image_alt', 'GUAMAISON details') }}" width="640" height="800" loading="eager" decoding="async" data-about-eager>
+          </div>
+          <p class="mm-about-side-note">{{ hero.get('side_note', '') }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

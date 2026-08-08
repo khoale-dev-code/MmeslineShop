@@ -1,0 +1,10 @@
+{% set marquee = about.get('marquee', []) %}
+{% if marquee %}
+<div class="mm-about-marquee" data-about-section="marquee" aria-label="Thông điệp thương hiệu">
+  <div class="mm-about-marquee-track">
+    {% for repeat in range(2) %}
+      {% for item in marquee %}<span>{{ item }}</span>{% endfor %}
+    {% endfor %}
+  </div>
+</div>
+{% endif %}

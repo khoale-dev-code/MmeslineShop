@@ -1,0 +1,179 @@
+{% extends "admin/admin_base.html" %}
+
+{% macro field(label, path, value='', type='text', hint='') %}
+  <label class="ab-field">
+    <span class="ab-label">{{ label }}</span>
+    <input class="ab-input" type="{{ type }}" value="{{ value }}" data-about-path="{{ path }}" autocomplete="off">
+    {% if hint %}<span class="ab-hint">{{ hint }}</span>{% endif %}
+  </label>
+{% endmacro %}
+
+{% macro textarea(label, path, value='', rows=4, hint='') %}
+  <label class="ab-field">
+    <span class="ab-label">{{ label }}</span>
+    <textarea class="ab-textarea" rows="{{ rows }}" data-about-path="{{ path }}">{{ value }}</textarea>
+    {% if hint %}<span class="ab-hint">{{ hint }}</span>{% endif %}
+  </label>
+{% endmacro %}
+
+{% macro image_field(label, path, alt_path, value='', alt='', hint='') %}
+  <div class="ab-image-field" data-image-field="{{ path }}">
+    <div class="ab-image-preview">
+      <img src="{{ value }}" alt="" data-image-preview="{{ path }}">
+      <div class="ab-image-empty"><i class="fa-regular fa-image"></i><span>Chưa có ảnh</span></div>
+    </div>
+    <div class="ab-image-controls">
+      {{ field(label ~ ' — URL', path, value, 'url', hint) }}
+      {{ field('Mô tả ảnh (alt)', alt_path, alt, 'text', 'Dùng cho SEO và người dùng trình đọc màn hình.') }}
+      <label class="ab-upload-button">
+        <i class="fa-solid fa-cloud-arrow-up"></i>
+        <span>Tải ảnh lên Supabase</span>
+        <input class="sr-only" type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" data-about-upload="{{ path }}">
+      </label>
+    </div>
+  </div>
+{% endmacro %}
+
+{% set content = editor_state.get('content', {}) %}
+{% set hero = content.get('hero', {}) %}
+{% set story = content.get('story', {}) %}
+{% set beliefs = content.get('beliefs', {}) %}
+{% set manifesto = content.get('manifesto', {}) %}
+
+{% block title %}Tùy chỉnh About | GUAMAISON Admin{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin/about-editor.css') }}?v=20260808-v6">
+{% endblock %}
+
+{% block content %}
+<section
+  id="aboutEditor"
+  class="ab-shell"
+  data-save-url="{{ url_for('admin.save_about_page_draft') }}"
+  data-publish-url="{{ url_for('admin.publish_about_page') }}"
+  data-reset-url="{{ url_for('admin.reset_about_page_draft') }}"
+  data-upload-url="{{ url_for('admin.upload_about_page_image') }}"
+  data-preview-url="{{ url_for('admin.about_page_preview') }}"
+>
+  <script id="aboutEditorState" type="application/json">{{ editor_state|tojson }}</script>
+
+  <header class="ab-hero">
+    <div>
+      <p class="ab-kicker">Storefront content</p>
+      <h1>Trang <span>About</span></h1>
+      <p>Chỉnh nội dung theo từng khối, lưu bản nháp, xem trước rồi mới xuất bản cho khách hàng.</p>
+    </div>
+
+    <div class="ab-hero-actions">
+      <div class="ab-version-stack" aria-label="Trạng thái phiên bản">
+        <span>Bản nháp <b data-draft-version>{{ editor_state.get('draft_version', 0) }}</b></span>
+        <span>Đã xuất bản <b data-published-version>{{ editor_state.get('published_version', 0) }}</b></span>
+      </div>
+      <button type="button" class="ab-btn ab-btn-soft" data-action="preview"><i class="fa-regular fa-eye"></i> Xem trước</button>
+      <button type="button" class="ab-btn ab-btn-soft" data-action="save"><i class="fa-regular fa-floppy-disk"></i> Lưu nháp</button>
+      <button type="button" class="ab-btn ab-btn-primary" data-action="publish"><i class="fa-solid fa-paper-plane"></i> Xuất bản</button>
+    </div>
+  </header>
+
+  {% if not editor_state.get('schema_ready') %}
+    <div class="ab-alert ab-alert-error" role="alert">
+      <i class="fa-solid fa-database"></i>
+      <div><strong>Supabase chưa sẵn sàng.</strong><p>{{ editor_state.get('schema_error') }} Mở file migration do script tạo và chạy trong Supabase SQL Editor, sau đó tải lại trang.</p></div>
+    </div>
+  {% endif %}
+
+  <div class="ab-alert ab-alert-warning hidden" data-conflict-banner role="alert">
+    <i class="fa-solid fa-code-compare"></i>
+    <div><strong>Phát hiện chỉnh sửa từ phiên khác.</strong><p>Hệ thống không ghi đè tự động. Hãy tải lại trang để lấy bản mới nhất.</p></div>
+    <button type="button" class="ab-btn ab-btn-soft" onclick="window.location.reload()">Tải lại</button>
+  </div>
+
+  <div class="ab-workspace">
+    <aside class="ab-sidebar" aria-label="Các phần trang About">
+      <button class="is-active" type="button" data-panel-target="layout"><i class="fa-solid fa-grip"></i><span>Bố cục</span></button>
+      <button type="button" data-panel-target="seo"><i class="fa-solid fa-magnifying-glass"></i><span>SEO</span></button>
+      <button type="button" data-panel-target="hero"><i class="fa-solid fa-star"></i><span>Hero</span></button>
+      <button type="button" data-panel-target="marquee"><i class="fa-solid fa-text-width"></i><span>Marquee</span></button>
+      <button type="button" data-panel-target="story"><i class="fa-solid fa-book-open"></i><span>Câu chuyện</span></button>
+      <button type="button" data-panel-target="gallery"><i class="fa-regular fa-images"></i><span>Thư viện ảnh</span></button>
+      <button type="button" data-panel-target="beliefs"><i class="fa-regular fa-gem"></i><span>Giá trị</span></button>
+      <button type="button" data-panel-target="manifesto"><i class="fa-solid fa-flag"></i><span>Manifesto</span></button>
+    </aside>
+
+    <div class="ab-editor-card">
+      <section class="ab-panel is-active" data-panel="layout">
+        <div class="ab-panel-head"><div><p class="ab-kicker">Page structure</p><h2>Bố cục & hiển thị</h2><p>Kéo bằng nút lên/xuống và bật hoặc tắt từng khối. Nội dung không bị xóa khi tắt.</p></div></div>
+        <div class="ab-section-order" data-section-order></div>
+        <div class="ab-danger-zone">
+          <div><strong>Khôi phục nội dung mặc định</strong><p>Chỉ thay bản nháp hiện tại; trang đang xuất bản chưa đổi cho tới khi bạn bấm Xuất bản.</p></div>
+          <button type="button" class="ab-btn ab-btn-danger" data-action="reset"><i class="fa-solid fa-arrow-rotate-left"></i> Khôi phục</button>
+        </div>
+      </section>
+
+      <section class="ab-panel" data-panel="seo">
+        <div class="ab-panel-head"><div><p class="ab-kicker">Search preview</p><h2>SEO & chia sẻ</h2></div></div>
+        <div class="ab-grid-2">
+          {{ field('Tiêu đề trình duyệt', 'seo.title', content.get('seo', {}).get('title', ''), 'text', 'Nên ngắn hơn 60–70 ký tự.') }}
+          {{ textarea('Mô tả trang', 'seo.description', content.get('seo', {}).get('description', ''), 4, 'Tóm tắt rõ ràng nội dung thương hiệu.') }}
+        </div>
+      </section>
+
+      <section class="ab-panel" data-panel="hero">
+        <div class="ab-panel-head"><div><p class="ab-kicker">First impression</p><h2>Hero đầu trang</h2></div></div>
+        <div class="ab-grid-2">
+          {{ field('Nhãn nhỏ', 'hero.kicker', hero.get('kicker', '')) }}
+          {{ textarea('Tiêu đề', 'hero.title', hero.get('title', ''), 4, 'Xuống dòng để điều khiển nhịp tiêu đề.') }}
+        </div>
+        {{ textarea('Đoạn giới thiệu', 'hero.description', hero.get('description', ''), 5) }}
+        <div class="ab-grid-2">
+          <div class="ab-subcard"><h3>Nút chính</h3>{{ field('Nhãn', 'hero.primary_cta.label', hero.get('primary_cta', {}).get('label', '')) }}{{ field('Đường dẫn', 'hero.primary_cta.url', hero.get('primary_cta', {}).get('url', ''), 'text') }}</div>
+          <div class="ab-subcard"><h3>Nút phụ</h3>{{ field('Nhãn', 'hero.secondary_cta.label', hero.get('secondary_cta', {}).get('label', '')) }}{{ field('Đường dẫn', 'hero.secondary_cta.url', hero.get('secondary_cta', {}).get('url', ''), 'text') }}</div>
+        </div>
+        {{ image_field('Ảnh hero chính', 'hero.primary_image', 'hero.primary_image_alt', hero.get('primary_image', ''), hero.get('primary_image_alt', ''), 'Khuyến nghị ảnh dọc 3:4, tối thiểu 1200 px.') }}
+        {{ image_field('Ảnh hero phụ', 'hero.secondary_image', 'hero.secondary_image_alt', hero.get('secondary_image', ''), hero.get('secondary_image_alt', ''), 'Khuyến nghị ảnh dọc 4:5.') }}
+        {{ textarea('Ghi chú cạnh ảnh', 'hero.side_note', hero.get('side_note', ''), 3) }}
+      </section>
+
+      <section class="ab-panel" data-panel="marquee">
+        <div class="ab-panel-head"><div><p class="ab-kicker">Brand rhythm</p><h2>Dòng chữ chuyển động</h2><p>Tối đa 12 cụm từ. Thứ tự được dùng trên storefront.</p></div><button type="button" class="ab-btn ab-btn-soft" data-list-add="marquee"><i class="fa-solid fa-plus"></i> Thêm dòng</button></div>
+        <div class="ab-list" data-list="marquee"></div>
+      </section>
+
+      <section class="ab-panel" data-panel="story">
+        <div class="ab-panel-head"><div><p class="ab-kicker">Brand narrative</p><h2>Câu chuyện</h2></div></div>
+        <div class="ab-grid-2">{{ field('Nhãn nhỏ', 'story.kicker', story.get('kicker', '')) }}{{ textarea('Tiêu đề', 'story.title', story.get('title', ''), 3) }}</div>
+        {{ textarea('Nội dung', 'story.body', story.get('body', ''), 6) }}
+        <div class="ab-list-heading"><h3>Điểm nhấn</h3><button type="button" class="ab-btn ab-btn-soft" data-list-add="stats"><i class="fa-solid fa-plus"></i> Thêm</button></div>
+        <div class="ab-list" data-list="stats"></div>
+      </section>
+
+      <section class="ab-panel" data-panel="gallery">
+        <div class="ab-panel-head"><div><p class="ab-kicker">Lookbook</p><h2>Thư viện ảnh</h2><p>Tối đa 8 ảnh; có thể dán URL hoặc tải trực tiếp lên Supabase Storage.</p></div><button type="button" class="ab-btn ab-btn-soft" data-list-add="gallery"><i class="fa-solid fa-plus"></i> Thêm ảnh</button></div>
+        <div class="ab-list ab-gallery-editor" data-list="gallery"></div>
+      </section>
+
+      <section class="ab-panel" data-panel="beliefs">
+        <div class="ab-panel-head"><div><p class="ab-kicker">What we believe</p><h2>Giá trị thương hiệu</h2></div></div>
+        <div class="ab-grid-2">{{ field('Nhãn nhỏ', 'beliefs.kicker', beliefs.get('kicker', '')) }}{{ textarea('Tiêu đề', 'beliefs.title', beliefs.get('title', ''), 3) }}</div>
+        {{ textarea('Nội dung', 'beliefs.body', beliefs.get('body', ''), 6) }}
+        {{ image_field('Ảnh giá trị', 'beliefs.image', 'beliefs.image_alt', beliefs.get('image', ''), beliefs.get('image_alt', ''), 'Khuyến nghị ảnh dọc 4:5.') }}
+        <div class="ab-list-heading"><h3>Các giá trị</h3><button type="button" class="ab-btn ab-btn-soft" data-list-add="values"><i class="fa-solid fa-plus"></i> Thêm giá trị</button></div>
+        <div class="ab-list" data-list="values"></div>
+      </section>
+
+      <section class="ab-panel" data-panel="manifesto">
+        <div class="ab-panel-head"><div><p class="ab-kicker">Closing statement</p><h2>Manifesto cuối trang</h2></div></div>
+        <div class="ab-grid-2">{{ field('Nhãn nhỏ', 'manifesto.kicker', manifesto.get('kicker', '')) }}{{ textarea('Tiêu đề', 'manifesto.title', manifesto.get('title', ''), 3) }}</div>
+        {{ textarea('Nội dung', 'manifesto.body', manifesto.get('body', ''), 5) }}
+        <div class="ab-subcard"><h3>Nút hành động</h3><div class="ab-grid-2">{{ field('Nhãn', 'manifesto.cta.label', manifesto.get('cta', {}).get('label', '')) }}{{ field('Đường dẫn', 'manifesto.cta.url', manifesto.get('cta', {}).get('url', ''), 'text') }}</div></div>
+        {{ image_field('Ảnh nền manifesto', 'manifesto.image', 'manifesto.image_alt', manifesto.get('image', ''), manifesto.get('image_alt', ''), 'Khuyến nghị ảnh ngang tối thiểu 1600 × 1000 px.') }}
+      </section>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+  <script src="{{ url_for('static', filename='js/admin/about-editor.js') }}?v=20260808-v6" defer></script>
+{% endblock %}

@@ -1,0 +1,13 @@
+<div
+  id="mm-product-meta"
+  data-id="{{ product.id }}"
+  data-csrf="{{ csrf_token() }}"
+  data-base-price="{{ product.price or 0 }}"
+  data-base-price-formatted="{{ product.price_formatted or '' }}"
+  data-base-compare="{{ product.compare_at_price or '' }}"
+  data-base-compare-formatted="{{ product.compare_at_price_formatted or '' }}"
+  data-base-discount="{{ product.discount_percent or '' }}"
+  data-product-stock="{{ product.stock or 0 }}"
+  data-product-can-buy="{{ '1' if can_buy_product else '0' }}"
+  hidden
+></div>

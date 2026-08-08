@@ -1,0 +1,165 @@
+<section class="pd-info">
+        <p class="pd-kicker">GUAMAISON · NEW SEASON</p>
+
+        <h1 class="pd-title">
+          {{ product.name }}
+        </h1>
+
+        <div class="pd-price-row">
+          <p id="price-display" class="pd-price">{{ product.price_formatted }}</p>
+
+          <p id="price-original" class="pd-compare {% if not product.compare_at_price_formatted %}hidden{% endif %}">
+            {{ product.compare_at_price_formatted or '' }}
+          </p>
+
+          <span id="price-discount" class="pd-sale-pill {% if not product.has_discount %}hidden{% endif %}">
+            -{{ product.discount_percent }}%
+          </span>
+        </div>
+
+        <div class="pd-status-row" aria-live="polite">
+          <span id="stock-pill" class="pd-pill {% if can_buy_product %}ok{% else %}out{% endif %}">
+            {{ product.stock_status.label if product.stock_status is defined else ('Còn hàng' if can_buy_product else 'Hết hàng') }}
+          </span>
+
+          <span id="stock-status" class="pd-stock-msg">
+            {{ product.stock_status.message if product.stock_status is defined else '' }}
+          </span>
+        </div>
+
+        <form id="purchase-form" action="/cart/add" method="POST" class="pd-block">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="product_id" value="{{ product.id }}">
+          <input type="hidden" name="variant_id" id="selected-variant-id" value="{{ default_variant.id if default_variant else '' }}">
+          <input type="hidden" name="quantity" id="hidden-qty" value="1">
+
+          {% if has_variants %}
+            <div class="pd-field">
+              <div class="pd-label">
+                Màu sắc: <span id="color-label">---</span>
+              </div>
+
+              <div class="pd-colors">
+                {% for c_name, group in product.color_groups.items() %}
+                  <label class="pd-color-option">
+                    <input type="radio" name="color" value="{{ c_name }}" class="color-radio" {% if loop.first %}checked{% endif %}>
+                    <span class="pd-color-swatch color-swatch" data-bg="{{ group.hex or '#ddd' }}" title="{{ c_name }}"></span>
+                  </label>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="pd-field pd-block">
+              <div class="pd-size-head">
+                <div class="pd-label mb-0">Kích cỡ</div>
+                {% if size_chart and size_chart.image_url %}
+                <button
+                  type="button"
+                  class="pd-size-guide"
+                  data-size-chart-open
+                  aria-haspopup="dialog"
+                  aria-controls="sizeChartModal"
+                >
+                  <i class="fa-solid fa-ruler-horizontal" aria-hidden="true"></i>
+                  Bảng size
+                </button>
+                {% endif %}
+              </div>
+
+              <div id="size-wrapper" class="mt-3">
+                {% for c_name, group in product.color_groups.items() %}
+                  <div class="size-group pd-sizes {% if not loop.first %}hidden{% endif %}" data-color="{{ c_name }}">
+                    {% for sz in group.sizes %}
+                      <label class="pd-size">
+                        <input
+                          type="radio"
+                          name="size_radio"
+                          class="size-radio"
+                          {% if not sz.is_available %}disabled{% endif %}
+                          data-vid="{{ sz.variant_id }}"
+                          data-stock="{{ sz.stock }}"
+                          data-available="{{ '1' if sz.is_available else '0' }}"
+                          data-price="{{ sz.price or product.price }}"
+                          data-price-formatted="{{ sz.price_formatted or product.price_formatted }}"
+                          data-compare="{{ sz.compare_at_price or '' }}"
+                          data-compare-formatted="{{ sz.compare_at_price_formatted or '' }}"
+                          data-discount="{{ sz.discount_percent or '' }}"
+                          data-sku="{{ sz.sku or '' }}"
+                        >
+                        <span>{{ sz.size }}</span>
+                      </label>
+                    {% endfor %}
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          {% else %}
+            <div class="pd-block">
+              <div class="pd-label">Tồn kho</div>
+              <p class="text-sm font-bold text-[#555]">
+                {{ product.stock_status.message if product.stock_status is defined else ('Có sẵn hàng' if can_buy_product else 'Sản phẩm hiện đã hết hàng') }}
+              </p>
+            </div>
+          {% endif %}
+
+          <div class="pd-buy-row pd-block hidden lg:grid">
+            <div class="pd-qty">
+              <button type="button" data-qty="-1" class="btn-qty" aria-label="Giảm số lượng">−</button>
+              <input id="qty" type="number" value="1" min="1" max="{{ product.stock if product.stock and product.stock > 0 else 1 }}" readonly aria-label="Số lượng sản phẩm">
+              <button type="button" data-qty="1" class="btn-qty" aria-label="Tăng số lượng">+</button>
+            </div>
+
+            <button type="submit" id="btn-submit" class="pd-submit" {% if not can_buy_product %}disabled{% endif %}>
+              {% if has_variants %}
+                CHỌN PHÂN LOẠI
+              {% elif can_buy_product %}
+                THÊM VÀO GIỎ
+              {% else %}
+                HẾT HÀNG
+              {% endif %}
+            </button>
+          </div>
+        </form>
+
+        <div class="pd-quick-notes">
+          <div class="pd-note">
+            <strong>Đổi size dễ dàng</strong>
+            <span>Hỗ trợ trong 7 ngày khi sản phẩm còn nguyên tag.</span>
+          </div>
+
+          <div class="pd-note">
+            <strong>Giao hàng toàn quốc</strong>
+            <span>Theo dõi trạng thái đơn trực tiếp trong tài khoản.</span>
+          </div>
+
+          <div class="pd-note">
+            <strong>Thanh toán linh hoạt</strong>
+            <span>Hỗ trợ COD, VNPay và SePay an toàn, thuận tiện.</span>
+          </div>
+        </div>
+
+        <div class="pd-accordion">
+          {% set detail_text = product.description_html or product.description or 'Thiết kế nằm trong tinh thần tối giản của GUAMAISON. Form dáng hiện đại, dễ phối và phù hợp sử dụng hằng ngày.' %}
+
+          {% for id, title, text in [
+            ('acc-1', 'Thông tin sản phẩm', detail_text),
+            ('acc-2', 'Giao hàng & thanh toán', 'Giao hàng nội thành và toàn quốc. Hỗ trợ COD, VNPay và SePay. Thời gian giao hàng phụ thuộc khu vực nhận hàng.'),
+            ('acc-3', 'Chính sách đổi hàng', 'Hỗ trợ đổi mẫu hoặc đổi size trong vòng 7 ngày kể từ khi nhận hàng nếu sản phẩm còn nguyên tag, chưa qua sử dụng và đáp ứng điều kiện đổi trả.')
+          ] %}
+            <div class="pd-acc-item">
+              <button type="button" class="pd-acc-btn" onclick="toggleAccordion('{{ id }}')" aria-controls="{{ id }}" aria-expanded="{{ 'true' if loop.first else 'false' }}">
+                <span>{{ title }}</span>
+                <svg id="icon-{{ id }}" class="pd-acc-icon {% if loop.first %}open{% endif %}" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
+                </svg>
+              </button>
+
+              <div id="{{ id }}" class="pd-acc-content {% if loop.first %}open{% endif %}">
+                <div class="pd-acc-inner pd-rich">
+                  {{ text|safe }}
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
