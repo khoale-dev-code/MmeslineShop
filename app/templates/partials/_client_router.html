@@ -1,0 +1,21 @@
+{#
+  GUAMAISON storefront navigation feedback.
+  The real navigation remains server-rendered so every Jinja page, CSRF token,
+  page script and authenticated value is initialized by Flask on each route.
+#}
+<div class="gua-route-progress" data-client-route-progress aria-hidden="true">
+  <span class="gua-route-progress__bar"></span>
+</div>
+
+<div
+  class="gua-route-status"
+  data-client-route-status
+  role="status"
+  aria-live="polite"
+  aria-atomic="true"
+  hidden
+>
+  <span class="gua-route-status__mark" aria-hidden="true">G</span>
+  <span class="gua-route-status__spinner" aria-hidden="true"></span>
+  <span data-client-route-label>Đang mở trang...</span>
+</div>

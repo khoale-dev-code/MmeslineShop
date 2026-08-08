@@ -1,0 +1,18 @@
+{% set manifesto = about.get('manifesto', {}) %}
+<section class="mm-about-manifesto" data-about-section="manifesto">
+  <div class="mm-about-image is-loading">
+    <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" data-mm-src="{{ manifesto.get('image') }}" alt="{{ manifesto.get('image_alt', 'GUAMAISON closing campaign') }}" width="1600" height="1000" decoding="async">
+  </div>
+
+  <div class="mm-about-manifesto-content mm-about-reveal">
+    <p class="mm-about-kicker text-white/60">{{ manifesto.get('kicker', 'GUAMAISON Manifesto') }}</p>
+    <h2 class="mm-about-manifesto-title mm-about-preline">{{ manifesto.get('title', '') }}</h2>
+    <p class="mt-7 max-w-xl mx-auto text-white/75 text-sm md:text-base leading-7 font-semibold">{{ manifesto.get('body', '') }}</p>
+    {% set cta = manifesto.get('cta', {}) %}
+    {% if cta.get('label') %}
+      <a href="{{ cta.get('url', '/shop') }}" class="mt-10 mm-about-btn bg-white text-black border-white hover:bg-[#010101] hover:text-white" data-magnetic>
+        {{ cta.get('label') }} <i class="fa-solid fa-arrow-right"></i>
+      </a>
+    {% endif %}
+  </div>
+</section>

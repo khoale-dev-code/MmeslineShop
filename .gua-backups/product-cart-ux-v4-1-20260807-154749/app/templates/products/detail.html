@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}{{ product.seo_title or product.name }} | GUAMAISON{% endblock %}
+
+{% block extra_head %}
+<meta name="description" content="{{ product.seo_description or product.name }}">
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/product_detail.css') }}?v=20260807.3">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/product_size_chart.css') }}?v=20260807.3">
+{% endblock %}
+
+{% block content %}
+{% set images = product.product_images if product.product_images and product.product_images|length > 0 else ([{'url': product.thumbnail_url, 'is_primary': true}] if product.thumbnail_url else []) %}
+{% set has_variants = product.color_groups is defined and product.color_groups and product.color_groups|length > 0 %}
+{% set can_buy_product = product.stock_status.can_buy if product.stock_status is defined else product.is_available %}
+{% set default_variant = product.default_variant if product.default_variant is defined else none %}
+
+{% include 'products/partials/detail/_product_meta.html' %}
+
+<div class="pd-page">
+  <main class="pd-wrap">
+
+    <nav class="pd-breadcrumb" aria-label="Điều hướng trang">
+      <a href="{{ url_for('products.shop') }}">Cửa hàng</a>
+
+      {% if product.product_categories and product.product_categories[0] and product.product_categories[0].categories %}
+        <span>/</span>
+        <span>{{ product.product_categories[0].categories.name }}</span>
+      {% endif %}
+    </nav>
+
+    <div class="pd-layout">
+
+      {% include 'products/partials/detail/_gallery.html' %}
+
+      {% include 'products/partials/detail/_purchase_panel.html' %}
+    </div>
+
+    {% include 'products/partials/detail/_related_products.html' %}
+
+  </main>
+</div>
+
+{% include 'products/partials/detail/_mobile_purchase_bar.html' %}
+
+{% include 'products/partials/_size_chart_modal.html' %}
+
+<div id="pdToast" class="pd-toast" role="status" aria-live="polite"></div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/pages/product_detail.js') }}?v=20260807.3" defer></script>
+<script src="{{ url_for('static', filename='js/product_size_chart.js') }}?v=20260807.3" defer></script>
+{% endblock %}

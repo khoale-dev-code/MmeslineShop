@@ -1,0 +1,1159 @@
+{#
+  app/templates/components/home/_featured.html
+  ===========================================
+  GUAMAISON Featured Products
+
+  Bản đầy đủ:
+  - Card sản phẩm không bo góc.
+  - Sản phẩm nằm sát nhau, không có khoảng trống.
+  - Hover đổi sang ảnh thứ 2 nếu có.
+  - Tim yêu thích chuyển đỏ, lưu localStorage, reload vẫn còn.
+  - Bỏ nút "Thêm vào giỏ" dạng chữ.
+  - Dùng icon giỏ hàng dấu cộng.
+  - Bấm icon giỏ hàng sẽ POST /cart/add với product_id + variant_id + quantity.
+  - Hiển thị toast "Đã thêm sản phẩm vào giỏ hàng".
+  - Quickview truyền đủ data-* để không lỗi.
+#}
+
+{% if featured_products and featured_products|length > 0 %}
+<section class="mm-featured-section">
+  <input type="hidden" id="mmFeaturedCsrfToken" value="{{ csrf_token() }}">
+  <div id="mm-featured-toast" class="mm-featured-toast" aria-live="polite"></div>
+
+  <style>
+    .mm-featured-section {
+      --mm-black: #010101;
+      --mm-cream: #fef9ed;
+      --mm-white: #ffffff;
+      --mm-muted: rgba(1, 1, 1, .56);
+      --mm-muted-soft: rgba(1, 1, 1, .38);
+      --mm-line: rgba(1, 1, 1, .12);
+      --mm-heart: #e11d48;
+      --mm-success: #16a34a;
+      --mm-danger: #dc2626;
+      --mm-ease: cubic-bezier(.16, 1, .3, 1);
+
+      width: 100%;
+      max-width: 100%;
+      overflow: hidden;
+      padding: 4rem 0 4.4rem;
+      background:
+        radial-gradient(circle at 8% 0%, rgba(1,1,1,.055), transparent 28%),
+        linear-gradient(180deg, #ffffff 0%, var(--mm-cream) 52%, #ffffff 100%);
+      color: var(--mm-black);
+    }
+
+    .mm-featured-section *,
+    .mm-featured-section *::before,
+    .mm-featured-section *::after {
+      box-sizing: border-box;
+    }
+
+    .mm-featured-head {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      padding: 0 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .mm-featured-kicker {
+      margin-bottom: .8rem;
+      color: rgba(1,1,1,.48);
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .26em;
+      text-transform: uppercase;
+    }
+
+    .mm-featured-title {
+      color: var(--mm-black);
+      font-size: clamp(2.3rem, 6vw, 5.5rem);
+      font-weight: 1000;
+      line-height: .88;
+      letter-spacing: -.065em;
+      text-transform: uppercase;
+      text-wrap: balance;
+    }
+
+    .mm-featured-desc {
+      max-width: 34rem;
+      margin-top: 1rem;
+      color: var(--mm-muted);
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.75;
+    }
+
+    .mm-featured-view-all {
+      display: none;
+      align-items: center;
+      gap: .55rem;
+      width: max-content;
+      border-bottom: 2px solid var(--mm-black);
+      padding-bottom: .45rem;
+      color: var(--mm-black);
+      font-size: 11px;
+      font-weight: 950;
+      letter-spacing: .17em;
+      text-transform: uppercase;
+      transition:
+        gap .18s var(--mm-ease),
+        opacity .18s ease;
+    }
+
+    .mm-featured-view-all:hover {
+      gap: .9rem;
+      opacity: .72;
+    }
+
+    .mm-featured-scroll {
+      padding: 0 !important;
+    }
+
+    .mm-featured-track {
+      gap: 0 !important;
+      padding: 0 !important;
+    }
+
+    .mm-featured-card {
+      width: 50vw;
+      min-width: 50vw;
+      margin: 0 !important;
+      background: #fff;
+    }
+
+    .mm-featured-card + .mm-featured-card {
+      margin-left: 0 !important;
+    }
+
+    .mm-featured-media {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 3 / 4;
+      overflow: hidden;
+      border: 0;
+      border-radius: 0;
+      background:
+        radial-gradient(circle at 30% 0%, rgba(254,249,237,.12), transparent 30%),
+        linear-gradient(135deg, #010101 0%, #111111 100%);
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .mm-featured-media::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      opacity: .18;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(254,249,237,.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(254,249,237,.07) 1px, transparent 1px);
+      background-size: 28px 28px;
+      mask-image: linear-gradient(to bottom, black, transparent 86%);
+    }
+
+    .mm-featured-image-link {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      display: block;
+      overflow: hidden;
+    }
+
+    .mm-featured-img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      object-position: center;
+      pointer-events: none;
+      transform: translate3d(0, 0, 0) scale(1.01);
+      backface-visibility: hidden;
+      transition:
+        opacity .32s var(--mm-ease),
+        transform .85s var(--mm-ease),
+        filter .24s ease;
+    }
+
+    .mm-featured-img-primary {
+      z-index: 1;
+      opacity: 1;
+    }
+
+    .mm-featured-img-secondary {
+      z-index: 2;
+      opacity: 0;
+    }
+
+    .mm-featured-card:hover .mm-featured-img-primary {
+      opacity: 0;
+      transform: translate3d(0, 0, 0) scale(1.035);
+    }
+
+    .mm-featured-card:hover .mm-featured-img-secondary {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1.045);
+      filter: contrast(1.04) saturate(1.03);
+    }
+
+    .mm-featured-image-link::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 4;
+      pointer-events: none;
+      background:
+        linear-gradient(to top, rgba(1,1,1,.48), transparent 45%),
+        linear-gradient(to bottom, rgba(1,1,1,.12), transparent 34%);
+      opacity: .72;
+      transition: opacity .25s ease;
+    }
+
+    .mm-featured-card:hover .mm-featured-image-link::after {
+      opacity: .88;
+    }
+
+    .mm-featured-badge {
+      position: absolute;
+      left: .75rem;
+      top: .75rem;
+      z-index: 7;
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      border: 1px solid rgba(254,249,237,.22);
+      border-radius: 0;
+      background: rgba(254,249,237,.92);
+      color: var(--mm-black);
+      padding: 0 .72rem;
+      font-size: 9px;
+      font-weight: 950;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+      backdrop-filter: blur(10px);
+      pointer-events: none;
+    }
+
+    .mm-featured-actions {
+      position: absolute;
+      right: .75rem;
+      top: .75rem;
+      z-index: 8;
+      display: grid;
+      gap: .45rem;
+    }
+
+    .mm-featured-action {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(254,249,237,.20);
+      border-radius: 0;
+      background: rgba(254,249,237,.94);
+      color: var(--mm-black);
+      box-shadow: 0 14px 30px -22px rgba(0,0,0,.72);
+      transition:
+        background .18s ease,
+        color .18s ease,
+        opacity .18s ease,
+        transform .18s var(--mm-ease);
+    }
+
+    .mm-featured-action:hover {
+      background: var(--mm-black);
+      color: var(--mm-cream);
+      transform: translateY(-1px);
+    }
+
+    .mm-featured-action i {
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    .mm-featured-action.is-liked,
+    .mm-featured-action.is-liked:hover {
+      background: var(--mm-heart);
+      border-color: var(--mm-heart);
+      color: #fff;
+    }
+
+    .mm-featured-action.is-added,
+    .mm-featured-action.is-added:hover {
+      background: var(--mm-success);
+      border-color: var(--mm-success);
+      color: #fff;
+    }
+
+    .mm-featured-action.is-error,
+    .mm-featured-action.is-error:hover {
+      background: var(--mm-danger);
+      border-color: var(--mm-danger);
+      color: #fff;
+    }
+
+    .mm-featured-action.is-loading {
+      pointer-events: none;
+      opacity: .72;
+    }
+
+    .mm-featured-action.is-loading i {
+      animation: mmFeaturedSpin .75s linear infinite;
+    }
+
+    @keyframes mmFeaturedSpin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .mm-featured-info {
+      min-height: 118px;
+      padding: .9rem .9rem 1rem;
+      border-right: 1px solid rgba(1,1,1,.08);
+      border-bottom: 1px solid rgba(1,1,1,.08);
+      background: rgba(255,255,255,.86);
+    }
+
+    .mm-featured-name {
+      display: -webkit-box;
+      min-height: 2.8em;
+      overflow: hidden;
+      color: var(--mm-black);
+      font-size: 13px;
+      font-weight: 950;
+      line-height: 1.4;
+      letter-spacing: -.01em;
+      text-transform: uppercase;
+      transition: opacity .18s ease;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    .mm-featured-name:hover {
+      opacity: .68;
+    }
+
+    .mm-featured-meta {
+      margin-top: .5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .75rem;
+    }
+
+    .mm-featured-price {
+      color: var(--mm-black);
+      font-size: 13px;
+      font-weight: 1000;
+      white-space: nowrap;
+    }
+
+    .mm-featured-small {
+      color: var(--mm-muted-soft);
+      font-size: 9px;
+      font-weight: 950;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .mm-featured-mobile-link {
+      margin: 2rem 1rem 0;
+      display: inline-flex;
+      width: calc(100% - 2rem);
+      min-height: 46px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0;
+      background: var(--mm-black);
+      color: var(--mm-cream);
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+
+    .mm-featured-hint {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: .9rem 1rem 0;
+      color: rgba(1,1,1,.52);
+      font-size: 9px;
+      font-weight: 950;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+
+    .mm-featured-progress {
+      position: relative;
+      width: 86px;
+      height: 2px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(1,1,1,.12);
+    }
+
+    .mm-featured-progress span {
+      position: absolute;
+      inset-block: 0;
+      left: 0;
+      width: 8%;
+      border-radius: inherit;
+      background: var(--mm-black);
+      transition: width .12s linear;
+    }
+
+    .mm-featured-toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      z-index: 100000;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      max-width: calc(100vw - 28px);
+      border: 1px solid rgba(254, 249, 237, .18);
+      border-radius: 999px;
+      background: rgba(1, 1, 1, .94);
+      color: var(--mm-cream);
+      padding: 13px 18px;
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      box-shadow: 0 24px 70px -45px rgba(1, 1, 1, .85);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      pointer-events: none;
+      opacity: 0;
+      transform: translate(-50%, 14px);
+      transition:
+        opacity .28s var(--mm-ease),
+        transform .28s var(--mm-ease);
+    }
+
+    .mm-featured-toast.is-show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    .mm-featured-toast.is-error {
+      background: rgba(127, 29, 29, .96);
+    }
+
+    .mm-featured-toast.is-success {
+      background: rgba(1, 1, 1, .94);
+    }
+
+    @media (min-width: 640px) {
+      .mm-featured-card {
+        width: 33.333333vw;
+        min-width: 33.333333vw;
+      }
+    }
+
+    @media (min-width: 768px) {
+      .mm-featured-section {
+        padding: 5.25rem 0 5.8rem;
+      }
+
+      .mm-featured-head {
+        flex-direction: row;
+        align-items: end;
+        justify-content: space-between;
+        padding: 0 5vw;
+        margin-bottom: 3rem;
+      }
+
+      .mm-featured-view-all {
+        display: inline-flex;
+      }
+
+      .mm-featured-card {
+        width: 25vw;
+        min-width: 25vw;
+      }
+
+      .mm-featured-mobile-link {
+        display: none;
+      }
+
+      .mm-featured-hint {
+        display: none;
+      }
+    }
+
+    @media (min-width: 1280px) {
+      .mm-featured-card {
+        width: 20vw;
+        min-width: 20vw;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .mm-featured-card {
+        width: 72vw;
+        min-width: 72vw;
+      }
+
+      .mm-featured-info {
+        min-height: 112px;
+        padding: .82rem .82rem .95rem;
+      }
+
+      .mm-featured-toast {
+        bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+        width: max-content;
+        max-width: calc(100vw - 24px);
+        padding: 12px 15px;
+        font-size: 9px;
+        letter-spacing: .12em;
+      }
+    }
+
+    @media (hover: none) {
+      .mm-featured-card:hover .mm-featured-img-primary {
+        opacity: 1;
+      }
+
+      .mm-featured-card:hover .mm-featured-img-secondary {
+        opacity: 0;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .mm-featured-img,
+      .mm-featured-action,
+      .mm-featured-toast {
+        transition: none !important;
+        transform: none !important;
+        animation: none !important;
+      }
+    }
+  </style>
+
+  <div class="mm-featured-head">
+    <div>
+      <p class="mm-featured-kicker">
+        Featured Selection
+      </p>
+
+      <h2 class="mm-featured-title">
+        Sản phẩm nổi bật
+      </h2>
+
+      <p class="mm-featured-desc">
+        Những thiết kế được chọn lọc từ GUAMAISON, phù hợp để mặc hằng ngày
+        nhưng vẫn giữ được tinh thần riêng và tính thẩm mỹ cao.
+      </p>
+    </div>
+
+    <a href="/shop" class="mm-featured-view-all" data-nav>
+      Xem tất cả
+      <i class="fa-solid fa-arrow-right-long"></i>
+    </a>
+  </div>
+
+  <div class="mm-x-section">
+    <div
+      id="mmFeaturedScroll"
+      class="mm-x-viewport mm-no-scrollbar mm-featured-scroll"
+      data-mm-x-scroll
+      data-featured-scroll
+      data-lenis-prevent
+      aria-label="Sản phẩm nổi bật GUAMAISON"
+    >
+      <div class="mm-x-track mm-featured-track">
+        {% for product in featured_products %}
+          {% set thumb =
+            product.thumbnail_url
+            or product.image
+            or product.image_url
+            or 'https://placehold.co/700x900/010101/fef9ed?text=GUAMAISON'
+          %}
+
+          {% set media = namespace(hover='') %}
+
+          {% if product.hover_image_url is defined and product.hover_image_url %}
+            {% set media.hover = product.hover_image_url %}
+          {% elif product.secondary_image_url is defined and product.secondary_image_url %}
+            {% set media.hover = product.secondary_image_url %}
+          {% elif product.product_images is defined and product.product_images and product.product_images|length > 1 %}
+            {% set second = product.product_images[1] %}
+            {% if second.image_url is defined and second.image_url %}
+              {% set media.hover = second.image_url %}
+            {% elif second.url is defined and second.url %}
+              {% set media.hover = second.url %}
+            {% elif second.src is defined and second.src %}
+              {% set media.hover = second.src %}
+            {% else %}
+              {% set media.hover = second %}
+            {% endif %}
+          {% elif product.gallery_images is defined and product.gallery_images and product.gallery_images|length > 1 %}
+            {% set second = product.gallery_images[1] %}
+            {% if second.image_url is defined and second.image_url %}
+              {% set media.hover = second.image_url %}
+            {% elif second.url is defined and second.url %}
+              {% set media.hover = second.url %}
+            {% elif second.src is defined and second.src %}
+              {% set media.hover = second.src %}
+            {% else %}
+              {% set media.hover = second %}
+            {% endif %}
+          {% elif product.images is defined and product.images and product.images|length > 1 %}
+            {% set second = product.images[1] %}
+            {% if second.image_url is defined and second.image_url %}
+              {% set media.hover = second.image_url %}
+            {% elif second.url is defined and second.url %}
+              {% set media.hover = second.url %}
+            {% elif second.src is defined and second.src %}
+              {% set media.hover = second.src %}
+            {% else %}
+              {% set media.hover = second %}
+            {% endif %}
+          {% endif %}
+
+          {% set hover_image = media.hover or thumb %}
+          {% set product_url = '/product/' ~ product.slug if product.slug else '/shop' %}
+          {% set product_price = product.price|float if product.price else 0 %}
+          {% set product_stock = product.stock|int if product.stock is defined and product.stock is not none else 0 %}
+
+          {% set product_category =
+            product.category_name
+            if product.category_name is defined and product.category_name
+            else (
+              product.category
+              if product.category is defined and product.category
+              else 'GUAMAISON'
+            )
+          %}
+
+          {% set product_variants =
+            product.product_variants
+            if product.product_variants is defined and product.product_variants
+            else (
+              product.variants
+              if product.variants is defined and product.variants
+              else []
+            )
+          %}
+
+          {% set first_variant = namespace(id='') %}
+
+          {% if product.default_variant is defined and product.default_variant and product.default_variant.id %}
+            {% set first_variant.id = product.default_variant.id %}
+          {% endif %}
+
+          {% for variant in product_variants %}
+            {% if not first_variant.id %}
+              {% set variant_stock = variant.stock|int if variant.stock is defined and variant.stock is not none else 1 %}
+              {% if variant_stock > 0 %}
+                {% set first_variant.id = variant.id %}
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+
+          {% if not first_variant.id and product_variants|length > 0 %}
+            {% set first_variant.id = product_variants[0].id %}
+          {% endif %}
+
+          {% set qv_images = [thumb, hover_image] if hover_image and hover_image != thumb else [thumb] %}
+
+          <article class="mm-featured-card mm-x-item">
+            <div class="mm-featured-media">
+              <a
+                href="{{ product_url }}"
+                class="mm-featured-image-link"
+                data-nav
+                draggable="false"
+                aria-label="{{ product.name|e }}"
+              >
+                <img
+                  src="{{ thumb }}"
+                  alt="{{ product.name|e }}"
+                  width="700"
+                  height="900"
+                  loading="{{ 'eager' if loop.index <= 4 else 'lazy' }}"
+                  decoding="async"
+                  draggable="false"
+                  class="mm-featured-img mm-featured-img-primary"
+                  onerror="this.src='https://placehold.co/700x900/010101/fef9ed?text=GUAMAISON'"
+                >
+
+                <img
+                  src="{{ hover_image }}"
+                  alt="{{ product.name|e }} hover"
+                  width="700"
+                  height="900"
+                  loading="eager"
+                  decoding="async"
+                  draggable="false"
+                  class="mm-featured-img mm-featured-img-secondary"
+                  onerror="this.src='{{ thumb|e }}'"
+                >
+              </a>
+
+              <span class="mm-featured-badge">
+                Nổi bật
+              </span>
+
+              <div class="mm-featured-actions">
+                <button
+                  type="button"
+                  class="mm-featured-action"
+                  aria-label="Xem nhanh sản phẩm"
+                  data-id="{{ product.id }}"
+                  data-slug="{{ product.slug or '' }}"
+                  data-name="{{ product.name|e }}"
+                  data-price="{{ product_price }}"
+                  data-image="{{ thumb|e }}"
+                  data-images='{{ qv_images|tojson|forceescape }}'
+                  data-category="{{ product_category|e }}"
+                  data-stock="{{ product_stock }}"
+                  data-variants='{{ product_variants|tojson|forceescape }}'
+                  data-url="{{ product_url }}"
+                  onclick="mmFeaturedQuickView(event, this)"
+                >
+                  <i class="fa-regular fa-eye"></i>
+                </button>
+
+                <button
+                  type="button"
+                  class="mm-featured-action mm-featured-heart"
+                  aria-label="Thêm vào yêu thích"
+                  data-product-id="{{ product.id }}"
+                  onclick="mmFeaturedToggleHeart(event, this)"
+                >
+                  <i class="fa-regular fa-heart heart-icon"></i>
+                </button>
+
+                <button
+                  type="button"
+                  class="mm-featured-action mm-featured-cart-icon"
+                  aria-label="Thêm vào giỏ hàng"
+                  data-product-id="{{ product.id }}"
+                  data-variant-id="{{ first_variant.id }}"
+                  data-has-variants="{{ '1' if product_variants|length > 0 else '0' }}"
+                  data-url="{{ product_url }}"
+                  onclick="mmFeaturedAddToCart(event, this)"
+                >
+                  <i class="fa-solid fa-cart-plus"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="mm-featured-info">
+              <a href="{{ product_url }}" data-nav class="mm-featured-name">
+                {{ product.name }}
+              </a>
+
+              <div class="mm-featured-meta">
+                <p class="mm-featured-price">
+                  {{ '{:,.0f}'.format(product_price).replace(',', '.') }} ₫
+                </p>
+
+                <span class="mm-featured-small">
+                  {% if product_stock > 0 %}
+                    Còn hàng
+                  {% else %}
+                    Hết hàng
+                  {% endif %}
+                </span>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {% if featured_products|length > 1 %}
+    <div class="mm-featured-hint md:hidden">
+      <span>Vuốt để xem thêm</span>
+      <div class="mm-featured-progress" aria-hidden="true">
+        <span data-featured-progress></span>
+      </div>
+    </div>
+  {% endif %}
+
+  <a href="/shop" class="mm-featured-mobile-link md:hidden" data-nav>
+    Xem tất cả sản phẩm
+  </a>
+
+  <script>
+    (function () {
+      "use strict";
+
+      const FAVORITE_KEY = "guamaison_favorite_products";
+
+      function getCSRFToken() {
+        return (
+          document.getElementById("mmFeaturedCsrfToken")?.value ||
+          document.querySelector('meta[name="csrf-token"]')?.content ||
+          document.querySelector('input[name="csrf_token"]')?.value ||
+          ""
+        );
+      }
+
+      function escapeFeaturedHTML(value) {
+        return String(value || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      function showFeaturedToast(message, type) {
+        const toast = document.getElementById("mm-featured-toast");
+        if (!toast) return;
+
+        const isError = type === "error";
+
+        const icon = isError
+          ? '<i class="fa-solid fa-circle-exclamation text-rose-300"></i>'
+          : '<i class="fa-solid fa-check text-emerald-300"></i>';
+
+        toast.innerHTML = icon + "<span>" + escapeFeaturedHTML(message) + "</span>";
+        toast.classList.toggle("is-error", isError);
+        toast.classList.toggle("is-success", !isError);
+        toast.classList.add("is-show");
+
+        clearTimeout(window.__mmFeaturedToastTimer);
+        window.__mmFeaturedToastTimer = window.setTimeout(function () {
+          toast.classList.remove("is-show");
+        }, 2200);
+      }
+
+      function readFavorites() {
+        try {
+          const raw = localStorage.getItem(FAVORITE_KEY);
+          const parsed = JSON.parse(raw || "[]");
+
+          return Array.isArray(parsed) ? parsed.map(String) : [];
+        } catch (_) {
+          return [];
+        }
+      }
+
+      function writeFavorites(ids) {
+        try {
+          localStorage.setItem(
+            FAVORITE_KEY,
+            JSON.stringify(Array.from(new Set(ids.map(String))))
+          );
+        } catch (_) {}
+      }
+
+      function setHeartUI(btn, liked) {
+        if (!btn) return;
+
+        const icon = btn.querySelector(".heart-icon");
+
+        btn.classList.toggle("is-liked", liked);
+        btn.setAttribute("aria-pressed", liked ? "true" : "false");
+
+        if (icon) {
+          icon.classList.toggle("fa-solid", liked);
+          icon.classList.toggle("fa-regular", !liked);
+        }
+      }
+
+      function initFavoriteState() {
+        const ids = readFavorites();
+
+        document.querySelectorAll(".mm-featured-heart[data-product-id]").forEach(function (btn) {
+          const id = String(btn.dataset.productId || "");
+          setHeartUI(btn, ids.includes(id));
+        });
+      }
+
+      function updateCartCounters(data) {
+        const count =
+          data?.cart_count ??
+          data?.count ??
+          data?.cart?.count ??
+          data?.cart_total_items ??
+          null;
+
+        if (count === null || count === undefined) return;
+
+        document
+          .querySelectorAll("[data-cart-count], .cart-count, #cart-count, .js-cart-count")
+          .forEach(function (el) {
+            el.textContent = String(count);
+            el.classList.remove("hidden");
+          });
+      }
+
+      function initFeaturedScrollProgress() {
+        const scroller = document.querySelector("[data-featured-scroll]");
+        const progress = document.querySelector("[data-featured-progress]");
+
+        if (!scroller || !progress || scroller.dataset.featuredProgressReady === "1") return;
+
+        scroller.dataset.featuredProgressReady = "1";
+
+        function update() {
+          const max = scroller.scrollWidth - scroller.clientWidth;
+
+          if (max <= 0) {
+            progress.style.width = "100%";
+            return;
+          }
+
+          const value = Math.max(8, Math.min(100, (scroller.scrollLeft / max) * 100));
+          progress.style.width = value + "%";
+        }
+
+        scroller.addEventListener("scroll", update, { passive: true });
+        window.addEventListener("resize", update, { passive: true });
+
+        update();
+      }
+
+      window.mmFeaturedQuickView = function (event, btn) {
+        if (event) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+
+        if (!btn) return;
+
+        try {
+          if (typeof window.triggerQuickView === "function") {
+            window.triggerQuickView(btn);
+            return;
+          }
+
+          if (typeof window.openQuickView === "function") {
+            const images = JSON.parse(btn.dataset.images || "[]");
+            const variants = JSON.parse(btn.dataset.variants || "[]");
+
+            window.openQuickView(
+              btn.dataset.id || "",
+              btn.dataset.slug || "",
+              btn.dataset.name || "Sản phẩm GUAMAISON",
+              btn.dataset.price || "0",
+              Array.isArray(images) && images.length ? images : [btn.dataset.image],
+              btn.dataset.category || "GUAMAISON",
+              parseInt(btn.dataset.stock || "0", 10) || 0,
+              Array.isArray(variants) ? variants : []
+            );
+            return;
+          }
+
+          window.location.href = btn.dataset.url || "/shop";
+        } catch (error) {
+          console.warn("[FeaturedQuickView] Không mở được quickview:", error);
+          window.location.href = btn.dataset.url || "/shop";
+        }
+      };
+
+      window.mmFeaturedToggleHeart = function (event, btn) {
+        if (event) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+
+        if (!btn) return;
+
+        const id = String(btn.dataset.productId || "");
+        if (!id) return;
+
+        const ids = readFavorites();
+        const liked = ids.includes(id);
+        const nextLiked = !liked;
+
+        const nextIds = nextLiked
+          ? ids.concat(id)
+          : ids.filter(function (item) {
+              return item !== id;
+            });
+
+        writeFavorites(nextIds);
+        setHeartUI(btn, nextLiked);
+
+        if (typeof window.toggleHeart === "function") {
+          try {
+            window.toggleHeart(id, btn);
+
+            window.setTimeout(function () {
+              setHeartUI(btn, nextLiked);
+            }, 60);
+          } catch (_) {}
+        }
+
+        showFeaturedToast(
+          nextLiked ? "Đã thêm vào yêu thích" : "Đã bỏ yêu thích",
+          "success"
+        );
+      };
+
+      window.mmFeaturedAddToCart = async function (event, btn) {
+        if (event) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+
+        if (!btn || btn.classList.contains("is-loading")) return;
+
+        const productId = String(btn.dataset.productId || "");
+        const variantId = String(btn.dataset.variantId || "");
+        const hasVariants = btn.dataset.hasVariants === "1";
+        const url = btn.dataset.url || "/shop";
+        const icon = btn.querySelector("i");
+
+        if (!productId) {
+          showFeaturedToast("Không tìm thấy sản phẩm", "error");
+          return;
+        }
+
+        if (!variantId) {
+          showFeaturedToast("Vui lòng chọn phân loại", "error");
+
+          const quickBtn = btn
+            .closest(".mm-featured-media")
+            ?.querySelector("[aria-label='Xem nhanh sản phẩm']");
+
+          if (quickBtn && typeof window.mmFeaturedQuickView === "function") {
+            window.mmFeaturedQuickView(event, quickBtn);
+          } else {
+            window.location.href = url;
+          }
+
+          return;
+        }
+
+        const csrf = getCSRFToken();
+
+        function setLoading(loading) {
+          btn.classList.toggle("is-loading", loading);
+
+          if (icon) {
+            icon.className = loading
+              ? "fa-solid fa-spinner"
+              : "fa-solid fa-cart-plus";
+          }
+        }
+
+        function setAdded() {
+          btn.classList.add("is-added");
+
+          if (icon) {
+            icon.className = "fa-solid fa-check";
+          }
+
+          showFeaturedToast("Đã thêm sản phẩm vào giỏ hàng", "success");
+
+          window.dispatchEvent(new CustomEvent("cart:updated", {
+            detail: {
+              product_id: productId,
+              variant_id: variantId,
+              quantity: 1
+            }
+          }));
+
+          window.setTimeout(function () {
+            btn.classList.remove("is-added");
+
+            if (icon) {
+              icon.className = "fa-solid fa-cart-plus";
+            }
+          }, 1500);
+        }
+
+        function setError() {
+          btn.classList.add("is-error");
+
+          if (icon) {
+            icon.className = "fa-solid fa-xmark";
+          }
+
+          window.setTimeout(function () {
+            btn.classList.remove("is-error");
+
+            if (icon) {
+              icon.className = "fa-solid fa-cart-plus";
+            }
+          }, 1400);
+        }
+
+        setLoading(true);
+
+        try {
+          const payload = {
+            product_id: productId,
+            variant_id: variantId,
+            quantity: 1
+          };
+
+          const res = await fetch("/cart/add", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": csrf,
+              "X-Requested-With": "XMLHttpRequest"
+            },
+            body: JSON.stringify(payload)
+          });
+
+          if (res.status === 401) {
+            showFeaturedToast("Vui lòng đăng nhập", "error");
+
+            window.setTimeout(function () {
+              window.location.href = "/auth/login";
+            }, 700);
+
+            return;
+          }
+
+          if (res.status === 403) {
+            showFeaturedToast("Phiên đã hết hạn, vui lòng tải lại", "error");
+            setError();
+            return;
+          }
+
+          const data = await res.json().catch(function () {
+            return {};
+          });
+
+          if (!res.ok || data.success === false || data.status === "error") {
+            showFeaturedToast(data.message || "Không thể thêm giỏ hàng", "error");
+            setError();
+            return;
+          }
+
+          updateCartCounters(data);
+          setAdded();
+        } catch (error) {
+          console.warn("[FeaturedAddToCart] Lỗi thêm giỏ hàng:", error);
+          showFeaturedToast("Lỗi kết nối giỏ hàng", "error");
+          setError();
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      function initFeatured() {
+        initFeaturedScrollProgress();
+        initFavoriteState();
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initFeatured, { once: true });
+      } else {
+        initFeatured();
+      }
+    })();
+  </script>
+</section>
+{% endif %}

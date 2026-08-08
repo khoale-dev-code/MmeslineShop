@@ -35,7 +35,8 @@ from flask import (
 
 from app.models.collection_model import CollectionModel
 from app.models.product_model import ProductModel
-from app.models.size_chart_model import SizeChartModel
+from app.services.about_page_service import AboutPageService
+from app.services.size_chart_service import size_chart_service
 from app.utils.supabase_client import get_supabase
 
 logger = logging.getLogger(__name__)
@@ -966,7 +967,7 @@ def detail(slug: str):
     product["color_groups"] = _build_color_groups(product)
     product["default_variant"] = _select_default_variant(product)
     try:
-        size_chart = SizeChartModel.find_for_tags(product.get("tags"))
+        size_chart = size_chart_service.get_for_product(product)
     except Exception as exc:
         logger.warning("[detail] Không tải được bảng size product=%s: %s", product.get("id"), exc)
         size_chart = None
@@ -1117,8 +1118,8 @@ def visual_search():
 
 @products_bp.route("/about")
 def about():
-    return render_template("partials/about.html")
-
+    about_content = AboutPageService.get_published()
+    return render_template("partials/about.html", about=about_content)
 
 @products_bp.route("/contact")
 def contact():

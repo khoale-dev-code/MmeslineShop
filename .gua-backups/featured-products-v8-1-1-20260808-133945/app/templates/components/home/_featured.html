@@ -1,0 +1,113 @@
+﻿{# GUAMAISON · Featured products v8 — structure only; styles and behavior live in static assets. #}
+{% if featured_products %}
+<section
+  class="gua-featured"
+  data-featured-products
+  data-component-version="8.0"
+  data-login-url="{{ url_for('auth.login') }}"
+  aria-labelledby="guaFeaturedTitle"
+>
+  <div class="gua-featured__canvas" aria-hidden="true"></div>
+
+  <div class="gua-featured__inner">
+    <header class="gua-featured__header">
+      <div class="gua-featured__heading">
+        <p class="gua-featured__eyebrow">
+          <span aria-hidden="true">01</span>
+          <span>Selected edit</span>
+        </p>
+
+        <h2 id="guaFeaturedTitle" class="gua-featured__title">
+          Thiết kế nổi bật
+        </h2>
+
+        <p class="gua-featured__description">
+          Những thiết kế được chọn lọc cho nhịp sống hằng ngày — dễ mặc,
+          khác biệt và mang tinh thần GUAMAISON.
+        </p>
+      </div>
+
+      <div class="gua-featured__header-actions">
+        <a class="gua-featured__view-all" href="{{ url_for('products.shop') }}" data-nav>
+          Xem toàn bộ
+          <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+        </a>
+
+        {% if featured_products|length > 1 %}
+          <div class="gua-featured__controls" aria-label="Điều khiển danh sách sản phẩm">
+            <button
+              class="gua-featured__control"
+              type="button"
+              data-featured-previous
+              aria-label="Xem sản phẩm trước"
+            >
+              <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+            </button>
+            <button
+              class="gua-featured__control"
+              type="button"
+              data-featured-next
+              aria-label="Xem sản phẩm tiếp theo"
+            >
+              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+            </button>
+          </div>
+        {% endif %}
+      </div>
+    </header>
+
+    <div
+      class="gua-featured__viewport"
+      data-featured-viewport
+      data-lenis-prevent
+      tabindex="0"
+      aria-label="Danh sách thiết kế nổi bật"
+    >
+      <div class="gua-featured__track" role="list">
+        {% for product in featured_products %}
+          {% set card_index = loop.index %}
+          {% include "components/home/_featured_card.html" %}
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if featured_products|length > 1 %}
+      <div class="gua-featured__footer">
+        <p class="gua-featured__hint">
+          <i class="fa-solid fa-arrow-right-arrow-left" aria-hidden="true"></i>
+          Vuốt hoặc dùng phím mũi tên
+        </p>
+
+        <div
+          class="gua-featured__progress"
+          role="progressbar"
+          aria-label="Tiến độ xem sản phẩm"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow="0"
+          data-featured-progress
+        >
+          <span></span>
+        </div>
+      </div>
+    {% endif %}
+
+    <a class="gua-featured__mobile-link" href="{{ url_for('products.shop') }}" data-nav>
+      Xem tất cả sản phẩm
+      <i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i>
+    </a>
+  </div>
+
+  <div
+    class="gua-featured__notice"
+    data-featured-notice
+    role="status"
+    aria-live="polite"
+    aria-atomic="true"
+    hidden
+  >
+    <i data-featured-notice-icon aria-hidden="true"></i>
+    <span data-featured-notice-text></span>
+  </div>
+</section>
+{% endif %}

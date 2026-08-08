@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}
+  {% if collection_info is defined and collection_info %}
+    {{ collection_info.meta_title or collection_info.name }} — GUAMAISON
+  {% elif keyword %}
+    {{ keyword }} — GUAMAISON
+  {% elif category %}
+    {{ category|replace('-', ' ')|title }} — GUAMAISON
+  {% elif collection %}
+    {{ collection|replace('-', ' ')|title }} — GUAMAISON
+  {% else %}
+    Sản phẩm — GUAMAISON
+  {% endif %}
+{% endblock %}
+
+{% block extra_head %}
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/shop.css') }}?v=shop-v9">
+{% endblock %}
+
+{% block content %}
+  {% set collection_media = (collection_info.video_url or collection_info.image_url) if collection_info is defined and collection_info else '' %}
+  {% set shop_banner = collection_media or (storefront.shop_banner_url if storefront is defined and storefront and storefront.shop_banner_url else '') %}
+  {% set item_total = total if total is defined and total else products|length %}
+
+  {% if keyword %}
+    {% set page_title = 'Kết quả cho “' ~ keyword ~ '”' %}
+  {% elif category %}
+    {% set page_title = category|replace('-', ' ')|title %}
+  {% elif collection %}
+    {% set page_title = collection_info.name if collection_info is defined and collection_info else collection|replace('-', ' ')|title %}
+  {% else %}
+    {% set page_title = 'Tất cả sản phẩm' %}
+  {% endif %}
+
+  {% set filter_meta = namespace(sizes=[], colors=[]) %}
+  {% for product in products or [] %}
+    {% for variant in product.product_variants or [] %}
+      {% if variant.size and variant.size not in filter_meta.sizes %}
+        {% set _ = filter_meta.sizes.append(variant.size) %}
+      {% endif %}
+      {% if variant.color_name and variant.color_name not in filter_meta.colors %}
+        {% set _ = filter_meta.colors.append(variant.color_name) %}
+      {% endif %}
+    {% endfor %}
+  {% endfor %}
+
+  <div class="gua-shop" data-shop-page>
+    <header class="gua-shop-hero {{ 'has-media' if shop_banner else 'is-plain' }}">
+      {% if shop_banner %}
+        {% if '.mp4' in shop_banner|lower or '.webm' in shop_banner|lower %}
+          <video
+            class="gua-shop-hero__media"
+            muted
+            loop
+            playsinline
+            preload="metadata"
+            data-shop-hero-video
+            data-src="{{ shop_banner }}"
+            aria-hidden="true"
+          ></video>
+        {% else %}
+          <img
+            class="gua-shop-hero__media"
+            src="{{ shop_banner }}"
+            alt="{{ page_title }}"
+            width="1920"
+            height="760"
+            loading="eager"
+            fetchpriority="high"
+            decoding="async"
+          >
+        {% endif %}
+      {% endif %}
+
+      <div class="gua-shop-hero__content">
+        <div class="gua-shop-hero__copy">
+          <p class="gua-shop-eyebrow">GUAMAISON · Online Store</p>
+          <h1>{{ page_title }}</h1>
+
+          {% if collection_info is defined and collection_info and collection_info.description %}
+            <p class="gua-shop-hero__description">
+              {{ collection_info.description|striptags|truncate(190, True, '…') }}
+            </p>
+          {% else %}
+            <p class="gua-shop-hero__description">
+              Thiết kế chọn lọc, dễ phối và dành cho nhịp sống hằng ngày.
+            </p>
+          {% endif %}
+        </div>
+
+        <p class="gua-shop-hero__count">
+          <strong data-shop-total>{{ item_total }}</strong>
+          <span>sản phẩm</span>
+        </p>
+      </div>
+    </header>
+
+    <section class="gua-shop-controls" aria-label="Tìm kiếm và sắp xếp sản phẩm">
+      <div class="gua-shop-container gua-shop-controls__inner">
+        <button
+          type="button"
+          class="gua-shop-control gua-shop-filter-trigger"
+          data-shop-open-filter
+          aria-controls="shopFilterDrawer"
+          aria-expanded="false"
+        >
+          <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+          <span>Bộ lọc</span>
+          <span class="gua-shop-filter-count" data-shop-filter-count hidden>0</span>
+        </button>
+
+        <form class="gua-shop-search" method="GET" action="{{ request.path }}" data-shop-search-form>
+          {% if category %}<input type="hidden" name="category" value="{{ category }}">{% endif %}
+          {% if collection and not (collection_info is defined and collection_info) %}<input type="hidden" name="collection" value="{{ collection }}">{% endif %}
+          {% if current_gender %}<input type="hidden" name="gender" value="{{ current_gender }}">{% endif %}
+          {% if sort %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
+
+          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+          <label class="sr-only" for="shopSearch">Tìm sản phẩm</label>
+          <input
+            id="shopSearch"
+            type="search"
+            name="q"
+            value="{{ keyword or '' }}"
+            placeholder="Tìm sản phẩm"
+            autocomplete="off"
+          >
+          <button type="submit" aria-label="Tìm kiếm">Tìm</button>
+        </form>
+
+        <label class="gua-shop-sort">
+          <span class="sr-only">Sắp xếp sản phẩm</span>
+          <select data-shop-sort aria-label="Sắp xếp sản phẩm">
+            <option value="new" {{ 'selected' if not sort or sort == 'new' else '' }}>Mới nhất</option>
+            <option value="featured" {{ 'selected' if sort == 'featured' else '' }}>Nổi bật</option>
+            <option value="price_asc" {{ 'selected' if sort == 'price_asc' else '' }}>Giá tăng dần</option>
+            <option value="price_desc" {{ 'selected' if sort == 'price_desc' else '' }}>Giá giảm dần</option>
+          </select>
+          <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+        </label>
+
+        <p class="gua-shop-result-count" aria-live="polite">
+          <strong data-shop-visible-count>{{ products|length }}</strong>
+          <span>đang hiển thị</span>
+        </p>
+      </div>
+    </section>
+
+    <main class="gua-shop-container gua-shop-main" id="shopProducts">
+      <div class="gua-shop-empty" data-shop-empty {{ '' if not products else 'hidden' }}>
+        <span class="gua-shop-empty__icon" aria-hidden="true">
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </span>
+        <h2>Chưa tìm thấy sản phẩm</h2>
+        <p>Hãy thử từ khóa khác hoặc bỏ bớt bộ lọc.</p>
+        <button type="button" class="gua-shop-button gua-shop-button--dark" data-shop-clear-filter>
+          Bỏ bộ lọc
+        </button>
+      </div>
+
+      {% if products %}
+        <div class="gua-shop-grid" data-shop-grid>
+          {% for product in products %}
+            {% set card_index = loop.index %}
+            {% include "products/_shop_product_card.html" %}
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% include "products/_shop_pagination.html" %}
+    </main>
+  </div>
+
+  {% include "products/_shop_filter_drawer.html" %}
+  {% include "products/_shop_quick_view.html" %}
+
+  <div class="gua-shop-notice" data-shop-notice role="status" aria-live="polite" aria-atomic="true"></div>
+{% endblock %}
+
+{% block extra_scripts %}
+  <script src="{{ url_for('static', filename='js/shop.js') }}?v=shop-v9" defer></script>
+{% endblock %}

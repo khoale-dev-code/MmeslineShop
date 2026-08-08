@@ -1,0 +1,63 @@
+{% if size_chart and size_chart.image_url %}
+<div
+  id="sizeChartModal"
+  class="pd-size-chart-modal"
+  data-size-chart-modal
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="sizeChartTitle"
+  aria-describedby="sizeChartDescription"
+  aria-hidden="true"
+>
+  <button
+    type="button"
+    class="pd-size-chart-backdrop"
+    data-size-chart-close
+    aria-label="Đóng bảng size"
+    tabindex="-1"
+  ></button>
+
+  <section class="pd-size-chart-dialog" role="document" tabindex="-1">
+    <header class="pd-size-chart-header">
+      <div class="pd-size-chart-heading">
+        <p class="pd-size-chart-eyebrow">Hướng dẫn chọn kích cỡ</p>
+        <h2 id="sizeChartTitle" class="pd-size-chart-title">
+          {{ size_chart.name }}
+        </h2>
+      </div>
+
+      <button
+        type="button"
+        class="pd-size-chart-close"
+        data-size-chart-close
+        aria-label="Đóng"
+      >
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <div class="pd-size-chart-content">
+      <figure class="pd-size-chart-figure">
+        <div class="pd-size-chart-image-wrap">
+          <img
+            class="pd-size-chart-image"
+            src="{{ size_chart.image_url | e }}"
+            alt="Bảng size {{ size_chart.name }} của {{ product.name }}"
+            loading="lazy"
+            decoding="async"
+            data-size-chart-image
+          >
+
+          <p class="pd-size-chart-error" data-size-chart-error hidden>
+            Không thể tải ảnh bảng size. Vui lòng thử lại sau.
+          </p>
+        </div>
+
+        <figcaption id="sizeChartDescription" class="pd-size-chart-note">
+          Bảng size được liên kết trực tiếp từ trang quản trị sản phẩm.
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+</div>
+{% endif %}

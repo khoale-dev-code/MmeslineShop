@@ -1,0 +1,23 @@
+{% set story = about.get('story', {}) %}
+<section class="mm-about-section bg-white" data-about-section="story">
+  <div class="mm-about-container mm-about-story-grid">
+    <div class="mm-about-reveal mm-about-slide-left">
+      <p class="mm-about-kicker">{{ story.get('kicker', 'Our Story') }}</p>
+      <h2 class="mm-about-section-title mm-about-preline">{{ story.get('title', '') }}</h2>
+    </div>
+
+    <div class="mm-about-reveal">
+      <p class="mm-about-copy text-base md:text-lg max-w-3xl">{{ story.get('body', '') }}</p>
+      {% if story.get('stats') %}
+        <div class="mm-about-stat-grid">
+          {% for stat in story.get('stats', []) %}
+            <div class="mm-about-stat" data-count="{{ stat.get('number', loop.index) }}">
+              <p class="mm-about-stat-number">{{ stat.get('number', '%02d'|format(loop.index)) }}</p>
+              <p class="mm-about-stat-label">{{ stat.get('label', '') }}</p>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</section>

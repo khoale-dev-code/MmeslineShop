@@ -1,0 +1,183 @@
+﻿<!DOCTYPE html>
+<html lang="vi" class="mm-no-fouc">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+  {% set storefront_settings = system_settings.get('storefront', {}) if system_settings is defined and system_settings else {} %}
+  {% set topbar_active = storefront_settings.get('topbar_active') %}
+  {% set topbar_text = storefront_settings.get('topbar_text') %}
+  {% set has_topbar = topbar_text and topbar_active in [true, 'true', 'True', '1', 1] %}
+
+  {% set shop_name = shop_name|default('GUAMAISON', true) %}
+  {% set shop_description = shop_description|default('GUAMAISON | Official Online Store', true) %}
+  {% set shop_logo = shop_logo|default(url_for('static', filename='images/logo.png'), true) %}
+
+  {% set footer_shop_name = footer_shop_name|default(shop_name, true) %}
+  {% set footer_brand_first = footer_shop_name[:4] %}
+  {% set footer_brand_rest = footer_shop_name[4:] %}
+
+  <title>{% block title %}{{ shop_name }} | Official Online Store{% endblock %}</title>
+
+  <meta name="description" content="{{ shop_description }}">
+  <meta name="theme-color" content="#1b4922">
+
+  {% if csrf_token is defined %}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+  {% endif %}
+
+  <link rel="icon" type="image/svg+xml" href="{{ shop_logo }}?v=GUAMAISON-2026">
+  <link rel="shortcut icon" href="{{ shop_logo }}?v=GUAMAISON-2026">
+  <link rel="apple-touch-icon" href="{{ shop_logo }}?v=GUAMAISON-2026">
+
+  <meta property="og:site_name" content="{{ shop_name }}">
+  <meta property="og:title" content="{{ shop_name }} | Official Online Store">
+  <meta property="og:description" content="{{ shop_description }}">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="{{ shop_logo }}">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ shop_name }} | Official Online Store">
+  <meta name="twitter:description" content="{{ shop_description }}">
+  <meta name="twitter:image" content="{{ shop_logo }}">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet"
+  >
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+  >
+
+  <script>
+    document.documentElement.classList.add("mm-js");
+
+    window.tailwind = window.tailwind || {};
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"DM Sans"', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'sans-serif'],
+            display: ['"DM Sans"', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'sans-serif']
+          },
+          colors: {
+            mm: {
+              green: '#1b4922',
+              gold: '#c99e14',
+              ink: '#101510',
+              cream: '#fbfaf4',
+              soft: '#f7f9f2'
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/base-performance.css') }}?v=20260611-scroll-clean"
+  >
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/client_router.css') }}?v=20260807.5">
+
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/components/footer-v7.css') }}?v=20260808-footer-v7-2-1"
+  >
+
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/components/featured-products-v8.css') }}?v=20260808-featured-v8"
+  >
+
+  {% block extra_head %}{% endblock %}
+</head>
+
+<body class="bg-white text-black flex flex-col min-h-screen {% if has_topbar %}has-topbar{% endif %}">
+
+  {% include 'partials/_client_router.html' %}
+
+  {% if has_topbar %}
+    {% set normalized_topbar_text = topbar_text
+      | replace('GUA Maison', 'GUAMAISON')
+      | replace('GUA MAISON', 'GUAMAISON')
+      | replace('Mmestline', 'GUAMAISON')
+      | replace('MMESTLINE', 'GUAMAISON')
+      | replace('mmestline', 'GUAMAISON')
+    %}
+    <div class="top-bar">
+      {{ normalized_topbar_text }}
+    </div>
+  {% endif %}
+
+  <div class="mm-navbar-shell">
+    {% include 'partials/navbar.html' ignore missing %}
+  </div>
+
+  {% include 'flash.html' ignore missing %}
+
+  <main id="main-content" class="flex-1 w-full">
+    {% block content %}{% endblock %}
+  </main>
+
+  {% include 'partials/footer.html' ignore missing %}
+  {% include 'chat.html' ignore missing %}
+  {% include 'components/modals/_quick_view.html' ignore missing %}
+
+  <script defer src="{{ url_for('static', filename='js/core/client_router.js') }}?v=20260807.5"></script>
+
+  <script
+    defer
+    src="{{ url_for('static', filename='js/base-performance.js') }}?v=20260611-scroll-clean"
+  ></script>
+
+  {% if current_user is defined and current_user and current_user.id %}
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        async function refreshNotifBadge() {
+          try {
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "";
+
+            const res = await fetch("/notifications/unread-count", {
+              headers: {
+                "X-CSRFToken": token
+              }
+            });
+
+            if (!res.ok) return;
+
+            const payload = await res.json();
+            const count = parseInt(payload.count, 10) || 0;
+
+            document.querySelectorAll(".notif-badge").forEach((badge) => {
+              badge.textContent = count > 99 ? "99+" : (count || "");
+              badge.classList.toggle("is-zero", count === 0);
+            });
+          } catch (_) {}
+        }
+
+        refreshNotifBadge();
+        setInterval(refreshNotifBadge, 60000);
+      });
+    </script>
+  {% endif %}
+
+  <script
+    defer
+    src="{{ url_for('static', filename='js/components/footer-v7.js') }}?v=20260808-footer-v7-2-1"
+  ></script>
+
+  <script
+    defer
+    src="{{ url_for('static', filename='js/components/featured-products-v8.js') }}?v=20260808-featured-v8"
+  ></script>
+
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi" class="mm-no-fouc">
 <head>
   <meta charset="UTF-8">
@@ -84,10 +84,24 @@
     href="{{ url_for('static', filename='css/base-performance.css') }}?v=20260611-scroll-clean"
   >
 
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/client_router.css') }}?v=20260807.5">
+
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/components/footer-v7.css') }}?v=20260808-footer-v7-2-1"
+  >
+
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/components/featured-products-v8.css') }}?v=20260808-featured-v8-1-1"
+  >
+
   {% block extra_head %}{% endblock %}
 </head>
 
 <body class="bg-white text-black flex flex-col min-h-screen {% if has_topbar %}has-topbar{% endif %}">
+
+  {% include 'partials/_client_router.html' %}
 
   {% if has_topbar %}
     {% set normalized_topbar_text = topbar_text
@@ -115,6 +129,8 @@
   {% include 'partials/footer.html' ignore missing %}
   {% include 'chat.html' ignore missing %}
   {% include 'components/modals/_quick_view.html' ignore missing %}
+
+  <script defer src="{{ url_for('static', filename='js/core/client_router.js') }}?v=20260807.5"></script>
 
   <script
     defer
@@ -151,6 +167,16 @@
       });
     </script>
   {% endif %}
+
+  <script
+    defer
+    src="{{ url_for('static', filename='js/components/footer-v7.js') }}?v=20260808-footer-v7-2-1"
+  ></script>
+
+  <script
+    defer
+    src="{{ url_for('static', filename='js/components/featured-products-v8.js') }}?v=20260808-featured-v8-1-1"
+  ></script>
 
   {% block extra_scripts %}{% endblock %}
 </body>

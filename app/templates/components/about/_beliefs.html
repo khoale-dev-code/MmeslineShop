@@ -1,0 +1,26 @@
+{% set beliefs = about.get('beliefs', {}) %}
+<section class="mm-about-section" data-about-section="beliefs">
+  <div class="mm-about-container mm-about-belief-grid">
+    <div class="mm-about-image is-loading aspect-[4/5] mm-about-reveal mm-about-slide-left" data-parallax="0.06" data-tilt>
+      <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" data-mm-src="{{ beliefs.get('image') }}" alt="{{ beliefs.get('image_alt', 'GUAMAISON atelier') }}" width="900" height="1125" decoding="async">
+    </div>
+
+    <div class="mm-about-reveal mm-about-slide-right">
+      <p class="mm-about-kicker">{{ beliefs.get('kicker', 'What We Believe') }}</p>
+      <h2 class="mm-about-section-title mm-about-preline">{{ beliefs.get('title', '') }}</h2>
+      <p class="mt-8 mm-about-copy max-w-xl">{{ beliefs.get('body', '') }}</p>
+
+      {% if beliefs.get('values') %}
+        <div class="mm-about-value-grid">
+          {% for value in beliefs.get('values', []) %}
+            <div class="mm-about-value">
+              <span class="mm-about-value-num">{{ value.get('number', '%02d'|format(loop.index)) }}</span>
+              <h3 class="mm-about-value-title">{{ value.get('title', '') }}</h3>
+              <p class="mm-about-value-text">{{ value.get('text', '') }}</p>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</section>

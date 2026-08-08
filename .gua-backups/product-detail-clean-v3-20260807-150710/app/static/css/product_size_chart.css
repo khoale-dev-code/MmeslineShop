@@ -1,0 +1,79 @@
+.pd-size-chart-eyebrow {
+  margin: 0 0 3px;
+  color: var(--pd-muted, #716f67);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.pd-size-chart-close {
+  display: inline-grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  place-items: center;
+  border: 1px solid var(--pd-line, #e5e5e5);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--pd-ink, #171714);
+  transition: background-color .18s ease, color .18s ease, transform .18s ease;
+}
+
+.pd-size-chart-close:hover {
+  background: var(--pd-ink, #171714);
+  color: #fff;
+  transform: rotate(3deg);
+}
+
+.pd-size-chart-figure {
+  margin: 0;
+}
+
+.pd-size-chart-image-wrap {
+  display: grid;
+  min-height: 240px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--pd-line, #e5e5e5);
+  border-radius: 16px;
+  background: #f8f7f3;
+}
+
+.pd-size-chart-image {
+  display: block;
+  width: 100%;
+  max-height: min(72dvh, 820px);
+  object-fit: contain;
+}
+
+.pd-size-chart-error {
+  max-width: 320px;
+  margin: 0;
+  padding: 32px 20px;
+  color: var(--pd-muted, #716f67);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.pd-size-chart-note {
+  margin-top: 12px;
+  color: var(--pd-muted, #716f67);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.55;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .pd-size-chart-image-wrap {
+    min-height: 180px;
+    border-radius: 12px;
+  }
+
+  .pd-size-chart-image {
+    max-height: 68dvh;
+  }
+}

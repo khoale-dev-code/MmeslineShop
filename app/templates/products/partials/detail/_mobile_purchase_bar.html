@@ -1,0 +1,17 @@
+<div class="pd-mobile-bar lg:hidden">
+  <div class="pd-qty">
+    <button type="button" data-qty="-1" class="btn-qty" aria-label="Giảm số lượng">−</button>
+    <input id="mobile-qty" type="number" value="1" min="1" max="{{ product.stock if product.stock and product.stock > 0 else 1 }}" readonly aria-label="Số lượng sản phẩm">
+    <button type="button" data-qty="1" class="btn-qty" aria-label="Tăng số lượng">+</button>
+  </div>
+
+  <button type="button" id="mobile-btn-submit" onclick="MobileCTA.submitForm()" class="pd-submit" {% if not can_buy_product %}disabled{% endif %}>
+    {% if has_variants %}
+      CHỌN SIZE
+    {% elif can_buy_product %}
+      THÊM VÀO GIỎ
+    {% else %}
+      HẾT HÀNG
+    {% endif %}
+  </button>
+</div>
