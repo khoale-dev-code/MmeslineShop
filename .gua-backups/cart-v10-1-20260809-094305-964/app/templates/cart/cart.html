@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}Giỏ hàng | GUAMAISON{% endblock %}
+
+{% block extra_head %}
+  {{ super() }}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/cart-v10.css') }}?v=10.0.0">
+{% endblock %}
+
+{% block content %}
+<main
+  class="gua-cart"
+  data-cart-v10
+  data-csrf-token="{{ csrf_token() }}"
+  data-summary-url="{{ url_for('cart.selection_summary') }}"
+  data-bulk-remove-url="{{ url_for('cart.bulk_remove') }}"
+  data-prepare-checkout-url="{{ url_for('cart.prepare_checkout') }}"
+  data-total-lines="{{ cart_page.total_lines }}"
+  data-user-id="{{ current_user.id if current_user and current_user.id else 'guest' }}"
+>
+  <div class="gua-cart__shell">
+    <header class="gua-cart__hero">
+      <div>
+        <p class="gua-cart__eyebrow">Túi hàng của bạn</p>
+        <h1>Chọn đúng món<br class="hidden sm:block"> bạn muốn mua.</h1>
+        <p class="gua-cart__intro">
+          Tìm, chọn, đổi size và thanh toán từng sản phẩm — không cần dọn lại cả giỏ.
+        </p>
+      </div>
+
+      <div class="gua-cart__hero-meta" aria-label="Tổng quan giỏ hàng">
+        <strong>{{ "{:,.0f}".format(cart_page.total_lines) }}</strong>
+        <span>dòng sản phẩm</span>
+      </div>
+    </header>
+
+    {% if cart_page.total_lines %}
+      <section class="gua-cart__finder" aria-label="Tìm và chọn sản phẩm">
+        <form action="{{ url_for('cart.index') }}" method="get" role="search" class="gua-cart__search">
+          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+          <label class="sr-only" for="cart-search">Tìm trong giỏ hàng</label>
+          <input
+            id="cart-search"
+            name="q"
+            value="{{ cart_page.query }}"
+            placeholder="Tìm theo tên hoặc SKU…"
+            autocomplete="off"
+          >
+          {% if cart_page.query %}
+            <a href="{{ url_for('cart.index') }}" aria-label="Xóa từ khóa tìm kiếm">
+              <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+            </a>
+          {% endif %}
+        </form>
+
+        <div class="gua-cart__range">
+          {% if items %}
+            Đang xem {{ cart_page.first_position }}–{{ cart_page.last_position }}
+          {% else %}
+            Không có kết quả
+          {% endif %}
+        </div>
+      </section>
+
+      {% if items %}
+        <div class="gua-cart__toolbar" data-selection-toolbar>
+          <label class="gua-check gua-check--toolbar">
+            <input type="checkbox" data-select-page>
+            <span aria-hidden="true"><i class="fa-solid fa-check"></i></span>
+            <b>Chọn trang này</b>
+          </label>
+
+          <button type="button" class="gua-cart__all" data-select-all-cart>
+            Chọn toàn bộ {{ "{:,.0f}".format(cart_page.total_lines) }} sản phẩm
+          </button>
+
+          <span class="gua-cart__selected-label" data-selected-label>Chưa chọn sản phẩm</span>
+
+          <button type="button" class="gua-cart__bulk-delete" data-open-delete disabled>
+            <i class="fa-regular fa-trash-can" aria-hidden="true"></i>
+            <span>Xóa đã chọn</span>
+          </button>
+        </div>
+
+        <div class="gua-cart__layout">
+          <section class="gua-cart__items" aria-label="Sản phẩm trong giỏ">
+            {% for item in items %}
+              {% set item_position = (cart_page.page - 1) * cart_page.per_page + loop.index %}
+              {% include "cart/partials/_cart_item.html" %}
+            {% endfor %}
+
+            {% include "cart/partials/_cart_pagination.html" %}
+          </section>
+
+          {% include "cart/partials/_cart_summary.html" %}
+        </div>
+      {% else %}
+        <section class="gua-cart__no-result">
+          <span><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></span>
+          <h2>Không tìm thấy sản phẩm</h2>
+          <p>Thử một tên hoặc mã SKU khác trong giỏ hàng của bạn.</p>
+          <a href="{{ url_for('cart.index') }}">Xem toàn bộ giỏ</a>
+        </section>
+      {% endif %}
+    {% else %}
+      <section class="gua-cart__empty">
+        <div class="gua-cart__empty-art" aria-hidden="true">
+          <i class="fa-solid fa-bag-shopping"></i>
+        </div>
+        <p class="gua-cart__eyebrow">Giỏ hàng đang trống</p>
+        <h2>Bắt đầu với một thiết kế bạn yêu thích.</h2>
+        <p>Sản phẩm đã chọn sẽ xuất hiện tại đây để bạn chỉnh size, số lượng và thanh toán.</p>
+        <a href="/shop" data-nav>Khám phá cửa hàng <i class="fa-solid fa-arrow-right-long"></i></a>
+      </section>
+    {% endif %}
+  </div>
+
+  {% if items %}
+    {% include "cart/partials/_variant_sheet.html" %}
+    {% include "cart/partials/_delete_dialog.html" %}
+
+    <div class="gua-cart__mobile-bar" data-mobile-summary>
+      <div>
+        <span data-mobile-count>0 sản phẩm</span>
+        <strong data-mobile-total>0 ₫</strong>
+      </div>
+      <button type="button" data-checkout disabled>Thanh toán</button>
+    </div>
+  {% endif %}
+
+  <div class="gua-cart__toast" data-cart-toast role="status" aria-live="polite" hidden></div>
+</main>
+{% endblock %}
+
+{% block extra_scripts %}
+  {{ super() }}
+  <script src="{{ url_for('static', filename='js/cart-v10.js') }}?v=10.0.0" defer></script>
+{% endblock %}

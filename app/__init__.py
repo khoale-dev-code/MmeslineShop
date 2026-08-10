@@ -26,7 +26,7 @@ def _env_enabled(name: str, default: str = "false") -> bool:
     return os.environ.get(name, default).strip().lower() in {"1", "true", "yes", "on"}
 
 
-from app.models.cart_model import CartModel
+from app.services.cart_service import cart_service
 from app.models.category_model import CategoryModel
 from app.models.setting_model import SettingModel
 from app.models.navigation_model import NavigationModel
@@ -274,6 +274,7 @@ def create_app() -> Flask:
     from app.controllers.payment_controller import payment_bp
     from app.controllers.promotions_controller import promotions_bp
     from app.controllers.notification_controller import notification_bp
+    from app.controllers.newsletter_controller import newsletter_bp
 
     public_blueprints = [
         auth_bp,
@@ -284,6 +285,7 @@ def create_app() -> Flask:
         payment_bp,
         promotions_bp,
         notification_bp,
+        newsletter_bp,
     ]
 
     for bp in public_blueprints:
@@ -377,7 +379,7 @@ def create_app() -> Flask:
 
         if user_id:
             try:
-                cart_count = CartModel.get_count(user_id)
+                cart_count = cart_service.get_count(user_id)
             except Exception:
                 cart_count = 0
 

@@ -148,6 +148,32 @@ def _get_admin_notification_count() -> int:
     )
 
 
+def _get_newsletter_unread_count() -> int:
+    """Count unread newsletter registrations through the Repository layer."""
+    cache_key = "newsletter_unread_count"
+    cached = _get_cached_value(cache_key)
+    if cached is not None:
+        return cached
+    try:
+        from app.repositories.newsletter_repository import NewsletterRepository
+        return _set_cached_value(cache_key, NewsletterRepository().count_unread())
+    except Exception as exc:
+        logger.warning("[admin_context] Newsletter unread count unavailable: %s", exc)
+        return _set_cached_value(cache_key, 0)
+
+def _get_contact_unread_count() -> int:
+    """Count unread contact requests through the Repository layer."""
+    cache_key = "contact_unread_count"
+    cached = _get_cached_value(cache_key)
+    if cached is not None:
+        return cached
+    try:
+        from app.services.contact_service import ContactService
+        return _set_cached_value(cache_key, ContactService().count_unread())
+    except Exception as exc:
+        logger.warning("[admin_context] Contact unread count unavailable: %s", exc)
+        return _set_cached_value(cache_key, 0)
+
 def clear_admin_context_cache() -> None:
     """
     Optional helper.
@@ -179,6 +205,8 @@ def admin_inject_globals():
         context = {
             "pending_returns": _get_pending_returns_count(),
             "admin_notification_count": _get_admin_notification_count(),
+            "newsletter_unread_count": _get_newsletter_unread_count(),
+            "contact_unread_count": _get_contact_unread_count(),
         }
 
         g._admin_context_globals = context
@@ -190,4 +218,6 @@ def admin_inject_globals():
         return {
             "pending_returns": 0,
             "admin_notification_count": 0,
+            "newsletter_unread_count": 0,
+            "contact_unread_count": 0,
         }

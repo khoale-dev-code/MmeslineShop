@@ -1,0 +1,87 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}{{ detail.message.full_name }} | Tin nhắn liên hệ{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/css/contact_admin.css') }}?v=GUAMAISON-contact-v13">
+{% endblock %}
+
+{% block content %}
+{% set item = detail.message %}
+<div class="gm-contact-admin">
+  <header class="gm-contact-admin__hero is-detail">
+    <div>
+      <a class="gm-contact-admin__back" href="{{ url_for('admin.contact_messages_index') }}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Hộp thư liên hệ</a>
+      <p class="gm-contact-admin__eyebrow">{{ item.topic }}</p>
+      <h1>{{ item.full_name or 'Khách GUAMAISON' }}</h1>
+      <p>Gửi lúc {{ item.created_at[:16]|replace('T', ' · ') if item.created_at else '—' }}</p>
+    </div>
+    <span class="gm-contact-admin__status is-{{ item.status }}">{{ {'new':'Mới','open':'Đang xử lý','replied':'Đã phản hồi','closed':'Đã đóng','spam':'Spam'}.get(item.status, item.status) }}</span>
+  </header>
+
+  <div class="gm-contact-admin__detail-grid">
+    <div class="gm-contact-admin__detail-main">
+      <section class="gm-contact-admin__message-card">
+        <div class="gm-contact-admin__message-head">
+          <span>{{ (item.full_name or item.email)[0]|upper }}</span>
+          <div><strong>{{ item.full_name }}</strong><a href="mailto:{{ item.email }}">{{ item.email }}</a>{% if item.phone %}<a href="tel:{{ item.phone|replace(' ', '') }}">{{ item.phone }}</a>{% endif %}</div>
+        </div>
+        <div class="gm-contact-admin__message-body">{{ item.message }}</div>
+      </section>
+
+      <section class="gm-contact-admin__reply-card">
+        <div class="gm-contact-admin__card-head"><div><small>Reply by email</small><h2>Phản hồi khách hàng</h2></div><i class="fa-regular fa-paper-plane" aria-hidden="true"></i></div>
+        {% if not mail_ready %}<div class="gm-contact-admin__mail-warning"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Chưa đủ cấu hình SMTP. Nội dung vẫn được lưu nếu gửi thất bại.</div>{% endif %}
+        <form method="post" action="{{ url_for('admin.contact_message_reply', message_id=item.id) }}" class="gm-contact-admin__form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label><span>Tiêu đề email</span><input name="subject" maxlength="160" required value="Phản hồi từ GUAMAISON · {{ item.topic }}"></label>
+          <label><span>Nội dung</span><textarea name="message" rows="8" maxlength="8000" required placeholder="Nhập nội dung phản hồi rõ ràng, thân thiện…"></textarea></label>
+          <div class="gm-contact-admin__form-footer"><p>Email được gửi riêng đến {{ item.email }}.</p><button type="submit"><i class="fa-regular fa-paper-plane" aria-hidden="true"></i> Gửi phản hồi</button></div>
+        </form>
+      </section>
+
+      <section class="gm-contact-admin__timeline">
+        <div class="gm-contact-admin__card-head"><div><small>Activity</small><h2>Lịch sử phản hồi</h2></div><span>{{ detail.replies|length }}</span></div>
+        {% if detail.replies %}
+          {% for reply in detail.replies %}
+            <article>
+              <span class="is-{{ reply.status }}"><i class="fa-solid {{ 'fa-check' if reply.status == 'sent' else ('fa-xmark' if reply.status == 'failed' else 'fa-spinner') }}" aria-hidden="true"></i></span>
+              <div><div><strong>{{ reply.subject }}</strong><em>{{ 'Đã gửi' if reply.status == 'sent' else ('Gửi lỗi' if reply.status == 'failed' else 'Đang xử lý') }}</em></div><p>{{ reply.body_text }}</p>{% if reply.error_message %}<small>{{ reply.error_message }}</small>{% endif %}<time>{{ reply.created_at[:16]|replace('T', ' · ') if reply.created_at else '—' }}</time></div>
+            </article>
+          {% endfor %}
+        {% else %}
+          <div class="gm-contact-admin__empty is-small"><p>Chưa có phản hồi nào cho lời nhắn này.</p></div>
+        {% endif %}
+      </section>
+    </div>
+
+    <aside class="gm-contact-admin__detail-side">
+      <section class="gm-contact-admin__side-card">
+        <div class="gm-contact-admin__card-head"><div><small>Workflow</small><h2>Xử lý lời nhắn</h2></div><i class="fa-solid fa-list-check" aria-hidden="true"></i></div>
+        <form method="post" action="{{ url_for('admin.contact_message_update', message_id=item.id) }}" class="gm-contact-admin__form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label><span>Trạng thái</span><select name="status">
+            <option value="new" {{ 'selected' if item.status == 'new' else '' }}>Mới</option>
+            <option value="open" {{ 'selected' if item.status == 'open' else '' }}>Đang xử lý</option>
+            <option value="replied" {{ 'selected' if item.status == 'replied' else '' }}>Đã phản hồi</option>
+            <option value="closed" {{ 'selected' if item.status == 'closed' else '' }}>Đã đóng</option>
+            <option value="spam" {{ 'selected' if item.status == 'spam' else '' }}>Spam</option>
+          </select></label>
+          <label><span>Ghi chú nội bộ</span><textarea name="admin_note" rows="6" maxlength="2000" placeholder="Chỉ Admin nhìn thấy…">{{ item.admin_note }}</textarea></label>
+          <button type="submit" class="is-secondary">Lưu trạng thái</button>
+        </form>
+      </section>
+
+      <section class="gm-contact-admin__side-card">
+        <div class="gm-contact-admin__card-head"><div><small>Contact</small><h2>Thông tin khách</h2></div><i class="fa-regular fa-address-card" aria-hidden="true"></i></div>
+        <dl class="gm-contact-admin__meta">
+          <div><dt>Email</dt><dd><a href="mailto:{{ item.email }}">{{ item.email }}</a></dd></div>
+          <div><dt>Số điện thoại</dt><dd>{{ item.phone or 'Chưa cung cấp' }}</dd></div>
+          <div><dt>Chủ đề</dt><dd>{{ item.topic }}</dd></div>
+          <div><dt>Mã lời nhắn</dt><dd><code>{{ item.id }}</code></dd></div>
+        </dl>
+      </section>
+    </aside>
+  </div>
+</div>
+{% endblock %}

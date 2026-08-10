@@ -1,0 +1,141 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Hộp thư nhận tin | GUAMAISON Admin{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/css/newsletter_admin.css') }}?v=GUAMAISON-newsletter-v11">
+{% endblock %}
+
+{% block content %}
+<div class="gm-nl-admin">
+  <header class="gm-nl-admin__hero">
+    <div>
+      <p class="gm-nl-admin__eyebrow">Customer communications</p>
+      <h1>Hộp thư nhận tin</h1>
+      <p>Theo dõi người đăng ký mới và trả lời khách trực tiếp qua email.</p>
+    </div>
+    <a href="/" target="_blank" rel="noopener" class="gm-nl-admin__ghost">
+      <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+      Xem Storefront
+    </a>
+  </header>
+
+  {% if migration_missing %}
+    <section class="gm-nl-admin__migration" role="alert">
+      <span><i class="fa-solid fa-database" aria-hidden="true"></i></span>
+      <div>
+        <strong>Supabase chưa có Newsletter v11</strong>
+        <p>Chạy toàn bộ file <code>supabase/migrations/20260809130000_newsletter_v11.sql</code>, sau đó tải lại trang.</p>
+      </div>
+    </section>
+  {% else %}
+    <section class="gm-nl-admin__stats" aria-label="Thống kê nhận tin">
+      <article>
+        <span class="is-green"><i class="fa-solid fa-users" aria-hidden="true"></i></span>
+        <div><small>Đang nhận tin</small><strong>{{ stats.active }}</strong></div>
+      </article>
+      <article>
+        <span class="is-gold"><i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i></span>
+        <div><small>Chưa đọc</small><strong>{{ stats.unread }}</strong></div>
+      </article>
+      <article>
+        <span class="is-ink"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i></span>
+        <div><small>Email đã gửi</small><strong>{{ stats.sent }}</strong></div>
+      </article>
+      <article>
+        <span class="is-soft"><i class="fa-solid fa-user-minus" aria-hidden="true"></i></span>
+        <div><small>Đã hủy nhận</small><strong>{{ stats.unsubscribed }}</strong></div>
+      </article>
+    </section>
+
+    <section class="gm-nl-admin__panel">
+      <form method="get" class="gm-nl-admin__filters" role="search">
+        <label class="gm-nl-admin__search">
+          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+          <span class="sr-only">Tìm người đăng ký</span>
+          <input type="search" name="q" value="{{ query_text }}" placeholder="Tìm theo tên hoặc email…">
+        </label>
+
+        <label>
+          <span class="sr-only">Lọc trạng thái</span>
+          <select name="status">
+            <option value="">Tất cả trạng thái</option>
+            <option value="active" {{ 'selected' if selected_status == 'active' else '' }}>Đang nhận tin</option>
+            <option value="unsubscribed" {{ 'selected' if selected_status == 'unsubscribed' else '' }}>Đã hủy</option>
+            <option value="blocked" {{ 'selected' if selected_status == 'blocked' else '' }}>Đã chặn</option>
+          </select>
+        </label>
+
+        <label class="gm-nl-admin__unread">
+          <input type="checkbox" name="unread" value="1" {{ 'checked' if unread_only else '' }}>
+          Chỉ hiện chưa đọc
+        </label>
+
+        <button type="submit">Lọc danh sách</button>
+      </form>
+
+      {% if page_data.rows %}
+        <div class="gm-nl-admin__table-wrap">
+          <table class="gm-nl-admin__table">
+            <thead>
+              <tr>
+                <th>Người đăng ký</th>
+                <th>Nguồn</th>
+                <th>Trạng thái</th>
+                <th>Ngày đăng ký</th>
+                <th><span class="sr-only">Thao tác</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in page_data.rows %}
+                <tr class="{{ 'is-unread' if row.is_unread else '' }}">
+                  <td data-label="Người đăng ký">
+                    <div class="gm-nl-admin__person">
+                      <span>{{ (row.full_name or row.email)[0]|upper }}</span>
+                      <div>
+                        <strong>{{ row.full_name or 'Khách hàng GUAMAISON' }}</strong>
+                        <a href="mailto:{{ row.email }}">{{ row.email }}</a>
+                      </div>
+                      {% if row.is_unread %}<em>Mới</em>{% endif %}
+                    </div>
+                  </td>
+                  <td data-label="Nguồn"><span class="gm-nl-admin__source">{{ row.source }}</span></td>
+                  <td data-label="Trạng thái">
+                    <span class="gm-nl-admin__status is-{{ row.status }}">
+                      {{ 'Đang nhận tin' if row.status == 'active' else ('Đã hủy' if row.status == 'unsubscribed' else 'Đã chặn') }}
+                    </span>
+                  </td>
+                  <td data-label="Ngày đăng ký">{{ row.created_at[:10] if row.created_at else '—' }}</td>
+                  <td>
+                    <a class="gm-nl-admin__open" href="{{ url_for('admin.newsletter_detail', subscriber_id=row.id) }}">
+                      Mở <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                    </a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        {% if page_data.total_pages > 1 %}
+          <nav class="gm-nl-admin__pagination" aria-label="Phân trang nhận tin">
+            {% if page_data.page > 1 %}
+              <a href="{{ url_for('admin.newsletter_index', page=page_data.page - 1, q=query_text, status=selected_status, unread='1' if unread_only else '') }}">Trước</a>
+            {% endif %}
+            <span>Trang {{ page_data.page }} / {{ page_data.total_pages }} · {{ page_data.total }} người đăng ký</span>
+            {% if page_data.page < page_data.total_pages %}
+              <a href="{{ url_for('admin.newsletter_index', page=page_data.page + 1, q=query_text, status=selected_status, unread='1' if unread_only else '') }}">Sau</a>
+            {% endif %}
+          </nav>
+        {% endif %}
+      {% else %}
+        <div class="gm-nl-admin__empty">
+          <span><i class="fa-regular fa-envelope-open" aria-hidden="true"></i></span>
+          <h2>Chưa có đăng ký phù hợp</h2>
+          <p>Thử thay đổi bộ lọc hoặc kiểm tra lại form nhận tin ngoài Storefront.</p>
+        </div>
+      {% endif %}
+    </section>
+  {% endif %}
+</div>
+{% endblock %}

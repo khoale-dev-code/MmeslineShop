@@ -1,0 +1,45 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Chiến dịch email | GUAMAISON Admin{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/css/newsletter_admin.css') }}?v=GUAMAISON-newsletter-v12">
+{% endblock %}
+
+{% block content %}
+<div class="gm-nl-admin">
+  <header class="gm-nl-admin__hero gm-nl-campaign__hero">
+    <div><p class="gm-nl-admin__eyebrow">Campaign studio</p><h1>Chiến dịch email</h1><p>Soạn một lần, gửi cá nhân hóa cho nhiều khách và tiếp tục được nếu phiên gửi bị gián đoạn.</p></div>
+    <div class="gm-nl-admin__hero-actions">
+      <a href="{{ url_for('admin.newsletter_index') }}" class="gm-nl-admin__ghost"><i class="fa-solid fa-users" aria-hidden="true"></i> Người đăng ký</a>
+      <a href="{{ url_for('admin.newsletter_campaign_new') }}" class="gm-nl-admin__primary"><i class="fa-solid fa-plus" aria-hidden="true"></i> Tạo chiến dịch</a>
+    </div>
+  </header>
+
+  {% if migration_missing %}
+    <section class="gm-nl-admin__migration" role="alert"><span><i class="fa-solid fa-database" aria-hidden="true"></i></span><div><strong>Chưa có Newsletter Campaigns v12</strong><p>Chạy file <code>supabase/migrations/20260809170000_newsletter_campaigns_v12.sql</code>, sau đó tải lại trang.</p></div></section>
+  {% elif page_data.rows %}
+    <section class="gm-nl-campaign-list">
+      {% for campaign in page_data.rows %}
+        <article class="gm-nl-campaign-card">
+          <div class="gm-nl-campaign-card__top">
+            <div><span>{{ campaign.created_at[:10] if campaign.created_at else '—' }}</span><h2>{{ campaign.name }}</h2><p>{{ campaign.subject }}</p></div>
+            {% include "admin/newsletter/partials/_campaign_status.html" %}
+          </div>
+          {% include "admin/newsletter/partials/_campaign_progress.html" %}
+          <div class="gm-nl-campaign-card__counts">
+            <span><b>{{ campaign.pending_count }}</b> Chờ gửi</span>
+            <span><b>{{ campaign.sent_count }}</b> Thành công</span>
+            <span><b>{{ campaign.failed_count }}</b> Gửi lỗi</span>
+            <span><b>{{ campaign.skipped_count }}</b> Bỏ qua</span>
+          </div>
+          <a href="{{ url_for('admin.newsletter_campaign_detail', campaign_id=campaign.id) }}">Mở chiến dịch <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+        </article>
+      {% endfor %}
+    </section>
+    {% if page_data.total_pages > 1 %}<nav class="gm-nl-admin__pagination" aria-label="Phân trang chiến dịch">{% if page_data.page > 1 %}<a href="{{ url_for('admin.newsletter_campaigns', page=page_data.page - 1) }}">Trước</a>{% endif %}<span>Trang {{ page_data.page }} / {{ page_data.total_pages }}</span>{% if page_data.page < page_data.total_pages %}<a href="{{ url_for('admin.newsletter_campaigns', page=page_data.page + 1) }}">Sau</a>{% endif %}</nav>{% endif %}
+  {% else %}
+    <section class="gm-nl-admin__panel"><div class="gm-nl-admin__empty"><span><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i></span><h2>Chưa có chiến dịch</h2><p>Tạo chiến dịch đầu tiên và gửi một bản thử trước khi gửi cho khách.</p><a class="gm-nl-admin__primary" href="{{ url_for('admin.newsletter_campaign_new') }}">Tạo chiến dịch đầu tiên</a></div></section>
+  {% endif %}
+</div>
+{% endblock %}

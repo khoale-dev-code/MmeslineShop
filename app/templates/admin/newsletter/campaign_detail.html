@@ -1,0 +1,68 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}{{ detail.campaign.name }} | Chiến dịch email{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/css/newsletter_admin.css') }}?v=GUAMAISON-newsletter-v12">
+{% endblock %}
+
+{% block content %}
+{% set campaign = detail.campaign %}
+<div class="gm-nl-admin gm-nl-campaign-detail" data-campaign-runner data-send-url="{{ url_for('admin.newsletter_campaign_send_batch', campaign_id=campaign.id) }}" data-campaign-status="{{ campaign.status }}">
+  <input type="hidden" value="{{ csrf_token() }}" data-csrf-token>
+  <div class="gm-nl-detail__back"><a href="{{ url_for('admin.newsletter_campaigns') }}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Tất cả chiến dịch</a></div>
+
+  <header class="gm-nl-campaign-detail__header">
+    <div><p class="gm-nl-admin__eyebrow">Campaign control room</p><h1>{{ campaign.name }}</h1><p>{{ campaign.subject }}</p></div>
+    {% include "admin/newsletter/partials/_campaign_status.html" %}
+  </header>
+
+  <div class="gm-nl-campaign-detail__layout">
+    <main>
+      <section class="gm-nl-campaign-detail__progress-card">
+        <div class="gm-nl-campaign-detail__progress-head"><div><span>Tiến độ gửi</span><strong data-progress-title>{{ campaign.sent_count }} / {{ campaign.target_count }} email thành công</strong></div><div><small>Hạn mức 24 giờ</small><b><span data-daily-sent>{{ detail.daily_sent }}</span> / {{ detail.daily_limit }}</b></div></div>
+        {% include "admin/newsletter/partials/_campaign_progress.html" %}
+        <div class="gm-nl-campaign-detail__metrics">
+          <article><span>Chờ gửi</span><strong data-count-pending>{{ campaign.pending_count }}</strong></article>
+          <article><span>Đang xử lý</span><strong data-count-processing>{{ campaign.processing_count }}</strong></article>
+          <article><span>Đã gửi</span><strong data-count-sent>{{ campaign.sent_count }}</strong></article>
+          <article><span>Gửi lỗi</span><strong data-count-failed>{{ campaign.failed_count }}</strong></article>
+          <article><span>Bỏ qua</span><strong data-count-skipped>{{ campaign.skipped_count }}</strong></article>
+        </div>
+      </section>
+
+      <section class="gm-nl-campaign-detail__delivery">
+        <div class="gm-nl-detail__section-title"><div><p>Delivery queue</p><h2>Gửi email theo lô an toàn</h2></div><span><i class="fa-solid fa-layer-group" aria-hidden="true"></i> {{ detail.batch_size }} email / lượt</span></div>
+        {% if not mail_ready %}<div class="gm-nl-detail__mail-warning" role="alert"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i><span>SMTP chưa sẵn sàng. Hãy thay App Password đã lộ bằng mật khẩu mới trong <code>.env</code>.</span></div>{% endif %}
+        <div class="gm-nl-campaign-detail__notice" data-run-message role="status" aria-live="polite"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>Trang sẽ gửi từng lô nhỏ. Nếu đóng trang, bạn có thể quay lại và tiếp tục từ phần chưa gửi.</span></div>
+        <div class="gm-nl-campaign-detail__actions">
+          {% if campaign.status not in ['completed', 'cancelled'] %}
+            <button type="button" class="gm-nl-campaign-detail__send" data-start-campaign {{ 'disabled' if not mail_ready else '' }}><i class="fa-solid fa-paper-plane" aria-hidden="true"></i><span>{{ 'Tiếp tục gửi' if campaign.status in ['sending', 'paused'] else 'Bắt đầu gửi chiến dịch' }}</span></button>
+            <button type="button" class="gm-nl-campaign-detail__pause" data-pause-campaign hidden><i class="fa-solid fa-pause" aria-hidden="true"></i> Dừng sau lô hiện tại</button>
+          {% endif %}
+          {% if campaign.failed_count > 0 %}<form method="post" action="{{ url_for('admin.newsletter_campaign_retry_failed', campaign_id=campaign.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="gm-nl-campaign-detail__retry"><i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Gửi lại {{ campaign.failed_count }} email lỗi</button></form>{% endif %}
+        </div>
+      </section>
+
+      <section class="gm-nl-campaign-detail__recipients">
+        <div class="gm-nl-detail__section-title"><div><p>Recipient log</p><h2>Nhật ký người nhận</h2></div><span>Hiển thị tối đa 100 hồ sơ đầu</span></div>
+        <div class="gm-nl-campaign-detail__recipient-list">
+          {% for item in detail.recipients %}
+            <article><span class="is-{{ item.status }}"><i class="fa-solid {{ 'fa-check' if item.status == 'sent' else ('fa-triangle-exclamation' if item.status == 'failed' else ('fa-forward' if item.status == 'skipped' else 'fa-clock')) }}" aria-hidden="true"></i></span><div><strong>{{ item.full_name or 'Khách hàng GUAMAISON' }}</strong><small>{{ item.email }}</small></div><em>{{ {'pending':'Chờ gửi','processing':'Đang gửi','sent':'Đã gửi','failed':'Gửi lỗi','skipped':'Bỏ qua'}.get(item.status, item.status) }}</em></article>
+          {% else %}<p>Chưa có người nhận trong chiến dịch.</p>{% endfor %}
+        </div>
+      </section>
+    </main>
+
+    <aside class="gm-nl-campaign-detail__aside">
+      <section><p class="gm-nl-detail__label">Gửi bản thử</p><p>Gửi đến email của Admin để kiểm tra nội dung trước khi chạy thật.</p><form method="post" action="{{ url_for('admin.newsletter_campaign_test', campaign_id=campaign.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label><span>Email nhận bản thử</span><input type="email" name="test_email" required value="{{ default_test_email }}" placeholder="admin@example.com"></label><button type="submit" {{ 'disabled' if not mail_ready else '' }}><i class="fa-solid fa-flask" aria-hidden="true"></i> Gửi bản thử</button></form></section>
+      <section><p class="gm-nl-detail__label">Nội dung</p><dl><div><dt>Phạm vi</dt><dd>{{ 'Toàn bộ đang nhận tin' if campaign.target_mode == 'all_active' else 'Nhóm được chọn' }}</dd></div><div><dt>Tiêu đề</dt><dd>{{ campaign.subject }}</dd></div><div><dt>Nút hành động</dt><dd>{{ campaign.action_label or 'Không dùng' }}</dd></div><div><dt>Ngày tạo</dt><dd>{{ campaign.created_at[:16]|replace('T', ' ') if campaign.created_at else '—' }}</dd></div></dl><div class="gm-nl-campaign-detail__body-preview">{{ campaign.body_text }}</div></section>
+      {% if campaign.status not in ['completed', 'cancelled'] %}<section class="gm-nl-campaign-detail__danger"><p class="gm-nl-detail__label">Vùng kiểm soát</p><form method="post" action="{{ url_for('admin.newsletter_campaign_cancel', campaign_id=campaign.id) }}" onsubmit="return confirm('Hủy toàn bộ email chưa gửi của chiến dịch này?');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit"><i class="fa-solid fa-ban" aria-hidden="true"></i> Hủy phần chưa gửi</button></form></section>{% endif %}
+    </aside>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+  <script src="{{ url_for('static', filename='admin/js/newsletter_campaigns.js') }}?v=GUAMAISON-newsletter-v12" defer></script>
+{% endblock %}

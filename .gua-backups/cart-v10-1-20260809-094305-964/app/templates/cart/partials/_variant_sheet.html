@@ -1,0 +1,38 @@
+<div class="gua-sheet" data-variant-sheet hidden>
+  <button class="gua-sheet__backdrop" type="button" data-close-sheet aria-label="Đóng bảng chỉnh sửa"></button>
+  <section class="gua-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="variant-sheet-title" tabindex="-1">
+    <div class="gua-sheet__handle" aria-hidden="true"></div>
+    <header class="gua-sheet__head">
+      <div>
+        <p>Chỉnh ngay trong giỏ</p>
+        <h2 id="variant-sheet-title">Đổi size và màu</h2>
+      </div>
+      <button type="button" data-close-sheet aria-label="Đóng">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </header>
+
+    <div class="gua-sheet__product" data-sheet-product hidden>
+      <img data-sheet-image src="" alt="">
+      <div>
+        <strong data-sheet-name></strong>
+        <span data-sheet-current></span>
+      </div>
+    </div>
+
+    <div class="gua-sheet__status" data-sheet-status>
+      <i class="fa-solid fa-circle-notch fa-spin"></i>
+      Đang tải các phân loại còn hàng…
+    </div>
+
+    <div class="gua-sheet__options" data-variant-options hidden></div>
+
+    <footer class="gua-sheet__footer">
+      <button type="button" class="gua-sheet__cancel" data-close-sheet>Để sau</button>
+      <button type="button" class="gua-sheet__save" data-save-variant disabled>
+        <span>Lưu thay đổi</span>
+        <i class="fa-solid fa-check"></i>
+      </button>
+    </footer>
+  </section>
+</div>

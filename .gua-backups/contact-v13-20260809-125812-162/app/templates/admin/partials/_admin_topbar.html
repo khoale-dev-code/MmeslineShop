@@ -1,0 +1,171 @@
+{#
+  app/templates/admin/partials/_admin_topbar.html
+  ===============================================
+  GUAMAISON Admin Topbar
+
+  Nguyên tắc:
+  - Đây là topbar duy nhất cho desktop/mobile.
+  - Mobile/tablet dùng hamburger: data-admin-mobile-menu-toggle.
+  - Desktop thu gọn sidebar dùng nút trong _admin_sidebar.html.
+  - Không include _admin_mobile_bar.html nữa.
+  - Không dùng class Tailwind `flex lg:hidden` cho nút hamburger vì có thể bị .mm-icon-btn override.
+#}
+
+{% set page_title = 'GUAMAISON Workspace' %}
+{% set page_kicker = 'GUAMAISON Admin' %}
+
+{% if current_ep == 'admin.dashboard' %}
+  {% set page_title = 'Tổng quan' %}
+{% elif current_ep == 'admin.products' %}
+  {% set page_title = 'Quản lý sản phẩm' %}
+{% elif current_ep == 'admin.add_product' %}
+  {% set page_title = 'Thêm sản phẩm mới' %}
+{% elif current_ep == 'admin.edit_product' %}
+  {% set page_title = 'Chỉnh sửa sản phẩm' %}
+{% elif current_ep == 'admin.orders' %}
+  {% set page_title = 'Quản lý đơn hàng' %}
+{% elif current_ep == 'admin.order_detail' %}
+  {% set page_title = 'Chi tiết đơn hàng' %}
+{% elif current_ep == 'admin.customers' %}
+  {% set page_title = 'Khách hàng' %}
+{% elif current_ep == 'admin.categories' %}
+  {% set page_title = 'Danh mục' %}
+{% elif current_ep == 'admin.collections' %}
+  {% set page_title = 'Bộ sưu tập' %}
+{% elif current_ep == 'admin.coupons' %}
+  {% set page_title = 'Khuyến mãi' %}
+{% elif newsletter_active %}
+  {% set page_title = 'Hộp thư nhận tin' %}
+{% elif notification_active %}
+  {% set page_title = 'Trung tâm thông báo' %}
+{% elif current_ep == 'admin.reports' %}
+  {% set page_title = 'Báo cáo' %}
+{% elif returns_active %}
+  {% set page_title = 'Đổi / Trả hàng' %}
+{% elif providers_active %}
+  {% set page_title = 'Vận chuyển' %}
+{% elif settings_active %}
+  {% set page_title = 'Cài đặt hệ thống' %}
+{% elif permissions_active %}
+  {% set page_title = 'Phân quyền' %}
+{% elif audit_active %}
+  {% set page_title = 'Nhật ký hệ thống' %}
+{% elif pos_active %}
+  {% set page_title = 'POS tại quầy' %}
+{% endif %}
+
+<header
+  id="adminTopbar"
+  class="mm-topbar"
+  role="banner"
+>
+  <div class="mm-topbar-left">
+    {# Mobile / tablet only. CSS sẽ ẩn trên desktop bằng .mm-mobile-menu-btn #}
+    <button
+      type="button"
+      class="mm-icon-btn mm-mobile-menu-btn"
+      data-admin-mobile-menu-toggle
+      title="Mở menu"
+      aria-label="Mở menu điều hướng"
+      aria-controls="mmAdminSidebar"
+      aria-expanded="false"
+    >
+      <i class="fa-solid fa-bars" aria-hidden="true"></i>
+    </button>
+
+    <div class="mm-topbar-heading min-w-0">
+      <p class="mm-topbar-kicker">
+        {{ page_kicker }}
+      </p>
+
+      <h1 class="mm-topbar-title">
+        {{ page_title }}
+      </h1>
+    </div>
+  </div>
+
+  <div class="mm-topbar-actions">
+    <a
+      href="{{ url_for('admin.notifications_index') }}"
+      data-nav
+      data-prefetch
+      title="Thông báo"
+      aria-label="Thông báo"
+      class="mm-icon-btn relative {{ 'is-active' if notification_active else '' }}"
+    >
+      <i class="fa-solid fa-bell" aria-hidden="true"></i>
+
+      {% if admin_notification_count and admin_notification_count|int > 0 %}
+        <span class="mm-dot-badge" aria-label="{{ admin_notification_count }} thông báo">
+          {{ admin_notification_count if admin_notification_count|int < 100 else '99+' }}
+        </span>
+      {% endif %}
+    </a>
+
+    {% if current_ep == 'admin.reports' %}
+      <button
+        type="button"
+        class="mm-pos-btn"
+        onclick="window.POSModal && window.POSModal.open && window.POSModal.open()"
+        title="Mở POS quầy"
+        aria-label="Mở POS quầy"
+      >
+        <i class="fa-solid fa-cash-register" aria-hidden="true"></i>
+        <span>POS quầy</span>
+      </button>
+    {% else %}
+      <a
+        href="{{ url_for('admin.pos_terminal') }}"
+        data-nav
+        data-prefetch
+        class="mm-pos-btn"
+        title="POS quầy"
+        aria-label="POS quầy"
+      >
+        <i class="fa-solid fa-cash-register" aria-hidden="true"></i>
+        <span>POS quầy</span>
+      </a>
+    {% endif %}
+
+    <button
+      id="adminUserMenuButton"
+      type="button"
+      class="mm-user-btn"
+      aria-haspopup="true"
+      aria-expanded="false"
+      aria-controls="adminUserDropdown"
+      title="Tài khoản quản trị"
+    >
+      <span class="mm-user-text">
+        <strong>
+          {% if current_user is defined and current_user and current_user.full_name %}
+            {{ current_user.full_name }}
+          {% else %}
+            {{ session.get('user_name') or 'Super Admin' }}
+          {% endif %}
+        </strong>
+
+        <small>
+          <span aria-hidden="true"></span>
+          Online
+        </small>
+      </span>
+
+      <span class="mm-user-avatar" aria-hidden="true">
+        {% if current_user is defined and current_user and current_user.full_name %}
+          {{ current_user.full_name[0].upper() }}
+        {% elif session.get('email') %}
+          {{ session.get('email')[0].upper() }}
+        {% else %}
+          S
+        {% endif %}
+      </span>
+
+      <i
+        id="adminUserMenuChevron"
+        class="fa-solid fa-chevron-down mm-chevron"
+        aria-hidden="true"
+      ></i>
+    </button>
+  </div>
+</header>
