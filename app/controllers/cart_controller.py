@@ -32,11 +32,14 @@ from flask import (
     jsonify,
 )
 
-from app.models.cart_model import CartModel
+from app.models.cart_model import CartSelection
 from app.models.order_model import OrderModel
 from app.models.address_model import AddressModel
 from app.models.setting_model import SettingModel
+from app.services.cart_service import cart_service
 from app.services.vnpay_service import VNPayService
+from app.repositories.coupon_repository import CouponRepository, CouponRepositoryError
+from app.services.coupon_service import CouponService
 from app.middleware.auth_required import login_required
 from app.utils.supabase_client import get_supabase_admin
 
@@ -94,20 +97,23 @@ def _safe_redirect_home():
 
 
 def calculate_cart_total(items: list) -> float:
-    total = 0.0
+    return cart_service.calculate_total(items or [])
 
-    for item in items or []:
-        qty = max(0, _to_int(item.get("quantity"), 0))
-        variant = item.get("product_variants") or {}
-        product = item.get("products") or {}
 
-        price = variant.get("price_override")
-        if price is None:
-            price = product.get("price", 0)
+def _wants_json() -> bool:
+    return bool(
+        request.is_json
+        or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or request.accept_mimetypes.best == "application/json"
+    )
 
-        total += qty * _to_float(price)
 
-    return float(total)
+def _current_cart_selection(user_id: str) -> CartSelection:
+    return cart_service.resolve_checkout_selection(
+        user_id=user_id,
+        selection_id=session.get("cart_selection_id_v10"),
+        fallback=session.get("cart_selection_v10_fallback"),
+    )
 
 
 def _get_item_unit_price(item: dict) -> float:
@@ -168,75 +174,38 @@ def _get_dynamic_shipping(province_name: str) -> dict:
 # COUPON HELPERS
 # ═══════════════════════════════════════════════════════════════
 
-def _validate_coupon(coupon_code: str, cart_total: float) -> dict:
-    """
-    Validate coupon tại server.
+# GUAMAISON-PROMOTION-SYNC-V17
+def _coupon_service() -> CouponService:
+    return CouponService(CouponRepository.admin())
 
-    Dùng admin client để tránh RLS coupons.
-    Không ghi coupon_usages tại đây.
-    Coupon usage chỉ nên ghi khi đơn được xác nhận:
-    - COD: sau khi tạo đơn thành công.
-    - VNPAY/SEPAY: sau khi thanh toán/webhook thành công.
-    """
-    result = {
-        "coupon_id": None,
-        "code": "",
-        "discount_amount": 0.0,
-        "message": "",
-    }
 
-    coupon_code = _clean_text(coupon_code).upper()
-    if not coupon_code:
-        return result
-
+def _validate_coupon(
+    coupon_code: str,
+    cart_total: float,
+    *,
+    user_id: str,
+    items: list,
+) -> dict:
+    """Delegate every web coupon rule to the shared promotion service."""
     try:
-        db = get_supabase_admin()
-
-        c_res = (
-            db.table("coupons")
-            .select("*")
-            .eq("code", coupon_code)
-            .eq("is_active", True)
-            .limit(1)
-            .execute()
-        )
-
-        rows = c_res.data or []
-        coupon = rows[0] if rows else None
-
-        if not coupon:
-            result["message"] = "Mã giảm giá không tồn tại hoặc đã tắt."
-            return result
-
-        min_order = _to_float(coupon.get("min_order_value"), 0)
-        if cart_total < min_order:
-            result["message"] = f"Đơn hàng chưa đạt giá trị tối thiểu {min_order:,.0f}đ."
-            return result
-
-        val = _to_float(coupon.get("discount_value"), 0)
-        discount = 0.0
-
-        if coupon.get("discount_type") == "percent":
-            discount = cart_total * (val / 100)
-
-            if coupon.get("max_discount"):
-                discount = min(discount, _to_float(coupon.get("max_discount"), 0))
-        else:
-            discount = val
-
-        discount = max(0, min(discount, cart_total))
-
-        result["coupon_id"] = coupon.get("id")
-        result["code"] = coupon.get("code") or coupon_code
-        result["discount_amount"] = discount
-        result["message"] = "Áp dụng mã giảm giá thành công."
-
-    except Exception as e:
-        logger.warning("[Coupon] Bỏ qua mã giảm giá do lỗi: %s", e)
-        result["message"] = "Hệ thống khuyến mãi đang bận."
-
-    return result
-
+        return _coupon_service().validate_for_checkout(
+            coupon_code,
+            user_id=user_id,
+            items=items,
+            subtotal=cart_total,
+            channel="web",
+        ).to_dict()
+    except CouponRepositoryError as exc:
+        logger.warning("[Coupon] Repository unavailable: %s", exc)
+        return {
+            "valid": False,
+            "coupon_id": None,
+            "code": "",
+            "discount_amount": 0.0,
+            "discount": 0.0,
+            "free_shipping": False,
+            "message": "Hệ thống khuyến mãi đang bận.",
+        }
 
 # ═══════════════════════════════════════════════════════════════
 # ORDER SIDE EFFECTS
@@ -369,7 +338,8 @@ confirm_order_effects = _safe_confirm_order_effects
 # ═══════════════════════════════════════════════════════════════
 
 def _get_user_checkout_data(user_id: str) -> tuple[list, float, list, dict | None]:
-    items = CartModel.get_user_cart(user_id) or []
+    selection = _current_cart_selection(user_id)
+    items = cart_service.items_for_selection(user_id, selection)
     total = calculate_cart_total(items)
     addresses = AddressModel.get_user_addresses(user_id) or []
     default_address = next(
@@ -468,13 +438,18 @@ def index():
     user_id = _get_user_id()
 
     try:
-        items = CartModel.get_user_cart(user_id) or []
-        total = calculate_cart_total(items)
+        cart_page = cart_service.get_page(
+            user_id=user_id,
+            page=_to_int(request.args.get("page"), 1),
+            per_page=_to_int(request.args.get("per_page"), 24),
+            query=_clean_text(request.args.get("q")),
+        )
 
         return render_template(
             "cart/cart.html",
-            items=items,
-            total=total,
+            items=list(cart_page.items),
+            cart_page=cart_page.to_template(),
+            total=0,
         )
 
     except Exception as e:
@@ -493,7 +468,7 @@ def add_to_cart():
     variant_id = data.get("variant_id")
     quantity = max(1, _to_int(data.get("quantity"), 1))
 
-    wants_json = request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    wants_json = _wants_json()
 
     if not product_id or not variant_id:
         message = "Vui lòng chọn đầy đủ Màu sắc và Kích thước trước khi thêm vào túi hàng."
@@ -504,23 +479,19 @@ def add_to_cart():
         return redirect(request.referrer or "/shop")
 
     try:
-        ok = CartModel.add_item(
+        result = cart_service.add_item(
             user_id=user_id,
             product_id=product_id,
             variant_id=variant_id,
             quantity=quantity,
         )
 
-        message = (
-            "Sản phẩm đã được thêm vào túi hàng thành công!"
-            if ok
-            else "Không thể lưu sản phẩm vào túi hàng. Vui lòng thử lại."
-        )
-
         if wants_json:
-            return jsonify({"success": bool(ok), "message": message}), 200 if ok else 400
+            payload = result.to_dict()
+            payload["cart_count"] = cart_service.get_count(user_id)
+            return jsonify(payload), 200 if result.success else 400
 
-        flash(message, "success" if ok else "danger")
+        flash(result.message, "success" if result.success else "danger")
 
     except Exception as e:
         logger.exception("[Cart.add_to_cart] Lỗi backend: %s", e)
@@ -543,16 +514,17 @@ def update_quantity(item_id: str):
     data = request.form if request.form else (request.get_json(silent=True) or {})
     quantity = _to_int(data.get("quantity"), 1)
 
-    wants_json = request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    wants_json = _wants_json()
 
     try:
-        if quantity <= 0:
-            ok = CartModel.remove_item(user_id, item_id)
-        else:
-            ok = CartModel.update_quantity(user_id, item_id, quantity)
+        result = cart_service.update_quantity(user_id, item_id, quantity)
 
         if wants_json:
-            return jsonify({"success": bool(ok)}), 200 if ok else 400
+            payload = result.to_dict()
+            payload["cart_count"] = cart_service.get_count(user_id)
+            return jsonify(payload), 200 if result.success else 400
+
+        flash(result.message, "success" if result.success else "danger")
 
     except Exception as e:
         logger.exception("[Cart.update_quantity] Lỗi: %s", e)
@@ -569,20 +541,17 @@ def update_quantity(item_id: str):
 @login_required
 def remove_item(item_id):
     user_id = _get_user_id()
-    wants_json = request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    wants_json = _wants_json()
 
     try:
-        success = CartModel.remove_item(user_id, item_id)
+        result = cart_service.remove_item(user_id, item_id)
 
         if wants_json:
-            return jsonify({"success": bool(success)}), 200 if success else 400
+            payload = result.to_dict()
+            payload["cart_count"] = cart_service.get_count(user_id)
+            return jsonify(payload), 200 if result.success else 400
 
-        flash(
-            "Đã loại bỏ sản phẩm khỏi túi hàng."
-            if success
-            else "Không tìm thấy sản phẩm này trong giỏ.",
-            "success" if success else "danger",
-        )
+        flash(result.message, "success" if result.success else "danger")
 
     except Exception as e:
         logger.exception("[Cart.remove_item] Lỗi: %s", e)
@@ -593,6 +562,97 @@ def remove_item(item_id):
         flash("Lỗi hệ thống khi xóa sản phẩm.", "danger")
 
     return redirect(url_for("cart.index"))
+
+
+@cart_bp.route("/selection-summary", methods=["POST"])
+@login_required
+def selection_summary():
+    user_id = _get_user_id()
+    selection = cart_service.selection_from_payload(request.get_json(silent=True) or {})
+    try:
+        summary = cart_service.get_summary(user_id, selection)
+        return jsonify({"success": True, **summary.to_dict()})
+    except Exception as e:
+        logger.exception("[Cart.selection_summary] Lỗi: %s", e)
+        return jsonify({"success": False, "message": "Không thể tính phần đã chọn."}), 500
+
+
+@cart_bp.route("/bulk-remove", methods=["POST"])
+@login_required
+def bulk_remove():
+    user_id = _get_user_id()
+    data = request.get_json(silent=True) or request.form.to_dict(flat=True)
+    selection = cart_service.selection_from_payload(data)
+    try:
+        result = cart_service.remove_selection(user_id, selection)
+        payload = result.to_dict()
+        payload["cart_count"] = cart_service.get_count(user_id)
+        return jsonify(payload), 200 if result.success else 400
+    except Exception as e:
+        logger.exception("[Cart.bulk_remove] Lỗi: %s", e)
+        return jsonify({"success": False, "message": "Không thể xóa các sản phẩm đã chọn."}), 500
+
+
+@cart_bp.route("/variants/<item_id>", methods=["GET"])
+@login_required
+def item_variants(item_id: str):
+    try:
+        editor = cart_service.get_variant_editor(_get_user_id(), item_id)
+        if not editor:
+            return jsonify({"success": False, "message": "Sản phẩm không còn trong giỏ."}), 404
+        return jsonify({"success": True, **editor})
+    except Exception as e:
+        logger.exception("[Cart.item_variants] Lỗi: %s", e)
+        return jsonify({"success": False, "message": "Không thể tải phân loại sản phẩm."}), 500
+
+
+@cart_bp.route("/change-variant/<item_id>", methods=["POST"])
+@login_required
+def change_variant(item_id: str):
+    data = request.get_json(silent=True) or request.form.to_dict(flat=True)
+    variant_id = _clean_text(data.get("target_variant_id") or data.get("variant_id"))
+    if not variant_id:
+        return jsonify({"success": False, "message": "Vui lòng chọn size và màu."}), 400
+
+    try:
+        result = cart_service.change_variant(_get_user_id(), item_id, variant_id)
+        return jsonify(result.to_dict()), 200 if result.success else 400
+    except Exception as e:
+        logger.exception("[Cart.change_variant] Lỗi: %s", e)
+        return jsonify({"success": False, "message": "Không thể đổi phân loại sản phẩm."}), 500
+
+
+@cart_bp.route("/prepare-checkout", methods=["POST"])
+@login_required
+def prepare_checkout():
+    user_id = _get_user_id()
+    data = request.get_json(silent=True) or request.form.to_dict(flat=True)
+    selection = cart_service.selection_from_payload(data)
+
+    try:
+        selection_id, fallback, summary = cart_service.prepare_checkout(user_id, selection)
+        if summary.line_count <= 0:
+            message = "Vui lòng chọn ít nhất một sản phẩm để thanh toán."
+            if _wants_json():
+                return jsonify({"success": False, "message": message}), 400
+            flash(message, "warning")
+            return redirect(url_for("cart.index"))
+
+        session["cart_selection_id_v10"] = selection_id
+        session["cart_selection_v10_fallback"] = fallback
+        session.modified = True
+        checkout_url = url_for("cart.checkout")
+
+        if _wants_json():
+            return jsonify({"success": True, "redirect": checkout_url, **summary.to_dict()})
+        return redirect(checkout_url)
+    except Exception as e:
+        logger.exception("[Cart.prepare_checkout] Lỗi: %s", e)
+        message = "Không thể chuẩn bị phần sản phẩm đã chọn."
+        if _wants_json():
+            return jsonify({"success": False, "message": message}), 500
+        flash(message, "danger")
+        return redirect(url_for("cart.index"))
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -610,13 +670,13 @@ def apply_coupon():
         return jsonify({"valid": False, "error": "Vui lòng nhập mã khuyến mãi."}), 400
 
     try:
-        items = CartModel.get_user_cart(user_id) or []
+        items = cart_service.items_for_selection(user_id, _current_cart_selection(user_id))
 
         if not items:
             return jsonify({"valid": False, "error": "Giỏ hàng của bạn đang trống."}), 400
 
         cart_total = calculate_cart_total(items)
-        coupon_result = _validate_coupon(coupon_code, cart_total)
+        coupon_result = _validate_coupon(coupon_code, cart_total, user_id=user_id, items=items)
 
         if not coupon_result["coupon_id"]:
             return jsonify({
@@ -633,6 +693,7 @@ def apply_coupon():
             "coupon_id": coupon_result["coupon_id"],
             "code": coupon_result["code"],
             "message": coupon_result.get("message"),
+            "free_shipping": bool(coupon_result.get("free_shipping")),
         })
 
     except Exception as e:
@@ -702,12 +763,14 @@ def checkout():
 
         address_snapshot = _build_address_snapshot(selected_address)
 
-        coupon_result = _validate_coupon(coupon_code, total)
+        coupon_result = _validate_coupon(coupon_code, total, user_id=user_id, items=items)
         coupon_id = coupon_result["coupon_id"]
         discount_amount = coupon_result["discount_amount"]
 
         ship_info = _get_dynamic_shipping(address_snapshot.get("city", ""))
         shipping_fee = _to_float(ship_info.get("fee"), DEFAULT_SHIPPING_FEE)
+        if coupon_result.get("free_shipping"):
+            shipping_fee = 0.0
         final_total = max(0, total - discount_amount + shipping_fee)
 
         try:
@@ -783,7 +846,14 @@ def checkout():
                 note_prefix="Khách đặt COD qua Web",
             )
 
-            CartModel.clear_cart(user_id)
+            cart_service.remove_purchased_items(user_id, items)
+            cart_service.delete_checkout_selection(
+                user_id,
+                session.get("cart_selection_id_v10"),
+            )
+            session.pop("cart_selection_id_v10", None)
+            session.pop("cart_selection_v10_fallback", None)
+            session.modified = True
 
             flash("🎉 Đơn hàng của bạn đã được ghi nhận thành công!", "success")
             return redirect(url_for("cart.order_success", order_id=order_id))

@@ -22,7 +22,7 @@ from flask import Blueprint, request, jsonify, session
 
 from app import csrf
 from app.models.order_model import OrderModel
-from app.models.cart_model import CartModel
+from app.services.cart_service import cart_service
 from app.utils.supabase_client import get_supabase_admin
 
 sepay_bp = Blueprint("sepay", __name__, url_prefix="/api/sepay")
@@ -326,9 +326,10 @@ def webhook():
         _finalize_order_effects(order_id, user_id)
 
         try:
-            CartModel.clear_cart(user_id)
+            purchased_items = OrderModel.get_order_items_for_effects(order_id)
+            cart_service.remove_purchased_items(user_id, purchased_items)
         except Exception as e:
-            logger.warning("[SePay] Không clear được cart user_id=%s: %s", user_id, e)
+            logger.warning("[SePay] Không xóa được phần giỏ đã mua user_id=%s: %s", user_id, e)
 
         return jsonify({"success": True, "message": "Payment confirmed"}), 200
 

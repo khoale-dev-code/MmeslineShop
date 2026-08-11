@@ -93,8 +93,10 @@
               or (ep == 'admin.menus_page' and menus_active)
               or (ep == 'admin.coupons' and coupons_active)
               or (ep == 'admin.notifications_index' and notification_active)
+              or (ep == 'admin.newsletter_index' and newsletter_active)
               or (ep == 'admin.return_requests' and returns_active)
               or (ep == 'admin_providers.index' and providers_active)
+              or (ep == 'admin.contact_messages_index' and contact_active)
               or (current_ep == ep)
             %}
 
@@ -145,6 +147,7 @@
               or (ep == 'admin.settings' and settings_active)
               or (ep == 'admin.permissions_index' and permissions_active)
               or (ep == 'admin.audit_logs' and audit_active)
+              or (ep == 'admin.contact_messages_index' and contact_active)
               or (current_ep == ep)
             %}
 

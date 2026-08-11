@@ -23,7 +23,7 @@ from flask import Blueprint, request, redirect, flash, session, url_for
 
 from app.services.vnpay_service import VNPayService
 from app.models.order_model import OrderModel
-from app.models.cart_model import CartModel
+from app.services.cart_service import cart_service
 from app.utils.supabase_client import get_supabase_admin
 
 payment_bp = Blueprint("payment", __name__, url_prefix="/payment")
@@ -266,14 +266,15 @@ def _get_pending_vnpay_data(order_id: str) -> dict:
     return pending if isinstance(pending, dict) else {}
 
 
-def _safe_clear_cart(user_id: str | None) -> None:
-    if not user_id:
+def _safe_clear_cart(user_id: str | None, order_items: list | None = None) -> None:
+    """Remove only quantities paid in this order, preserving other cart lines."""
+    if not user_id or not order_items:
         return
 
     try:
-        CartModel.clear_cart(str(user_id))
+        cart_service.remove_purchased_items(str(user_id), order_items)
     except Exception as e:
-        logger.error("[VNPay] Lỗi clear cart user_id=%s: %s", user_id, e)
+        logger.error("[VNPay] Lỗi clear purchased cart lines user_id=%s: %s", user_id, e)
 
 
 def _safe_redirect_checkout():
@@ -366,7 +367,6 @@ def vnpay_return():
             # Nếu đã paid trước đó, không finalize lại.
             if current_payment_status == "paid":
                 logger.info("[VNPay Return] Đơn đã paid trước đó, redirect success. order_id=%s", order_id)
-                _safe_clear_cart(order_user_id or session.get("user_id"))
                 flash("Đơn hàng đã được thanh toán thành công.", "success")
                 return _safe_redirect_success(order_id)
 
@@ -396,7 +396,10 @@ def vnpay_return():
                 discount_amount=_to_float(discount_amount),
             )
 
-            _safe_clear_cart(order_user_id or session.get("user_id"))
+            _safe_clear_cart(order_user_id or session.get("user_id"), order_items)
+            session.pop("cart_selection_id_v10", None)
+            session.pop("cart_selection_v10_fallback", None)
+            session.modified = True
 
             flash("🎉 Thanh toán thành công! Cảm ơn bạn đã ủng hộ GUAMAISON.", "success")
             return _safe_redirect_success(order_id)

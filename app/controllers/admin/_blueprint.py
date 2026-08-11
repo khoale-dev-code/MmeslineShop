@@ -1,4 +1,4 @@
-"""
+﻿"""
 app/controllers/admin/_blueprint.py
 ===================================
 Định nghĩa Blueprint duy nhất cho khu vực Admin.
@@ -132,21 +132,23 @@ def _get_pending_returns_count() -> int:
 
 
 def _get_admin_notification_count() -> int:
-    """
-    Đếm số thông báo active trong admin navbar.
+    """Äáº¿m viá»‡c chÆ°a Ä‘á»c trong shared Admin action inbox."""
+    cached = _get_cached_value("admin_notification_count")
+    if cached is not None:
+        return cached
+    try:
+        from app.services.admin_event_service import AdminEventMigrationRequired, AdminEventService
 
-    Ý nghĩa:
-    - Badge nhỏ cạnh icon chuông admin.
-    - Đếm notifications đang bật, không phải user_notifications.
-    - Không đếm theo từng user, nên rất nhẹ.
-    """
-    return _safe_count(
-        table="notifications",
-        filters={"is_active": True},
-        cache_key="admin_notification_count",
-        ttl=_ADMIN_CONTEXT_TTL,
-    )
-
+        return _set_cached_value(
+            "admin_notification_count",
+            AdminEventService().unread_count(),
+            _ADMIN_CONTEXT_TTL,
+        )
+    except AdminEventMigrationRequired:
+        return _set_cached_value("admin_notification_count", 0, _ADMIN_CONTEXT_TTL)
+    except Exception as exc:
+        logger.warning("[admin_context] KhÃ´ng Ä‘áº¿m Ä‘Æ°á»£c Admin action inbox: %s", exc)
+        return int(_ADMIN_CONTEXT_CACHE.get("admin_notification_count", {}).get("value", 0) or 0)
 
 def clear_admin_context_cache() -> None:
     """
@@ -179,6 +181,8 @@ def admin_inject_globals():
         context = {
             "pending_returns": _get_pending_returns_count(),
             "admin_notification_count": _get_admin_notification_count(),
+            "newsletter_unread_count": _get_newsletter_unread_count(),
+            "contact_unread_count": _get_contact_unread_count(),
         }
 
         g._admin_context_globals = context
@@ -190,4 +194,6 @@ def admin_inject_globals():
         return {
             "pending_returns": 0,
             "admin_notification_count": 0,
+            "newsletter_unread_count": 0,
+            "contact_unread_count": 0,
         }

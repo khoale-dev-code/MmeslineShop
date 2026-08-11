@@ -1,0 +1,29 @@
+{% set fc = featured_coupon %}
+{% set ft = fc.discount_type if fc else 'percent' %}
+{% set fv = (fc.discount_value or 0)|float if fc else 0 %}
+<header class="gv-hero" aria-labelledby="voucher-title">
+  <div class="gv-shell">
+    <div class="gv-mast"><span>GUAMAISON</span><i aria-hidden="true"></i><span>Private privilege</span><b>Edition 17.1</b></div>
+    <div class="gv-hero__grid">
+      <div class="gv-hero__copy">
+        <p class="gv-kicker">A private invitation</p>
+        <h1 id="voucher-title">Ưu đãi có gu.<br><em>Chọn riêng cho bạn.</em></h1>
+        <p>Không chỉ là mã giảm giá — đây là những đặc quyền được tuyển chọn để mỗi lần mua sắm trở nên đáng nhớ hơn.</p>
+        <a href="#voucher-list">Khám phá {{ coupons|length if coupons else 0 }} ưu đãi <i class="fa-solid fa-arrow-down" aria-hidden="true"></i></a>
+      </div>
+
+      <article class="gv-feature" aria-label="Ưu đãi nổi bật">
+        <div class="gv-feature__media {% if not fc or not fc.image_url %}is-art{% endif %}">
+          {% if fc and fc.image_url %}<img src="{{ fc.image_url }}" alt="" width="760" height="900" fetchpriority="high" decoding="async">{% else %}<span aria-hidden="true">G/M</span>{% endif %}
+          <p>Editor’s pick / 01</p>
+        </div>
+        <div class="gv-feature__ticket">
+          <div><span>{{ fc.scope_label if fc else 'Đặc quyền sắp ra mắt' }}</span><time>{{ fc.expires_label if fc else 'GUAMAISON' }}</time></div>
+          <strong>{% if fc %}{% if ft == 'percent' %}{{ fv|int }}<small>%</small>{% elif ft == 'free_shipping' %}<em>Free<br>ship</em>{% else %}{{ "{:,.0f}".format(fv)|replace(',', '.') }}<small>₫</small>{% endif %}{% else %}<em>New<br>drop</em>{% endif %}</strong>
+          <p>{{ fc.description if fc and fc.description else 'Đặc quyền mới đang được chuẩn bị cho bạn.' }}</p>
+          {% if fc %}<button type="button" data-copy-code="{{ fc.code|e }}"><span>Lưu mã {{ fc.code }}</span><i class="fa-regular fa-copy" aria-hidden="true"></i></button>{% else %}<a href="/shop">Khám phá cửa hàng <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>{% endif %}
+        </div>
+      </article>
+    </div>
+  </div>
+</header>

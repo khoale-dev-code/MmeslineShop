@@ -579,3 +579,103 @@ def send_test_email(recipient_email: str) -> bool:
         html_body=_build_test_email_html(),
         text_body=_build_test_email_text(),
     )
+
+# NEWSLETTER_V11_PUBLIC_MAIL_API
+def send_transactional_email(
+    *,
+    recipient_email: str,
+    subject: str,
+    html_body: str,
+    text_body: str,
+    reply_to: str | None = None,
+) -> bool:
+    """Public, reusable SMTP adapter for service-layer transactional mail."""
+    return _send_email(
+        recipient_email=recipient_email,
+        subject=subject,
+        html_body=html_body,
+        text_body=text_body,
+        reply_to=reply_to,
+    )
+
+# NEWSLETTER_V12_BATCH_MAIL_API
+def send_transactional_email_batch(messages: list[dict[str, str]]) -> list[bool]:
+    """Send individual messages over one SMTP connection; never exposes recipients via CC/BCC."""
+    items = list(messages or [])
+    if not items:
+        return []
+
+    config = _get_mail_config()
+    if not config:
+        return [False for _ in items]
+
+    def build_message(item: dict[str, str]) -> EmailMessage | None:
+        recipient = str(item.get("recipient_email") or "").strip()
+        if not _is_valid_email(recipient):
+            logger.error("[EMAIL BATCH] Invalid recipient: %s", _mask_email(recipient))
+            return None
+        message = EmailMessage()
+        message["Subject"] = str(item.get("subject") or "")[:160]
+        message["From"] = formataddr((config.sender_name, config.sender_email))
+        message["To"] = recipient
+        message["Message-ID"] = make_msgid(domain=config.sender_email.split("@")[-1])
+        reply_to = str(item.get("reply_to") or "").strip()
+        if reply_to and _is_valid_email(reply_to):
+            message["Reply-To"] = reply_to
+        message.set_content(str(item.get("text_body") or ""), subtype="plain", charset="utf-8")
+        message.add_alternative(str(item.get("html_body") or ""), subtype="html", charset="utf-8")
+        return message
+
+    server = None
+    try:
+        if config.use_ssl:
+            server = smtplib.SMTP_SSL(
+                config.smtp_host,
+                config.smtp_port,
+                timeout=config.timeout,
+                context=ssl.create_default_context(),
+            )
+        else:
+            server = smtplib.SMTP(config.smtp_host, config.smtp_port, timeout=config.timeout)
+            server.ehlo()
+            if config.use_tls:
+                server.starttls(context=ssl.create_default_context())
+                server.ehlo()
+        server.login(config.sender_email, config.app_password)
+
+        results: list[bool] = []
+        for item in items:
+            message = build_message(item)
+            if message is None:
+                results.append(False)
+                continue
+            try:
+                server.send_message(message)
+                results.append(True)
+                logger.info(
+                    "[EMAIL BATCH] Sent subject='%s' to=%s",
+                    message.get("Subject", ""),
+                    _mask_email(message.get("To", "")),
+                )
+            except smtplib.SMTPRecipientsRefused:
+                results.append(False)
+                logger.warning("[EMAIL BATCH] Recipient refused: %s", _mask_email(message.get("To", "")))
+            except smtplib.SMTPException as exc:
+                results.append(False)
+                logger.warning("[EMAIL BATCH] SMTP rejected %s: %s", _mask_email(message.get("To", "")), exc)
+        return results
+    except smtplib.SMTPAuthenticationError:
+        logger.error("[EMAIL BATCH] SMTP authentication failed. Rotate and check the Gmail App Password.")
+        return [False for _ in items]
+    except Exception as exc:
+        logger.error("[EMAIL BATCH] Connection failed: %s", exc, exc_info=True)
+        return [False for _ in items]
+    finally:
+        if server is not None:
+            try:
+                server.quit()
+            except Exception:
+                try:
+                    server.close()
+                except Exception:
+                    pass

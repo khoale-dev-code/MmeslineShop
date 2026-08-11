@@ -3,1312 +3,242 @@
 {% block title %}Liên hệ | GUAMAISON{% endblock %}
 
 {% block extra_head %}
-<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-<link rel="dns-prefetch" href="//cdnjs.cloudflare.com">
-<link
-  rel="stylesheet"
-  href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
-/>
-
-<style>
-  .mm-contact {
-    --c-black: #010101;
-    --c-cream: #fef9ed;
-    --c-paper: #f8f2e8;
-    --c-white: #ffffff;
-    --c-muted: rgba(1, 1, 1, .58);
-    --c-muted-soft: rgba(1, 1, 1, .38);
-    --c-line: rgba(1, 1, 1, .12);
-    --c-line-strong: rgba(1, 1, 1, .22);
-    --c-success: #15803d;
-    --c-danger: #dc2626;
-    --c-radius: 10px;
-    --c-radius-sm: 7px;
-    --c-ease: cubic-bezier(.16, 1, .3, 1);
-
-    position: relative;
-    min-height: 100vh;
-    overflow-x: clip;
-    background:
-      radial-gradient(circle at 8% 0%, rgba(1, 1, 1, .07), transparent 28%),
-      radial-gradient(circle at 92% 12%, rgba(1, 1, 1, .05), transparent 30%),
-      linear-gradient(180deg, #ffffff 0%, var(--c-cream) 42%, #ffffff 100%);
-    color: var(--c-black);
-    isolation: isolate;
-  }
-
-  .mm-contact *,
-  .mm-contact *::before,
-  .mm-contact *::after {
-    box-sizing: border-box;
-  }
-
-  .mm-contact::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    opacity: .28;
-    pointer-events: none;
-    background-image:
-      linear-gradient(rgba(1,1,1,.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(1,1,1,.04) 1px, transparent 1px);
-    background-size: 34px 34px;
-    mask-image: linear-gradient(to bottom, black, transparent 78%);
-  }
-
-  .mm-contact-container {
-    position: relative;
-    z-index: 1;
-    width: min(100% - 32px, 1440px);
-    margin: 0 auto;
-  }
-
-  .mm-contact-hero {
-    position: relative;
-    min-height: calc(82svh - var(--header-h, 72px) - var(--topbar-h, 0px));
-    display: flex;
-    align-items: end;
-    overflow: hidden;
-    padding: clamp(70px, 8vw, 120px) 0 clamp(42px, 6vw, 84px);
-  }
-
-  .mm-contact-hero::after {
-    content: "CONTACT";
-    position: absolute;
-    right: -3vw;
-    bottom: -1.5vw;
-    z-index: 0;
-    color: rgba(1, 1, 1, .045);
-    font-size: clamp(82px, 17vw, 270px);
-    font-weight: 1000;
-    letter-spacing: -.09em;
-    line-height: .75;
-    pointer-events: none;
-  }
-
-  .mm-contact-kicker {
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-    color: rgba(1, 1, 1, .48);
-    font-size: 10px;
-    font-weight: 950;
-    letter-spacing: .26em;
-    text-transform: uppercase;
-  }
-
-  .mm-contact-kicker::before {
-    content: "";
-    width: 34px;
-    height: 1px;
-    background: var(--c-black);
-    opacity: .55;
-  }
-
-  .mm-contact-title {
-    max-width: 1040px;
-    margin-top: 18px;
-    color: var(--c-black);
-    font-size: clamp(50px, 10vw, 132px);
-    font-weight: 1000;
-    line-height: .86;
-    letter-spacing: -.085em;
-    text-transform: uppercase;
-    text-wrap: balance;
-  }
-
-  .mm-contact-title em {
-    font-style: normal;
-    color: transparent;
-    -webkit-text-stroke: 1.4px var(--c-black);
-  }
-
-  .mm-contact-copy {
-    color: rgba(1, 1, 1, .62);
-    font-size: 14px;
-    font-weight: 620;
-    line-height: 1.86;
-  }
-
-  .mm-contact-hero-copy {
-    max-width: 650px;
-    margin-top: 24px;
-  }
-
-  .mm-contact-hero-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 30px;
-  }
-
-  .mm-contact-btn {
-    position: relative;
-    min-height: 52px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    overflow: hidden;
-    border: 1px solid var(--c-black);
-    border-radius: var(--c-radius-sm);
-    background: var(--c-black);
-    color: var(--c-cream);
-    padding: 0 22px;
-    font-size: 10px;
-    font-weight: 950;
-    letter-spacing: .18em;
-    text-transform: uppercase;
-    transition:
-      transform .2s var(--c-ease),
-      background .2s ease,
-      color .2s ease,
-      border-color .2s ease,
-      gap .2s var(--c-ease);
-  }
-
-  .mm-contact-btn::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(120deg, transparent, rgba(255,255,255,.18), transparent);
-    transform: translateX(-120%);
-    transition: transform .75s var(--c-ease);
-  }
-
-  .mm-contact-btn:hover {
-    gap: 17px;
-    transform: translateY(-2px);
-  }
-
-  .mm-contact-btn:hover::before {
-    transform: translateX(120%);
-  }
-
-  .mm-contact-btn.is-light {
-    background: rgba(255,255,255,.72);
-    color: var(--c-black);
-    border-color: rgba(1,1,1,.16);
-  }
-
-  .mm-contact-btn.is-light:hover {
-    border-color: var(--c-black);
-  }
-
-  .mm-contact-section {
-    position: relative;
-    z-index: 1;
-    padding: clamp(42px, 6vw, 86px) 0;
-  }
-
-  .mm-contact-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 18px;
-    align-items: stretch;
-  }
-
-  @media (min-width: 1024px) {
-    .mm-contact-grid {
-      grid-template-columns: minmax(0, 42%) minmax(0, 58%);
-      gap: 22px;
-    }
-  }
-
-  .mm-contact-card {
-    position: relative;
-    overflow: hidden;
-    border: 1px solid rgba(1,1,1,.13);
-    border-radius: var(--c-radius);
-    background: rgba(255,255,255,.72);
-    box-shadow: 0 26px 74px -62px rgba(1,1,1,.58);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-  }
-
-  .mm-contact-card::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    opacity: .26;
-    pointer-events: none;
-    background-image:
-      linear-gradient(rgba(1,1,1,.035) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(1,1,1,.035) 1px, transparent 1px);
-    background-size: 26px 26px;
-    mask-image: linear-gradient(to bottom, black, transparent 75%);
-  }
-
-  .mm-contact-form-card {
-    padding: clamp(22px, 3vw, 38px);
-  }
-
-  .mm-contact-card-title {
-    margin-top: 12px;
-    color: var(--c-black);
-    font-size: clamp(34px, 4.6vw, 62px);
-    font-weight: 1000;
-    line-height: .9;
-    letter-spacing: -.065em;
-    text-transform: uppercase;
-  }
-
-  .mm-contact-form {
-    position: relative;
-    z-index: 2;
-    margin-top: 34px;
-    display: grid;
-    gap: 22px;
-  }
-
-  .mm-contact-field {
-    position: relative;
-  }
-
-  .mm-contact-field label {
-    display: block;
-    margin-bottom: 8px;
-    color: rgba(1,1,1,.48);
-    font-size: 9px;
-    font-weight: 950;
-    letter-spacing: .20em;
-    text-transform: uppercase;
-  }
-
-  .mm-contact-field input,
-  .mm-contact-field textarea,
-  .mm-contact-field select {
-    width: 100%;
-    min-height: 50px;
-    border: 0;
-    border-bottom: 1px solid rgba(1,1,1,.14);
-    border-radius: 0;
-    background: transparent;
-    color: var(--c-black);
-    outline: 0;
-    padding: 8px 0 13px;
-    font-size: 14px;
-    font-weight: 760;
-    transition:
-      border-color .2s ease,
-      transform .2s var(--c-ease);
-    appearance: none;
-  }
-
-  .mm-contact-field textarea {
-    min-height: 126px;
-    resize: vertical;
-  }
-
-  .mm-contact-field input::placeholder,
-  .mm-contact-field textarea::placeholder {
-    color: rgba(1,1,1,.32);
-    font-weight: 560;
-  }
-
-  .mm-contact-field input:focus,
-  .mm-contact-field textarea:focus,
-  .mm-contact-field select:focus {
-    border-bottom-color: var(--c-black);
-  }
-
-  .mm-contact-field:focus-within label {
-    color: var(--c-black);
-  }
-
-  .mm-contact-select {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' fill='none' stroke='%23010101' stroke-width='1.8'%3E%3Cpath d='M1 1l6 6 6-6'/%3E%3C/svg%3E") !important;
-    background-repeat: no-repeat !important;
-    background-position: right 8px center !important;
-    padding-right: 32px !important;
-  }
-
-  .mm-contact-field-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 22px;
-  }
-
-  @media (min-width: 640px) {
-    .mm-contact-field-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-
-  .mm-contact-map-card {
-    position: relative;
-    min-height: 640px;
-    overflow: hidden;
-    border: 1px solid rgba(1,1,1,.13);
-    border-radius: var(--c-radius);
-    background:
-      radial-gradient(circle at 50% 30%, rgba(1,1,1,.08), transparent 32%),
-      linear-gradient(135deg, #ece7dd, #ffffff);
-    box-shadow: 0 26px 74px -62px rgba(1,1,1,.58);
-    isolation: isolate;
-  }
-
-  .mm-contact-map-card.is-loading .mm-map-skeleton {
-    opacity: 1;
-    pointer-events: auto;
-  }
-
-  .mm-map-skeleton {
-    position: absolute;
-    inset: 0;
-    z-index: 3;
-    display: grid;
-    place-items: center;
-    background:
-      linear-gradient(90deg, rgba(255,255,255,.16), rgba(255,255,255,.54), rgba(255,255,255,.16)),
-      linear-gradient(135deg, #ebe4d8, #ffffff);
-    background-size: 280% 100%, 100% 100%;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity .36s var(--c-ease);
-    animation: mmContactShimmer 1.6s linear infinite;
-  }
-
-  .mm-map-skeleton span {
-    color: rgba(1,1,1,.46);
-    font-size: 10px;
-    font-weight: 950;
-    letter-spacing: .22em;
-    text-transform: uppercase;
-  }
-
-  @keyframes mmContactShimmer {
-    to {
-      background-position: -180% 0, 0 0;
-    }
-  }
-
-  #mmContactMap {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    width: 100%;
-    height: 100%;
-    filter: grayscale(18%) contrast(1.04);
-  }
-
-  .mm-map-fallback {
-    position: absolute;
-    inset: 0;
-    z-index: 2;
-    display: none;
-    place-items: center;
-    padding: 24px;
-    background:
-      linear-gradient(rgba(1,1,1,.045) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(1,1,1,.045) 1px, transparent 1px),
-      linear-gradient(135deg, #f3eee6, #ffffff);
-    background-size: 32px 32px, 32px 32px, 100% 100%;
-    text-align: center;
-  }
-
-  .mm-map-fallback.is-visible {
-    display: grid;
-  }
-
-  .mm-map-fallback h3 {
-    margin: 0;
-    color: var(--c-black);
-    font-size: 28px;
-    font-weight: 1000;
-    letter-spacing: -.04em;
-    text-transform: uppercase;
-  }
-
-  .mm-map-fallback p {
-    margin: 12px auto 0;
-    max-width: 420px;
-    color: rgba(1,1,1,.58);
-    font-size: 13px;
-    font-weight: 650;
-    line-height: 1.75;
-  }
-
-  .mm-map-panel {
-    position: absolute;
-    left: 18px;
-    right: 18px;
-    bottom: 18px;
-    z-index: 5;
-    border: 1px solid rgba(254,249,237,.14);
-    border-radius: var(--c-radius-sm);
-    background: rgba(1, 1, 1, .88);
-    color: var(--c-cream);
-    padding: 20px;
-    box-shadow: 0 26px 74px -58px rgba(1,1,1,.75);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-  }
-
-  .mm-map-panel h3 {
-    margin: 0;
-    color: var(--c-cream);
-    font-size: 24px;
-    font-weight: 1000;
-    line-height: .98;
-    letter-spacing: -.045em;
-    text-transform: uppercase;
-  }
-
-  .mm-map-panel p {
-    margin: 10px 0 0;
-    color: rgba(254,249,237,.72);
-    font-size: 12px;
-    font-weight: 620;
-    line-height: 1.7;
-  }
-
-  .mm-map-panel a {
-    margin-top: 16px;
-    display: inline-flex;
-    align-items: center;
-    gap: 9px;
-    color: var(--c-cream);
-    font-size: 10px;
-    font-weight: 950;
-    letter-spacing: .18em;
-    text-transform: uppercase;
-    border-bottom: 1px solid rgba(254,249,237,.35);
-    padding-bottom: 5px;
-  }
-
-  .mm-marker-container {
-    position: relative;
-    width: 34px;
-    height: 34px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .mm-marker-pulse {
-    position: absolute;
-    width: 34px;
-    height: 34px;
-    background: var(--c-black);
-    border-radius: 999px;
-    opacity: .36;
-    animation: mmMarkerPulse 2s infinite ease-out;
-  }
-
-  .mm-marker-dot {
-    position: relative;
-    z-index: 2;
-    width: 13px;
-    height: 13px;
-    border: 2px solid #fff;
-    border-radius: 999px;
-    background: var(--c-black);
-  }
-
-  @keyframes mmMarkerPulse {
-    0% {
-      transform: scale(.5);
-      opacity: .55;
-    }
-
-    100% {
-      transform: scale(2.8);
-      opacity: 0;
-    }
-  }
-
-  .leaflet-container {
-    background: #e8e3dc !important;
-    font-family: "DM Sans", system-ui, sans-serif;
-  }
-
-  .leaflet-control-zoom a {
-    background: #fffaf5 !important;
-    color: #010101 !important;
-    border: 1px solid rgba(1,1,1,.12) !important;
-  }
-
-  .leaflet-control-attribution {
-    display: none;
-  }
-
-  .leaflet-popup-content-wrapper {
-    border-radius: 7px !important;
-    background: #010101 !important;
-    color: #fef9ed !important;
-    box-shadow: 0 22px 50px rgba(0,0,0,.24) !important;
-  }
-
-  .leaflet-popup-content {
-    margin: 20px 24px !important;
-  }
-
-  .leaflet-popup-tip {
-    background: #010101 !important;
-  }
-
-  .mm-info-section {
-    position: relative;
-    overflow: hidden;
-    background: var(--c-black);
-    color: var(--c-cream);
-    padding: clamp(46px, 6vw, 82px) 0;
-  }
-
-  .mm-info-section::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    opacity: .18;
-    background-image:
-      linear-gradient(rgba(254,249,237,.07) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(254,249,237,.07) 1px, transparent 1px);
-    background-size: 34px 34px;
-    mask-image: linear-gradient(to bottom, black, transparent 85%);
-  }
-
-  .mm-info-grid {
-    position: relative;
-    z-index: 1;
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 28px;
-  }
-
-  @media (min-width: 768px) {
-    .mm-info-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 34px;
-    }
-  }
-
-  .mm-info-cell {
-    border-top: 1px solid rgba(254,249,237,.14);
-    padding-top: 26px;
-  }
-
-  .mm-info-label {
-    color: rgba(254,249,237,.46);
-    font-size: 10px;
-    font-weight: 950;
-    letter-spacing: .24em;
-    text-transform: uppercase;
-  }
-
-  .mm-info-value {
-    margin-top: 15px;
-    color: var(--c-cream);
-    font-size: clamp(22px, 3vw, 34px);
-    font-weight: 1000;
-    line-height: 1.04;
-    letter-spacing: -.045em;
-  }
-
-  .mm-info-sub {
-    margin-top: 12px;
-    color: rgba(254,249,237,.58);
-    font-size: 13px;
-    font-weight: 620;
-    line-height: 1.75;
-  }
-
-  .mm-contact-toast {
-    position: fixed;
-    left: 50%;
-    bottom: 24px;
-    z-index: 100000;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    max-width: calc(100vw - 28px);
-    border: 1px solid rgba(254,249,237,.16);
-    border-radius: var(--c-radius-sm);
-    background: rgba(1,1,1,.94);
-    color: var(--c-cream);
-    padding: 13px 18px;
-    font-size: 10px;
-    font-weight: 950;
-    letter-spacing: .15em;
-    text-transform: uppercase;
-    box-shadow: 0 24px 70px -45px rgba(1,1,1,.85);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    opacity: 0;
-    pointer-events: none;
-    transform: translate(-50%, 14px);
-    transition:
-      opacity .28s var(--c-ease),
-      transform .28s var(--c-ease);
-  }
-
-  .mm-contact-toast.is-visible {
-    opacity: 1;
-    transform: translate(-50%, 0);
-  }
-
-  .mm-contact-reveal {
-    opacity: .001;
-    transform: translateY(34px);
-    transition:
-      opacity .82s var(--c-ease),
-      transform .82s var(--c-ease);
-  }
-
-  .mm-contact-reveal.is-visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  .mm-contact-slide-left {
-    transform: translateX(-36px);
-  }
-
-  .mm-contact-slide-right {
-    transform: translateX(36px);
-  }
-
-  .mm-contact-slide-left.is-visible,
-  .mm-contact-slide-right.is-visible {
-    transform: translateX(0);
-  }
-
-  .mm-contact-float {
-    animation: mmContactFloat 5s ease-in-out infinite;
-  }
-
-  @keyframes mmContactFloat {
-    0%, 100% {
-      transform: translateY(0);
-    }
-
-    50% {
-      transform: translateY(-8px);
-    }
-  }
-
-  @media (max-width: 1023px) {
-    .mm-contact-map-card {
-      min-height: 500px;
-    }
-  }
-
-  @media (max-width: 640px) {
-    .mm-contact-container {
-      width: min(100% - 24px, 1440px);
-    }
-
-    .mm-contact-hero {
-      min-height: calc(76svh - var(--header-h, 72px));
-      padding-top: 64px;
-    }
-
-    .mm-contact-title {
-      font-size: clamp(46px, 15vw, 70px);
-    }
-
-    .mm-contact-hero-actions {
-      flex-direction: column;
-    }
-
-    .mm-contact-btn {
-      width: 100%;
-    }
-
-    .mm-contact-map-card {
-      min-height: 430px;
-    }
-
-    .mm-map-panel {
-      left: 12px;
-      right: 12px;
-      bottom: 12px;
-      padding: 16px;
-    }
-
-    .mm-map-panel h3 {
-      font-size: 21px;
-    }
-
-    .mm-contact-toast {
-      bottom: calc(18px + env(safe-area-inset-bottom, 0px));
-      font-size: 9px;
-      letter-spacing: .12em;
-    }
-  }
-
-  @media (hover: hover) and (pointer: fine) {
-    .mm-contact-card[data-tilt],
-    .mm-contact-map-card[data-tilt] {
-      transform-style: preserve-3d;
-      transition: transform .28s var(--c-ease);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .mm-contact-reveal,
-    .mm-contact-slide-left,
-    .mm-contact-slide-right,
-    .mm-contact-btn,
-    .mm-marker-pulse,
-    .mm-contact-float,
-    .mm-map-skeleton {
-      opacity: 1 !important;
-      transform: none !important;
-      transition: none !important;
-      animation: none !important;
-    }
-  }
-</style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&amp;family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&amp;display=swap&amp;subset=vietnamese" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/contact.css') }}?v=GUAMAISON-contact-editorial-v15.1">
 {% endblock %}
 
 {% block content %}
-<main class="mm-contact">
+{% set phone_href = contact.contact_phone|replace(' ', '')|replace('(', '')|replace(')', '')|replace('.', '')|replace('-', '') %}
+<main class="gm-contact" data-contact-page data-theme="{{ contact.theme }}">
+  <section class="gm-contact-cover" aria-labelledby="contact-title">
+    <div class="gm-contact-shell">
+      <header class="gm-contact-cover__rail">
+        <nav class="gm-contact-breadcrumb" aria-label="Đường dẫn">
+          <a href="/" data-nav>Trang chủ</a>
+          <span aria-hidden="true">/</span>
+          <span>Liên hệ</span>
+        </nav>
+        <p>GUAMAISON Journal <span>Issue 01 · 2026</span></p>
+      </header>
 
-  <section class="mm-contact-hero">
-    <div class="mm-contact-container">
-      <div class="max-w-6xl">
-        <p class="mm-contact-kicker mm-contact-reveal">
-          Contact GUAMAISON
-        </p>
-
-        <h1 class="mm-contact-title mm-contact-reveal">
-          Chúng tôi<br>
-          luôn <em>lắng nghe</em>
-        </h1>
-
-        <p class="mm-contact-copy mm-contact-hero-copy mm-contact-reveal">
-          Cần tư vấn sản phẩm, hỗ trợ đơn hàng, hợp tác thương mại hoặc muốn gửi góp ý cho GUAMAISON?
-          Hãy để lại lời nhắn, đội ngũ của chúng tôi sẽ phản hồi sớm nhất có thể.
-        </p>
-
-        <div class="mm-contact-hero-actions mm-contact-reveal">
-          <a href="#mmContactForm" class="mm-contact-btn">
-            Gửi lời nhắn
-            <i class="fa-solid fa-arrow-down"></i>
-          </a>
-
-          <a href="tel:+84901234567" class="mm-contact-btn is-light">
-            Hotline
-            <i class="fa-solid fa-phone"></i>
-          </a>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="mm-contact-section">
-    <div class="mm-contact-container mm-contact-grid">
-
-      <div class="mm-contact-card mm-contact-form-card mm-contact-reveal mm-contact-slide-left" data-tilt>
-        <div class="relative z-[2]">
-          <p class="mm-contact-kicker">Message</p>
-
-          <h2 class="mm-contact-card-title">
-            Để lại<br>
-            lời nhắn
-          </h2>
-
-          <p class="mt-5 mm-contact-copy">
-            Điền thông tin bên dưới. GUAMAISON sẽ liên hệ lại qua email hoặc số điện thoại bạn cung cấp.
-          </p>
-
-          <form
-            id="mmContactForm"
-            action="#"
-            method="POST"
-            class="mm-contact-form"
-            novalidate
-          >
-            {% if csrf_token is defined %}
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            {% endif %}
-
-            <div class="mm-contact-field-grid">
-              <div class="mm-contact-field">
-                <label for="contactName">Họ và tên</label>
-                <input
-                  type="text"
-                  id="contactName"
-                  name="name"
-                  placeholder="Nguyễn Văn A"
-                  required
-                  autocomplete="name"
-                >
-              </div>
-
-              <div class="mm-contact-field">
-                <label for="contactEmail">Email</label>
-                <input
-                  type="email"
-                  id="contactEmail"
-                  name="email"
-                  placeholder="example@email.com"
-                  required
-                  autocomplete="email"
-                >
-              </div>
-            </div>
-
-            <div class="mm-contact-field-grid">
-              <div class="mm-contact-field">
-                <label for="contactPhone">Số điện thoại</label>
-                <input
-                  type="tel"
-                  id="contactPhone"
-                  name="phone"
-                  placeholder="+84 90x xxx xxx"
-                  autocomplete="tel"
-                >
-              </div>
-
-              <div class="mm-contact-field">
-                <label for="contactTopic">Chủ đề</label>
-                <select
-                  id="contactTopic"
-                  name="topic"
-                  class="mm-contact-select"
-                >
-                  <option value="">Chọn chủ đề...</option>
-                  <option>Hỗ trợ đơn hàng</option>
-                  <option>Tư vấn sản phẩm</option>
-                  <option>Đổi trả / bảo hành</option>
-                  <option>Hợp tác thương mại</option>
-                  <option>Góp ý thương hiệu</option>
-                  <option>Khác</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="mm-contact-field">
-              <label for="contactMessage">Thông điệp</label>
-              <textarea
-                id="contactMessage"
-                name="message"
-                rows="5"
-                placeholder="Viết điều bạn muốn chia sẻ với GUAMAISON..."
-                required
-              ></textarea>
-            </div>
-
-            <button type="submit" class="mm-contact-btn">
-              Gửi thông điệp
-              <i class="fa-solid fa-arrow-right"></i>
-            </button>
-          </form>
-        </div>
-      </div>
-
-      <div class="mm-contact-map-card mm-contact-reveal mm-contact-slide-right" data-contact-map-card data-tilt>
-        <div class="mm-map-skeleton">
-          <span>Đang tải bản đồ</span>
-        </div>
-
-        <div id="mmContactMap" data-map-lazy></div>
-
-        <div class="mm-map-fallback" data-map-fallback>
-          <div>
-            <h3>GUAMAISON Studio</h3>
-            <p>
-              Bản đồ hiện không tải được. Bạn vẫn có thể mở Google Maps để xem vị trí và chỉ đường.
-            </p>
-
-            <a
-              href="https://maps.google.com/?q=10.7739,106.7025"
-              target="_blank"
-              rel="noopener"
-              class="mm-contact-btn mt-6"
-            >
-              Mở Google Maps
-              <i class="fa-solid fa-arrow-up-right-from-square"></i>
+      <div class="gm-contact-cover__grid">
+        <div class="gm-contact-cover__copy" data-reveal>
+          <p class="gm-contact-kicker"><span>01</span>{{ contact.eyebrow }}</p>
+          <h1 id="contact-title" aria-label="{{ contact.title }} {{ contact.accent_text }}">
+            <span>{{ contact.title }}</span>
+            <em>{{ contact.accent_text }}</em>
+          </h1>
+          <div class="gm-contact-cover__intro">
+            <p>{{ contact.description }}</p>
+            <span aria-hidden="true"></span>
+          </div>
+          <div class="gm-contact-cover__actions">
+            <a class="gm-contact-btn is-primary" href="#contact-form">
+              <span>Viết cho chúng tôi</span>
+              <i class="fa-solid fa-arrow-down-long" aria-hidden="true"></i>
             </a>
+            {% if contact.contact_phone %}
+              <a class="gm-contact-phone" href="tel:{{ phone_href }}">
+                <small>Hotline</small>
+                <strong>{{ contact.contact_phone }}</strong>
+              </a>
+            {% endif %}
           </div>
         </div>
 
-        <div class="mm-map-panel mm-contact-float">
-          <h3>GUAMAISON Studio</h3>
-          <p>
-            15 Lê Lợi, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh
-          </p>
-          <a
-            href="https://maps.google.com/?q=10.7739,106.7025"
-            target="_blank"
-            rel="noopener"
-          >
-            Chỉ đường
-            <i class="fa-solid fa-arrow-up-right-from-square"></i>
-          </a>
-        </div>
-      </div>
-
-    </div>
-  </section>
-
-  <section class="mm-info-section">
-    <div class="mm-contact-container mm-info-grid">
-      <div class="mm-info-cell mm-contact-reveal">
-        <p class="mm-info-label">Địa chỉ</p>
-        <h3 class="mm-info-value">15 Lê Lợi</h3>
-        <p class="mm-info-sub">
-          Phường Bến Nghé, Quận 1<br>
-          TP. Hồ Chí Minh, Việt Nam
-        </p>
-      </div>
-
-      <div class="mm-info-cell mm-contact-reveal">
-        <p class="mm-info-label">Liên hệ</p>
-        <h3 class="mm-info-value">
-          <a href="mailto:hello@GUAMAISON.com">hello@GUAMAISON.com</a>
-        </h3>
-        <p class="mm-info-sub">
-          <a href="tel:+84901234567">Hotline: +84 90 123 4567</a>
-        </p>
-      </div>
-
-      <div class="mm-info-cell mm-contact-reveal">
-        <p class="mm-info-label">Thời gian</p>
-        <h3 class="mm-info-value">09:00 – 21:00</h3>
-        <p class="mm-info-sub">
-          Thứ Hai – Chủ Nhật<br>
-          Hỗ trợ online mỗi ngày
-        </p>
-      </div>
-    </div>
-  </section>
-
-  <section class="mm-contact-section">
-    <div class="mm-contact-container grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-      <div class="lg:col-span-7 mm-contact-reveal">
-        <p class="mm-contact-kicker">Customer Care</p>
-
-        <h2 class="mt-4 text-4xl md:text-6xl font-black uppercase tracking-[-0.06em] leading-[0.92]">
-          Cần hỗ trợ<br>
-          nhanh hơn?
-        </h2>
-      </div>
-
-      <div class="lg:col-span-5 mm-contact-reveal">
-        <p class="mm-contact-copy">
-          Với câu hỏi về đơn hàng, đổi trả hoặc tư vấn size, bạn có thể liên hệ trực tiếp qua hotline
-          để được hỗ trợ nhanh. Với yêu cầu hợp tác, vui lòng gửi email kèm thông tin thương hiệu/dự án.
-        </p>
-
-        <div class="mt-8 flex flex-col sm:flex-row gap-3">
-          <a href="tel:+84901234567" class="mm-contact-btn">
-            Gọi ngay
-            <i class="fa-solid fa-phone"></i>
-          </a>
-
-          <a href="mailto:hello@GUAMAISON.com" class="mm-contact-btn is-light">
-            Gửi email
-            <i class="fa-solid fa-envelope"></i>
-          </a>
+        <div class="gm-contact-cover__art" data-reveal>
+          <div class="gm-contact-cover__issue" aria-hidden="true">
+            <span>CONTACT</span><b>01</b>
+          </div>
+          <figure class="gm-contact-cover__media{% if not contact.hero_media_url %} is-empty{% endif %}">
+            {% if contact.hero_media_url %}
+              <img src="{{ contact.hero_media_url }}" alt="Không gian thời trang GUAMAISON" width="900" height="1125" loading="eager" fetchpriority="high" decoding="async">
+            {% else %}
+              <div class="gm-contact-cover__monogram" aria-hidden="true"><span>G</span><span>M</span></div>
+            {% endif %}
+            <figcaption>Fashion · Objects · Conversation</figcaption>
+          </figure>
+          <aside class="gm-contact-response" aria-label="Thời gian phản hồi">
+            <p><span>Phản hồi</span><small>trong khoảng</small></p>
+            <strong>24<em>h</em></strong>
+            <span>{{ contact.response_note }}</span>
+          </aside>
         </div>
       </div>
     </div>
   </section>
 
-  <div id="mmContactToast" class="mm-contact-toast" aria-live="polite">
-    <i class="fa-solid fa-check text-emerald-300"></i>
-    <span>Đã nhận thông tin của bạn</span>
-  </div>
+  <section class="gm-contact-manifesto" aria-label="Lời mời kết nối">
+    <div class="gm-contact-shell">
+      <span>Talk to us</span>
+      <p>Bạn mang câu hỏi. <em>Chúng tôi mang câu trả lời.</em></p>
+      <i aria-hidden="true">↘</i>
+    </div>
+  </section>
 
+  <section class="gm-contact-main" id="contact-form" aria-label="Gửi yêu cầu liên hệ">
+    <div class="gm-contact-shell gm-contact-layout">
+      <article class="gm-contact-form-panel" data-reveal>
+        <header class="gm-contact-section-head">
+          <p class="gm-contact-kicker"><span>02</span>{{ contact.form_eyebrow }}</p>
+          <div>
+            <h2>{{ contact.form_title }}</h2>
+            <p>{{ contact.form_description }}</p>
+          </div>
+        </header>
+
+        {% if contact_migration_missing %}
+          <div class="gm-contact-alert" role="status">
+            <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+            <p>Biểu mẫu đang được cấu hình. Bạn có thể liên hệ qua email hoặc hotline.</p>
+          </div>
+        {% endif %}
+
+        <form
+          class="gm-contact-form"
+          action="{{ url_for('products.contact') }}"
+          method="post"
+          data-contact-form
+          novalidate
+        >
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="gm-contact-honeypot" aria-hidden="true">
+            <label for="contactWebsite">Website</label>
+            <input id="contactWebsite" name="website" type="text" tabindex="-1" autocomplete="off">
+          </div>
+
+          <div class="gm-contact-form__row">
+            <div class="gm-contact-field">
+              <label for="contactName"><span>01</span> Họ và tên <b>*</b></label>
+              <input id="contactName" name="full_name" type="text" maxlength="100" autocomplete="name" placeholder="Nguyễn Văn A" required>
+              <small data-field-error="full_name"></small>
+            </div>
+            <div class="gm-contact-field">
+              <label for="contactEmail"><span>02</span> Email <b>*</b></label>
+              <input id="contactEmail" name="email" type="email" maxlength="254" autocomplete="email" inputmode="email" placeholder="example@email.com" required>
+              <small data-field-error="email"></small>
+            </div>
+          </div>
+
+          <div class="gm-contact-form__row">
+            <div class="gm-contact-field">
+              <label for="contactPhone"><span>03</span> Số điện thoại</label>
+              <input id="contactPhone" name="phone" type="tel" maxlength="30" autocomplete="tel" inputmode="tel" placeholder="+84 90x xxx xxx">
+              <small data-field-error="phone"></small>
+            </div>
+            <div class="gm-contact-field">
+              <label for="contactTopic"><span>04</span> Chủ đề</label>
+              <div class="gm-contact-select-wrap">
+                <select id="contactTopic" name="topic">
+                  <option value="">Chọn chủ đề</option>
+                  {% for topic in contact.topics %}
+                    <option value="{{ topic }}">{{ topic }}</option>
+                  {% endfor %}
+                </select>
+                <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+              </div>
+            </div>
+          </div>
+
+          <div class="gm-contact-field is-message">
+            <label for="contactMessage"><span>05</span> Lời nhắn <b>*</b></label>
+            <textarea id="contactMessage" name="message" rows="6" minlength="10" maxlength="4000" placeholder="Bạn cần GUAMAISON hỗ trợ điều gì?" required></textarea>
+            <div class="gm-contact-field__meta">
+              <small data-field-error="message"></small>
+              <span><b data-message-count>0</b>/4000</span>
+            </div>
+          </div>
+
+          <div class="gm-contact-form__footer">
+            <p><i class="fa-solid fa-lock" aria-hidden="true"></i> Thông tin chỉ dùng để phản hồi yêu cầu này.</p>
+            <button class="gm-contact-btn is-primary" type="submit" data-contact-submit {% if contact_migration_missing %}disabled{% endif %}>
+              <span>Gửi lời nhắn</span>
+              <i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i>
+            </button>
+          </div>
+
+          <div class="gm-contact-result" data-contact-result role="status" aria-live="polite" hidden></div>
+        </form>
+      </article>
+
+      <aside class="gm-contact-side" data-reveal>
+        <section class="gm-contact-info" aria-labelledby="contact-info-title">
+          <header>
+            <p class="gm-contact-kicker is-light"><span>03</span>Direct line</p>
+            <h2 id="contact-info-title">Chọn cách<br><em>thuận tiện nhất.</em></h2>
+          </header>
+
+          <div class="gm-contact-details">
+            {% if contact.contact_email %}
+              <a href="mailto:{{ contact.contact_email }}" class="gm-contact-detail">
+                <span>01</span>
+                <div><small>Email</small><strong>{{ contact.contact_email }}</strong></div>
+                <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+              </a>
+            {% endif %}
+            {% if contact.contact_phone %}
+              <a href="tel:{{ phone_href }}" class="gm-contact-detail">
+                <span>02</span>
+                <div><small>Hotline</small><strong>{{ contact.contact_phone }}</strong></div>
+                <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+              </a>
+            {% endif %}
+            <div class="gm-contact-detail">
+              <span>03</span>
+              <div><small>Giờ hỗ trợ</small><strong>{{ contact.business_hours }}</strong></div>
+            </div>
+          </div>
+          <p class="gm-contact-info__note">Every message matters.</p>
+        </section>
+
+        <section class="gm-contact-map-card" aria-label="Vị trí GUAMAISON">
+          <div class="gm-contact-map-card__visual">
+            {% if contact.map_embed_url %}
+              <iframe
+                src="about:blank"
+                data-contact-map-src="{{ contact.map_embed_url }}"
+                title="Bản đồ {{ contact.map_title }}"
+                loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade"
+                allowfullscreen
+              ></iframe>
+            {% else %}
+              <div class="gm-contact-map-empty">
+                <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+                <p>Admin chưa cập nhật Google Maps.</p>
+              </div>
+            {% endif %}
+          </div>
+          <div class="gm-contact-map-card__caption">
+            <span>04</span>
+            <div>
+              <small>Ghé thăm studio</small>
+              <strong>{{ contact.map_title }}</strong>
+              <p>{{ contact.address }}</p>
+            </div>
+            {% if contact.directions_url %}
+              <a href="{{ contact.directions_url }}" target="_blank" rel="noopener noreferrer" aria-label="Mở Google Maps">
+                <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+              </a>
+            {% endif %}
+          </div>
+        </section>
+      </aside>
+    </div>
+  </section>
+
+  <section class="gm-contact-signoff" aria-label="Cam kết chăm sóc khách hàng">
+    <div class="gm-contact-shell">
+      <small>GUAMAISON · Customer care</small>
+      <p>Mỗi lời nhắn<br><em>đều được đọc.</em></p>
+      <div><span>Listen carefully</span><i></i><span>Reply clearly</span></div>
+    </div>
+  </section>
 </main>
+{% endblock %}
 
-<script>
-(function () {
-  "use strict";
-
-  const LAT = 10.7739;
-  const LNG = 106.7025;
-  const LEAFLET_JS = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js";
-
-  const prefersReducedMotion = window.matchMedia &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  function initReveal() {
-    const items = document.querySelectorAll(".mm-contact-reveal");
-
-    if (!items.length) return;
-
-    if (!("IntersectionObserver" in window) || prefersReducedMotion) {
-      items.forEach(function (item) {
-        item.classList.add("is-visible");
-      });
-      return;
-    }
-
-    const observer = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (!entry.isIntersecting) return;
-
-        entry.target.classList.add("is-visible");
-        observer.unobserve(entry.target);
-      });
-    }, {
-      root: null,
-      rootMargin: "0px 0px -12% 0px",
-      threshold: 0.12
-    });
-
-    items.forEach(function (item, index) {
-      item.style.transitionDelay = Math.min(index % 5, 4) * 65 + "ms";
-      observer.observe(item);
-    });
-  }
-
-  function loadScriptOnce(src) {
-    return new Promise(function (resolve, reject) {
-      const existed = document.querySelector('script[data-src="' + src + '"]');
-
-      if (window.L) {
-        resolve();
-        return;
-      }
-
-      if (existed) {
-        existed.addEventListener("load", resolve, { once: true });
-        existed.addEventListener("error", reject, { once: true });
-        return;
-      }
-
-      const script = document.createElement("script");
-      script.src = src;
-      script.defer = true;
-      script.dataset.src = src;
-      script.onload = resolve;
-      script.onerror = reject;
-      document.body.appendChild(script);
-    });
-  }
-
-  function withTimeout(promise, ms) {
-    let timer = null;
-
-    const timeout = new Promise(function (_, reject) {
-      timer = window.setTimeout(function () {
-        reject(new Error("Map loading timeout"));
-      }, ms);
-    });
-
-    return Promise.race([promise, timeout]).finally(function () {
-      clearTimeout(timer);
-    });
-  }
-
-  function showMapFallback() {
-    const card = document.querySelector("[data-contact-map-card]");
-    const fallback = document.querySelector("[data-map-fallback]");
-
-    if (card) {
-      card.classList.remove("is-loading");
-    }
-
-    if (fallback) {
-      fallback.classList.add("is-visible");
-    }
-  }
-
-  async function buildMap() {
-    const mapEl = document.getElementById("mmContactMap");
-    const card = document.querySelector("[data-contact-map-card]");
-
-    if (!mapEl || mapEl.dataset.mapReady === "1") return;
-
-    mapEl.dataset.mapReady = "1";
-
-    if (card) {
-      card.classList.add("is-loading");
-    }
-
-    try {
-      await withTimeout(loadScriptOnce(LEAFLET_JS), 6500);
-
-      if (!window.L) {
-        throw new Error("Leaflet unavailable");
-      }
-
-      const map = L.map("mmContactMap", {
-        center: [LAT, LNG],
-        zoom: 15,
-        zoomControl: true,
-        scrollWheelZoom: false,
-        attributionControl: false,
-        preferCanvas: true
-      });
-
-      const tile = L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-        maxZoom: 19,
-        updateWhenIdle: true,
-        keepBuffer: 2,
-        crossOrigin: true
-      });
-
-      tile.on("tileerror", function () {
-        console.warn("[ContactMap] Một số tile bản đồ tải lỗi.");
-      });
-
-      tile.addTo(map);
-
-      const icon = L.divIcon({
-        className: "mm-marker-container",
-        iconSize: [34, 34],
-        iconAnchor: [17, 17],
-        popupAnchor: [0, -18],
-        html: '<div class="mm-marker-pulse"></div><div class="mm-marker-dot"></div>'
-      });
-
-      L.marker([LAT, LNG], { icon: icon })
-        .addTo(map)
-        .bindPopup(
-          '<div style="min-width:210px;text-align:center;color:#fef9ed;">' +
-            '<p style="margin:0 0 8px;font-size:20px;font-weight:950;letter-spacing:-.04em;text-transform:uppercase;color:#fef9ed;">GUAMAISON Studio</p>' +
-            '<p style="margin:0;color:rgba(254,249,237,.68);font-size:12px;line-height:1.6;font-weight:600;">15 Lê Lợi, Bến Nghé<br>Quận 1 · TP. HCM</p>' +
-            '<a href="https://maps.google.com/?q=' + LAT + ',' + LNG + '" target="_blank" rel="noopener" style="display:inline-block;margin-top:16px;color:#fef9ed;font-size:9px;font-weight:950;letter-spacing:.2em;text-transform:uppercase;border-bottom:1px solid rgba(254,249,237,.35);padding-bottom:5px;text-decoration:none;">Chỉ đường</a>' +
-          '</div>',
-          { maxWidth: 280 }
-        )
-        .openPopup();
-
-      window.setTimeout(function () {
-        map.invalidateSize();
-        if (card) {
-          card.classList.remove("is-loading");
-        }
-      }, 280);
-    } catch (error) {
-      console.warn("[ContactMap] Không tải được bản đồ:", error);
-      showMapFallback();
-    }
-  }
-
-  function initLazyMap() {
-    const mapEl = document.querySelector("[data-map-lazy]");
-
-    if (!mapEl) return;
-
-    if (!("IntersectionObserver" in window)) {
-      buildMap();
-      return;
-    }
-
-    const observer = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (!entry.isIntersecting) return;
-
-        buildMap();
-        observer.disconnect();
-      });
-    }, {
-      rootMargin: "260px 0px",
-      threshold: 0.01
-    });
-
-    observer.observe(mapEl);
-  }
-
-  function initContactForm() {
-    const form = document.getElementById("mmContactForm");
-    const toast = document.getElementById("mmContactToast");
-
-    if (!form) return;
-
-    form.addEventListener("submit", function (event) {
-      event.preventDefault();
-
-      if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
-      }
-
-      const submitBtn = form.querySelector('button[type="submit"]');
-      const oldHTML = submitBtn ? submitBtn.innerHTML : "";
-
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = 'Đang gửi <i class="fa-solid fa-spinner fa-spin"></i>';
-      }
-
-      window.setTimeout(function () {
-        if (toast) {
-          toast.classList.add("is-visible");
-
-          clearTimeout(toast._timer);
-          toast._timer = window.setTimeout(function () {
-            toast.classList.remove("is-visible");
-          }, 2600);
-        }
-
-        form.reset();
-
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = oldHTML;
-        }
-      }, 650);
-    });
-  }
-
-  function initTilt() {
-    if (prefersReducedMotion || !window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
-      return;
-    }
-
-    const items = document.querySelectorAll("[data-tilt]");
-
-    items.forEach(function (item) {
-      let frame = null;
-
-      item.addEventListener("mousemove", function (event) {
-        if (frame) return;
-
-        frame = requestAnimationFrame(function () {
-          const rect = item.getBoundingClientRect();
-          const x = (event.clientX - rect.left) / rect.width - .5;
-          const y = (event.clientY - rect.top) / rect.height - .5;
-
-          item.style.transform =
-            "perspective(900px) rotateX(" + (-y * 2.2) + "deg) rotateY(" + (x * 2.2) + "deg) translateY(-2px)";
-
-          frame = null;
-        });
-      }, { passive: true });
-
-      item.addEventListener("mouseleave", function () {
-        item.style.transform = "";
-      }, { passive: true });
-    });
-  }
-
-  function initAnchorSmooth() {
-    document.querySelectorAll('a[href^="#"]').forEach(function (link) {
-      link.addEventListener("click", function (event) {
-        const target = document.querySelector(link.getAttribute("href"));
-        if (!target) return;
-
-        event.preventDefault();
-        target.scrollIntoView({
-          behavior: prefersReducedMotion ? "auto" : "smooth",
-          block: "start"
-        });
-      });
-    });
-  }
-
-  function initContactPage() {
-    initReveal();
-    initLazyMap();
-    initContactForm();
-    initTilt();
-    initAnchorSmooth();
-  }
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initContactPage, { once: true });
-  } else {
-    initContactPage();
-  }
-})();
-</script>
+{% block extra_scripts %}
+  <script src="{{ url_for('static', filename='js/contact.js') }}?v=GUAMAISON-contact-editorial-v15.1" defer></script>
 {% endblock %}

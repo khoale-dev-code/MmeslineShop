@@ -1,0 +1,20 @@
+{% set scope = value.get('scope', 'all') %}
+{% set selected_ids = value.get('scope_ids', []) or [] %}
+<section class="gpa-section" id="voucher-scope" data-form-section data-scope-root>
+  <header class="gpa-section__head">
+    <span>04</span>
+    <div><p>Phạm vi áp dụng</p><h2>Sản phẩm đủ điều kiện</h2><small>Giới hạn voucher theo toàn cửa hàng, danh mục hoặc sản phẩm.</small></div>
+    <i class="fa-solid fa-layer-group" aria-hidden="true"></i>
+  </header>
+  <div class="gpa-section__body">
+    <div class="gpa-segments" role="radiogroup" aria-label="Phạm vi voucher">
+      {% for key, label, icon, hint in [('all','Toàn cửa hàng','fa-store','Mọi sản phẩm'),('category','Theo danh mục','fa-tags','Nhóm đã chọn'),('product','Theo sản phẩm','fa-shirt','Sản phẩm cụ thể')] %}<label><input type="radio" name="scope" value="{{ key }}" {% if scope == key %}checked{% endif %}><span><i class="fa-solid {{ icon }}" aria-hidden="true"></i><b>{{ label }}</b><small>{{ hint }}</small></span></label>{% endfor %}
+    </div>
+    <div class="gpa-scope-panel" data-scope-panel="category" {% if scope != 'category' %}hidden{% endif %}>
+      <label class="gpa-field"><span>Danh mục áp dụng</span><select name="category_ids" multiple size="6">{% for category in categories %}<option value="{{ category.id }}" {% if category.id|string in selected_ids|map('string')|list %}selected{% endif %}>{{ category.name }}</option>{% endfor %}</select><small>Giữ Ctrl trên Windows hoặc Cmd trên macOS để chọn nhiều mục.</small></label>
+    </div>
+    <div class="gpa-scope-panel" data-scope-panel="product" {% if scope != 'product' %}hidden{% endif %}>
+      <label class="gpa-field"><span>Sản phẩm áp dụng</span><select name="product_ids" multiple size="8">{% for product in products %}<option value="{{ product.id }}" {% if product.id|string in selected_ids|map('string')|list %}selected{% endif %}>{{ product.name }}</option>{% endfor %}</select><small>Danh sách chỉ gồm sản phẩm đang hoạt động.</small></label>
+    </div>
+  </div>
+</section>

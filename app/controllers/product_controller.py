@@ -1121,10 +1121,10 @@ def about():
     about_content = AboutPageService.get_published()
     return render_template("partials/about.html", about=about_content)
 
-@products_bp.route("/contact")
+@products_bp.route("/contact", methods=["GET", "POST"])
 def contact():
-    return render_template("partials/contact.html")
-
+    from app.controllers.contact_controller import render_contact_page
+    return render_contact_page()
 
 @products_bp.route("/size-guide")
 def size_guide():

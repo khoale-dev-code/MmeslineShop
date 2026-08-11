@@ -1,0 +1,9 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Lịch sử {{ coupon.code }} | GUAMAISON Admin{% endblock %}
+{% block content %}
+<main class="mx-auto max-w-6xl px-4 py-8">
+  <header class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p class="text-xs font-bold uppercase tracking-[.2em] text-stone-500">Voucher usage</p><h1 class="mt-2 text-3xl font-black text-stone-900">{{ coupon.code }}</h1><p class="mt-2 text-sm text-stone-600">{{ used_count }} lượt · {{ "{:,.0f}".format(total_discount)|replace(',', '.') }}₫ đã giảm</p></div><a class="text-sm font-bold text-stone-700" href="{{ url_for('admin.coupons') }}">← Danh sách</a></header>
+  <div class="overflow-x-auto rounded-2xl border border-stone-200 bg-white"><table class="min-w-full text-left text-sm"><thead class="bg-stone-50 text-xs uppercase tracking-wider text-stone-500"><tr><th class="p-4">Khách hàng</th><th class="p-4">Đơn hàng</th><th class="p-4">Giảm giá</th><th class="p-4">Thời gian</th></tr></thead><tbody>{% for usage in usages %}<tr class="border-t border-stone-100"><td class="p-4"><b>{{ usage.users.full_name if usage.users else 'Khách hàng' }}</b><br><small>{{ usage.users.email if usage.users else '' }}</small></td><td class="p-4">{{ usage.order_id|string|truncate(12, true, '') }}</td><td class="p-4 font-bold">{{ "{:,.0f}".format(usage.discount_amount|float)|replace(',', '.') }}₫</td><td class="p-4">{{ usage.used_at[:16]|replace('T', ' ') if usage.used_at else '—' }}</td></tr>{% else %}<tr><td colspan="4" class="p-10 text-center text-stone-500">Voucher chưa được sử dụng.</td></tr>{% endfor %}</tbody></table></div>
+</main>
+{% endblock %}
+

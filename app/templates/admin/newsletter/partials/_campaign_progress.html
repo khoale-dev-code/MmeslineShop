@@ -1,0 +1,7 @@
+<div class="gm-nl-progress" aria-label="Tiến độ chiến dịch {{ campaign.progress_percent }}%">
+  <div class="gm-nl-progress__meta">
+    <span><strong data-campaign-sent>{{ campaign.sent_count }}</strong> đã gửi / {{ campaign.target_count }} người</span>
+    <b data-campaign-percent>{{ campaign.progress_percent }}%</b>
+  </div>
+  <div class="gm-nl-progress__track"><span data-campaign-progress style="width: {{ campaign.progress_percent }}%"></span></div>
+</div>

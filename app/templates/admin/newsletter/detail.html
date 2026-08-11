@@ -1,0 +1,108 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}{{ detail.subscriber.email }} | Hộp thư nhận tin{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/css/newsletter_admin.css') }}?v=GUAMAISON-newsletter-v11">
+{% endblock %}
+
+{% block content %}
+{% set subscriber = detail.subscriber %}
+<div class="gm-nl-admin">
+  <div class="gm-nl-detail__back">
+    <a href="{{ url_for('admin.newsletter_index') }}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Hộp thư nhận tin</a>
+  </div>
+
+  <header class="gm-nl-detail__header">
+    <div class="gm-nl-detail__identity">
+      <span>{{ (subscriber.full_name or subscriber.email)[0]|upper }}</span>
+      <div>
+        <p>{{ 'Đăng ký mới' if subscriber.is_unread else 'Newsletter subscriber' }}</p>
+        <h1>{{ subscriber.full_name or 'Khách hàng GUAMAISON' }}</h1>
+        <a href="mailto:{{ subscriber.email }}">{{ subscriber.email }}</a>
+      </div>
+    </div>
+    <span class="gm-nl-admin__status is-{{ subscriber.status }}">
+      {{ 'Đang nhận tin' if subscriber.status == 'active' else ('Đã hủy nhận tin' if subscriber.status == 'unsubscribed' else 'Đã chặn') }}
+    </span>
+  </header>
+
+  <div class="gm-nl-detail__grid">
+    <main class="gm-nl-detail__compose">
+      <div class="gm-nl-detail__section-title">
+        <div>
+          <p>Direct reply</p>
+          <h2>Gửi email cho khách</h2>
+        </div>
+        <span><i class="fa-solid fa-lock" aria-hidden="true"></i> Gửi qua SMTP bảo mật</span>
+      </div>
+
+      {% if not mail_ready %}
+        <div class="gm-nl-detail__mail-warning" role="alert">
+          <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+          <span>SMTP chưa sẵn sàng. Kiểm tra <code>MAIL_SENDER_EMAIL</code> và <code>MAIL_APP_PASSWORD</code> trong <code>.env</code>.</span>
+        </div>
+      {% endif %}
+
+      <form method="post" action="{{ url_for('admin.newsletter_reply', subscriber_id=subscriber.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <label>
+          <span>Người nhận</span>
+          <input type="email" value="{{ subscriber.email }}" readonly>
+        </label>
+
+        <label>
+          <span>Tiêu đề</span>
+          <input type="text" name="subject" maxlength="160" required value="GUAMAISON gửi bạn một lời nhắn">
+        </label>
+
+        <label>
+          <span>Nội dung email</span>
+          <textarea name="message" rows="9" maxlength="10000" required placeholder="Viết nội dung dành riêng cho khách hàng…"></textarea>
+          <small>Liên kết hủy nhận tin được hệ thống tự động thêm ở cuối email.</small>
+        </label>
+
+        <button type="submit">
+          <span>Gửi email</span>
+          <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+        </button>
+      </form>
+    </main>
+
+    <aside class="gm-nl-detail__aside">
+      <section>
+        <p class="gm-nl-detail__label">Thông tin đăng ký</p>
+        <dl>
+          <div><dt>Nguồn</dt><dd>{{ subscriber.source }}</dd></div>
+          <div><dt>Ngôn ngữ</dt><dd>{{ subscriber.locale|upper }}</dd></div>
+          <div><dt>Đồng ý nhận tin</dt><dd>{{ subscriber.consent_version }}</dd></div>
+          <div><dt>Ngày đăng ký</dt><dd>{{ subscriber.created_at[:16]|replace('T', ' ') if subscriber.created_at else '—' }}</dd></div>
+          <div><dt>Lần trả lời gần nhất</dt><dd>{{ subscriber.last_replied_at[:16]|replace('T', ' ') if subscriber.last_replied_at else 'Chưa gửi' }}</dd></div>
+        </dl>
+      </section>
+
+      <section>
+        <p class="gm-nl-detail__label">Lịch sử email</p>
+        {% if detail.messages %}
+          <div class="gm-nl-detail__timeline">
+            {% for item in detail.messages %}
+              <article>
+                <span class="is-{{ item.status }}"><i class="fa-solid {{ 'fa-check' if item.status == 'sent' else ('fa-clock' if item.status == 'processing' else 'fa-triangle-exclamation') }}" aria-hidden="true"></i></span>
+                <div>
+                  <strong>{{ item.subject }}</strong>
+                  <p>{{ item.body_text[:120] }}{{ '…' if item.body_text|length > 120 else '' }}</p>
+                  <small>{{ item.created_at[:16]|replace('T', ' ') if item.created_at else '' }} · {{ 'Đã gửi' if item.status == 'sent' else ('Đang xử lý' if item.status == 'processing' else 'Gửi lỗi') }}</small>
+                  {% if item.error_message %}<em>{{ item.error_message }}</em>{% endif %}
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="gm-nl-detail__no-history">Chưa có email nào được gửi cho khách này.</p>
+        {% endif %}
+      </section>
+    </aside>
+  </div>
+</div>
+{% endblock %}

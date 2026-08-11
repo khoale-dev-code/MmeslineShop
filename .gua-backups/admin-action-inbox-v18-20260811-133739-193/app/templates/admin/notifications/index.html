@@ -1,0 +1,411 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Thông báo hệ thống | GUA Admin{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+    body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: #f8fafc;
+    }
+
+    .gm-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 1.75rem;
+        box-shadow: 0 8px 30px -18px rgba(15, 23, 42, .22);
+    }
+
+    .gm-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        padding: .3rem .6rem;
+        border-radius: 999px;
+        font-size: .62rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .12em;
+        white-space: nowrap;
+    }
+
+    .gm-action {
+        width: 2.35rem;
+        height: 2.35rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: .9rem;
+        transition: all .16s ease;
+    }
+
+    .notification-row {
+        transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+
+    .notification-row:hover {
+        transform: translateY(-1px);
+        border-color: #cbd5e1;
+        box-shadow: 0 14px 30px -22px rgba(15, 23, 42, .35);
+    }
+
+    .line-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set total_count = notifications|length if notifications else 0 %}
+{% set active_count = notifications|selectattr('is_active')|list|length if notifications else 0 %}
+{% set permanent_count = notifications|selectattr('is_permanent')|list|length if notifications else 0 %}
+{% set inactive_count = total_count - active_count %}
+
+<div class="max-w-screen-2xl mx-auto px-4 md:px-8 py-10">
+
+    <div class="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-6 mb-8">
+        <div>
+            <p class="text-[10px] font-extrabold uppercase tracking-[0.24em] text-slate-400 mb-2">
+                Notification Center
+            </p>
+            <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-950">
+                Quản lý thông báo hệ thống
+            </h1>
+            <p class="text-sm text-slate-500 mt-2 max-w-2xl">
+                Tạo thông báo cho khách hàng, kiểm soát thời gian hiển thị, trạng thái hoạt động và đồng bộ thông báo đến người dùng.
+            </p>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3">
+            <form method="POST"
+                  action="{{ url_for('admin.backfill_notifications') }}"
+                  onsubmit="return confirm('Backfill sẽ tạo bản ghi user_notifications còn thiếu cho toàn bộ khách hàng. Tiếp tục?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit"
+                        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-3 rounded-full text-sm font-extrabold hover:border-slate-950 hover:text-slate-950 transition-all shadow-sm">
+                    <i class="fa-solid fa-rotate text-amber-500"></i>
+                    Backfill dữ liệu
+                </button>
+            </form>
+
+            <a href="{{ url_for('admin.add_notification') }}"
+               class="inline-flex items-center justify-center gap-2 bg-slate-950 text-white px-6 py-3 rounded-full text-sm font-extrabold hover:bg-slate-800 transition-all shadow-sm">
+                <i class="fa-solid fa-plus text-xs"></i>
+                Tạo thông báo
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div class="gm-card p-5">
+            <p class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Tổng thông báo</p>
+            <p class="text-3xl font-extrabold text-slate-950 mt-2">{{ total_count }}</p>
+        </div>
+
+        <div class="gm-card p-5">
+            <p class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Đang hoạt động</p>
+            <p class="text-3xl font-extrabold text-emerald-600 mt-2">{{ active_count }}</p>
+        </div>
+
+        <div class="gm-card p-5">
+            <p class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Vĩnh viễn</p>
+            <p class="text-3xl font-extrabold text-indigo-600 mt-2">{{ permanent_count }}</p>
+        </div>
+
+        <div class="gm-card p-5">
+            <p class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Đang tắt</p>
+            <p class="text-3xl font-extrabold text-slate-400 mt-2">{{ inactive_count }}</p>
+        </div>
+    </div>
+
+    <div class="gm-card p-4 md:p-5 mb-6">
+        <div class="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
+            <div class="relative flex-1">
+                <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 text-sm"></i>
+                <input id="notifSearch"
+                       type="text"
+                       placeholder="Tìm theo tiêu đề, nội dung, link..."
+                       class="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-11 pr-4 py-3 text-sm font-semibold focus:outline-none focus:bg-white focus:border-slate-950 transition-all">
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+                <button type="button"
+                        data-filter="all"
+                        class="filter-btn px-4 py-2.5 rounded-2xl bg-slate-950 text-white text-xs font-extrabold uppercase tracking-widest">
+                    Tất cả
+                </button>
+
+                <button type="button"
+                        data-filter="active"
+                        class="filter-btn px-4 py-2.5 rounded-2xl bg-slate-100 text-slate-500 text-xs font-extrabold uppercase tracking-widest hover:bg-slate-200 transition-all">
+                    Active
+                </button>
+
+                <button type="button"
+                        data-filter="inactive"
+                        class="filter-btn px-4 py-2.5 rounded-2xl bg-slate-100 text-slate-500 text-xs font-extrabold uppercase tracking-widest hover:bg-slate-200 transition-all">
+                    Hidden
+                </button>
+
+                <button type="button"
+                        data-filter="permanent"
+                        class="filter-btn px-4 py-2.5 rounded-2xl bg-slate-100 text-slate-500 text-xs font-extrabold uppercase tracking-widest hover:bg-slate-200 transition-all">
+                    Permanent
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {% if notifications %}
+        <div id="notifList" class="space-y-4">
+            {% for n in notifications %}
+            {% set is_active = n.is_active %}
+            {% set is_permanent = n.is_permanent %}
+            {% set search_text = (n.title ~ ' ' ~ n.content ~ ' ' ~ (n.link or '') ~ ' ' ~ (n.link_text or ''))|lower %}
+
+            <article class="notification-row gm-card p-5 md:p-6"
+                     data-title="{{ search_text|e }}"
+                     data-status="{{ 'active' if is_active else 'inactive' }}"
+                     data-permanent="{{ '1' if is_permanent else '0' }}">
+
+                <div class="flex flex-col xl:flex-row xl:items-start gap-5">
+
+                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0
+                                {% if is_active %}bg-emerald-50 text-emerald-600{% else %}bg-slate-100 text-slate-400{% endif %}">
+                        {% if is_active %}
+                            <i class="fa-solid fa-bell text-lg"></i>
+                        {% else %}
+                            <i class="fa-regular fa-bell-slash text-lg"></i>
+                        {% endif %}
+                    </div>
+
+                    <div class="flex-1 min-w-0">
+                        <div class="flex flex-col md:flex-row md:items-center gap-3 mb-3">
+                            <h2 class="text-base md:text-lg font-extrabold text-slate-950 leading-snug">
+                                {{ n.title }}
+                            </h2>
+
+                            <div class="flex flex-wrap gap-2">
+                                {% if is_active %}
+                                    <span class="gm-badge bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                        Active
+                                    </span>
+                                {% else %}
+                                    <span class="gm-badge bg-slate-100 text-slate-500 border border-slate-200">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                        Hidden
+                                    </span>
+                                {% endif %}
+
+                                {% if is_permanent %}
+                                    <span class="gm-badge bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                        <i class="fa-solid fa-infinity text-[9px]"></i>
+                                        Permanent
+                                    </span>
+                                {% else %}
+                                    <span class="gm-badge bg-amber-50 text-amber-700 border border-amber-100">
+                                        <i class="fa-regular fa-clock text-[9px]"></i>
+                                        Scheduled
+                                    </span>
+                                {% endif %}
+
+                                <span class="gm-badge bg-slate-50 text-slate-500 border border-slate-100">
+                                    Sort {{ n.sort_order or 0 }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <p class="text-sm text-slate-500 leading-relaxed line-clamp-2 max-w-4xl">
+                            {{ n.content }}
+                        </p>
+
+                        <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                            <div class="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3">
+                                <p class="font-extrabold text-slate-400 uppercase tracking-widest text-[10px] mb-1">
+                                    Bắt đầu
+                                </p>
+                                <p class="font-semibold text-slate-700">
+                                    {{ n.start_at[:16].replace('T', ' ') if n.start_at else 'Không giới hạn' }}
+                                </p>
+                            </div>
+
+                            <div class="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3">
+                                <p class="font-extrabold text-slate-400 uppercase tracking-widest text-[10px] mb-1">
+                                    Kết thúc
+                                </p>
+                                <p class="font-semibold text-slate-700">
+                                    {{ n.end_at[:16].replace('T', ' ') if n.end_at else 'Không giới hạn' }}
+                                </p>
+                            </div>
+
+                            <div class="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3">
+                                <p class="font-extrabold text-slate-400 uppercase tracking-widest text-[10px] mb-1">
+                                    Link CTA
+                                </p>
+
+                                {% if n.link %}
+                                    <a href="{{ n.link }}"
+                                       target="_blank"
+                                       class="font-semibold text-indigo-600 hover:text-indigo-800 truncate block">
+                                        {{ n.link_text or n.link }}
+                                    </a>
+                                {% else %}
+                                    <p class="font-semibold text-slate-400">Không có link</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex xl:flex-col gap-2 shrink-0">
+                        <form method="POST"
+                              action="{{ url_for('admin.toggle_notification', notif_id=n.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit"
+                                    title="{{ 'Tắt thông báo' if is_active else 'Bật thông báo' }}"
+                                    class="gm-action border
+                                           {% if is_active %}
+                                           bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-600 hover:text-white
+                                           {% else %}
+                                           bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-700 hover:text-white
+                                           {% endif %}">
+                                <i class="fa-solid fa-power-off text-xs"></i>
+                            </button>
+                        </form>
+
+                        <a href="{{ url_for('admin.edit_notification', notif_id=n.id) }}"
+                           title="Chỉnh sửa"
+                           class="gm-action bg-slate-950 text-white hover:bg-slate-800">
+                            <i class="fa-solid fa-pen text-xs"></i>
+                        </a>
+
+                        <form id="delete_{{ n.id }}"
+                              method="POST"
+                              action="{{ url_for('admin.delete_notification', notif_id=n.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="button"
+                                    onclick="confirmDelete('{{ n.id }}', '{{ n.title|e }}')"
+                                    title="Xóa thông báo"
+                                    class="gm-action bg-rose-50 text-rose-500 border border-rose-100 hover:bg-rose-600 hover:text-white hover:border-rose-600">
+                                <i class="fa-solid fa-trash-can text-xs"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+
+        <div id="emptyFiltered"
+             class="hidden gm-card p-12 text-center mt-6">
+            <div class="w-16 h-16 rounded-3xl bg-slate-50 border border-slate-100 flex items-center justify-center mx-auto text-slate-300 mb-4">
+                <i class="fa-regular fa-bell-slash text-2xl"></i>
+            </div>
+            <h2 class="text-lg font-extrabold text-slate-950">Không tìm thấy thông báo phù hợp</h2>
+            <p class="text-sm text-slate-500 mt-2">Thử đổi bộ lọc hoặc từ khóa tìm kiếm.</p>
+        </div>
+    {% else %}
+        <div class="gm-card p-12 md:p-16 text-center">
+            <div class="w-20 h-20 rounded-3xl bg-slate-50 border border-slate-100 flex items-center justify-center mx-auto text-slate-300 mb-5">
+                <i class="fa-regular fa-bell text-3xl"></i>
+            </div>
+
+            <h2 class="text-xl font-extrabold text-slate-950">Chưa có thông báo nào</h2>
+            <p class="text-sm text-slate-500 mt-2 max-w-md mx-auto">
+                Tạo thông báo đầu tiên để gửi tin khuyến mãi, cập nhật đơn hàng hoặc thông điệp thương hiệu đến khách hàng.
+            </p>
+
+            <a href="{{ url_for('admin.add_notification') }}"
+               class="inline-flex items-center gap-2 mt-6 px-6 py-3 bg-slate-950 text-white rounded-full text-sm font-extrabold hover:bg-slate-800 transition-all">
+                <i class="fa-solid fa-plus text-xs"></i>
+                Tạo thông báo
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+    const searchInput = document.getElementById('notifSearch');
+    const rows = Array.from(document.querySelectorAll('.notification-row'));
+    const filterButtons = Array.from(document.querySelectorAll('.filter-btn'));
+    const emptyFiltered = document.getElementById('emptyFiltered');
+
+    let currentFilter = 'all';
+
+    function setActiveButton(activeBtn) {
+        filterButtons.forEach(btn => {
+            btn.classList.remove('bg-slate-950', 'text-white');
+            btn.classList.add('bg-slate-100', 'text-slate-500');
+        });
+
+        activeBtn.classList.remove('bg-slate-100', 'text-slate-500');
+        activeBtn.classList.add('bg-slate-950', 'text-white');
+    }
+
+    function applyFilter() {
+        const keyword = (searchInput?.value || '').trim().toLowerCase();
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const text = row.dataset.title || '';
+            const status = row.dataset.status || '';
+            const permanent = row.dataset.permanent || '0';
+
+            const matchSearch = !keyword || text.includes(keyword);
+
+            let matchFilter = true;
+
+            if (currentFilter === 'active') {
+                matchFilter = status === 'active';
+            } else if (currentFilter === 'inactive') {
+                matchFilter = status === 'inactive';
+            } else if (currentFilter === 'permanent') {
+                matchFilter = permanent === '1';
+            }
+
+            const show = matchSearch && matchFilter;
+            row.classList.toggle('hidden', !show);
+
+            if (show) visibleCount += 1;
+        });
+
+        if (emptyFiltered) {
+            emptyFiltered.classList.toggle('hidden', visibleCount !== 0);
+        }
+    }
+
+    filterButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            currentFilter = btn.dataset.filter || 'all';
+            setActiveButton(btn);
+            applyFilter();
+        });
+    });
+
+    searchInput?.addEventListener('input', applyFilter);
+
+    window.confirmDelete = function (id, title) {
+        const form = document.getElementById(`delete_${id}`);
+        if (!form) return;
+        if (window.GuaAdminDelete) {
+            window.GuaAdminDelete.submit(form, {
+                title: 'Xóa thông báo',
+                message: `Bạn có muốn xóa thông báo “${title}”?`,
+                detail: 'Thông báo và các bản ghi người nhận liên quan sẽ bị xóa vĩnh viễn.',
+                confirmText: 'Xóa thông báo',
+                tone: 'danger'
+            });
+            return;
+        }
+        if (confirm(`Bạn có chắc muốn xóa thông báo "${title}"?`)) form.submit();
+    };
+})();
+</script>
+{% endblock %}

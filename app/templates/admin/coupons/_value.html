@@ -1,0 +1,16 @@
+{% set type = value.get('discount_type', 'percent') %}
+<section class="gpa-section" id="voucher-value" data-form-section>
+  <header class="gpa-section__head">
+    <span>02</span>
+    <div><p>Giá trị ưu đãi</p><h2>Quyền lợi khách nhận</h2><small>Chọn loại ưu đãi và ngưỡng giá trị phù hợp.</small></div>
+    <i class="fa-solid fa-tags" aria-hidden="true"></i>
+  </header>
+  <div class="gpa-section__body">
+    <div class="gpa-grid gpa-grid--2">
+      <label class="gpa-field"><span>Loại ưu đãi</span><select name="discount_type" data-type><option value="percent" {% if type == 'percent' %}selected{% endif %}>Giảm theo phần trăm</option><option value="fixed" {% if type == 'fixed' %}selected{% endif %}>Giảm tiền trực tiếp</option><option value="free_shipping" {% if type == 'free_shipping' %}selected{% endif %}>Miễn phí vận chuyển</option></select></label>
+      <label class="gpa-field" data-value-field><span>Mức giảm <b data-value-unit></b></span><input name="discount_value" data-value type="number" min="0" step="1" value="{{ value.get('discount_value', '') }}" placeholder="20" inputmode="numeric"></label>
+      <label class="gpa-field"><span>Đơn hàng tối thiểu</span><input name="min_order_value" data-min type="number" min="0" step="1000" value="{{ value.get('min_order_value', '') }}" placeholder="500000" inputmode="numeric"><small>Nhập 0 hoặc để trống nếu không yêu cầu.</small></label>
+      <label class="gpa-field" data-max-field><span>Giảm tối đa</span><input name="max_discount" data-max type="number" min="0" step="1000" value="{{ value.get('max_discount', '') or '' }}" placeholder="100000" inputmode="numeric"><small>Chỉ áp dụng cho voucher giảm theo phần trăm.</small></label>
+    </div>
+  </div>
+</section>

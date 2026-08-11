@@ -64,7 +64,7 @@
   }
 
   function init() {
-    document.querySelectorAll(".gua-footer[data-footer-version='7.2']").forEach(setupFooter);
+    document.querySelectorAll(".gua-footer[data-footer-version='7.3']").forEach(setupFooter);
   }
 
   if (document.readyState === "loading") {

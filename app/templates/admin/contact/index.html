@@ -1,0 +1,106 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Tin nhắn liên hệ | GUAMAISON Admin{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/css/contact_admin.css') }}?v=GUAMAISON-contact-v13">
+{% endblock %}
+
+{% block content %}
+<div class="gm-contact-admin">
+  <header class="gm-contact-admin__hero">
+    <div>
+      <p class="gm-contact-admin__eyebrow">Customer inbox</p>
+      <h1>Tin nhắn liên hệ</h1>
+      <p>Đọc, phân loại và phản hồi lời nhắn khách gửi từ trang Liên hệ.</p>
+    </div>
+    <div class="gm-contact-admin__actions">
+      <a class="is-ghost" href="{{ url_for('admin.newsletter_index') }}">
+        <i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i> Hộp thư nhận tin
+      </a>
+      <a class="is-primary" href="{{ url_for('admin.contact_page_settings') }}">
+        <i class="fa-solid fa-sliders" aria-hidden="true"></i> Tùy chỉnh trang
+      </a>
+    </div>
+  </header>
+
+  {% if migration_missing %}
+    <section class="gm-contact-admin__migration" role="alert">
+      <i class="fa-solid fa-database" aria-hidden="true"></i>
+      <div><strong>Contact Center chưa sẵn sàng</strong><p>Chạy migration v13 trong Supabase SQL Editor rồi tải lại trang.</p></div>
+    </section>
+  {% else %}
+    <section class="gm-contact-admin__stats" aria-label="Thống kê tin nhắn">
+      <article><span class="is-rose"><i class="fa-regular fa-envelope" aria-hidden="true"></i></span><div><small>Tổng lời nhắn</small><strong>{{ stats.total }}</strong></div></article>
+      <article><span class="is-gold"><i class="fa-solid fa-sparkles" aria-hidden="true"></i></span><div><small>Chưa đọc</small><strong>{{ stats.unread }}</strong></div></article>
+      <article><span class="is-ink"><i class="fa-regular fa-folder-open" aria-hidden="true"></i></span><div><small>Đang xử lý</small><strong>{{ stats.open + stats.new }}</strong></div></article>
+      <article><span class="is-green"><i class="fa-solid fa-check" aria-hidden="true"></i></span><div><small>Đã phản hồi</small><strong>{{ stats.replied }}</strong></div></article>
+    </section>
+
+    <section class="gm-contact-admin__panel">
+      <div class="gm-contact-admin__panel-head">
+        <div><span>Contact messages</span><strong>{{ page_data.total }} kết quả phù hợp</strong></div>
+        <a href="/contact" target="_blank" rel="noopener">Xem trang Liên hệ <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+      </div>
+
+      <form method="get" class="gm-contact-admin__filters" role="search">
+        <label class="gm-contact-admin__search">
+          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+          <span class="sr-only">Tìm tin nhắn</span>
+          <input type="search" name="q" value="{{ query_text }}" placeholder="Tìm tên, email, số điện thoại hoặc nội dung…">
+        </label>
+        <label><span class="sr-only">Lọc trạng thái</span><select name="status">
+          <option value="">Tất cả trạng thái</option>
+          <option value="new" {{ 'selected' if selected_status == 'new' else '' }}>Mới</option>
+          <option value="open" {{ 'selected' if selected_status == 'open' else '' }}>Đang xử lý</option>
+          <option value="replied" {{ 'selected' if selected_status == 'replied' else '' }}>Đã phản hồi</option>
+          <option value="closed" {{ 'selected' if selected_status == 'closed' else '' }}>Đã đóng</option>
+          <option value="spam" {{ 'selected' if selected_status == 'spam' else '' }}>Spam</option>
+        </select></label>
+        <label><span class="sr-only">Lọc chủ đề</span><select name="topic">
+          <option value="">Tất cả chủ đề</option>
+          {% for topic in settings.topics %}<option value="{{ topic }}" {{ 'selected' if selected_topic == topic else '' }}>{{ topic }}</option>{% endfor %}
+        </select></label>
+        <label class="gm-contact-admin__unread"><input type="checkbox" name="unread" value="1" {{ 'checked' if unread_only else '' }}> Chưa đọc</label>
+        <button type="submit">Lọc</button>
+      </form>
+
+      {% if page_data.rows %}
+        <div class="gm-contact-admin__table-wrap">
+          <table class="gm-contact-admin__table">
+            <thead><tr><th>Khách hàng</th><th>Chủ đề</th><th>Nội dung</th><th>Trạng thái</th><th>Thời gian</th><th><span class="sr-only">Thao tác</span></th></tr></thead>
+            <tbody>
+              {% for row in page_data.rows %}
+                <tr class="{{ 'is-unread' if row.is_unread else '' }}">
+                  <td data-label="Khách hàng">
+                    <div class="gm-contact-admin__person">
+                      <span>{{ (row.full_name or row.email)[0]|upper }}</span>
+                      <div><strong>{{ row.full_name or 'Khách GUAMAISON' }}</strong><a href="mailto:{{ row.email }}">{{ row.email }}</a></div>
+                      {% if row.is_unread %}<em>Mới</em>{% endif %}
+                    </div>
+                  </td>
+                  <td data-label="Chủ đề"><span class="gm-contact-admin__topic">{{ row.topic }}</span></td>
+                  <td data-label="Nội dung"><p class="gm-contact-admin__excerpt">{{ row.message|truncate(100, true) }}</p></td>
+                  <td data-label="Trạng thái"><span class="gm-contact-admin__status is-{{ row.status }}">{{ {'new':'Mới','open':'Đang xử lý','replied':'Đã phản hồi','closed':'Đã đóng','spam':'Spam'}.get(row.status, row.status) }}</span></td>
+                  <td data-label="Thời gian">{{ row.created_at[:16]|replace('T', ' · ') if row.created_at else '—' }}</td>
+                  <td><a class="gm-contact-admin__open" href="{{ url_for('admin.contact_message_detail', message_id=row.id) }}">Mở <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        {% if page_data.total_pages > 1 %}
+          <nav class="gm-contact-admin__pagination" aria-label="Phân trang lời nhắn">
+            {% if page_data.page > 1 %}<a href="{{ url_for('admin.contact_messages_index', page=page_data.page - 1, q=query_text, status=selected_status, topic=selected_topic, unread='1' if unread_only else '') }}">Trước</a>{% endif %}
+            <span>Trang {{ page_data.page }} / {{ page_data.total_pages }}</span>
+            {% if page_data.page < page_data.total_pages %}<a href="{{ url_for('admin.contact_messages_index', page=page_data.page + 1, q=query_text, status=selected_status, topic=selected_topic, unread='1' if unread_only else '') }}">Sau</a>{% endif %}
+          </nav>
+        {% endif %}
+      {% else %}
+        <div class="gm-contact-admin__empty"><span><i class="fa-regular fa-message" aria-hidden="true"></i></span><h2>Chưa có lời nhắn phù hợp</h2><p>Thử thay đổi bộ lọc hoặc kiểm tra biểu mẫu ngoài trang Liên hệ.</p></div>
+      {% endif %}
+    </section>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% if migration_missing %}
+<div class="gm-inbox__migration" role="alert">
+  <i class="fa-solid fa-database"></i>
+  <div><strong>Chưa bật hộp việc Admin.</strong><p>Chạy migration <code>20260811150000_admin_action_inbox_v18.sql</code> trong Supabase SQL Editor rồi tải lại trang.</p></div>
+</div>
+{% else %}
+<div class="gm-stats" aria-label="Tổng quan hộp việc">
+  <article><span class="is-green"><i class="fa-solid fa-bell"></i></span><p>Chưa đọc</p><strong>{{ inbox_stats.unread }}</strong></article>
+  <article><span class="is-red"><i class="fa-solid fa-triangle-exclamation"></i></span><p>Ưu tiên cao</p><strong>{{ inbox_stats.high_priority }}</strong></article>
+  <article><span class="is-gold"><i class="fa-solid fa-list-check"></i></span><p>Đang cần xử lý</p><strong>{{ inbox_stats.open_work }}</strong></article>
+  <article><span class="is-blue"><i class="fa-solid fa-circle-check"></i></span><p>Xong hôm nay</p><strong>{{ inbox_stats.resolved_today }}</strong></article>
+</div>
+
+<form class="gm-inbox__filters" method="get" action="{{ url_for('admin.notifications_index') }}">
+  <input type="hidden" name="tab" value="inbox">
+  <label class="gm-search"><i class="fa-solid fa-magnifying-glass"></i><input name="q" value="{{ filters.q }}" placeholder="Tìm mã đơn, khách hàng, email, nội dung…" aria-label="Tìm thông báo"></label>
+  <select name="status" aria-label="Trạng thái">
+    <option value="">Mọi trạng thái</option>
+    <option value="unread" {{ 'selected' if filters.status == 'unread' else '' }}>Chưa đọc</option>
+    <option value="read" {{ 'selected' if filters.status == 'read' else '' }}>Đã đọc</option>
+    <option value="resolved" {{ 'selected' if filters.status == 'resolved' else '' }}>Đã xử lý</option>
+  </select>
+  <select name="category" aria-label="Nhóm sự kiện">
+    <option value="">Mọi nhóm</option>
+    <option value="order" {{ 'selected' if filters.category == 'order' else '' }}>Đơn hàng</option>
+    <option value="payment" {{ 'selected' if filters.category == 'payment' else '' }}>Thanh toán</option>
+    <option value="return" {{ 'selected' if filters.category == 'return' else '' }}>Đổi / trả</option>
+    <option value="contact" {{ 'selected' if filters.category == 'contact' else '' }}>Tin nhắn</option>
+    <option value="marketing" {{ 'selected' if filters.category == 'marketing' else '' }}>Newsletter</option>
+  </select>
+  <select name="priority" aria-label="Mức ưu tiên">
+    <option value="">Mọi ưu tiên</option>
+    <option value="urgent" {{ 'selected' if filters.priority == 'urgent' else '' }}>Khẩn cấp</option>
+    <option value="high" {{ 'selected' if filters.priority == 'high' else '' }}>Cao</option>
+    <option value="normal" {{ 'selected' if filters.priority == 'normal' else '' }}>Bình thường</option>
+    <option value="info" {{ 'selected' if filters.priority == 'info' else '' }}>Thông tin</option>
+  </select>
+  <button class="gm-btn gm-btn--primary" type="submit">Lọc</button>
+  {% if filters.q or filters.status or filters.category or filters.priority %}<a class="gm-btn gm-btn--ghost" href="{{ url_for('admin.notifications_index') }}">Xóa lọc</a>{% endif %}
+</form>
+
+{% if inbox_page and inbox_page.items %}
+<div class="gm-event-list">
+  {% for event in inbox_page.items %}{% include "admin/notifications/partials/_event_card.html" %}{% endfor %}
+</div>
+{% include "admin/notifications/partials/_pagination.html" %}
+{% else %}
+<div class="gm-empty"><span><i class="fa-regular fa-bell-slash"></i></span><h2>Không có việc phù hợp</h2><p>Hộp việc đã gọn. Sự kiện mới từ khách hàng sẽ xuất hiện tại đây.</p></div>
+{% endif %}
+{% endif %}
+

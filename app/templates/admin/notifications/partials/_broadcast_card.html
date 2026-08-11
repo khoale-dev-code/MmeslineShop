@@ -1,0 +1,10 @@
+<article class="gm-broadcast {{ 'is-off' if not item.is_active else '' }}">
+  <div class="gm-broadcast__state"><i class="fa-solid {{ 'fa-bell' if item.is_active else 'fa-bell-slash' }}"></i></div>
+  <div class="gm-broadcast__body"><div><span class="gm-chip {{ 'gm-chip--active' if item.is_active else '' }}">{{ 'Đang bật' if item.is_active else 'Đang tắt' }}</span>{% if item.is_permanent %}<span class="gm-chip">Vĩnh viễn</span>{% endif %}</div><h2>{{ item.title }}</h2><p>{{ item.content }}</p></div>
+  <div class="gm-broadcast__actions">
+    <form method="post" action="{{ url_for('admin.toggle_notification', notif_id=item.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="gm-icon-btn" title="Bật hoặc tắt" type="submit"><i class="fa-solid fa-power-off"></i></button></form>
+    <a class="gm-icon-btn" title="Chỉnh sửa" href="{{ url_for('admin.edit_notification', notif_id=item.id) }}"><i class="fa-solid fa-pen"></i></a>
+    <form method="post" action="{{ url_for('admin.delete_notification', notif_id=item.id) }}" data-confirm="Xóa broadcast này? Thao tác sẽ xóa cả bản ghi đã phát cho khách."><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="gm-icon-btn is-danger" title="Xóa" type="submit"><i class="fa-solid fa-trash-can"></i></button></form>
+  </div>
+</article>
+

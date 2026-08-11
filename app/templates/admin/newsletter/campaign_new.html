@@ -1,0 +1,40 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Tạo chiến dịch email | GUAMAISON Admin{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/css/newsletter_admin.css') }}?v=GUAMAISON-newsletter-v12">
+{% endblock %}
+
+{% block content %}
+<div class="gm-nl-admin gm-nl-compose">
+  <div class="gm-nl-detail__back"><a href="{{ url_for('admin.newsletter_campaigns') }}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Chiến dịch email</a></div>
+  <header class="gm-nl-compose__intro"><div><p class="gm-nl-admin__eyebrow">New campaign</p><h1>Soạn một lần.<br>Gửi đúng người.</h1><p>Mỗi khách nhận một email riêng, có lời chào và liên kết hủy nhận tin duy nhất. Danh sách email không bao giờ bị lộ qua CC/BCC.</p></div><aside><i class="fa-solid fa-shield-heart" aria-hidden="true"></i><strong>Consent-first delivery</strong><span>Hệ thống kiểm tra lại trạng thái đăng ký ngay trước khi gửi.</span></aside></header>
+
+  <form method="post" class="gm-nl-compose__form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% for subscriber_id in selected_ids %}<input type="hidden" name="subscriber_id" value="{{ subscriber_id }}">{% endfor %}
+
+    <section class="gm-nl-compose__section">
+      <div class="gm-nl-compose__step"><span>01</span><div><h2>Phạm vi người nhận</h2><p>Chỉ người có trạng thái “Đang nhận tin” mới được đưa vào hàng chờ.</p></div></div>
+      <div class="gm-nl-targets">
+        <label><input type="radio" name="target_mode" value="all_active" {{ 'checked' if form_data.get('target_mode', 'all_active') == 'all_active' else '' }}><span><i class="fa-solid fa-users" aria-hidden="true"></i><strong>Toàn bộ người đang nhận tin</strong><small>{{ active_count }} khách hợp lệ tại thời điểm tạo</small></span></label>
+        <label class="{{ 'is-disabled' if not selected_ids else '' }}"><input type="radio" name="target_mode" value="selected" {{ 'checked' if form_data.get('target_mode') == 'selected' else '' }} {{ 'disabled' if not selected_ids else '' }}><span><i class="fa-solid fa-user-check" aria-hidden="true"></i><strong>Nhóm vừa chọn</strong><small>{{ selected_ids|length }} khách từ danh sách trước</small></span></label>
+      </div>
+    </section>
+
+    <section class="gm-nl-compose__section">
+      <div class="gm-nl-compose__step"><span>02</span><div><h2>Nội dung chiến dịch</h2><p>Lời chào tên khách và phần hủy nhận tin sẽ được thêm tự động.</p></div></div>
+      <div class="gm-nl-compose__fields">
+        <label><span>Tên nội bộ</span><input type="text" name="name" maxlength="120" required value="{{ form_data.get('name', '') }}" placeholder="Ví dụ: Bộ sưu tập Linen tháng 8"><small>Chỉ Admin nhìn thấy tên này.</small></label>
+        <label><span>Tiêu đề email</span><input type="text" name="subject" maxlength="160" required value="{{ form_data.get('subject', '') }}" placeholder="Một lời mời riêng từ GUAMAISON"></label>
+        <label class="is-wide"><span>Nội dung</span><textarea name="body_text" rows="10" maxlength="10000" required placeholder="Viết nội dung chung cho chiến dịch…">{{ form_data.get('body_text', '') }}</textarea><small>Dùng các đoạn ngắn để email dễ đọc trên điện thoại.</small></label>
+        <label><span>Nhãn nút (không bắt buộc)</span><input type="text" name="action_label" maxlength="60" value="{{ form_data.get('action_label', '') }}" placeholder="Khám phá bộ sưu tập"></label>
+        <label><span>Đường dẫn nút</span><input type="url" name="action_url" maxlength="1000" value="{{ form_data.get('action_url', '') }}" placeholder="https://guamaison.com/collections/..."></label>
+      </div>
+    </section>
+
+    <div class="gm-nl-compose__submit"><div><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>Tạo chiến dịch chưa gửi email ngay. Bạn sẽ có bước gửi thử và xác nhận tiếp theo.</span></div><button type="submit">Tạo bản nháp chiến dịch <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button></div>
+  </form>
+</div>
+{% endblock %}

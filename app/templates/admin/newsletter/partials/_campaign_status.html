@@ -1,0 +1,12 @@
+{% set labels = {
+  'draft': 'Bản nháp',
+  'ready': 'Sẵn sàng',
+  'sending': 'Đang gửi',
+  'paused': 'Tạm dừng',
+  'completed': 'Hoàn tất',
+  'cancelled': 'Đã hủy'
+} %}
+<span class="gm-nl-campaign__status is-{{ campaign.status }}">
+  <i class="fa-solid {{ 'fa-circle-check' if campaign.status == 'completed' else ('fa-spinner' if campaign.status == 'sending' else ('fa-circle-pause' if campaign.status == 'paused' else ('fa-ban' if campaign.status == 'cancelled' else 'fa-clock'))) }}" aria-hidden="true"></i>
+  {{ labels.get(campaign.status, campaign.status) }}
+</span>

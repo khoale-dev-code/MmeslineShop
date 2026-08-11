@@ -1,0 +1,17 @@
+{% set active_value = value.get('is_active') %}
+{% set is_active = (active_value in [true, 1, '1', 'on', 'true', 'checked']) if value else true %}
+<section class="gpa-section" id="voucher-identity" data-form-section>
+  <header class="gpa-section__head">
+    <span>01</span>
+    <div><p>Thông tin hiển thị</p><h2>Định danh voucher</h2><small>Nội dung khách hàng nhìn thấy trên storefront.</small></div>
+    <i class="fa-solid fa-fingerprint" aria-hidden="true"></i>
+  </header>
+  <div class="gpa-section__body">
+    <div class="gpa-grid gpa-grid--identity">
+      <label class="gpa-field"><span>Mã khuyến mãi <b>*</b></span><input name="code" data-code maxlength="50" value="{{ value.get('code', '') }}" placeholder="VD: NEWLOOK20" autocomplete="off" spellcheck="false" required><small>Không dấu, không khoảng trắng; tối đa 50 ký tự.</small></label>
+      <label class="gpa-switch"><input type="checkbox" name="is_active" value="1" {% if is_active %}checked{% endif %}><span aria-hidden="true"></span><b><strong>Cho phép sử dụng</strong><small>Hiển thị voucher trên storefront khi đủ điều kiện.</small></b></label>
+    </div>
+    <label class="gpa-field"><span>Mô tả ngắn</span><input name="description" data-description maxlength="500" value="{{ value.get('description', '') }}" placeholder="Ví dụ: Ưu đãi dành cho bộ sưu tập mới"><small>Một câu rõ ràng giúp khách hiểu ngay quyền lợi.</small></label>
+    <label class="gpa-field"><span>Ảnh đại diện <em>Không bắt buộc</em></span><input name="image_url" data-image type="url" maxlength="2000" value="{{ value.get('image_url', '') or '' }}" placeholder="https://..."><small>Dùng đồng bộ trên thẻ voucher và trang chi tiết; để trống sẽ dùng visual GUAMAISON.</small></label>
+  </div>
+</section>

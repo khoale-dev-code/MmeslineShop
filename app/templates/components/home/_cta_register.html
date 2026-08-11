@@ -1,765 +1,121 @@
 {% set sf = system_settings.get('storefront', {}) if system_settings is defined and system_settings else {} %}
-{% set join_media_url = sf.get('newsletter_media_url') or sf.get('join_media_url') or 'https://i.pinimg.com/1200x/a5/90/c7/a590c77781578ce31c1dc82be957be1b.jpg' %}
-{% set join_clean = join_media_url.lower().split('?')[0].split('#')[0] if join_media_url else '' %}
-{% set join_is_video = (
-  join_clean.endswith('.mp4') or
-  join_clean.endswith('.webm') or
-  join_clean.endswith('.mov') or
-  join_clean.endswith('.avi') or
-  'video' in join_clean
-) if join_media_url else false %}
-
-<style>
-  .mm-join {
-    --join-white: #ffffff;
-    --join-bg: #eeeeee;
-    --join-ink: #111111;
-    --join-muted: #626262;
-    --join-soft: #f7f7f7;
-    --join-line: rgba(17, 17, 17, .15);
-    --join-line-dark: rgba(17, 17, 17, .92);
-    --join-radius: 8px;
-    --join-ease: cubic-bezier(.16, 1, .3, 1);
-
-    background: transparent;
-    color: var(--join-ink);
-  }
-
-  .mm-join *,
-  .mm-join *::before,
-  .mm-join *::after {
-    box-sizing: border-box;
-  }
-
-  @keyframes mmJoinFadeUp {
-    from {
-      opacity: 0;
-      transform: translateY(22px);
-    }
-
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes mmJoinFloat {
-    0%, 100% {
-      transform: translateY(0);
-    }
-
-    50% {
-      transform: translateY(-4px);
-    }
-  }
-
-  @keyframes mmJoinLine {
-    0% {
-      transform: scaleX(.35);
-      transform-origin: left;
-      opacity: .55;
-    }
-
-    50% {
-      transform: scaleX(1);
-      opacity: 1;
-    }
-
-    100% {
-      transform: scaleX(.35);
-      transform-origin: right;
-      opacity: .55;
-    }
-  }
-
-  @keyframes mmJoinGrainMove {
-    0% {
-      transform: translate3d(0, 0, 0);
-    }
-
-    100% {
-      transform: translate3d(-28px, -28px, 0);
-    }
-  }
-
-  .mm-join-card {
-    position: relative;
-    isolation: isolate;
-    overflow: hidden;
-    border: 1px solid var(--join-line-dark);
-    border-radius: var(--join-radius);
-    background: var(--join-bg);
-    box-shadow: 0 22px 68px -58px rgba(17, 17, 17, .55);
-    animation: mmJoinFadeUp .7s var(--join-ease) both;
-  }
-
-  .mm-join-card::before {
-    content: "";
-    position: absolute;
-    inset: 12px;
-    z-index: 6;
-    border: 1px solid rgba(17, 17, 17, .12);
-    border-radius: calc(var(--join-radius) - 1px);
-    pointer-events: none;
-  }
-
-  .mm-join-card::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    opacity: .22;
-    background-image:
-      linear-gradient(rgba(17,17,17,.06) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(17,17,17,.06) 1px, transparent 1px);
-    background-size: 28px 28px;
-    pointer-events: none;
-    animation: mmJoinGrainMove 12s linear infinite;
-  }
-
-  .mm-join-media {
-    position: relative;
-    z-index: 2;
-    min-height: clamp(320px, 48vw, 620px);
-    max-height: 680px;
-    overflow: hidden;
-    background: #111111;
-  }
-
-  .mm-join-media-bg {
-    position: absolute;
-    inset: -34px;
-    z-index: 0;
-    background-image: var(--join-media-bg);
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    filter: grayscale(1) blur(24px) contrast(.92);
-    transform: scale(1.06);
-    opacity: .42;
-    transition: filter .55s ease, opacity .45s ease, transform .85s var(--join-ease);
-  }
-
-  .mm-join-card:hover .mm-join-media-bg {
-    filter: grayscale(0) blur(24px) contrast(1);
-    opacity: .55;
-    transform: scale(1.1);
-  }
-
-  .mm-join-media-el {
-    position: relative;
-    z-index: 1;
-    width: 100%;
-    height: 100%;
-    min-height: inherit;
-    max-height: inherit;
-    display: block;
-    object-position: center;
-    background: transparent;
-    transform: translateZ(0) scale(1.005);
-    filter: grayscale(1) saturate(0) contrast(.96);
-    backface-visibility: hidden;
-    transition:
-      transform .9s var(--join-ease),
-      filter .5s ease,
-      opacity .35s ease;
-  }
-
-  .mm-join-media-el.is-image {
-    object-fit: contain;
-    padding: clamp(10px, 1.8vw, 22px);
-  }
-
-  .mm-join-media-el.is-video {
-    object-fit: contain;
-    padding: clamp(10px, 1.8vw, 22px);
-  }
-
-  .mm-join-card:hover .mm-join-media-el {
-    transform: translateZ(0) scale(1.025);
-    filter: grayscale(0) saturate(1.06) contrast(1.02);
-  }
-
-  .mm-join-media.is-portrait {
-    min-height: clamp(420px, 58vw, 680px);
-  }
-
-  .mm-join-media.is-square {
-    min-height: clamp(360px, 50vw, 620px);
-  }
-
-  .mm-join-media.is-wide {
-    min-height: clamp(320px, 42vw, 560px);
-  }
-
-  .mm-join-media.is-ultrawide {
-    min-height: clamp(280px, 36vw, 500px);
-  }
-
-  .mm-join-media.is-video-media {
-    background:
-      radial-gradient(circle at center, rgba(238,238,238,.10), transparent 32%),
-      #111111;
-  }
-
-  .mm-join-media.is-video-media .mm-join-media-bg {
-    display: none;
-  }
-
-  .mm-join-overlay {
-    position: absolute;
-    inset: 0;
-    z-index: 2;
-    background:
-      linear-gradient(to top, rgba(0, 0, 0, .76), rgba(0, 0, 0, .22) 54%, rgba(0, 0, 0, .06)),
-      linear-gradient(to right, rgba(0, 0, 0, .36), transparent 64%);
-    transition: opacity .35s ease;
-    pointer-events: none;
-  }
-
-  .mm-join-card:hover .mm-join-overlay {
-    opacity: .72;
-  }
-
-  .mm-join-badge {
-    position: absolute;
-    left: 18px;
-    top: 18px;
-    z-index: 4;
-    border: 1px solid rgba(238, 238, 238, .42);
-    border-radius: var(--join-radius);
-    background: rgba(17, 17, 17, .84);
-    color: #eeeeee;
-    padding: 8px 11px;
-    font-size: 9px;
-    font-weight: 900;
-    letter-spacing: .17em;
-    text-transform: uppercase;
-    backdrop-filter: blur(10px);
-    animation: mmJoinFloat 3.2s ease-in-out infinite;
-  }
-
-  .mm-join-badge strong {
-    color: #ffffff;
-  }
-
-  .mm-join-caption {
-    position: absolute;
-    inset-inline: 20px;
-    bottom: 20px;
-    z-index: 4;
-    color: #fff;
-  }
-
-  .mm-join-caption-kicker {
-    margin: 0;
-    color: rgba(255, 255, 255, .72);
-    font-size: 9px;
-    font-weight: 900;
-    letter-spacing: .20em;
-    text-transform: uppercase;
-  }
-
-  .mm-join-caption-text {
-    max-width: 310px;
-    margin-top: 8px;
-    color: rgba(255, 255, 255, .86);
-    font-size: 12px;
-    font-weight: 500;
-    line-height: 1.7;
-  }
-
-  .mm-join-side {
-    position: relative;
-    z-index: 2;
-    overflow: hidden;
-    background:
-      radial-gradient(circle at 92% 8%, rgba(17, 17, 17, .055), transparent 30%),
-      linear-gradient(180deg, #eeeeee 0%, #f4f4f4 100%);
-  }
-
-  .mm-join-side::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    opacity: .30;
-    background-image:
-      linear-gradient(rgba(17,17,17,.045) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(17,17,17,.045) 1px, transparent 1px);
-    background-size: 28px 28px;
-    pointer-events: none;
-  }
-
-  .mm-join-side::after {
-    content: "";
-    position: absolute;
-    right: -90px;
-    top: -90px;
-    width: 240px;
-    height: 240px;
-    border: 1px solid rgba(17, 17, 17, .12);
-    border-radius: 999px;
-    pointer-events: none;
-  }
-
-  .mm-join-side-inner {
-    position: relative;
-    z-index: 2;
-  }
-
-  .mm-join-line {
-    height: 1px;
-    width: 42px;
-    background: var(--join-ink);
-    animation: mmJoinLine 3.2s var(--join-ease) infinite;
-  }
-
-  .mm-join-kicker {
-    margin: 0;
-    color: var(--join-ink);
-    font-size: 9px;
-    font-weight: 900;
-    letter-spacing: .22em;
-    text-transform: uppercase;
-  }
-
-  .mm-join-title {
-    margin: 0;
-    color: var(--join-ink);
-    font-size: clamp(30px, 4vw, 52px);
-    font-weight: 950;
-    line-height: .98;
-    letter-spacing: -.04em;
-    text-wrap: balance;
-  }
-
-  .mm-join-title span {
-    color: var(--join-ink);
-  }
-
-  .mm-join-copy {
-    max-width: 540px;
-    color: var(--join-muted);
-    font-size: 14px;
-    font-weight: 500;
-    line-height: 1.75;
-  }
-
-  .mm-join-form {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    width: 100%;
-    max-width: 540px;
-    overflow: hidden;
-    border: 1px solid var(--join-ink);
-    border-radius: var(--join-radius);
-    background: #ffffff;
-    box-shadow: 0 16px 40px -36px rgba(17, 17, 17, .45);
-    transition: transform .22s var(--join-ease), box-shadow .22s ease;
-  }
-
-  .mm-join-form:focus-within {
-    transform: translateY(-1px);
-    box-shadow: 0 22px 46px -38px rgba(17, 17, 17, .55);
-  }
-
-  .mm-join-input {
-    min-height: 54px;
-    width: 100%;
-    border: 0;
-    outline: 0;
-    background: #ffffff;
-    padding: 0 18px;
-    color: var(--join-ink);
-    font-size: 13px;
-    font-weight: 650;
-  }
-
-  .mm-join-input::placeholder {
-    color: rgba(17, 17, 17, .48);
-    font-weight: 600;
-  }
-
-  .mm-join-input:focus {
-    background: #fafafa;
-  }
-
-  .mm-join-btn {
-    position: relative;
-    min-height: 54px;
-    overflow: hidden;
-    border: 0;
-    border-left: 1px solid var(--join-ink);
-    background: var(--join-ink);
-    color: #ffffff;
-    padding: 0 26px;
-    font-size: 10px;
-    font-weight: 900;
-    letter-spacing: .15em;
-    text-transform: uppercase;
-    transition: color .2s ease;
-  }
-
-  .mm-join-btn::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: #eeeeee;
-    transform: translateX(-102%);
-    transition: transform .32s var(--join-ease);
-  }
-
-  .mm-join-btn::after {
-    content: "→";
-    position: relative;
-    z-index: 2;
-    display: inline-block;
-    margin-left: 8px;
-    transform: translateX(0);
-    transition: transform .22s var(--join-ease);
-  }
-
-  .mm-join-btn:hover::before {
-    transform: translateX(0);
-  }
-
-  .mm-join-btn:hover::after {
-    transform: translateX(4px);
-  }
-
-  .mm-join-btn:hover {
-    color: var(--join-ink);
-  }
-
-  .mm-join-btn span {
-    position: relative;
-    z-index: 1;
-  }
-
-  .mm-join-note {
-    margin: 0;
-    color: rgba(17, 17, 17, .64);
-    font-size: 9px;
-    font-weight: 850;
-    letter-spacing: .14em;
-    text-transform: uppercase;
-  }
-
-  .mm-join-note a {
-    color: var(--join-ink);
-    text-decoration-color: rgba(17, 17, 17, .42);
-    transition: color .18s ease, text-decoration-color .18s ease;
-  }
-
-  .mm-join-note a:hover {
-    color: #000;
-    text-decoration-color: #000;
-  }
-
-  .mm-join-dot {
-    background: var(--join-ink);
-  }
-
-  @media (min-width: 1024px) {
-    .mm-join-card {
-      min-height: 560px;
-    }
-
-    .mm-join-media {
-      min-height: 560px;
-      max-height: 640px;
-    }
-
-    .mm-join-media.is-portrait {
-      min-height: 620px;
-      max-height: 680px;
-    }
-
-    .mm-join-media.is-ultrawide {
-      min-height: 480px;
-      max-height: 560px;
-    }
-  }
-
-  @media (max-width: 767px) {
-    .mm-join {
-      padding-top: 44px !important;
-      padding-bottom: 44px !important;
-    }
-
-    .mm-join-card::before {
-      inset: 9px;
-    }
-
-    .mm-join-media {
-      min-height: 310px;
-      max-height: 430px;
-    }
-
-    .mm-join-media.is-portrait {
-      min-height: 390px;
-      max-height: 520px;
-    }
-
-    .mm-join-media.is-wide,
-    .mm-join-media.is-ultrawide {
-      min-height: 280px;
-      max-height: 380px;
-    }
-
-    .mm-join-title {
-      font-size: clamp(31px, 9vw, 42px);
-      line-height: 1;
-    }
-
-    .mm-join-copy {
-      font-size: 13px;
-      line-height: 1.7;
-    }
-
-    .mm-join-form {
-      grid-template-columns: 1fr;
-    }
-
-    .mm-join-btn {
-      border-left: 0;
-      border-top: 1px solid var(--join-ink);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .mm-join-card,
-    .mm-join-media img,
-    .mm-join-media video,
-    .mm-join-btn::before,
-    .mm-join-line,
-    .mm-join-badge,
-    .mm-join-card::after {
-      animation: none !important;
-      transition: none !important;
-      transform: none !important;
-    }
-  }
-</style>
-
-<section class="mm-join relative w-full px-4 py-14 sm:px-5 md:py-20 lg:px-[5vw]">
-  {% set join_media_url = join_media_url | default('https://i.pinimg.com/1200x/a5/90/c7/a590c77781578ce31c1dc82be957be1b.jpg', true) %}
-  {% set join_clean = join_media_url.lower().split('?')[0].split('#')[0] if join_media_url else '' %}
-  {% set join_is_video = (
-    join_clean.endswith('.mp4') or
-    join_clean.endswith('.webm') or
-    join_clean.endswith('.mov') or
-    join_clean.endswith('.avi') or
-    'video' in join_clean
-  ) if join_media_url else false %}
-
-  <div class="mx-auto max-w-[1280px]">
-    <div class="mm-join-card grid grid-cols-1 lg:grid-cols-12">
-
-      <div
-        class="mm-join-media {{ 'is-video-media' if join_is_video else 'is-image-media' }} lg:col-span-5"
-        data-join-media-wrap
-      >
-        {% if not join_is_video %}
-          <div
-            class="mm-join-media-bg"
-            style="--join-media-bg: url('{{ join_media_url }}');"
-          ></div>
-        {% endif %}
-
-        {% if join_is_video %}
-          <video
-            class="mm-join-media-el is-video"
-            muted
-            loop
-            playsinline
-            preload="metadata"
-            data-join-media
-          >
-            {% if join_clean.endswith('.webm') %}
-              <source src="{{ join_media_url }}" type="video/webm">
-            {% elif join_clean.endswith('.mov') %}
-              <source src="{{ join_media_url }}" type="video/quicktime">
-            {% elif join_clean.endswith('.avi') %}
-              <source src="{{ join_media_url }}" type="video/x-msvideo">
-            {% else %}
-              <source src="{{ join_media_url }}" type="video/mp4">
-            {% endif %}
-          </video>
-        {% else %}
-          <img
-            src="{{ join_media_url }}"
-            alt="GUAMAISON Membership"
-            width="1200"
-            height="1600"
-            loading="lazy"
-            decoding="async"
-            class="mm-join-media-el is-image"
-            data-join-media
-          >
-        {% endif %}
-
-        <div class="mm-join-overlay"></div>
-
-        <div class="mm-join-badge">
-          GUAMAISON <strong>2026</strong>
-        </div>
-
-        <div class="mm-join-caption">
-          <p class="mm-join-caption-kicker">
-            Cộng đồng GUAMAISON
-          </p>
-
-          <p class="mm-join-caption-text">
-            Nhận thông tin sớm về bộ sưu tập, ưu đãi và các sự kiện riêng.
-          </p>
-        </div>
+{% set newsletter_media = sf.get('newsletter_media_url') or sf.get('join_media_url') or url_for('static', filename='images/fotter.png') %}
+{% set media_clean = newsletter_media.lower().split('?')[0].split('#')[0] if newsletter_media else '' %}
+{% set media_is_video = media_clean.endswith('.mp4') or media_clean.endswith('.webm') or media_clean.endswith('.mov') %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/newsletter.css') }}?v=GUAMAISON-newsletter-v11">
+
+<section class="gm-newsletter" data-newsletter-section aria-labelledby="gmNewsletterTitle">
+  <div class="gm-newsletter__shell">
+    <div class="gm-newsletter__media" aria-hidden="true">
+      {% if media_is_video %}
+        <video muted loop playsinline preload="metadata" data-newsletter-media>
+          <source src="{{ newsletter_media }}">
+        </video>
+      {% else %}
+        <img
+          src="{{ newsletter_media }}"
+          alt=""
+          width="1000"
+          height="1280"
+          loading="lazy"
+          decoding="async"
+          data-newsletter-media
+        >
+      {% endif %}
+      <div class="gm-newsletter__shade"></div>
+      <div class="gm-newsletter__edition">
+        <span>GUAMAISON</span>
+        <strong>Private list · 2026</strong>
+      </div>
+      <p class="gm-newsletter__caption">New silhouettes. Thoughtful details. Stories worth keeping.</p>
+    </div>
+
+    <div class="gm-newsletter__content">
+      <div class="gm-newsletter__eyebrow">
+        <span aria-hidden="true"></span>
+        Thư riêng từ GUAMAISON
       </div>
 
-      <div class="mm-join-side flex flex-col justify-center p-7 sm:p-9 md:p-12 lg:col-span-7 lg:p-16">
-        <div class="mm-join-side-inner">
-          <div class="mb-6 flex items-center gap-4">
-            <div class="mm-join-line"></div>
+      <h2 id="gmNewsletterTitle" class="gm-newsletter__title">
+        Đón đầu những câu chuyện <em>thời trang mới.</em>
+      </h2>
 
-            <p class="mm-join-kicker">
-              Đăng ký nhận tin
-            </p>
-          </div>
+      <p class="gm-newsletter__lead">
+        Một email được tuyển chọn kỹ, chỉ khi GUAMAISON có điều thật sự đáng để bạn mở xem.
+      </p>
 
-          <h2 class="mm-join-title mb-5">
-            Gia nhập
-            <br>
-            <span>GUAMAISON</span>
-          </h2>
+      <ul class="gm-newsletter__benefits" aria-label="Quyền lợi khi đăng ký">
+        <li><i class="fa-solid fa-sparkles" aria-hidden="true"></i><span>Bộ sưu tập mới</span></li>
+        <li><i class="fa-solid fa-ticket" aria-hidden="true"></i><span>Ưu đãi dành riêng</span></li>
+        <li><i class="fa-solid fa-book-open" aria-hidden="true"></i><span>Gợi ý phối đồ</span></li>
+      </ul>
 
-          <p class="mm-join-copy mb-8">
-            Trở thành một phần của cộng đồng GUAMAISON để nhận quyền truy cập sớm vào sản phẩm mới,
-            chương trình ưu đãi riêng và các câu chuyện thời trang được tuyển chọn.
-          </p>
+      <form
+        class="gm-newsletter__form"
+        action="{{ url_for('newsletter.subscribe') }}"
+        method="post"
+        data-newsletter-form
+        novalidate
+      >
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="source" value="homepage-cta">
 
-          <form
-            method="POST"
-            action="#"
-            class="mm-join-form"
-          >
-            {% if csrf_token is defined %}
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            {% endif %}
+        <div class="gm-newsletter__honeypot" aria-hidden="true">
+          <label for="gmNewsletterWebsite">Website</label>
+          <input id="gmNewsletterWebsite" name="website" tabindex="-1" autocomplete="off">
+        </div>
 
-            <label for="newsletterEmail" class="sr-only">
-              Email đăng ký nhận tin
-            </label>
-
+        <div class="gm-newsletter__fields">
+          <label class="gm-newsletter__field">
+            <span>Tên của bạn <small>(không bắt buộc)</small></span>
             <input
-              id="newsletterEmail"
+              type="text"
+              name="full_name"
+              maxlength="100"
+              autocomplete="name"
+              placeholder="Ví dụ: Minh Anh"
+            >
+          </label>
+
+          <label class="gm-newsletter__field">
+            <span>Email nhận tin</span>
+            <input
               type="email"
               name="email"
-              placeholder="Nhập email của bạn"
-              required
+              maxlength="254"
               autocomplete="email"
-              class="mm-join-input"
+              inputmode="email"
+              placeholder="tenban@email.com"
+              required
             >
-
-            <button type="submit" class="mm-join-btn">
-              <span>Đăng ký</span>
-            </button>
-          </form>
-
-          <div class="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-5">
-            <p class="mm-join-note">
-              Không spam. Chỉ gửi nội dung chọn lọc.
-            </p>
-
-            <span class="mm-join-dot hidden h-1 w-1 rounded-full sm:block"></span>
-
-            <p class="mm-join-note">
-              <a href="#" class="underline underline-offset-4">
-                Điều khoản
-              </a>
-              /
-              <a href="#" class="underline underline-offset-4">
-                Bảo mật
-              </a>
-            </p>
-          </div>
+          </label>
         </div>
-      </div>
 
+        <label class="gm-newsletter__consent">
+          <input type="checkbox" name="consent" value="1" required>
+          <span class="gm-newsletter__check" aria-hidden="true"><i class="fa-solid fa-check"></i></span>
+          <span>Tôi đồng ý nhận tin về sản phẩm và ưu đãi từ GUAMAISON. Có thể hủy bất cứ lúc nào.</span>
+        </label>
+
+        <button type="submit" class="gm-newsletter__submit" data-newsletter-submit>
+          <span data-newsletter-button-label>Gia nhập danh sách</span>
+          <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+        </button>
+
+        <p class="gm-newsletter__status" data-newsletter-status role="status" aria-live="polite"></p>
+      </form>
+
+      <div class="gm-newsletter__success" data-newsletter-success hidden>
+        <span class="gm-newsletter__success-icon" aria-hidden="true"><i class="fa-solid fa-check"></i></span>
+        <div>
+          <strong>Bạn đã có tên trong danh sách.</strong>
+          <p data-newsletter-success-message>Cảm ơn bạn đã gia nhập cộng đồng GUAMAISON.</p>
+        </div>
+        <button type="button" data-newsletter-reset>Đăng ký email khác</button>
+      </div>
     </div>
   </div>
 </section>
 
-<script>
-(function () {
-  "use strict";
-
-  function applyJoinMediaRatio() {
-    const wraps = document.querySelectorAll("[data-join-media-wrap]");
-
-    wraps.forEach((wrap) => {
-      const media = wrap.querySelector("[data-join-media]");
-      if (!media) return;
-
-      function apply(width, height) {
-        if (!width || !height) return;
-
-        const ratio = width / height;
-
-        wrap.classList.remove("is-portrait", "is-square", "is-wide", "is-ultrawide");
-
-        if (ratio < 0.82) {
-          wrap.classList.add("is-portrait");
-        } else if (ratio < 1.18) {
-          wrap.classList.add("is-square");
-        } else if (ratio > 2.05) {
-          wrap.classList.add("is-ultrawide");
-        } else {
-          wrap.classList.add("is-wide");
-        }
-      }
-
-      if (media instanceof HTMLImageElement) {
-        if (media.complete) {
-          apply(media.naturalWidth, media.naturalHeight);
-        } else {
-          media.addEventListener("load", function () {
-            apply(media.naturalWidth, media.naturalHeight);
-          }, { once: true });
-        }
-      }
-
-      if (media instanceof HTMLVideoElement) {
-        if (media.readyState >= 1) {
-          apply(media.videoWidth, media.videoHeight);
-        } else {
-          media.addEventListener("loadedmetadata", function () {
-            apply(media.videoWidth, media.videoHeight);
-          }, { once: true });
-        }
-
-        const card = wrap.closest(".mm-join-card");
-
-        if (card) {
-          card.addEventListener("mouseenter", function () {
-            const playPromise = media.play();
-            if (playPromise && typeof playPromise.catch === "function") {
-              playPromise.catch(function () {});
-            }
-          });
-
-          card.addEventListener("mouseleave", function () {
-            media.pause();
-          });
-        }
-      }
-    });
-  }
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", applyJoinMediaRatio, { once: true });
-  } else {
-    applyJoinMediaRatio();
-  }
-})();
-</script>
+<script defer src="{{ url_for('static', filename='js/newsletter.js') }}?v=GUAMAISON-newsletter-v11"></script>

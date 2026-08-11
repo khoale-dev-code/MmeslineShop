@@ -34,6 +34,10 @@
   {% set page_title = 'Bộ sưu tập' %}
 {% elif current_ep == 'admin.coupons' %}
   {% set page_title = 'Khuyến mãi' %}
+{% elif contact_active %}
+  {% set page_title = 'Tin nhắn liên hệ' %}
+{% elif newsletter_active %}
+  {% set page_title = 'Hộp thư nhận tin' %}
 {% elif notification_active %}
   {% set page_title = 'Trung tâm thông báo' %}
 {% elif current_ep == 'admin.reports' %}

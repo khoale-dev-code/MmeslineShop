@@ -1,0 +1,13 @@
+<section id="voucher-list" class="gv-list" aria-labelledby="voucher-list-title">
+  <header class="gv-list__head"><div><p>Privilege archive</p><h2 id="voucher-list-title">Chọn đặc quyền của bạn</h2></div><span><b data-visible-count>{{ coupons|length if coupons else 0 }}</b> lựa chọn</span></header>
+  {% if coupons %}
+    <div class="gv-grid" data-voucher-grid>
+      {% for coupon in coupons %}
+        {% set voucher_index = loop.index %}
+        {% include "components/vouchers/_card.html" %}
+      {% endfor %}
+    </div>
+    <div class="gv-more" data-load-more-wrap hidden><button type="button" data-load-more>Xem thêm <i class="fa-solid fa-plus" aria-hidden="true"></i></button></div>
+  {% endif %}
+  <div class="gv-empty" data-empty-state {% if coupons %}hidden{% endif %}><span aria-hidden="true">G/M</span><h3>{% if data_unavailable %}Kết nối đang được làm mới{% else %}Ưu đãi mới sắp xuất hiện{% endif %}</h3><p>{% if data_unavailable %}Bạn có thể tải lại trang sau ít phút hoặc tiếp tục khám phá cửa hàng.{% else %}Hãy quay lại để mở khóa đặc quyền tiếp theo từ GUAMAISON.{% endif %}</p>{% if coupons %}<button type="button" data-reset-filter>Đặt lại bộ lọc</button>{% else %}<a href="/shop">Khám phá cửa hàng</a>{% endif %}</div>
+</section>

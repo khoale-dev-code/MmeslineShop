@@ -24,4 +24,10 @@ from . import permissions_controller
 from . import notifications   
 from . import audit_controller
 # 3. Export admin_bp ra ngoài (cho app/__init__.py gọi)
+from . import newsletter  # Newsletter v11.1
+
+from . import contact  # Contact Center v13
+
+from . import storefront_media  # Media Studio v14
+
 __all__ = ["admin_bp"]

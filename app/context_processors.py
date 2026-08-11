@@ -39,7 +39,7 @@ LƯU Ý VỀ VERCEL / SERVERLESS:
 import logging
 import time
 from flask import session
-from app.models.cart_model import CartModel
+from app.services.cart_service import cart_service
 from app.models.category_model import CategoryModel
 from app.models.collection_model import CollectionModel
 from app.models.setting_model import SettingModel
@@ -149,7 +149,7 @@ def inject_globals() -> dict:
     if user_id:
         cart_count = _cache_get(
             f"cart_{user_id}",
-            lambda: CartModel.get_count(user_id),
+            lambda: cart_service.get_count(user_id),
             _TTL_USER
         ) or 0
 

@@ -14,6 +14,8 @@
 
 {% set pending_returns = pending_returns|default(0) %}
 {% set admin_notification_count = admin_notification_count|default(0) %}
+{% set newsletter_unread_count = newsletter_unread_count|default(0) %}
+{% set contact_unread_count = contact_unread_count|default(0) %}
 {% set current_ep = request.endpoint or '' %}
 
 {# ═══════════════════════════════════════════════════════
@@ -113,6 +115,8 @@
   'admin.edit_notification'
 ] %}
 
+{% set newsletter_active = current_ep.startswith('admin.newsletter_') %}
+
 {% set returns_active = current_ep.startswith('admin.return') %}
 
 {% set providers_active =
@@ -141,6 +145,8 @@
   'admin.audit_logs',
   'admin.logs'
 ] %}
+
+{% set contact_active = current_ep.startswith('admin.contact_') %}
 
 {# ═══════════════════════════════════════════════════════
    SIDEBAR DATA
@@ -173,7 +179,9 @@
       ('Menu & liên kết', 'admin.menus_page', 'fa-bars-staggered', 0),
       ('Trang About', 'admin.about_page_editor', 'fa-pen-ruler', 0),
       ('Khuyến mãi', 'admin.coupons', 'fa-ticket', 0),
-      ('Thông báo', 'admin.notifications_index', 'fa-bell', admin_notification_count)
+      ('Thông báo', 'admin.notifications_index', 'fa-bell', admin_notification_count),
+      ('Hộp thư nhận tin', 'admin.newsletter_index', 'fa-envelope-open-text', newsletter_unread_count),
+      ('Tin nhắn liên hệ', 'admin.contact_messages_index', 'fa-message', contact_unread_count)
     ]
   },
   {
