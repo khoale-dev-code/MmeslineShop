@@ -25,6 +25,10 @@ from app.models.contact_model import (
 )
 from app.repositories.contact_repository import ContactMigrationRequired, ContactRepository
 from app.services.email_service import send_transactional_email
+from app.services.storefront_media_service import (
+    StorefrontMediaService,
+    StorefrontMediaValidationError,
+)
 
 
 class ContactValidationError(ValueError):
@@ -164,6 +168,15 @@ class ContactService:
             raise ContactValidationError("Liên kết chỉ đường phải là liên kết Google Maps HTTPS.")
         return raw[:2500]
 
+    @staticmethod
+    def _clean_hero_media_url(value: str) -> str:
+        try:
+            return StorefrontMediaService.normalize_media_url(
+                value, allow_video=False
+            )
+        except StorefrontMediaValidationError as exc:
+            raise ContactValidationError(str(exc)) from exc
+
     @classmethod
     def _clean_topics(cls, value: str | list[str] | tuple[str, ...]) -> list[str]:
         raw = value if isinstance(value, (list, tuple)) else str(value or "").splitlines()
@@ -208,6 +221,7 @@ class ContactService:
             "contact_phone": self._clean_phone(data.get("contact_phone", "")),
             "business_hours": self._clean_multiline(data.get("business_hours", ""), max_length=300, required=True),
             "response_note": self._clean_text(data.get("response_note", ""), max_length=220, required=True),
+            "hero_media_url": self._clean_hero_media_url(data.get("hero_media_url", "")),
             "map_embed_url": self._extract_map_url(data.get("map_embed", "")),
             "directions_url": self._clean_directions_url(data.get("directions_url", "")),
             "theme": theme,

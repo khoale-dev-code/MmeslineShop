@@ -1,0 +1,9 @@
+<section class="gv-toolbar" aria-label="Tìm và lọc ưu đãi">
+  <div class="gv-shell gv-toolbar__inner">
+    <div class="gv-tabs" role="tablist" aria-label="Loại voucher">
+      {% for key, label in [('all','Tất cả'),('percent','Giảm %'),('fixed','Giảm tiền'),('free_shipping','Freeship')] %}<button type="button" role="tab" data-filter="{{ key }}" aria-selected="{{ 'true' if loop.first else 'false' }}" class="{{ 'is-active' if loop.first else '' }}">{{ label }}</button>{% endfor %}
+    </div>
+    <label class="gv-search" for="voucher-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><span class="sr-only">Tìm voucher</span><input id="voucher-search" type="search" data-voucher-search placeholder="Tìm mã hoặc quyền lợi" autocomplete="off"><kbd>ESC</kbd></label>
+  </div>
+</section>
+

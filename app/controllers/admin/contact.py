@@ -134,7 +134,7 @@ def contact_message_update(message_id: UUID):
 
 @admin_bp.route("/newsletter/contact-page", methods=["GET", "POST"])
 @admin_required
-@permission_required("notifications.manage")
+@permission_required("settings.manage")
 def contact_page_settings():
     service = ContactService()
     if request.method == "POST":

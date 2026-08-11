@@ -1,0 +1,31 @@
+{% set stackable = value.get('is_stackable') in [true, 1, '1', 'on', 'true', 'checked'] %}
+{% set first_only = value.get('is_first_order_only') in [true, 1, '1', 'on', 'true', 'checked'] %}
+<section class="gpa-section" id="voucher-schedule" data-form-section>
+  <header class="gpa-section__head">
+    <span>03</span>
+    <div><p>Thời gian & đối tượng</p><h2>Điều kiện sử dụng</h2><small>Kiểm soát thời hạn, số lượt và nhóm khách được dùng.</small></div>
+    <i class="fa-regular fa-calendar-check" aria-hidden="true"></i>
+  </header>
+  <div class="gpa-section__body">
+    <div class="gpa-subhead"><span>Thời gian hiệu lực</span><small>Để trống ngày kết thúc nếu voucher dùng vĩnh viễn.</small></div>
+    <div class="gpa-grid gpa-grid--2">
+      <label class="gpa-field"><span>Bắt đầu</span><input name="starts_at" data-start type="datetime-local" value="{{ value.get('starts_at', '') or '' }}"></label>
+      <label class="gpa-field"><span>Kết thúc</span><input name="expires_at" data-expiry type="datetime-local" value="{{ value.get('expires_at', '') or '' }}"></label>
+    </div>
+    <div class="gpa-divider"></div>
+    <div class="gpa-subhead"><span>Giới hạn sử dụng</span><small>Để trống hoặc nhập 0 nghĩa là không giới hạn.</small></div>
+    <div class="gpa-grid gpa-grid--3">
+      <label class="gpa-field"><span>Toàn chiến dịch</span><input name="usage_limit" type="number" min="0" value="{{ value.get('usage_limit', '') or '' }}" placeholder="Không giới hạn" inputmode="numeric"></label>
+      <label class="gpa-field"><span>Mỗi khách</span><input name="usage_per_user" type="number" min="0" value="{{ value.get('usage_per_user', '') or '' }}" placeholder="Không giới hạn" inputmode="numeric"></label>
+      <label class="gpa-field"><span>Mỗi ngày</span><input name="max_usage_per_day" type="number" min="0" value="{{ value.get('max_usage_per_day', '') or '' }}" placeholder="Không giới hạn" inputmode="numeric"></label>
+    </div>
+    <div class="gpa-grid gpa-grid--2 gpa-grid--spaced">
+      <label class="gpa-field"><span>Điểm thành viên tối thiểu</span><input name="min_loyalty_points" data-points type="number" min="0" value="{{ value.get('min_loyalty_points', 0) or 0 }}" inputmode="numeric"></label>
+      <label class="gpa-field"><span>Kênh áp dụng</span><select name="applicable_channel" data-channel>{% for key, label in [('all','Website & POS'),('web','Chỉ Website'),('pos','Chỉ POS')] %}<option value="{{ key }}" {% if value.get('applicable_channel', 'all') == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+    </div>
+    <div class="gpa-checks">
+      <label><input type="checkbox" name="is_first_order_only" value="1" {% if first_only %}checked{% endif %}><span><strong>Chỉ đơn hàng đầu tiên</strong><small>Ưu đãi riêng cho khách mua lần đầu.</small></span></label>
+      <label><input type="checkbox" name="is_stackable" value="1" {% if stackable %}checked{% endif %}><span><strong>Cho phép kết hợp</strong><small>Có thể dùng cùng ưu đãi khác.</small></span></label>
+    </div>
+  </div>
+</section>

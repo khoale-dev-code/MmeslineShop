@@ -3,59 +3,96 @@
 {% block title %}Liên hệ | GUAMAISON{% endblock %}
 
 {% block extra_head %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/contact.css') }}?v=GUAMAISON-contact-v13">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&amp;family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&amp;display=swap&amp;subset=vietnamese" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/contact.css') }}?v=GUAMAISON-contact-editorial-v15.1">
 {% endblock %}
 
 {% block content %}
 {% set phone_href = contact.contact_phone|replace(' ', '')|replace('(', '')|replace(')', '')|replace('.', '')|replace('-', '') %}
 <main class="gm-contact" data-contact-page data-theme="{{ contact.theme }}">
-  <section class="gm-contact-hero" aria-labelledby="contact-title">
-    <div class="gm-contact-shell gm-contact-hero__grid">
-      <div class="gm-contact-hero__copy" data-reveal>
+  <section class="gm-contact-cover" aria-labelledby="contact-title">
+    <div class="gm-contact-shell">
+      <header class="gm-contact-cover__rail">
         <nav class="gm-contact-breadcrumb" aria-label="Đường dẫn">
-          <a href="/" data-nav>Trang chủ</a><span aria-hidden="true">/</span><span>Liên hệ</span>
+          <a href="/" data-nav>Trang chủ</a>
+          <span aria-hidden="true">/</span>
+          <span>Liên hệ</span>
         </nav>
-        <p class="gm-contact-kicker"><span></span>{{ contact.eyebrow }}</p>
-        <h1 id="contact-title">
-          {{ contact.title }}
-          <em>{{ contact.accent_text }}</em>
-        </h1>
-        <p class="gm-contact-lead">{{ contact.description }}</p>
-        <div class="gm-contact-hero__actions">
-          <a class="gm-contact-btn is-primary" href="#contact-form">
-            Gửi lời nhắn <i class="fa-solid fa-arrow-down" aria-hidden="true"></i>
-          </a>
-          {% if contact.contact_phone %}
-            <a class="gm-contact-btn is-quiet" href="tel:{{ phone_href }}">
-              {{ contact.contact_phone }} <i class="fa-solid fa-phone" aria-hidden="true"></i>
+        <p>GUAMAISON Journal <span>Issue 01 · 2026</span></p>
+      </header>
+
+      <div class="gm-contact-cover__grid">
+        <div class="gm-contact-cover__copy" data-reveal>
+          <p class="gm-contact-kicker"><span>01</span>{{ contact.eyebrow }}</p>
+          <h1 id="contact-title" aria-label="{{ contact.title }} {{ contact.accent_text }}">
+            <span>{{ contact.title }}</span>
+            <em>{{ contact.accent_text }}</em>
+          </h1>
+          <div class="gm-contact-cover__intro">
+            <p>{{ contact.description }}</p>
+            <span aria-hidden="true"></span>
+          </div>
+          <div class="gm-contact-cover__actions">
+            <a class="gm-contact-btn is-primary" href="#contact-form">
+              <span>Viết cho chúng tôi</span>
+              <i class="fa-solid fa-arrow-down-long" aria-hidden="true"></i>
             </a>
-          {% endif %}
+            {% if contact.contact_phone %}
+              <a class="gm-contact-phone" href="tel:{{ phone_href }}">
+                <small>Hotline</small>
+                <strong>{{ contact.contact_phone }}</strong>
+              </a>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="gm-contact-cover__art" data-reveal>
+          <div class="gm-contact-cover__issue" aria-hidden="true">
+            <span>CONTACT</span><b>01</b>
+          </div>
+          <figure class="gm-contact-cover__media{% if not contact.hero_media_url %} is-empty{% endif %}">
+            {% if contact.hero_media_url %}
+              <img src="{{ contact.hero_media_url }}" alt="Không gian thời trang GUAMAISON" width="900" height="1125" loading="eager" fetchpriority="high" decoding="async">
+            {% else %}
+              <div class="gm-contact-cover__monogram" aria-hidden="true"><span>G</span><span>M</span></div>
+            {% endif %}
+            <figcaption>Fashion · Objects · Conversation</figcaption>
+          </figure>
+          <aside class="gm-contact-response" aria-label="Thời gian phản hồi">
+            <p><span>Phản hồi</span><small>trong khoảng</small></p>
+            <strong>24<em>h</em></strong>
+            <span>{{ contact.response_note }}</span>
+          </aside>
         </div>
       </div>
-
-      <aside class="gm-contact-hero__note" data-reveal aria-label="Thời gian phản hồi">
-        <span class="gm-contact-hero__number">24<small>h</small></span>
-        <div>
-          <strong>Customer care</strong>
-          <p>{{ contact.response_note }}</p>
-        </div>
-      </aside>
     </div>
   </section>
 
-  <section class="gm-contact-main" id="contact-form">
+  <section class="gm-contact-manifesto" aria-label="Lời mời kết nối">
+    <div class="gm-contact-shell">
+      <span>Talk to us</span>
+      <p>Bạn mang câu hỏi. <em>Chúng tôi mang câu trả lời.</em></p>
+      <i aria-hidden="true">↘</i>
+    </div>
+  </section>
+
+  <section class="gm-contact-main" id="contact-form" aria-label="Gửi yêu cầu liên hệ">
     <div class="gm-contact-shell gm-contact-layout">
-      <article class="gm-contact-form-card" data-reveal>
+      <article class="gm-contact-form-panel" data-reveal>
         <header class="gm-contact-section-head">
-          <p class="gm-contact-kicker"><span></span>{{ contact.form_eyebrow }}</p>
-          <h2>{{ contact.form_title }}</h2>
-          <p>{{ contact.form_description }}</p>
+          <p class="gm-contact-kicker"><span>02</span>{{ contact.form_eyebrow }}</p>
+          <div>
+            <h2>{{ contact.form_title }}</h2>
+            <p>{{ contact.form_description }}</p>
+          </div>
         </header>
 
         {% if contact_migration_missing %}
           <div class="gm-contact-alert" role="status">
             <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
-            <p>Biểu mẫu đang được cấu hình. Bạn có thể liên hệ qua email hoặc hotline ở bên dưới.</p>
+            <p>Biểu mẫu đang được cấu hình. Bạn có thể liên hệ qua email hoặc hotline.</p>
           </div>
         {% endif %}
 
@@ -74,12 +111,12 @@
 
           <div class="gm-contact-form__row">
             <div class="gm-contact-field">
-              <label for="contactName">Họ và tên <span>*</span></label>
+              <label for="contactName"><span>01</span> Họ và tên <b>*</b></label>
               <input id="contactName" name="full_name" type="text" maxlength="100" autocomplete="name" placeholder="Nguyễn Văn A" required>
               <small data-field-error="full_name"></small>
             </div>
             <div class="gm-contact-field">
-              <label for="contactEmail">Email <span>*</span></label>
+              <label for="contactEmail"><span>02</span> Email <b>*</b></label>
               <input id="contactEmail" name="email" type="email" maxlength="254" autocomplete="email" inputmode="email" placeholder="example@email.com" required>
               <small data-field-error="email"></small>
             </div>
@@ -87,12 +124,12 @@
 
           <div class="gm-contact-form__row">
             <div class="gm-contact-field">
-              <label for="contactPhone">Số điện thoại</label>
+              <label for="contactPhone"><span>03</span> Số điện thoại</label>
               <input id="contactPhone" name="phone" type="tel" maxlength="30" autocomplete="tel" inputmode="tel" placeholder="+84 90x xxx xxx">
               <small data-field-error="phone"></small>
             </div>
             <div class="gm-contact-field">
-              <label for="contactTopic">Chủ đề</label>
+              <label for="contactTopic"><span>04</span> Chủ đề</label>
               <div class="gm-contact-select-wrap">
                 <select id="contactTopic" name="topic">
                   <option value="">Chọn chủ đề</option>
@@ -105,8 +142,8 @@
             </div>
           </div>
 
-          <div class="gm-contact-field">
-            <label for="contactMessage">Lời nhắn <span>*</span></label>
+          <div class="gm-contact-field is-message">
+            <label for="contactMessage"><span>05</span> Lời nhắn <b>*</b></label>
             <textarea id="contactMessage" name="message" rows="6" minlength="10" maxlength="4000" placeholder="Bạn cần GUAMAISON hỗ trợ điều gì?" required></textarea>
             <div class="gm-contact-field__meta">
               <small data-field-error="message"></small>
@@ -118,7 +155,7 @@
             <p><i class="fa-solid fa-lock" aria-hidden="true"></i> Thông tin chỉ dùng để phản hồi yêu cầu này.</p>
             <button class="gm-contact-btn is-primary" type="submit" data-contact-submit {% if contact_migration_missing %}disabled{% endif %}>
               <span>Gửi lời nhắn</span>
-              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+              <i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i>
             </button>
           </div>
 
@@ -127,67 +164,81 @@
       </article>
 
       <aside class="gm-contact-side" data-reveal>
-        <section class="gm-contact-map-card">
-          {% if contact.map_embed_url %}
-            <iframe
-              src="{{ contact.map_embed_url }}"
-              title="Bản đồ {{ contact.map_title }}"
-              loading="lazy"
-              referrerpolicy="no-referrer-when-downgrade"
-              allowfullscreen
-            ></iframe>
-          {% else %}
-            <div class="gm-contact-map-empty">
-              <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
-              <strong>{{ contact.map_title }}</strong>
-              <p>Vị trí Google Maps sẽ hiển thị sau khi Admin cập nhật mã nhúng.</p>
+        <section class="gm-contact-info" aria-labelledby="contact-info-title">
+          <header>
+            <p class="gm-contact-kicker is-light"><span>03</span>Direct line</p>
+            <h2 id="contact-info-title">Chọn cách<br><em>thuận tiện nhất.</em></h2>
+          </header>
+
+          <div class="gm-contact-details">
+            {% if contact.contact_email %}
+              <a href="mailto:{{ contact.contact_email }}" class="gm-contact-detail">
+                <span>01</span>
+                <div><small>Email</small><strong>{{ contact.contact_email }}</strong></div>
+                <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+              </a>
+            {% endif %}
+            {% if contact.contact_phone %}
+              <a href="tel:{{ phone_href }}" class="gm-contact-detail">
+                <span>02</span>
+                <div><small>Hotline</small><strong>{{ contact.contact_phone }}</strong></div>
+                <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+              </a>
+            {% endif %}
+            <div class="gm-contact-detail">
+              <span>03</span>
+              <div><small>Giờ hỗ trợ</small><strong>{{ contact.business_hours }}</strong></div>
             </div>
-          {% endif %}
+          </div>
+          <p class="gm-contact-info__note">Every message matters.</p>
+        </section>
+
+        <section class="gm-contact-map-card" aria-label="Vị trí GUAMAISON">
+          <div class="gm-contact-map-card__visual">
+            {% if contact.map_embed_url %}
+              <iframe
+                src="about:blank"
+                data-contact-map-src="{{ contact.map_embed_url }}"
+                title="Bản đồ {{ contact.map_title }}"
+                loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade"
+                allowfullscreen
+              ></iframe>
+            {% else %}
+              <div class="gm-contact-map-empty">
+                <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+                <p>Admin chưa cập nhật Google Maps.</p>
+              </div>
+            {% endif %}
+          </div>
           <div class="gm-contact-map-card__caption">
+            <span>04</span>
             <div>
-              <small>Visit us</small>
+              <small>Ghé thăm studio</small>
               <strong>{{ contact.map_title }}</strong>
               <p>{{ contact.address }}</p>
             </div>
-            <a href="{{ contact.directions_url }}" target="_blank" rel="noopener noreferrer" aria-label="Mở Google Maps">
-              <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
-            </a>
-          </div>
-        </section>
-
-        <section class="gm-contact-details" aria-label="Thông tin liên hệ">
-          <a href="mailto:{{ contact.contact_email }}" class="gm-contact-detail">
-            <span><i class="fa-regular fa-envelope" aria-hidden="true"></i></span>
-            <div><small>Email</small><strong>{{ contact.contact_email }}</strong></div>
-            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-          </a>
-          {% if contact.contact_phone %}
-            <a href="tel:{{ phone_href }}" class="gm-contact-detail">
-              <span><i class="fa-solid fa-phone" aria-hidden="true"></i></span>
-              <div><small>Hotline</small><strong>{{ contact.contact_phone }}</strong></div>
-              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-            </a>
-          {% endif %}
-          <div class="gm-contact-detail">
-            <span><i class="fa-regular fa-clock" aria-hidden="true"></i></span>
-            <div><small>Giờ hỗ trợ</small><strong>{{ contact.business_hours }}</strong></div>
+            {% if contact.directions_url %}
+              <a href="{{ contact.directions_url }}" target="_blank" rel="noopener noreferrer" aria-label="Mở Google Maps">
+                <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+              </a>
+            {% endif %}
           </div>
         </section>
       </aside>
     </div>
   </section>
 
-  <section class="gm-contact-marquee" aria-label="Cam kết chăm sóc khách hàng">
-    <div>
-      <span>Listen with care</span><i aria-hidden="true"></i>
-      <span>Reply with clarity</span><i aria-hidden="true"></i>
-      <span>Designed for people</span><i aria-hidden="true"></i>
-      <span>Listen with care</span><i aria-hidden="true"></i>
+  <section class="gm-contact-signoff" aria-label="Cam kết chăm sóc khách hàng">
+    <div class="gm-contact-shell">
+      <small>GUAMAISON · Customer care</small>
+      <p>Mỗi lời nhắn<br><em>đều được đọc.</em></p>
+      <div><span>Listen carefully</span><i></i><span>Reply clearly</span></div>
     </div>
   </section>
 </main>
 {% endblock %}
 
 {% block extra_scripts %}
-  <script src="{{ url_for('static', filename='js/contact.js') }}?v=GUAMAISON-contact-v13" defer></script>
+  <script src="{{ url_for('static', filename='js/contact.js') }}?v=GUAMAISON-contact-editorial-v15.1" defer></script>
 {% endblock %}

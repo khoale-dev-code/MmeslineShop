@@ -1,0 +1,17 @@
+{% set type = coupon.discount_type %}
+{% set value = (coupon.discount_value or 0)|float %}
+{% set description = coupon.description or 'Đặc quyền dành riêng cho khách hàng GUAMAISON.' %}
+{% set card_number = voucher_index|default(1)|int %}
+<article class="gv-card" data-voucher-card data-type="{{ type }}" data-search="{{ (coupon.code ~ ' ' ~ description ~ ' ' ~ coupon.scope_label)|lower|e }}">
+  <a class="gv-card__media {% if not coupon.image_url %}is-art{% endif %}" href="{{ url_for('promotions.detail', code=coupon.code) }}" aria-label="Xem chi tiết {{ coupon.code }}">
+    {% if coupon.image_url %}<img src="{{ coupon.image_url }}" alt="" width="600" height="720" loading="lazy" decoding="async">{% else %}<span aria-hidden="true">{{ "%02d"|format(card_number) }}</span>{% endif %}
+    <small>{{ coupon.scope_label }}</small>
+  </a>
+  <div class="gv-card__body">
+    <div><p>{% if type == 'percent' %}Private sale{% elif type == 'fixed' %}Member credit{% else %}Delivery privilege{% endif %}</p><time>Đến {{ coupon.expires_label }}</time></div>
+    <strong>{% if type == 'percent' %}{{ value|int }}<small>%</small>{% elif type == 'fixed' %}{{ "{:,.0f}".format(value)|replace(',', '.') }}<small>₫</small>{% else %}<em>Freeship</em>{% endif %}</strong>
+    <p>{{ description }}</p>
+    <ul><li>{% if coupon.min_order_value|float > 0 %}Đơn từ {{ "{:,.0f}".format(coupon.min_order_value|float)|replace(',', '.') }}₫{% else %}Không yêu cầu đơn tối thiểu{% endif %}</li>{% if coupon.min_loyalty_points|int > 0 %}<li>{{ coupon.min_loyalty_points }} điểm thành viên</li>{% endif %}</ul>
+  </div>
+  <footer><a href="{{ url_for('promotions.detail', code=coupon.code) }}"><small>Mã ưu đãi</small><b>{{ coupon.code }}</b></a><button type="button" data-copy-code="{{ coupon.code|e }}" aria-label="Sao chép mã {{ coupon.code }}"><span>Sao chép</span><i class="fa-regular fa-copy" aria-hidden="true"></i></button></footer>
+</article>

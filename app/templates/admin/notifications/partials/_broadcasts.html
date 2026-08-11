@@ -1,0 +1,13 @@
+{% set active_count = broadcasts|selectattr('is_active')|list|length if broadcasts else 0 %}
+<div class="gm-broadcast-head">
+  <div><h2>Nội dung gửi đến khách hàng</h2><p>Broadcast là nội dung chủ động từ thương hiệu; không được tính vào badge công việc Admin.</p></div>
+  <div class="gm-broadcast-summary"><span><b>{{ broadcasts|length }}</b> tổng</span><span><b>{{ active_count }}</b> đang bật</span></div>
+</div>
+{% if broadcasts %}
+<div class="gm-broadcast-list">
+  {% for item in broadcasts %}{% include "admin/notifications/partials/_broadcast_card.html" %}{% endfor %}
+</div>
+{% else %}
+<div class="gm-empty"><span><i class="fa-solid fa-bullhorn"></i></span><h2>Chưa có broadcast</h2><p>Tạo nội dung đầu tiên để gửi cập nhật đến khách hàng.</p><a class="gm-btn gm-btn--primary" href="{{ url_for('admin.add_notification') }}">Tạo broadcast</a></div>
+{% endif %}
+

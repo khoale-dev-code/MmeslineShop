@@ -38,6 +38,8 @@ from app.models.address_model import AddressModel
 from app.models.setting_model import SettingModel
 from app.services.cart_service import cart_service
 from app.services.vnpay_service import VNPayService
+from app.repositories.coupon_repository import CouponRepository, CouponRepositoryError
+from app.services.coupon_service import CouponService
 from app.middleware.auth_required import login_required
 from app.utils.supabase_client import get_supabase_admin
 
@@ -172,75 +174,38 @@ def _get_dynamic_shipping(province_name: str) -> dict:
 # COUPON HELPERS
 # ═══════════════════════════════════════════════════════════════
 
-def _validate_coupon(coupon_code: str, cart_total: float) -> dict:
-    """
-    Validate coupon tại server.
+# GUAMAISON-PROMOTION-SYNC-V17
+def _coupon_service() -> CouponService:
+    return CouponService(CouponRepository.admin())
 
-    Dùng admin client để tránh RLS coupons.
-    Không ghi coupon_usages tại đây.
-    Coupon usage chỉ nên ghi khi đơn được xác nhận:
-    - COD: sau khi tạo đơn thành công.
-    - VNPAY/SEPAY: sau khi thanh toán/webhook thành công.
-    """
-    result = {
-        "coupon_id": None,
-        "code": "",
-        "discount_amount": 0.0,
-        "message": "",
-    }
 
-    coupon_code = _clean_text(coupon_code).upper()
-    if not coupon_code:
-        return result
-
+def _validate_coupon(
+    coupon_code: str,
+    cart_total: float,
+    *,
+    user_id: str,
+    items: list,
+) -> dict:
+    """Delegate every web coupon rule to the shared promotion service."""
     try:
-        db = get_supabase_admin()
-
-        c_res = (
-            db.table("coupons")
-            .select("*")
-            .eq("code", coupon_code)
-            .eq("is_active", True)
-            .limit(1)
-            .execute()
-        )
-
-        rows = c_res.data or []
-        coupon = rows[0] if rows else None
-
-        if not coupon:
-            result["message"] = "Mã giảm giá không tồn tại hoặc đã tắt."
-            return result
-
-        min_order = _to_float(coupon.get("min_order_value"), 0)
-        if cart_total < min_order:
-            result["message"] = f"Đơn hàng chưa đạt giá trị tối thiểu {min_order:,.0f}đ."
-            return result
-
-        val = _to_float(coupon.get("discount_value"), 0)
-        discount = 0.0
-
-        if coupon.get("discount_type") == "percent":
-            discount = cart_total * (val / 100)
-
-            if coupon.get("max_discount"):
-                discount = min(discount, _to_float(coupon.get("max_discount"), 0))
-        else:
-            discount = val
-
-        discount = max(0, min(discount, cart_total))
-
-        result["coupon_id"] = coupon.get("id")
-        result["code"] = coupon.get("code") or coupon_code
-        result["discount_amount"] = discount
-        result["message"] = "Áp dụng mã giảm giá thành công."
-
-    except Exception as e:
-        logger.warning("[Coupon] Bỏ qua mã giảm giá do lỗi: %s", e)
-        result["message"] = "Hệ thống khuyến mãi đang bận."
-
-    return result
-
+        return _coupon_service().validate_for_checkout(
+            coupon_code,
+            user_id=user_id,
+            items=items,
+            subtotal=cart_total,
+            channel="web",
+        ).to_dict()
+    except CouponRepositoryError as exc:
+        logger.warning("[Coupon] Repository unavailable: %s", exc)
+        return {
+            "valid": False,
+            "coupon_id": None,
+            "code": "",
+            "discount_amount": 0.0,
+            "discount": 0.0,
+            "free_shipping": False,
+            "message": "Hệ thống khuyến mãi đang bận.",
+        }
 
 # ═══════════════════════════════════════════════════════════════
 # ORDER SIDE EFFECTS
@@ -711,7 +676,7 @@ def apply_coupon():
             return jsonify({"valid": False, "error": "Giỏ hàng của bạn đang trống."}), 400
 
         cart_total = calculate_cart_total(items)
-        coupon_result = _validate_coupon(coupon_code, cart_total)
+        coupon_result = _validate_coupon(coupon_code, cart_total, user_id=user_id, items=items)
 
         if not coupon_result["coupon_id"]:
             return jsonify({
@@ -728,6 +693,7 @@ def apply_coupon():
             "coupon_id": coupon_result["coupon_id"],
             "code": coupon_result["code"],
             "message": coupon_result.get("message"),
+            "free_shipping": bool(coupon_result.get("free_shipping")),
         })
 
     except Exception as e:
@@ -797,12 +763,14 @@ def checkout():
 
         address_snapshot = _build_address_snapshot(selected_address)
 
-        coupon_result = _validate_coupon(coupon_code, total)
+        coupon_result = _validate_coupon(coupon_code, total, user_id=user_id, items=items)
         coupon_id = coupon_result["coupon_id"]
         discount_amount = coupon_result["discount_amount"]
 
         ship_info = _get_dynamic_shipping(address_snapshot.get("city", ""))
         shipping_fee = _to_float(ship_info.get("fee"), DEFAULT_SHIPPING_FEE)
+        if coupon_result.get("free_shipping"):
+            shipping_fee = 0.0
         final_total = max(0, total - discount_amount + shipping_fee)
 
         try:

@@ -32,6 +32,7 @@ class ContactPageSettings:
     contact_phone: str
     business_hours: str
     response_note: str
+    hero_media_url: str
     map_embed_url: str
     directions_url: str
     theme: str
@@ -60,6 +61,7 @@ class ContactPageSettings:
             contact_phone="+84 90 123 4567",
             business_hours="09:00 – 21:00 · Thứ Hai – Chủ Nhật",
             response_note="Phản hồi dự kiến trong vòng 24 giờ làm việc.",
+            hero_media_url="",
             map_embed_url="",
             directions_url="https://www.google.com/maps",
             theme="ink",
@@ -95,6 +97,7 @@ class ContactPageSettings:
             contact_phone=str(record.get("contact_phone") or default.contact_phone),
             business_hours=str(record.get("business_hours") or default.business_hours),
             response_note=str(record.get("response_note") or default.response_note),
+            hero_media_url=str(record.get("hero_media_url") or ""),
             map_embed_url=str(record.get("map_embed_url") or ""),
             directions_url=str(record.get("directions_url") or default.directions_url),
             theme=str(record.get("theme") or default.theme),

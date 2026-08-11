@@ -3,75 +3,112 @@
 {% block title %}Tùy chỉnh trang Liên hệ | GUAMAISON Admin{% endblock %}
 
 {% block extra_head %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='admin/css/contact_admin.css') }}?v=GUAMAISON-contact-v13">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/css/contact_settings_v14.css') }}?v=GUAMAISON-contact-settings-v14">
 {% endblock %}
 
 {% block content %}
-<div class="gm-contact-admin">
-  <header class="gm-contact-admin__hero">
+<main
+  class="gm-contact-editor"
+  data-contact-settings
+  data-upload-url="{{ url_for('admin.storefront_media_upload') }}"
+  data-csrf="{{ csrf_token() }}"
+>
+  <header class="gm-contact-editor__hero">
     <div>
-      <a class="gm-contact-admin__back" href="{{ url_for('admin.contact_messages_index') }}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Tin nhắn liên hệ</a>
-      <p class="gm-contact-admin__eyebrow">Storefront editor</p>
-      <h1>Tùy chỉnh trang Liên hệ</h1>
-      <p>Cập nhật nội dung, thông tin cửa hàng và vị trí Google Maps mà không sửa mã nguồn.</p>
+      <a href="{{ url_for('admin.contact_messages_index') }}"><i class="fa-solid fa-arrow-left"></i> Hộp thư liên hệ</a>
+      <p>Contact page editor</p>
+      <h1>Trang Liên hệ</h1>
+      <span>Chỉ giữ những cài đặt cần thiết. Thay ảnh và bản đồ trực tiếp bằng kéo-thả.</span>
     </div>
-    <div class="gm-contact-admin__actions"><a class="is-ghost" href="/contact" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i> Xem trang</a></div>
+    <div>
+      <button type="button" data-contact-help><i class="fa-regular fa-circle-question"></i> Hướng dẫn</button>
+      <a href="/contact" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> Xem trang</a>
+    </div>
   </header>
 
   {% if migration_missing %}
-    <section class="gm-contact-admin__migration" role="alert"><i class="fa-solid fa-database" aria-hidden="true"></i><div><strong>Chưa thể lưu cài đặt</strong><p>Chạy migration Contact Center v13 trong Supabase SQL Editor trước.</p></div></section>
+    <section class="gm-contact-editor__alert" role="alert"><i class="fa-solid fa-database"></i><div><strong>Chưa thể lưu cài đặt</strong><p>Chạy migration Contact Center v13, sau đó migration Media Studio v14 trong Supabase SQL Editor.</p></div></section>
   {% endif %}
 
-  <form method="post" class="gm-contact-admin__settings-form">
+  <form method="post" data-contact-settings-form novalidate>
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-    <section class="gm-contact-admin__settings-card">
-      <div class="gm-contact-admin__settings-intro"><span>01</span><div><small>Hero section</small><h2>Nội dung mở đầu</h2><p>Giữ tiêu đề ngắn để bố cục đẹp trên cả điện thoại và desktop.</p></div></div>
-      <div class="gm-contact-admin__form-grid">
-        <label><span>Dòng nhãn</span><input name="eyebrow" maxlength="80" required value="{{ settings.eyebrow }}"></label>
-        <label><span>Giao diện màu</span><select name="theme"><option value="ink" {{ 'selected' if settings.theme == 'ink' else '' }}>Ink · Đen tối giản</option><option value="rose" {{ 'selected' if settings.theme == 'rose' else '' }}>Rose · Hồng thời trang</option><option value="espresso" {{ 'selected' if settings.theme == 'espresso' else '' }}>Espresso · Nâu ấm</option></select></label>
-        <label><span>Tiêu đề chính</span><input name="title" maxlength="120" required value="{{ settings.title }}"></label>
-        <label><span>Từ nhấn mạnh</span><input name="accent_text" maxlength="80" required value="{{ settings.accent_text }}"></label>
-        <label class="is-wide"><span>Mô tả</span><textarea name="description" rows="4" maxlength="700" required>{{ settings.description }}</textarea></label>
-      </div>
-    </section>
+    <div class="gm-contact-editor__layout">
+      <div class="gm-contact-editor__main">
+        <section class="gm-contact-editor__card">
+          <header><span>01</span><div><small>Nội dung chính</small><h2>Khách hàng sẽ thấy gì?</h2><p>Tiêu đề, mô tả và thông tin liên hệ quan trọng nhất.</p></div></header>
+          <div class="gm-contact-editor__grid">
+            <label><span>Tiêu đề</span><input name="title" maxlength="120" required value="{{ settings.title }}"></label>
+            <label><span>Từ nhấn mạnh</span><input name="accent_text" maxlength="80" required value="{{ settings.accent_text }}"></label>
+            <label class="is-wide"><span>Mô tả ngắn</span><textarea name="description" rows="3" maxlength="700" required>{{ settings.description }}</textarea></label>
+            <label><span>Email hỗ trợ</span><input type="email" name="contact_email" maxlength="254" required value="{{ settings.contact_email }}"></label>
+            <label><span>Số điện thoại</span><input name="contact_phone" maxlength="30" value="{{ settings.contact_phone }}"></label>
+            <label><span>Giờ hỗ trợ</span><input name="business_hours" maxlength="300" required value="{{ settings.business_hours }}"></label>
+            <label><span>Cam kết phản hồi</span><input name="response_note" maxlength="220" required value="{{ settings.response_note }}"></label>
+            <label class="is-wide"><span>Địa chỉ hiển thị</span><textarea name="address" rows="2" maxlength="500" required>{{ settings.address }}</textarea></label>
+          </div>
+        </section>
 
-    <section class="gm-contact-admin__settings-card">
-      <div class="gm-contact-admin__settings-intro"><span>02</span><div><small>Message form</small><h2>Biểu mẫu lời nhắn</h2><p>Các chủ đề giúp Admin phân loại yêu cầu ngay khi nhận.</p></div></div>
-      <div class="gm-contact-admin__form-grid">
-        <label><span>Dòng nhãn biểu mẫu</span><input name="form_eyebrow" maxlength="80" required value="{{ settings.form_eyebrow }}"></label>
-        <label><span>Tiêu đề biểu mẫu</span><input name="form_title" maxlength="140" required value="{{ settings.form_title }}"></label>
-        <label class="is-wide"><span>Mô tả biểu mẫu</span><textarea name="form_description" rows="3" maxlength="500" required>{{ settings.form_description }}</textarea></label>
-        <label class="is-wide"><span>Danh sách chủ đề · mỗi dòng một chủ đề</span><textarea name="topics" rows="7" maxlength="1000" required>{{ settings.topics|join('\n') }}</textarea><small>Tối đa 12 chủ đề, hệ thống tự loại bỏ dòng trùng.</small></label>
-        <label class="is-wide"><span>Cam kết thời gian phản hồi</span><input name="response_note" maxlength="220" required value="{{ settings.response_note }}"></label>
-      </div>
-    </section>
+        <section class="gm-contact-editor__card">
+          <header><span>02</span><div><small>Google Maps</small><h2>Vị trí cửa hàng</h2><p>Thả hoặc dán iframe lấy từ Google Maps. HTML khác sẽ không được lưu.</p></div></header>
+          <div class="gm-contact-editor__map-layout">
+            <div class="gm-contact-editor__map-fields">
+              <label><span>Tên địa điểm</span><input name="map_title" maxlength="120" required value="{{ settings.map_title }}"></label>
+              <label><span>Liên kết chỉ đường</span><input type="url" name="directions_url" maxlength="2500" required value="{{ settings.directions_url }}"></label>
+              <label class="is-wide"><span>Mã nhúng Google Maps</span>
+                <textarea data-map-embed name="map_embed" rows="5" maxlength="3000" placeholder='Thả hoặc dán &lt;iframe src="https://www.google.com/maps/embed?..."&gt;'>{{ map_embed_input }}</textarea>
+                <small data-map-message>Google Maps → Chia sẻ → Nhúng bản đồ → Sao chép HTML.</small>
+              </label>
+            </div>
+            <div class="gm-contact-editor__map-preview" data-map-drop>
+              <iframe data-map-preview src="{{ settings.map_embed_url or 'about:blank' }}" title="Xem trước Google Maps" loading="lazy" referrerpolicy="no-referrer-when-downgrade" {% if not settings.map_embed_url %}hidden{% endif %}></iframe>
+              <div data-map-empty {% if settings.map_embed_url %}hidden{% endif %}><i class="fa-solid fa-map-location-dot"></i><strong>Thả iframe vào đây</strong><span>hoặc dán vào ô bên trái</span></div>
+              <div class="gm-contact-editor__drop-label"><i class="fa-solid fa-arrow-down"></i> Thả mã nhúng</div>
+            </div>
+          </div>
+        </section>
 
-    <section class="gm-contact-admin__settings-card">
-      <div class="gm-contact-admin__settings-intro"><span>03</span><div><small>Store information</small><h2>Thông tin liên hệ</h2><p>Hiển thị bên cạnh bản đồ và dùng làm nút gọi/email nhanh.</p></div></div>
-      <div class="gm-contact-admin__form-grid">
-        <label><span>Email hỗ trợ</span><input type="email" name="contact_email" maxlength="254" required value="{{ settings.contact_email }}"></label>
-        <label><span>Số điện thoại</span><input name="contact_phone" maxlength="30" value="{{ settings.contact_phone }}"></label>
-        <label><span>Tên cửa hàng trên bản đồ</span><input name="map_title" maxlength="120" required value="{{ settings.map_title }}"></label>
-        <label><span>Giờ hỗ trợ</span><textarea name="business_hours" rows="3" maxlength="300" required>{{ settings.business_hours }}</textarea></label>
-        <label class="is-wide"><span>Địa chỉ hiển thị</span><textarea name="address" rows="4" maxlength="500" required>{{ settings.address }}</textarea></label>
+        <details class="gm-contact-editor__advanced">
+          <summary><span><i class="fa-solid fa-sliders"></i><b>Cài đặt nâng cao</b><small>Nhãn, màu sắc và chủ đề biểu mẫu</small></span><i class="fa-solid fa-chevron-down"></i></summary>
+          <div class="gm-contact-editor__grid">
+            <label><span>Dòng nhãn đầu trang</span><input name="eyebrow" maxlength="80" required value="{{ settings.eyebrow }}"></label>
+            <label><span>Màu giao diện</span><select name="theme"><option value="ink" {{ 'selected' if settings.theme == 'ink' else '' }}>Ink · Đen tối giản</option><option value="rose" {{ 'selected' if settings.theme == 'rose' else '' }}>Rose · Hồng thời trang</option><option value="espresso" {{ 'selected' if settings.theme == 'espresso' else '' }}>Espresso · Nâu ấm</option></select></label>
+            <label><span>Nhãn biểu mẫu</span><input name="form_eyebrow" maxlength="80" required value="{{ settings.form_eyebrow }}"></label>
+            <label><span>Tiêu đề biểu mẫu</span><input name="form_title" maxlength="140" required value="{{ settings.form_title }}"></label>
+            <label class="is-wide"><span>Mô tả biểu mẫu</span><textarea name="form_description" rows="2" maxlength="500" required>{{ settings.form_description }}</textarea></label>
+            <label class="is-wide"><span>Chủ đề · mỗi dòng một mục</span><textarea name="topics" rows="5" maxlength="1000" required>{{ settings.topics|join('\n') }}</textarea><small>Tối đa 12 chủ đề; hệ thống tự bỏ dòng trùng.</small></label>
+          </div>
+        </details>
       </div>
-    </section>
 
-    <section class="gm-contact-admin__settings-card is-map">
-      <div class="gm-contact-admin__settings-intro"><span>04</span><div><small>Google Maps</small><h2>Bản đồ cửa hàng</h2><p>Dán mã nhúng chính thức; hệ thống chỉ giữ URL Google Maps an toàn.</p></div></div>
-      <div class="gm-contact-admin__map-grid">
-        <div class="gm-contact-admin__form-grid">
-          <label class="is-wide"><span>Mã iframe hoặc URL nhúng</span><textarea name="map_embed" rows="7" maxlength="3000" placeholder='&lt;iframe src="https://www.google.com/maps/embed?..."&gt;&lt;/iframe&gt;'>{{ map_embed_input }}</textarea><small>Google Maps → Chia sẻ → Nhúng bản đồ → Sao chép HTML.</small></label>
-          <label class="is-wide"><span>Liên kết nút “Chỉ đường”</span><input type="url" name="directions_url" maxlength="2500" required value="{{ settings.directions_url }}"><small>Chỉ chấp nhận liên kết HTTPS của Google Maps.</small></label>
-        </div>
-        <div class="gm-contact-admin__map-preview">
-          {% if settings.map_embed_url %}<iframe src="{{ settings.map_embed_url }}" title="Bản đồ hiện tại" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>{% else %}<div><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i><strong>Chưa có bản đồ</strong><p>Dán mã nhúng và lưu để xem trước.</p></div>{% endif %}
-        </div>
-      </div>
-    </section>
+      <aside class="gm-contact-editor__aside">
+        <section class="gm-contact-editor__media-card">
+          <header><small>Cover image</small><h2>Ảnh trang Liên hệ</h2><p>Hiển thị ở đầu trang; ảnh dọc hoặc vuông phù hợp nhất trên điện thoại.</p></header>
+          <div class="gm-contact-editor__media-drop" data-contact-media-drop tabindex="0" role="button">
+            <div data-contact-media-preview>
+              {% if settings.hero_media_url %}<img src="{{ settings.hero_media_url }}" alt="Ảnh cover Liên hệ" loading="lazy" decoding="async">{% else %}<div><i class="fa-regular fa-image"></i><strong>Thả ảnh vào đây</strong><span>JPG, PNG, WebP, GIF, AVIF</span></div>{% endif %}
+            </div>
+            <input type="file" data-contact-media-file accept="image/png,image/jpeg,image/webp,image/gif,image/avif" class="sr-only" tabindex="-1">
+            <div data-contact-media-progress hidden><span></span></div>
+          </div>
+          <input type="hidden" name="hero_media_url" data-contact-media-url value="{{ settings.hero_media_url }}">
+          <div class="gm-contact-editor__media-actions"><button type="button" data-contact-media-choose><i class="fa-solid fa-cloud-arrow-up"></i> Thay ảnh</button><button type="button" data-contact-media-remove {% if not settings.hero_media_url %}disabled{% endif %}><i class="fa-regular fa-trash-can"></i></button></div>
+        </section>
+      </aside>
+    </div>
 
-    <div class="gm-contact-admin__savebar"><div><strong>Thay đổi áp dụng ngay sau khi lưu</strong><p>Biểu mẫu, bản đồ và hộp thư dùng chung dữ liệu Contact Center.</p></div><button type="submit" {% if migration_missing %}disabled{% endif %}><i class="fa-solid fa-check" aria-hidden="true"></i> Lưu trang Liên hệ</button></div>
+    <div class="gm-contact-editor__savebar"><div><strong data-contact-save-label>Sẵn sàng chỉnh sửa</strong><small>Bản đồ và ảnh chỉ đổi trên trang khách sau khi lưu.</small></div><button type="submit" data-migration-disabled="{{ '1' if migration_missing else '0' }}" {% if migration_missing %}disabled{% endif %}><i class="fa-solid fa-check"></i> Lưu trang Liên hệ</button></div>
   </form>
-</div>
+
+  <dialog data-contact-help-dialog class="gm-contact-editor__help">
+    <form method="dialog"><button aria-label="Đóng"><i class="fa-solid fa-xmark"></i></button></form>
+    <p>Google Maps</p><h2>Cách lấy mã nhúng</h2>
+    <ol><li>Mở địa điểm trên Google Maps.</li><li>Chọn <b>Chia sẻ → Nhúng bản đồ</b>.</li><li>Chọn kích thước bất kỳ và sao chép HTML.</li><li>Thả hoặc dán iframe vào phần “Vị trí cửa hàng”, kiểm tra preview rồi lưu.</li></ol>
+    <span>Hệ thống chỉ lấy thuộc tính <code>src</code> thuộc miền Google Maps HTTPS; mã HTML khác bị loại bỏ.</span>
+  </dialog>
+</main>
+{% endblock %}
+
+{% block extra_scripts %}
+  <script src="{{ url_for('static', filename='admin/js/contact_settings_v14.js') }}?v=GUAMAISON-contact-settings-v14" defer></script>
 {% endblock %}

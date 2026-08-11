@@ -1432,3 +1432,427 @@ body.gua-shop-overlay-open .mm-chat-widget {
     --shop-muted: #424348;
   }
 }
+
+/* === GUAMAISON SHOP THEME V9.2.1 START === */
+/* GUAMAISON Shop Theme v9.2.1
+   This layer is appended to shop.css by the installer so it always loads. */
+
+.gua-shop,
+.gua-shop-drawer,
+.gua-shop-quick {
+  --shop-green: #1b4922;
+  --shop-green-dark: #123418;
+  --shop-green-deep: #0b2b12;
+  --shop-green-soft: #e5eee2;
+  --shop-gold: #c99e14;
+  --shop-gold-soft: #f2e5b2;
+  --shop-cream: #fbfaf4;
+  --shop-cream-deep: #f1eddf;
+  --shop-paper: #fffef9;
+  --shop-ink: #101510;
+  --shop-muted: #617061;
+  --shop-line: rgba(18, 52, 24, 0.14);
+  --shop-line-strong: rgba(18, 52, 24, 0.28);
+  --shop-shadow: 0 24px 60px -42px rgba(18, 52, 24, 0.5);
+  --shop-accent: var(--shop-gold);
+  --shop-focus: var(--shop-gold);
+  color: var(--shop-ink);
+}
+
+.gua-shop {
+  background: var(--shop-cream);
+}
+
+/* Hero: cream, GUAMAISON green and restrained gold. */
+.gua-shop-hero {
+  min-height: clamp(270px, 28vw, 380px);
+  overflow: hidden;
+  border-color: var(--shop-line);
+  background:
+    linear-gradient(112deg, #fbfaf4 0%, #f7f4e8 58%, #e4ede1 100%);
+}
+
+.gua-shop-hero.is-plain::before,
+.gua-shop-hero.is-plain::after {
+  opacity: 1;
+  filter: none;
+}
+
+.gua-shop-hero.is-plain::before {
+  width: clamp(280px, 35vw, 520px);
+  height: clamp(280px, 35vw, 520px);
+  top: clamp(-250px, -13vw, -100px);
+  right: clamp(-210px, -10vw, -84px);
+  background: radial-gradient(
+    circle at center,
+    rgba(27, 73, 34, 0.24) 0 16%,
+    rgba(27, 73, 34, 0.11) 37%,
+    transparent 69%
+  );
+}
+
+.gua-shop-hero.is-plain::after {
+  width: clamp(230px, 29vw, 430px);
+  height: clamp(230px, 29vw, 430px);
+  left: clamp(-180px, -8vw, -64px);
+  bottom: clamp(-210px, -11vw, -90px);
+  background: radial-gradient(
+    circle at center,
+    rgba(201, 158, 20, 0.28) 0 15%,
+    rgba(201, 158, 20, 0.11) 40%,
+    transparent 70%
+  );
+}
+
+.gua-shop-hero.has-media::after {
+  background:
+    linear-gradient(90deg, rgba(9, 34, 15, 0.84), rgba(18, 52, 24, 0.35) 66%, rgba(18, 52, 24, 0.1)),
+    linear-gradient(0deg, rgba(9, 34, 15, 0.38), transparent 60%);
+}
+
+.gua-shop-hero__media {
+  filter: saturate(0.88) contrast(1.03);
+}
+
+.gua-shop-hero__content {
+  width: min(100% - 48px, 1380px);
+  min-height: inherit;
+  padding-block: clamp(42px, 5vw, 68px);
+  align-items: center;
+}
+
+.gua-shop-hero__copy {
+  max-width: 760px;
+}
+
+.gua-shop-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--shop-green);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+.gua-shop-eyebrow::before {
+  content: "";
+  width: 24px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--shop-gold);
+}
+
+.gua-shop-hero h1 {
+  max-width: 15ch;
+  margin-top: 12px;
+  color: var(--shop-green-dark);
+  font-size: clamp(42px, 5vw, 72px);
+  font-weight: 650;
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+}
+
+.gua-shop-hero__description {
+  max-width: 58ch;
+  margin-top: 16px;
+  color: var(--shop-muted);
+  font-size: clamp(13px, 1.1vw, 15px);
+}
+
+.gua-shop-hero.has-media .gua-shop-eyebrow,
+.gua-shop-hero.has-media .gua-shop-hero__description {
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.gua-shop-hero.has-media h1 {
+  color: var(--shop-paper);
+}
+
+.gua-shop-hero__count {
+  display: grid;
+  width: 120px;
+  min-height: 112px;
+  padding: 18px 16px;
+  place-content: center;
+  justify-items: center;
+  border: 1px solid rgba(201, 158, 20, 0.62);
+  border-radius: 26px 8px 26px 8px;
+  background: var(--shop-green-dark);
+  color: var(--shop-paper);
+  box-shadow: 0 26px 54px -32px rgba(18, 52, 24, 0.72);
+}
+
+.gua-shop-hero__count strong {
+  color: var(--shop-gold-soft);
+  font-size: clamp(36px, 3.5vw, 50px);
+  font-weight: 700;
+}
+
+.gua-shop-hero__count span {
+  margin-top: 6px;
+  color: rgba(255, 255, 255, 0.78);
+  letter-spacing: 0.12em;
+}
+
+/* Search and sorting bar. */
+.gua-shop-controls {
+  border-color: var(--shop-line);
+  background: rgba(255, 254, 249, 0.96);
+  box-shadow: 0 16px 36px -34px rgba(18, 52, 24, 0.58);
+}
+
+.gua-shop-control,
+.gua-shop-sort,
+.gua-shop-search {
+  border-color: var(--shop-line);
+  background: var(--shop-paper);
+}
+
+.gua-shop-control,
+.gua-shop-sort select,
+.gua-shop-search button {
+  color: var(--shop-green-dark);
+}
+
+.gua-shop-search > i,
+.gua-shop-sort i,
+.gua-shop-result-count strong {
+  color: var(--shop-green);
+}
+
+.gua-shop-control:hover,
+.gua-shop-search button:hover {
+  border-color: rgba(27, 73, 34, 0.35);
+  background: var(--shop-green-soft);
+  color: var(--shop-green-dark);
+}
+
+.gua-shop-filter-count {
+  background: var(--shop-gold);
+  color: var(--shop-green-dark);
+}
+
+.gua-shop-search input::placeholder {
+  color: #879286;
+}
+
+/* Product area and cards. */
+.gua-shop-main {
+  background: var(--shop-cream);
+}
+
+.gua-shop-card__media {
+  border: 1px solid rgba(18, 52, 24, 0.08);
+  background: var(--shop-cream-deep);
+  box-shadow: 0 18px 44px -40px rgba(18, 52, 24, 0.5);
+  transition: border-color 0.24s ease, box-shadow 0.28s ease, transform 0.28s ease;
+}
+
+.gua-shop-card:hover .gua-shop-card__media,
+.gua-shop-card:focus-within .gua-shop-card__media {
+  border-color: rgba(201, 158, 20, 0.42);
+  box-shadow: 0 26px 56px -38px rgba(18, 52, 24, 0.56);
+  transform: translateY(-2px);
+}
+
+.gua-shop-badge {
+  border-color: rgba(18, 52, 24, 0.12);
+  background: rgba(255, 254, 249, 0.95);
+  color: var(--shop-green-dark);
+}
+
+.gua-shop-badge--sale {
+  border-color: var(--shop-gold);
+  background: var(--shop-gold);
+  color: var(--shop-green-dark);
+}
+
+.gua-shop-badge--muted {
+  border-color: var(--shop-green-dark);
+  background: var(--shop-green-dark);
+  color: var(--shop-paper);
+}
+
+.gua-shop-icon-button {
+  border-color: rgba(18, 52, 24, 0.12);
+  background: rgba(255, 254, 249, 0.95);
+  color: var(--shop-green-dark);
+}
+
+.gua-shop-icon-button:hover,
+.gua-shop-icon-button:focus-visible {
+  border-color: var(--shop-green);
+  background: var(--shop-green);
+  color: #fff;
+}
+
+.gua-shop-icon-button[aria-pressed="true"] {
+  border-color: var(--shop-gold);
+  background: var(--shop-gold);
+  color: var(--shop-green-dark);
+}
+
+.gua-shop-card__add,
+.gua-shop-button--dark {
+  border-color: var(--shop-green-dark);
+  background: var(--shop-green-dark);
+  color: var(--shop-paper);
+  box-shadow: 0 16px 38px -25px rgba(18, 52, 24, 0.76);
+}
+
+.gua-shop-card__add:hover,
+.gua-shop-button--dark:hover {
+  border-color: var(--shop-green);
+  background: var(--shop-green);
+}
+
+.gua-shop-card__category,
+.gua-shop-card__price strong {
+  color: var(--shop-green);
+}
+
+.gua-shop-card__title {
+  color: var(--shop-green-dark);
+}
+
+.gua-shop-card__price del {
+  color: #899287;
+}
+
+.gua-shop-empty__icon {
+  background: var(--shop-green-soft);
+  color: var(--shop-green);
+}
+
+.gua-shop-empty h2 {
+  color: var(--shop-green-dark);
+}
+
+.gua-shop-pagination a:hover {
+  background: var(--shop-green-soft);
+  color: var(--shop-green-dark);
+}
+
+.gua-shop-pagination a[aria-current="page"] {
+  background: var(--shop-green-dark);
+  color: var(--shop-paper);
+}
+
+/* Drawer, Quick View and notices. */
+.gua-shop-drawer__backdrop,
+.gua-shop-quick__backdrop {
+  background: rgba(9, 34, 15, 0.54);
+}
+
+.gua-shop-drawer__panel,
+.gua-shop-drawer__footer,
+.gua-shop-quick__panel,
+.gua-shop-quick__content,
+.gua-shop-quick__field select {
+  background: var(--shop-paper);
+}
+
+.gua-shop-drawer__header,
+.gua-shop-drawer__footer,
+.gua-shop-filter-group {
+  border-color: var(--shop-line);
+}
+
+.gua-shop-drawer__header h2,
+.gua-shop-quick__content h2,
+.gua-shop-filter-group legend,
+.gua-shop-quick__price {
+  color: var(--shop-green-dark);
+}
+
+.gua-shop-check input {
+  accent-color: var(--shop-green);
+}
+
+.gua-shop-chip input:checked + span {
+  border-color: var(--shop-green-dark);
+  background: var(--shop-green-dark);
+  color: var(--shop-paper);
+}
+
+.gua-shop-quick__media {
+  background: var(--shop-cream-deep);
+}
+
+.gua-shop-notice {
+  background: var(--shop-green-dark);
+}
+
+.gua-shop-notice[data-type="success"],
+.gua-shop-card__add.is-success,
+.gua-shop-button.is-success {
+  border-color: var(--shop-green);
+  background: var(--shop-green);
+}
+
+.gua-shop :focus-visible,
+.gua-shop-drawer :focus-visible,
+.gua-shop-quick :focus-visible {
+  outline-color: rgba(201, 158, 20, 0.88);
+}
+
+@media (max-width: 767px) {
+  .gua-shop-container,
+  .gua-shop-hero__content {
+    width: min(100% - 24px, 1380px);
+  }
+
+  .gua-shop-hero,
+  .gua-shop-hero__content {
+    min-height: 246px;
+  }
+
+  .gua-shop-hero__content {
+    padding-block: 30px;
+    align-items: end;
+  }
+
+  .gua-shop-hero h1 {
+    max-width: 12ch;
+    font-size: clamp(35px, 10.5vw, 48px);
+  }
+
+  .gua-shop-hero__count {
+    width: auto;
+    min-width: 70px;
+    min-height: 66px;
+    padding: 10px 12px;
+    border-radius: 16px 6px 16px 6px;
+  }
+
+  .gua-shop-hero__count strong {
+    font-size: 28px;
+  }
+
+  .gua-shop-hero__count span {
+    margin-top: 4px;
+    font-size: 7px;
+  }
+
+  .gua-shop-card__media {
+    border-radius: 12px;
+  }
+}
+
+@media (max-width: 420px) {
+  .gua-shop-hero__content {
+    gap: 10px;
+  }
+
+  .gua-shop-hero__description {
+    max-width: 28ch;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gua-shop-card__media {
+    transition: none;
+  }
+}
+/* === GUAMAISON SHOP THEME V9.2.1 END === */

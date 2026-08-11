@@ -1,5 +1,8 @@
+/* GUAMAISON Contact Editorial v15.1 */
 (function () {
   "use strict";
+
+  var resultTimer = 0;
 
   function initReveal(root) {
     var items = root.querySelectorAll("[data-reveal]");
@@ -8,27 +11,35 @@
       items.forEach(function (item) { item.classList.add("is-visible"); });
       return;
     }
+
     var observer = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
         if (!entry.isIntersecting) return;
         entry.target.classList.add("is-visible");
         observer.unobserve(entry.target);
       });
-    }, { threshold: 0.08, rootMargin: "0px 0px -8% 0px" });
+    }, { threshold: 0.06, rootMargin: "0px 0px -5% 0px" });
+
     items.forEach(function (item, index) {
-      item.style.transitionDelay = Math.min(index, 4) * 55 + "ms";
+      item.style.transitionDelay = Math.min(index, 3) * 45 + "ms";
       observer.observe(item);
     });
   }
 
   function setResult(box, message, isError, reference) {
     if (!box) return;
+    window.clearTimeout(resultTimer);
     box.hidden = false;
     box.classList.toggle("is-error", Boolean(isError));
     box.textContent = reference ? message + " Mã tham chiếu: " + reference + "." : message;
     box.setAttribute("tabindex", "-1");
     box.focus({ preventScroll: true });
-    box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+    if (!isError) {
+      resultTimer = window.setTimeout(function () {
+        box.hidden = true;
+      }, 8500);
+    }
   }
 
   function initForm(root) {
@@ -58,8 +69,7 @@
       var invalid = form.querySelector(":invalid");
       if (!invalid) return false;
       invalid.setAttribute("aria-invalid", "true");
-      var key = invalid.name;
-      var error = form.querySelector('[data-field-error="' + key + '"]');
+      var error = form.querySelector('[data-field-error="' + invalid.name + '"]');
       if (error) error.textContent = invalid.validationMessage;
       invalid.focus();
       return true;
@@ -103,6 +113,7 @@
         if (!response.ok || !payload.ok) {
           throw new Error(payload.message || "Chưa thể gửi lời nhắn lúc này.");
         }
+
         setResult(resultBox, payload.message, false, payload.reference || "");
         form.reset();
         updateCount();
@@ -133,6 +144,29 @@
     });
   }
 
+  function initLazyMap(root) {
+    var frame = root.querySelector("[data-contact-map-src]");
+    if (!frame || frame.dataset.loaded === "1") return;
+
+    function load() {
+      if (frame.dataset.loaded === "1") return;
+      frame.dataset.loaded = "1";
+      frame.src = frame.dataset.contactMapSrc;
+    }
+
+    if (!("IntersectionObserver" in window)) {
+      load();
+      return;
+    }
+
+    var observer = new IntersectionObserver(function (entries) {
+      if (!entries.some(function (entry) { return entry.isIntersecting; })) return;
+      load();
+      observer.disconnect();
+    }, { rootMargin: "280px 0px", threshold: 0.01 });
+    observer.observe(frame);
+  }
+
   function initContactPage() {
     var root = document.querySelector("[data-contact-page]");
     if (!root || root.dataset.initialized === "1") return;
@@ -140,6 +174,7 @@
     initReveal(root);
     initForm(root);
     initAnchors(root);
+    initLazyMap(root);
   }
 
   if (document.readyState === "loading") {

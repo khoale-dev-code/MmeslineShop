@@ -1,0 +1,40 @@
+{% set event_icons = {'order':'fa-bag-shopping','payment':'fa-credit-card','return':'fa-arrow-right-arrow-left','contact':'fa-message','marketing':'fa-envelope-open-text','system':'fa-gear'} %}
+{% set event_labels = {'order':'Đơn hàng','payment':'Thanh toán','return':'Đổi / trả','contact':'Tin nhắn','marketing':'Newsletter','system':'Hệ thống'} %}
+<article class="gm-event gm-event--{{ event.status }} gm-priority--{{ event.priority }}">
+  <div class="gm-event__icon"><i class="fa-solid {{ event_icons.get(event.category, 'fa-bell') }}"></i></div>
+  <div class="gm-event__body">
+    <div class="gm-event__meta">
+      <span class="gm-chip gm-chip--{{ event.category }}">{{ event_labels.get(event.category, 'Thông báo') }}</span>
+      {% if event.priority in ['urgent', 'high'] %}<span class="gm-chip gm-chip--priority"><i class="fa-solid fa-circle-exclamation"></i> {{ 'Khẩn cấp' if event.priority == 'urgent' else 'Ưu tiên cao' }}</span>{% endif %}
+      <time datetime="{{ event.occurred_at }}" data-relative-time>{{ event.occurred_at[:16].replace('T', ' ') if event.occurred_at else '' }}</time>
+    </div>
+    <h2>{{ event.title }}</h2>
+    <p>{{ event.message }}</p>
+    {% if event.actor_name or event.actor_email %}<div class="gm-event__actor"><i class="fa-regular fa-user"></i> {{ event.actor_name or 'Khách hàng' }}{% if event.actor_email %}<span>· {{ event.actor_email }}</span>{% endif %}</div>{% endif %}
+  </div>
+  <div class="gm-event__actions">
+    {% if event.status != 'resolved' %}
+    <form method="post" action="{{ url_for('admin.admin_event_open', event_id=event.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="gm-btn gm-btn--primary" type="submit">{{ event.action_label }} <i class="fa-solid fa-arrow-right"></i></button>
+    </form>
+    <form method="post" action="{{ url_for('admin.admin_event_resolve', event_id=event.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="next" value="{{ request.full_path }}">
+      <button class="gm-btn gm-btn--soft" type="submit"><i class="fa-solid fa-check"></i> Đã xử lý</button>
+    </form>
+    {% else %}
+    <span class="gm-event__done"><i class="fa-solid fa-circle-check"></i> Đã hoàn tất</span>
+    <form method="post" action="{{ url_for('admin.admin_event_reopen', event_id=event.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="next" value="{{ request.full_path }}">
+      <button class="gm-link-btn" type="submit">Mở lại</button>
+    </form>
+    {% endif %}
+    {% if event.status == 'unread' %}
+    <form method="post" action="{{ url_for('admin.admin_event_read', event_id=event.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="next" value="{{ request.full_path }}">
+      <button class="gm-link-btn" type="submit">Đánh dấu đã đọc</button>
+    </form>
+    {% endif %}
+  </div>
+</article>
+

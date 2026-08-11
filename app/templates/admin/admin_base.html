@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi" class="scroll-smooth">
 <head>
   <meta charset="UTF-8">
@@ -513,6 +513,7 @@
   </style>
 
   {% block extra_head %}{% endblock %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/css/admin_notification_badge.css') }}?v=GUAMAISON-admin-inbox-v18-global-css">
 </head>
 
 <body
@@ -734,5 +735,6 @@
   <script src="{{ url_for('static', filename='admin/js/admin_delete_guard.js') }}?v=20260806-v6" defer></script>
 
   {% block extra_scripts %}{% endblock %}
+  <script src="{{ url_for('static', filename='admin/js/admin_notification_badge.js') }}?v=GUAMAISON-admin-inbox-v18-global-js" defer></script>
 </body>
 </html>

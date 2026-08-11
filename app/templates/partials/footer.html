@@ -1,6 +1,6 @@
 ﻿{#
-  GUAMAISON White Canvas footer v7.2
-  Nội dung tiếp tục lấy từ site_navigation.footer trong admin.
+  GUAMAISON Brand Footer v7.3
+  Dữ liệu tiếp tục lấy từ site_navigation.footer trong Admin.
 #}
 
 {% set navigation_config = site_navigation|default({}, true) %}
@@ -17,21 +17,19 @@
   'pinterest': 'fa-pinterest-p'
 } %}
 
-<footer class="gua-footer mt-auto" data-footer-version="7.2" aria-labelledby="guaFooterBrand">
+<footer class="gua-footer mt-auto" data-footer-version="7.3" aria-labelledby="guaFooterBrand">
   <div class="gua-footer-canvas" aria-hidden="true">
-    <span class="gua-footer-splash gua-footer-splash--coral"></span>
-    <span class="gua-footer-splash gua-footer-splash--blue"></span>
-    <span class="gua-footer-splash gua-footer-splash--sun"></span>
-    <span class="gua-footer-splash gua-footer-splash--mint"></span>
-    <span class="gua-footer-drop gua-footer-drop--one"></span>
-    <span class="gua-footer-drop gua-footer-drop--two"></span>
-    <span class="gua-footer-drop gua-footer-drop--three"></span>
+    <span class="gua-footer-orbit gua-footer-orbit--forest"></span>
+    <span class="gua-footer-orbit gua-footer-orbit--leaf"></span>
+    <span class="gua-footer-orbit gua-footer-orbit--gold"></span>
+    <span class="gua-footer-grain"></span>
   </div>
 
   <div class="gua-footer-frame">
     <div class="gua-footer-intro">
       <section class="gua-footer-brand-block" aria-labelledby="guaFooterBrand">
         <p class="gua-footer-eyebrow">
+          <span aria-hidden="true"></span>
           {{ footer_config.get('kicker', 'Official Online Store') }}
         </p>
         <h2 id="guaFooterBrand" class="gua-footer-brand">{{ footer_shop_name }}</h2>
@@ -46,8 +44,12 @@
             {% if csrf_token is defined %}
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             {% endif %}
-            <label for="guaFooterEmail">Nhận tin mới</label>
+            <div class="gua-footer-action-heading">
+              <span>Nhận tin mới</span>
+              <small>Ưu đãi và bộ sưu tập mới từ GUAMAISON</small>
+            </div>
             <div class="gua-footer-newsletter-row">
+              <label class="sr-only" for="guaFooterEmail">Địa chỉ email</label>
               <input
                 id="guaFooterEmail"
                 type="email"
@@ -64,11 +66,13 @@
             </div>
           </form>
         {% else %}
-          <p class="gua-footer-action-copy">Tự do phối, tự do thể hiện.</p>
-          <a class="gua-footer-cta" href="/shop?sort=new" data-nav>
-            <span>Xem thiết kế mới</span>
-            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-          </a>
+          <div class="gua-footer-discover">
+            <p class="gua-footer-action-copy">Tự do phối, tự do thể hiện.</p>
+            <a class="gua-footer-cta" href="/shop?sort=new" data-nav>
+              <span>Xem thiết kế mới</span>
+              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+            </a>
+          </div>
         {% endif %}
       </section>
     </div>

@@ -1,0 +1,8 @@
+{% if inbox_page.total_pages > 1 %}
+<nav class="gm-pagination" aria-label="Phân trang thông báo">
+  {% if inbox_page.page > 1 %}<a href="{{ url_for('admin.notifications_index', tab='inbox', page=inbox_page.page-1, q=filters.q, status=filters.status, category=filters.category, priority=filters.priority) }}"><i class="fa-solid fa-arrow-left"></i> Trước</a>{% endif %}
+  <span>Trang <b>{{ inbox_page.page }}</b> / {{ inbox_page.total_pages }}</span>
+  {% if inbox_page.page < inbox_page.total_pages %}<a href="{{ url_for('admin.notifications_index', tab='inbox', page=inbox_page.page+1, q=filters.q, status=filters.status, category=filters.category, priority=filters.priority) }}">Sau <i class="fa-solid fa-arrow-right"></i></a>{% endif %}
+</nav>
+{% endif %}
+
