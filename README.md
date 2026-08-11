@@ -1,467 +1,385 @@
 <div align="center">
 
-<br/>
-<br/>
+<img src="./app/static/images/logo.svg" alt="GUAMAISON logo" width="112" />
 
-```
-```
+# GUAMAISON
 
-**Nền tảng thương mại điện tử thời trang — Hiện đại · Đẳng cấp · Trọn vẹn**
+### Fashion commerce, built for both shoppers and operators.
 
-<br/>
+**Nền tảng thương mại điện tử thời trang full-stack** kết hợp storefront hiện đại, quản trị vận hành, POS, thanh toán Việt Nam và trợ lý mua sắm AI trong một hệ thống thống nhất.
 
-[![Python](https://img.shields.io/badge/Python_3.10+-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
-[![Flask](https://img.shields.io/badge/Flask_3.x-000000?style=flat-square&logo=flask&logoColor=white)](https://flask.palletsprojects.com)
-[![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=flat-square&logo=supabase&logoColor=white)](https://supabase.com)
-[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
-[![Vercel](https://img.shields.io/badge/Vercel-000000?style=flat-square&logo=vercel&logoColor=white)](https://vercel.com)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-1b4922?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![Flask](https://img.shields.io/badge/Flask-3.x-123418?style=flat-square&logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
+[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-1b4922?style=flat-square&logo=supabase&logoColor=white)](https://supabase.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-Responsive-c99e14?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Vercel](https://img.shields.io/badge/Vercel-Deploy-123418?style=flat-square&logo=vercel&logoColor=white)](https://vercel.com/)
+[![Portfolio](https://img.shields.io/badge/Project-Full--stack_Portfolio-c99e14?style=flat-square)](#recruiter-fast-track)
 
-[![VNPay](https://img.shields.io/badge/VNPay-Integrated-005BAC?style=flat-square)](https://vnpay.vn)
-[![SePay](https://img.shields.io/badge/SePay_Webhook-Integrated-111111?style=flat-square)](https://sepay.vn)
-[![License](https://img.shields.io/badge/License-MIT-22c55e?style=flat-square)](./LICENSE)
-[![Stars](https://img.shields.io/github/stars/your-username/fashion_store?style=flat-square&color=f59e0b)](https://github.com/your-username/fashion_store)
-
-<br/>
-
-> *Từ trải nghiệm mua sắm đến vận hành nội bộ — tất cả trong một hệ thống.*
-
-<br/>
+[Điểm nổi bật](#highlights) · [Tính năng](#feature-map) · [Kiến trúc](#architecture) · [Cài đặt](#quick-start) · [Bảo mật](#security) · [Roadmap](#roadmap)
 
 </div>
 
 ---
 
-## ✦ Tổng quan
+<a id="overview"></a>
 
-**GUAMAISON** là nền tảng thương mại điện tử thời trang full-stack, được thiết kế để đáp ứng toàn bộ chu kỳ bán hàng — từ hiển thị sản phẩm, giỏ hàng, đặt hàng, đến tích hợp thanh toán và quản trị nội bộ.
+## Một sản phẩm, hai trải nghiệm hoàn chỉnh
 
-Kiến trúc được phân tầng rõ ràng theo mô hình **Controller → Service → Repository → Model**, đảm bảo tách biệt hoàn toàn giữa logic giao diện, nghiệp vụ và dữ liệu. Hệ thống được xây dựng trên **Flask** + **Jinja2** + **TailwindCSS** với backend lưu trữ trên **Supabase PostgreSQL**.
+GUAMAISON không chỉ là một website trưng bày sản phẩm. Dự án mô phỏng toàn bộ vòng đời của một hệ thống bán lẻ thời trang: khách hàng khám phá và mua sắm, trong khi đội ngũ nội bộ quản lý catalog, tồn kho, đơn hàng, khách hàng, nội dung, khuyến mãi và bán hàng tại quầy.
 
-<br/>
+| Góc nhìn sản phẩm | Phạm vi triển khai |
+| --- | --- |
+| **Customer experience** | Tìm kiếm, lọc, biến thể màu/size, Quick View, yêu thích, giỏ hàng, checkout, thanh toán và theo dõi đơn |
+| **Commerce operations** | Sản phẩm, kho, coupon, đơn hàng, đổi trả, vận chuyển, khách hàng, thông báo và báo cáo |
+| **Omnichannel** | Storefront trực tuyến kết hợp POS tại quầy, đồng bộ sản phẩm, khách hàng, tồn kho và loyalty |
+| **Intelligent experience** | AI Assistant và Styling Lab có thể hoạt động với Gemini hoặc fallback nội bộ |
+| **Vietnam-ready payments** | COD, VNPay redirect/checksum và SePay QR/webhook |
 
+> **Engineering focus:** biến một bài toán e-commerce nhiều luồng nghiệp vụ thành codebase Flask có ranh giới rõ ràng, bảo mật theo vai trò và khả năng vận hành thực tế.
+
+<a id="highlights"></a>
+
+## Điều làm GUAMAISON khác biệt
+
+### 1. Thanh toán được xử lý như một workflow, không phải một nút bấm
+
+- **VNPay:** tạo URL thanh toán phía server, xác minh checksum khi callback và chỉ hoàn tất đơn khi chữ ký hợp lệ.
+- **SePay:** nhận webhook, xác thực API key, tách mã đơn, đối chiếu số tiền và bỏ qua giao dịch đã ghi nhận.
+- Sau khi xác nhận thanh toán, hệ thống đồng bộ trạng thái đơn, log giao dịch, tồn kho, analytics, coupon usage và giỏ hàng.
+
+### 2. Admin là một sản phẩm riêng
+
+- Dashboard, báo cáo, quản lý sản phẩm/biến thể, tồn kho, đơn hàng và khách hàng.
+- RBAC theo permission code cho `staff`, `admin` và nhóm quyền tùy chỉnh.
+- Audit log ghi nhận thao tác quản trị.
+- Storefront CMS cho menu, footer, media, thông báo và cấu hình hiển thị.
+- POS hỗ trợ barcode/SKU, coupon, loyalty, tiền mặt, chuyển khoản và giao hàng sau.
+
+### 3. AI có graceful fallback
+
+- AI Assistant hỗ trợ tìm sản phẩm, tư vấn size, phối đồ, chính sách và tra cứu đơn.
+- Styling Lab xếp hạng gợi ý theo style profile và dữ liệu sản phẩm.
+- Nếu chưa cấu hình Gemini, hệ thống chuyển sang rule-based fallback thay vì làm hỏng trải nghiệm chính.
+
+### 4. Tối ưu cho vận hành thật
+
+- Adapter vận chuyển tách biệt cho GHN, tự giao và mock provider.
+- Global context cache giúp giảm truy vấn Supabase lặp lại.
+- Cache được invalidation sau khi Admin cập nhật storefront để nội dung mới xuất hiện ngay.
+- Static assets có cache header dài hạn khi deploy trên Vercel.
+
+<a id="feature-map"></a>
+
+## Feature map
+
+| Khu vực | Tính năng tiêu biểu |
+| --- | --- |
+| 🛍️ **Storefront** | Hero/banner, collection, search, filter, pagination, Quick View, snackbar, responsive navigation |
+| 👕 **Catalog** | Sản phẩm, category, collection, product group, ảnh, biến thể màu/size, size chart, SKU, barcode, tồn kho |
+| 🛒 **Cart & checkout** | Giỏ hàng theo người dùng, cập nhật line item, địa chỉ giao hàng, phí vận chuyển, coupon, tạo đơn |
+| 💳 **Payments** | COD, VNPay, SePay QR/webhook, payment log, trạng thái thanh toán, xử lý giao dịch trùng |
+| 👤 **Customer account** | Đăng ký/đăng nhập, hồ sơ, đổi mật khẩu, sổ địa chỉ, yêu thích, lịch sử và chi tiết đơn |
+| 🎁 **Growth** | Coupon, promotion, newsletter, notification, loyalty point và member tier |
+| 🚚 **Operations** | Đơn hàng, shipment, shipping provider, tồn kho, đổi/trả, customer management |
+| 🧾 **POS** | Tra cứu SKU/barcode, khách hàng nhanh, coupon, loyalty, VAT, tiền khách đưa, giao hàng sau |
+| 📊 **Analytics** | Product events, doanh thu, báo cáo vận hành, xuất dữ liệu Excel và dashboard |
+| 🧠 **AI experience** | Product discovery assistant, size/policy support, outfit suggestion, Styling Lab |
+| 🧩 **Admin CMS** | Menu động, footer, storefront media, cài đặt hệ thống, role/permission và audit log |
+
+<details>
+<summary><strong>Xem hành trình mua hàng từ đầu đến cuối</strong></summary>
+
+1. Khách hàng tìm hoặc lọc sản phẩm theo nhu cầu.
+2. Chọn biến thể màu, kích thước và số lượng còn trong kho.
+3. Thêm vào giỏ, áp coupon và chọn địa chỉ giao hàng.
+4. Hệ thống tính phí vận chuyển và tạo snapshot thông tin line item.
+5. Khách chọn COD, VNPay hoặc SePay.
+6. Callback/webhook hợp lệ cập nhật payment, order, inventory và analytics.
+7. Khách theo dõi đơn trong hồ sơ; Admin tiếp tục xử lý vận chuyển hoặc đổi trả.
+
+</details>
+
+<a id="architecture"></a>
+
+## Kiến trúc
+
+GUAMAISON chuẩn hóa module mới và các phần được refactor theo mô hình bốn tầng. Mục tiêu là giữ HTTP, nghiệp vụ và truy cập dữ liệu tách biệt để dễ kiểm thử, thay đổi và mở rộng.
+
+```mermaid
+flowchart TD
+    A["HTTP / Jinja2 / JSON"] --> B["Controller — request, validation, response"]
+    B --> C["Service — business rules"]
+    C --> D["Repository — Supabase queries"]
+    D --> E["Model — data & schema"]
+    B -.-> F["Middleware — auth, CSRF, RBAC"]
 ```
-Trình duyệt  ──►  Flask App  ──►  Controller  ──►  Service  ──►  Repository  ──►  Supabase
-                                       │
-                                  Middleware
-                               (Auth · CSRF · Role)
+
+| Tầng | Trách nhiệm | Không nên chứa |
+| --- | --- | --- |
+| **Controller** | Params, validation cơ bản, HTTP response, template/JSON | Business rule hoặc query Supabase |
+| **Service** | Use case, workflow, tính toán và chính sách nghiệp vụ | `request`, `session` hoặc render template |
+| **Repository** | Nơi tập trung mọi query Supabase | HTTP và logic trình bày |
+| **Model** | Dataclass, schema và cấu trúc dữ liệu | Side effect hoặc điều phối workflow |
+
+### Request lifecycle
+
+```mermaid
+sequenceDiagram
+    participant U as Client
+    participant M as Middleware
+    participant C as Controller
+    participant S as Service
+    participant R as Repository
+    U->>M: HTTP request
+    M->>M: Auth · CSRF · permission
+    M->>C: Valid request
+    C->>S: Use case input
+    S->>R: Data operation
+    R-->>S: Domain data
+    S-->>C: Result
+    C-->>U: HTML or JSON
 ```
 
-<br/>
+### Payment lifecycle
 
----
-
-## ✦ Tính năng
-
-<table>
-<tr>
-<td width="50%" valign="top">
-
-### 🛍️ Storefront
-- Hero banner, video nền, bộ sưu tập nổi bật
-- Danh sách sản phẩm: lọc, tìm kiếm, phân trang
-- Chi tiết sản phẩm: ảnh, màu sắc, kích thước, tồn kho
-- Quick View: chọn màu/size, thêm giỏ, yêu thích
-- Giỏ hàng theo tài khoản người dùng
-- Checkout nhiều bước với địa chỉ và phí vận chuyển
-
-### 💳 Thanh toán
-- Thanh toán khi nhận hàng (COD)
-- Tích hợp **VNPay** (redirect + checksum)
-- Tích hợp **SePay** (QR chuyển khoản + webhook)
-- Theo dõi trạng thái thanh toán theo đơn
-- Ghi nhận lịch sử giao dịch để đối soát
-
-</td>
-<td width="50%" valign="top">
-
-### ⚙️ Quản trị
-- Dashboard tổng quan
-- Quản lý sản phẩm, biến thể, ảnh, tồn kho, mã vạch
-- Quản lý danh mục và bộ sưu tập
-- Quản lý đơn hàng, khách hàng, đổi trả, vận chuyển
-- Quản lý khuyến mãi, thông báo, cài đặt storefront
-- POS tại quầy · Phân quyền · Nhật ký hệ thống
-
-### 🔧 Vận hành
-- Quản lý địa chỉ và thông tin cá nhân
-- Yêu thích sản phẩm
-- Thông báo nội bộ
-- Đổi / trả hàng
-- Loyalty: tích điểm, hạng thành viên
-- Analytics: lượt xem, thêm giỏ, yêu thích, doanh số
-
-</td>
-</tr>
-</table>
-
----
-
-## ✦ Công nghệ
-
-| Nhóm | Stack |
-|---|---|
-| **Backend** | Flask 3.x · Jinja2 · Python 3.10+ |
-| **Database** | Supabase PostgreSQL |
-| **Storage** | Supabase Storage |
-| **Frontend** | TailwindCSS · Vanilla JavaScript · Font Awesome |
-| **Auth** | Flask Session · bcrypt |
-| **Payment** | VNPay · SePay Webhook |
-| **Deploy** | Vercel · Python-compatible server |
-| **Reports** | Pandas · OpenPyXL *(optional)* |
-| **Utils** | python-dotenv · httpx · email-validator |
-
----
-
-## ✦ Kiến trúc hệ thống
-
+```mermaid
+flowchart TD
+    A["Checkout"] --> B{"Payment method"}
+    B -->|COD| C["Order pending"]
+    B -->|VNPay| D["Signed redirect"]
+    B -->|SePay| E["QR + webhook"]
+    D --> F["Verify checksum"]
+    E --> G["Verify key + amount"]
+    F --> H["Finalize order effects"]
+    G --> H
+    C --> I["Fulfilment"]
+    H --> I
 ```
+
+### Cấu trúc thư mục
+
+```text
 fashion_store/
-│
-├── run.py                         ← Entry point
-├── requirements.txt
-├── vercel.json
-├── .env.example
-│
-├── config/
-│   └── settings.py
-│
+├── index.py                       # Local entry point + Vercel WSGI app
+├── config/                        # Environment-driven configuration
 ├── app/
-│   ├── __init__.py
-│   │
-│   ├── controllers/               ← Xử lý request / response
-│   │   ├── auth_controller.py
-│   │   ├── product_controller.py
-│   │   ├── cart_controller.py
-│   │   ├── payment_controller.py
-│   │   ├── profile_controller.py
-│   │   ├── favorite_controller.py
-│   │   ├── analytics_controller.py
-│   │   └── admin_controller.py
-│   │
-│   ├── models/                    ← Data classes & schema
-│   │   ├── user_model.py
-│   │   ├── product_model.py
-│   │   ├── cart_model.py
-│   │   ├── order_model.py
-│   │   ├── address_model.py
-│   │   ├── setting_model.py
-│   │   └── notification_model.py
-│   │
-│   ├── services/                  ← Business logic
-│   │   ├── favorite_service.py
-│   │   ├── shipping_service.py
-│   │   ├── vnpay_service.py
-│   │   ├── sepay_service.py
-│   │   └── loyalty_service.py
-│   │
-│   ├── repositories/              ← Database queries
-│   │   └── favorite_repository.py
-│   │
-│   ├── middleware/                ← Auth & role guards
-│   │   └── auth_required.py
-│   │
-│   ├── utils/
-│   │   ├── supabase_client.py
-│   │   └── security.py
-│   │
-│   ├── static/
-│   │   ├── css/
-│   │   ├── js/
-│   │   ├── images/
-│   │   └── video/
-│   │
-│   └── templates/
-│       ├── base.html
-│       ├── index.html
-│       ├── partials/
-│       ├── components/
-│       ├── products/
-│       ├── cart/
-│       ├── profile/
-│       ├── auth/
-│       └── admin/
-│
-└── migrations/
-    └── *.sql
+│   ├── controllers/               # Storefront, API and admin controllers
+│   ├── services/                  # Business workflows and integrations
+│   │   └── shipping/              # GHN, self-ship and mock adapters
+│   ├── repositories/              # Supabase data-access boundary
+│   ├── models/                    # Domain data and schema helpers
+│   ├── schemas/                   # Request/response schemas
+│   ├── middleware/                # Authentication and permissions
+│   ├── templates/                 # Jinja2 pages, partials and components
+│   ├── static/                    # CSS, Vanilla JS, images and video
+│   └── utils/                     # Security and Supabase clients
+├── migrations/                    # Base SQL migrations
+├── supabase/migrations/           # Incremental Supabase migrations
+├── requirements.txt
+└── vercel.json
 ```
 
----
+<a id="stack"></a>
 
-## ✦ Bắt đầu nhanh
+## Tech stack
 
-### 1 — Clone dự án
+| Layer | Technology |
+| --- | --- |
+| **Backend** | Python 3.10+, Flask 3.x, Flask-WTF, Flask-Session, Jinja2 |
+| **Frontend** | Tailwind CSS, Vanilla JavaScript, Font Awesome, responsive Jinja2 components |
+| **Data** | Supabase PostgreSQL, Supabase Storage |
+| **Payments** | VNPay, SePay webhook, COD |
+| **AI** | Google GenAI/Gemini with local fallback |
+| **Operations** | APScheduler, SendGrid/email, Pandas, OpenPyXL, QR generation |
+| **Deployment** | Vercel Python runtime, immutable static-asset cache |
 
-```bash
-git clone https://github.com/your-username/fashion_store.git
-cd fashion_store
-```
+<a id="recruiter-fast-track"></a>
 
-### 2 — Tạo môi trường ảo
+## Recruiter fast track — xem gì trong 3 phút?
+
+| Thời gian | Điểm nên xem | Vì sao đáng chú ý |
+| --- | --- | --- |
+| **30 giây** | `app/services/vnpay_service.py` | Chữ ký thanh toán được tạo và xác minh phía server |
+| **30 giây** | `app/controllers/sepay_controller.py` | Webhook có API-key guard, amount reconciliation và duplicate protection |
+| **30 giây** | `app/services/rbac_service.py` | Permission catalog, custom role và server-side authorization |
+| **30 giây** | `app/controllers/admin/pos_controller.py` | Workflow bán tại quầy nhiều nghiệp vụ trong cùng một module |
+| **30 giây** | `app/services/chat_service.py` | AI intent handling, product search và graceful fallback |
+| **30 giây** | `index.py` + `vercel.json` | Context caching, cache invalidation và cấu hình serverless deployment |
+
+<a id="quick-start"></a>
+
+## Chạy dự án cục bộ
+
+### Yêu cầu
+
+- Python 3.10+
+- Một Supabase project
+- Git và virtual environment
+- VNPay/SePay/Gemini chỉ cần khi muốn bật integration tương ứng
+
+### 1. Tạo môi trường và cài dependency
 
 ```bash
 python -m venv .venv
-
-# Windows
-.venv\Scripts\activate
-
-# macOS / Linux
-source .venv/bin/activate
 ```
 
-### 3 — Cài đặt thư viện
+Windows PowerShell:
 
-```bash
+```powershell
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
 pip install -r requirements.txt
+Copy-Item .env.example .env
 ```
 
-### 4 — Cấu hình môi trường
+macOS/Linux:
 
 ```bash
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
 cp .env.example .env
-# Mở .env và điền các biến bên dưới
 ```
 
-### 5 — Khởi tạo database
-
-Mở **Supabase Dashboard → SQL Editor**, chạy toàn bộ file `.sql` trong thư mục `migrations/` theo thứ tự.
-
-### 6 — Chạy server
-
-```bash
-python run.py
-```
-
-> Ứng dụng chạy tại `http://127.0.0.1:5000`
-
----
-
-## ✦ Biến môi trường
+### 2. Cấu hình môi trường
 
 ```env
-# ─── Flask ─────────────────────────────────────────────────────────
+# Core
 FLASK_DEBUG=True
-SECRET_KEY=your-secret-key
-SESSION_TYPE=filesystem
-
-# ─── Supabase ──────────────────────────────────────────────────────
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-
-# ─── App ───────────────────────────────────────────────────────────
+SECRET_KEY=replace-with-a-long-random-value
 APP_URL=http://127.0.0.1:5000
 
-# ─── VNPay ─────────────────────────────────────────────────────────
-VNPAY_TMN_CODE=your-vnpay-tmn-code
-VNPAY_HASH_SECRET=your-vnpay-hash-secret
+# Supabase
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-server-only-service-role-key
+
+# VNPay — optional
+VNPAY_TMN_CODE=
+VNPAY_HASH_SECRET=
 VNPAY_PAYMENT_URL=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
 VNPAY_RETURN_URL=http://127.0.0.1:5000/payment/vnpay_return
 
-# ─── SePay ─────────────────────────────────────────────────────────
-SEPAY_BANK_CODE=your-bank-code
-SEPAY_BANK_ACCOUNT=your-bank-account
-SEPAY_BANK_NAME=your-bank-name
-SEPAY_ACCOUNT_NAME=your-account-name
-SEPAY_WEBHOOK_API_KEY=your-webhook-secret
+# SePay — optional
+SEPAY_BANK_CODE=
+SEPAY_BANK_ACCOUNT=
+SEPAY_ACCOUNT_NAME=
+SEPAY_WEBHOOK_API_KEY=
 
-# ─── Mail (optional) ───────────────────────────────────────────────
-MAIL_SERVER=
-MAIL_PORT=
-MAIL_USERNAME=
-MAIL_PASSWORD=
-MAIL_DEFAULT_SENDER=
+# AI — optional; local fallback remains available
+ENABLE_AI=false
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-2.0-flash
 ```
 
-> ⚠️ **Không commit** `.env`, API key, service role key hoặc webhook secret lên bất kỳ repository nào.
+> Không commit `.env`, Supabase service-role key, payment secret hoặc webhook key. Chỉ sử dụng service-role key trong code chạy phía server.
 
----
+### 3. Khởi tạo database
 
-## ✦ Phân quyền
+1. Mở **Supabase Dashboard → SQL Editor**.
+2. Chạy migration nền trong `migrations/` theo thứ tự.
+3. Chạy migration bổ sung trong `supabase/migrations/` theo timestamp.
+4. Kiểm tra lại bảng, Storage bucket và RLS policy trước khi dùng dữ liệu thật.
 
-| Vai trò | Mô tả |
-|---|---|
-| `user` | Khách hàng: mua sắm, hồ sơ, địa chỉ, đơn hàng |
-| `staff` | Vận hành: xử lý đơn, POS tại quầy |
-| `admin` | Quản lý sản phẩm, đơn hàng, khách hàng, báo cáo |
-| `super_admin` | Toàn quyền hệ thống, phân quyền, nhật ký |
-
----
-
-## ✦ Luồng đặt hàng
-
-```
-Khách hàng
-  │
-  ├─► Chọn sản phẩm → Chọn màu / size
-  │
-  ├─► Thêm vào giỏ hàng
-  │
-  ├─► Checkout: địa chỉ giao hàng + phí vận chuyển
-  │
-  ├─► Chọn phương thức thanh toán
-  │         │
-  │    ┌────┴────────────────────┐
-  │    ▼                        ▼                        ▼
-  │   COD                    VNPay                    SePay
-  │    │                        │                        │
-  │    │              Redirect cổng TT         Hiển thị QR chuyển khoản
-  │    │              Xác nhận checksum         Nhận webhook xác nhận
-  │    │                        │                        │
-  │    └───────────────── Cập nhật trạng thái đơn ───────┘
-  │
-  └─► Xóa giỏ hàng → Chuyển trang thành công
-```
-
----
-
-## ✦ Luồng SePay Webhook
-
-```
-POST /api/sepay/webhook
-        │
-        ├─► Xác thực API key
-        ├─► Đối chiếu mã đơn trong nội dung chuyển khoản
-        ├─► Kiểm tra số tiền khớp tổng đơn
-        ├─► Cập nhật payment_status = paid
-        └─► Xóa giỏ → Trả về 200 OK
-```
-
----
-
-## ✦ Deploy
-
-### Vercel
+### 4. Chạy Flask
 
 ```bash
-npm i -g vercel
-vercel login
-vercel --prod
+python index.py
 ```
 
-Cấu hình biến môi trường tại: **Vercel Dashboard → Project → Settings → Environment Variables**
-
-### Checklist trước khi deploy
-
-- [ ] `APP_URL` trỏ đúng domain production
-- [ ] `VNPAY_RETURN_URL` đã cập nhật theo domain production
-- [ ] Webhook SePay đã cập nhật URL production
-- [ ] `FLASK_DEBUG=False`
-- [ ] Supabase RLS policy đã được kiểm tra
-- [ ] Service role key chỉ dùng phía server
-
----
-
-## ✦ Xử lý lỗi thường gặp
+Mở `http://127.0.0.1:5000`.
 
 <details>
-<summary><strong>Không lưu được địa chỉ</strong></summary>
+<summary><strong>Các nhóm biến môi trường khác</strong></summary>
 
-- Bảng `user_addresses` có đúng cột đang insert không?
-- RLS policy cho phép user thao tác địa chỉ của chính mình?
-- Controller đã import đầy đủ thư viện?
-- Payload từ form có đủ `full_name`, `phone`, `address_line`?
+- SMTP/SendGrid cho email và newsletter.
+- GHN hoặc provider giao vận được chọn.
+- POS loyalty rate, point value, store account và VAT mặc định.
+- Global context cache TTL và giới hạn upload.
+- Feature flags cho AI, analytics và tích hợp tùy chọn.
+
+Hãy dùng `.env.example` làm nguồn cấu hình chuẩn và cập nhật file này khi thêm biến mới.
 
 </details>
 
-<details>
-<summary><strong>Không hiển thị collection ở navbar</strong></summary>
+<a id="security"></a>
 
-- `global_collections` đã được inject qua context processor chưa?
-- Template có dùng `default([])` để tránh lỗi undefined?
-- Bảng `collections` có bản ghi nào với `is_active = true`?
+## Security & reliability
 
-</details>
+| Rủi ro | Cách hệ thống xử lý |
+| --- | --- |
+| **Secret leakage** | Đọc secret qua environment; service-role key chỉ dùng server-side |
+| **Form forgery** | Flask-WTF CSRF token cho form; chỉ exempt endpoint webhook cần thiết |
+| **Unauthorized admin access** | Middleware đăng nhập + RBAC theo permission code |
+| **Payment tampering** | VNPay checksum validation; SePay API key và amount reconciliation |
+| **Duplicate webhook** | Kiểm tra transaction đã tồn tại trước khi ghi payment |
+| **Password exposure** | Hash mật khẩu bằng bcrypt |
+| **Unsafe upload** | Allowlist extension/MIME, giới hạn dung lượng và upload Storage phía server |
+| **Sensitive mutations** | Audit log cho thao tác Admin/Staff |
+| **Database access** | RLS cần được review sau mỗi migration; service role không được expose ra browser |
 
-<details>
-<summary><strong>SePay không tự cập nhật đơn</strong></summary>
+### Production checklist
 
-- Webhook URL có public và còn hoạt động không?
-- API key webhook có đúng không?
-- Nội dung chuyển khoản có chứa mã đơn hàng không?
-- Số tiền giao dịch có khớp với tổng đơn không?
-- Kiểm tra log endpoint `/api/sepay/webhook` để xem payload thực tế.
+- [ ] `FLASK_DEBUG=False` và `SECRET_KEY` đủ mạnh.
+- [ ] RLS policy đã được audit cho mọi bảng public-facing.
+- [ ] VNPay return URL và SePay webhook trỏ đúng production domain.
+- [ ] Payment secrets chỉ tồn tại trong environment của server.
+- [ ] Storage policy và giới hạn upload đã được kiểm tra.
+- [ ] Không commit `.env`, `.gua-backups/`, dump database hoặc file người dùng upload.
+- [ ] Chạy test checkout/payment trên sandbox trước khi nhận giao dịch thật.
 
-</details>
+<a id="engineering-notes"></a>
 
-<details>
-<summary><strong>VNPay thành công nhưng đơn chưa cập nhật</strong></summary>
+## Những quyết định kỹ thuật đáng chú ý
 
-- Checksum có hợp lệ không?
-- `vnp_TxnRef` có khớp với `order_id` hoặc `order_code` không?
-- `OrderModel.update_payment_status()` đã update đúng bảng và cột chưa?
-- Supabase RLS có chặn thao tác update không?
+- **Progressive enhancement:** Jinja2 render nội dung chính; Vanilla JS nâng cấp tương tác thay vì bắt buộc SPA framework.
+- **Reusable UI:** navbar, footer, modal, snackbar và home sections được tách thành partial/component.
+- **Integration isolation:** payment, shipping, email và AI được đặt sau service/adapter để dễ thay thế.
+- **Defensive workflows:** payment side effects chỉ chạy sau bước xác minh; lỗi tích hợp tùy chọn không làm sập storefront.
+- **Operational consistency:** POS và online commerce dùng chung domain data cho sản phẩm, kho, khách hàng và loyalty.
+- **Performance awareness:** global context cache, explicit cache invalidation và immutable static assets trên Vercel.
 
-</details>
+<a id="roadmap"></a>
 
----
+## Next engineering milestones
 
-## ✦ Quy ước code
+- [ ] Di chuyển nốt các truy vấn Supabase legacy khỏi Controller/Model vào Repository.
+- [ ] Bổ sung unit test cho Service và integration test cho VNPay/SePay webhook.
+- [ ] Thêm CI chạy lint, test, migration check và secret scanning cho pull request.
+- [ ] Chuẩn hóa transaction/RPC cho checkout, POS và inventory side effects.
+- [ ] Upload media lớn trực tiếp tới Supabase Storage để phù hợp giới hạn serverless.
+- [ ] Bổ sung observability: structured logging, error tracking và payment alert.
+- [ ] Hoàn thiện screenshot/GIF product tour và public demo environment.
 
+<a id="conventions"></a>
+
+## Quy ước đóng góp
+
+```text
+Controller  → HTTP only
+Service     → Pure business logic
+Repository  → Supabase access only
+Model       → Data and schema only
+Template    → Presentation with reusable partials
 ```
-Controller   →  Chỉ xử lý request / response, không chứa business logic
-Service      →  Business logic thuần túy, không biết về HTTP
-Repository   →  Toàn bộ truy vấn Supabase tập trung tại đây
-Model        →  Data class, schema, không có side effect
-Template     →  Render giao diện, hạn chế nhúng logic phức tạp
-```
 
-- Không hard-code secret, URL production hoặc API key
-- Ưu tiên partial / component cho UI dùng lại nhiều lần
-- Không expose Supabase service role key ra frontend
+Một thay đổi được xem là hoàn chỉnh khi:
 
----
-
-## ✦ Roadmap
-
-- [ ] Hoàn thiện module loyalty và tích điểm thành viên
-- [ ] Tối ưu báo cáo doanh thu theo ngày, tháng, kênh bán
-- [ ] Nâng cấp POS tại quầy
-- [ ] Tự động gửi email xác nhận đơn hàng
-- [ ] Tự động đồng bộ trạng thái giao hàng từ đơn vị vận chuyển
-- [ ] Tối ưu SEO cho trang sản phẩm và bộ sưu tập
-- [ ] Tách CSS/JS lớn thành static assets độc lập
-
----
-
-## ✦ Giao diện
-
-| Khu vực | Mô tả |
-|---|---|
-| **Trang chủ** | Hero video/banner, bộ sưu tập, sản phẩm nổi bật, CTA |
-| **Shop** | Danh sách, lọc, tìm kiếm, quick view |
-| **Chi tiết sản phẩm** | Ảnh, màu, size, tồn kho, thêm giỏ |
-| **Giỏ hàng** | Cập nhật số lượng, xóa sản phẩm |
-| **Checkout** | Địa chỉ, phí ship, phương thức thanh toán |
-| **Hồ sơ** | Thông tin cá nhân, mật khẩu, địa chỉ, đơn hàng, yêu thích |
-| **Admin Panel** | Dashboard, sản phẩm, đơn hàng, khách hàng, cài đặt |
-
----
-
-## ✦ Bảo mật
-
-| Lớp | Cơ chế |
-|---|---|
-| Mật khẩu | Hash bằng `bcrypt` |
-| Form | CSRF token trên các form quan trọng |
-| Session | Server-side session |
-| Cookie | `HttpOnly` · `SameSite=Lax` |
-| Route | Middleware phân quyền theo vai trò |
-| API | Webhook thanh toán yêu cầu API key riêng |
-| Database | Supabase RLS policy theo từng bảng |
+- Không hardcode secret hoặc production URL.
+- Có validation và permission guard phù hợp.
+- Không gọi Supabase trực tiếp ngoài Repository đối với code mới/refactor.
+- Form mutation có CSRF; webhook có cơ chế xác thực riêng.
+- UI hoạt động tốt trên desktop/mobile và có keyboard focus rõ ràng.
+- Migration được thêm mới theo thứ tự; không sửa migration đã chạy trên production.
 
 ---
 
 <div align="center">
 
-<br/>
+### Built with product thinking, not only code.
 
-**GUAMAISON** — Built with craft, deployed with confidence.
+**GUAMAISON © 2026** · Flask · Supabase · Vanilla JS · Vietnam-ready commerce
 
-<br/>
-
-[MIT License](./LICENSE) &nbsp;·&nbsp; © 2026 GUAMAISON
-
-<br/>
-<br/>
+<sub>A portfolio project demonstrating full-stack engineering, commerce workflows and operational UX.</sub>
 
 </div>
