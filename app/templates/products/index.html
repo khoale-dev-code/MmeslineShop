@@ -3,6 +3,9 @@
 {% block title %}GUAMAISON | Official Online Store{% endblock %}
 
 {% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/home_editorial_v21.css') }}?v=21.1.0"> {# GUAMAISON-home-editorial-v21-css #}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/home_instagram_dynamic_v21_3.css') }}?v=21.3.0"> {# GUAMAISON-home-editorial-v21-dynamic-instagram-client-css #}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/home_latest_v21_4.css') }}?v=21.4.1"> {# GUAMAISON-home-editorial-v21-latest-products-client-css #}
 {% set sf = system_settings.get('storefront', {}) if system_settings is defined and system_settings else {} %}
 {% set hero_url = sf.get('hero_banner_url') or '' %}
 {% set lower_hero = hero_url.lower().split('?')[0].split('#')[0] if hero_url else '' %}
@@ -1031,10 +1034,14 @@
     </section>
   {% endif %}
 
+  {% include "components/home/_latest_arrivals_v21.html" %} {# GUAMAISON-home-editorial-v21-latest-partial #}
+
   {# FEATURED PRODUCTS #}
   <section class="mm-featured-wrap">
     {% include 'components/home/_featured.html' ignore missing %}
   </section>
+
+  {% include "components/home/_instagram_v21.html" %} {# GUAMAISON-home-editorial-v21-instagram-partial #}
 
   {# CTA #}
   <section class="mm-cta-wrap">
@@ -1222,4 +1229,5 @@
   }
 })();
 </script>
+<script src="{{ url_for('static', filename='js/home_editorial_v21.js') }}?v=21.1.0" defer></script> {# GUAMAISON-home-editorial-v21-js #}
 {% endblock %}

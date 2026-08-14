@@ -1,0 +1,70 @@
+{% set latest_cfg = sf if sf is defined and sf else {} %}
+{% set latest_enabled = latest_cfg.get('latest_arrivals_enabled', 'true')|string|lower != 'false' %}
+{% set raw_eyebrow = latest_cfg.get('latest_arrivals_eyebrow') or '' %}
+{% set raw_title = latest_cfg.get('latest_arrivals_title') or '' %}
+{% set latest_eyebrow = 'Bộ sưu tập mới · 2026' if not raw_eyebrow or raw_eyebrow == 'New season · 2026' else raw_eyebrow %}
+{% set normalized_title = raw_title|lower %}
+{% set latest_title = "WHATS' HOT" if not raw_title or normalized_title in ['latest arrivals', 'sản phẩm vừa cập bến'] else raw_title %}
+{% set latest_description = latest_cfg.get('latest_arrivals_description') or 'Những thiết kế mới được GUAMAISON tuyển chọn, sẵn sàng đồng hành cùng nhịp sống mỗi ngày.' %}
+
+{% if latest_enabled and latest_products %}
+<section class="gm-latest gm-latest--vi" data-home-latest aria-labelledby="gmLatestTitle">
+  <div class="gm-latest__edition" aria-hidden="true">
+    <span>GUAMAISON</span><i></i><span>{{ '%02d'|format(latest_products|length) }} thiết kế</span>
+  </div>
+
+  <div class="gm-latest__head">
+    <div class="gm-latest__heading">
+      <p class="gm-home-kicker">{{ latest_eyebrow }}</p>
+      <h2 id="gmLatestTitle">{{ latest_title }}</h2>
+    </div>
+    <div class="gm-latest__intro">
+      <p>{{ latest_description }}</p>
+      <a href="/shop?sort=new" data-nav><span>Khám phá tất cả</span><i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i></a>
+    </div>
+  </div>
+
+  <div class="gm-latest__viewport gm-home-no-scrollbar" data-latest-viewport data-lenis-prevent>
+    <div class="gm-latest__track">
+      {% for product in latest_products %}
+        {% set primary = product.thumbnail_url or product.image or product.image_url or 'https://placehold.co/800x1000/111111/f7f1e7?text=GUAMAISON' %}
+        {% set media = namespace(hover='') %}
+        {% if product.hover_image_url is defined and product.hover_image_url %}
+          {% set media.hover = product.hover_image_url %}
+        {% elif product.secondary_image_url is defined and product.secondary_image_url %}
+          {% set media.hover = product.secondary_image_url %}
+        {% elif product.product_images is defined and product.product_images and product.product_images|length > 1 %}
+          {% set second = product.product_images[1] %}
+          {% if second.image_url is defined and second.image_url %}{% set media.hover = second.image_url %}
+          {% elif second.url is defined and second.url %}{% set media.hover = second.url %}
+          {% elif second.src is defined and second.src %}{% set media.hover = second.src %}{% endif %}
+        {% endif %}
+        {% set hover = media.hover or primary %}
+        {% set product_url = '/product/' ~ product.slug if product.slug else '/shop' %}
+        {% set product_price = product.price|float if product.price else 0 %}
+        {% set product_group = product.category_name or product.collection_name or 'GUAMAISON' %}
+
+        <article class="gm-latest-card {{ 'is-offset' if loop.index is even else '' }}" data-latest-reveal style="--gm-order: {{ loop.index0 }}">
+          <a href="{{ product_url }}" class="gm-latest-card__media" data-nav aria-label="Xem {{ product.name|e }}">
+            <img class="gm-latest-card__image gm-latest-card__image--main" src="{{ primary }}" alt="{{ product.name|e }}" width="800" height="1000" loading="lazy" decoding="async">
+            {% if hover != primary %}<img class="gm-latest-card__image gm-latest-card__image--hover" src="{{ hover }}" alt="" width="800" height="1000" loading="lazy" decoding="async">{% endif %}
+            <span class="gm-latest-card__badge">Mới</span>
+            <span class="gm-latest-card__number">{{ '%02d'|format(loop.index) }}</span>
+            <span class="gm-latest-card__open"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></span>
+          </a>
+          <div class="gm-latest-card__info">
+            <div><span class="gm-latest-card__group">{{ product_group }}</span><a href="{{ product_url }}" data-nav>{{ product.name }}</a></div>
+            <p>{{ '{:,.0f}'.format(product_price).replace(',', '.') }} ₫</p>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="gm-latest__foot">
+    <span>Kéo ngang để xem thêm</span>
+    <div class="gm-latest__progress" aria-hidden="true"><i data-latest-progress></i></div>
+    <small>{{ latest_products|length }} sản phẩm được chọn</small>
+  </div>
+</section>
+{% endif %}

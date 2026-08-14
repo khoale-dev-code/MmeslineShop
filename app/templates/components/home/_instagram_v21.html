@@ -1,0 +1,74 @@
+{% set instagram_cfg = sf if sf is defined and sf else {} %}
+{% set instagram_enabled = instagram_cfg.get('instagram_section_enabled', 'true')|string|lower != 'false' %}
+{% set instagram_profile_url = instagram_cfg.get('instagram_profile_url') or '' %}
+{% set dynamic_instagram_items = instagram_cfg.get('instagram_media_items', []) %}
+{% set legacy_instagram_items = [
+  {'id': 'legacy-1', 'media_url': instagram_cfg.get('instagram_media_1_url'), 'click_url': instagram_cfg.get('instagram_link_1_url')},
+  {'id': 'legacy-2', 'media_url': instagram_cfg.get('instagram_media_2_url'), 'click_url': instagram_cfg.get('instagram_link_2_url')},
+  {'id': 'legacy-3', 'media_url': instagram_cfg.get('instagram_media_3_url'), 'click_url': instagram_cfg.get('instagram_link_3_url')},
+  {'id': 'legacy-4', 'media_url': instagram_cfg.get('instagram_media_4_url'), 'click_url': instagram_cfg.get('instagram_link_4_url')},
+  {'id': 'legacy-5', 'media_url': instagram_cfg.get('instagram_media_5_url'), 'click_url': instagram_cfg.get('instagram_link_5_url')},
+  {'id': 'legacy-6', 'media_url': instagram_cfg.get('instagram_media_6_url'), 'click_url': instagram_cfg.get('instagram_link_6_url')}
+] %}
+{% set instagram_items = dynamic_instagram_items if dynamic_instagram_items is not string and dynamic_instagram_items else legacy_instagram_items %}
+
+{% if instagram_enabled and instagram_items|selectattr('media_url')|list %}
+<section class="gm-instagram" data-home-instagram aria-labelledby="gmInstagramTitle">
+  <header class="gm-instagram__head" data-home-media-reveal>
+    <div>
+      <p class="gm-home-kicker">Community journal</p>
+      <h2 id="gmInstagramTitle">{{ instagram_cfg.get('instagram_section_title') or 'Instagram' }}</h2>
+    </div>
+    {% if instagram_profile_url %}
+      <a href="{{ instagram_profile_url }}" target="_blank" rel="noopener noreferrer" aria-label="Mở Instagram GUAMAISON">
+        {{ instagram_cfg.get('instagram_handle') or '@GUAMAISON' }}
+        <i class="fa-brands fa-instagram" aria-hidden="true"></i>
+      </a>
+    {% else %}
+      <a aria-label="Instagram GUAMAISON chưa thiết lập liên kết">
+        {{ instagram_cfg.get('instagram_handle') or '@GUAMAISON' }}
+        <i class="fa-brands fa-instagram" aria-hidden="true"></i>
+      </a>
+    {% endif %}
+  </header>
+
+  <div class="gm-instagram__grid">
+    {% for item in instagram_items if item.media_url %}
+      {% set media_url = item.media_url %}
+      {% set target_url = item.click_url or instagram_profile_url %}
+      {% set clean_url = media_url.lower().split('?')[0].split('#')[0] %}
+      {% set is_video = clean_url.endswith('.mp4') or clean_url.endswith('.webm') or clean_url.endswith('.mov') or '/video/' in clean_url %}
+      {% if target_url %}
+        <a
+          href="{{ target_url }}"
+          class="gm-instagram-card gm-instagram-card--{{ loop.index }}"
+          target="_blank"
+          rel="noopener noreferrer"
+          data-home-media-reveal
+          style="--gm-order: {{ loop.index0 }}"
+          aria-label="Mở bài đăng Instagram tương ứng"
+        >
+      {% else %}
+        <div
+          class="gm-instagram-card gm-instagram-card--{{ loop.index }} is-not-linked"
+          data-home-media-reveal
+          style="--gm-order: {{ loop.index0 }}"
+        >
+      {% endif %}
+
+        {% if is_video %}
+          <video muted loop playsinline preload="metadata" data-home-social-video>
+            <source src="{{ media_url }}">
+          </video>
+          <span class="gm-instagram-card__type"><i class="fa-solid fa-play" aria-hidden="true"></i></span>
+        {% else %}
+          <img src="{{ media_url }}" alt="GUAMAISON community {{ loop.index }}" width="900" height="1100" loading="lazy" decoding="async">
+          {% if clean_url.endswith('.gif') %}<span class="gm-instagram-card__type">GIF</span>{% endif %}
+        {% endif %}
+        <span class="gm-instagram-card__overlay"><i class="fa-brands fa-instagram" aria-hidden="true"></i></span>
+
+      {% if target_url %}</a>{% else %}</div>{% endif %}
+    {% endfor %}
+  </div>
+</section>
+{% endif %}

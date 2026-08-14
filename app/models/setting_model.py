@@ -48,6 +48,31 @@ class SettingModel:
             "split_left_url": "",     # Split banner bên trái (Nam)
             "split_right_url": "",    # Split banner bên phải (Nữ)
             "banner4_video_url": "",  # Video nền phần Best Sellers
+            # GUAMAISON-home-editorial-v21-defaults
+            "latest_arrivals_enabled": "true",
+            # GUAMAISON-home-editorial-v21-latest-products-defaults
+            "latest_arrivals_eyebrow": "Bộ sưu tập mới · 2026",
+            # GUAMAISON-home-editorial-v21-whats-hot-default
+            "latest_arrivals_title": "WHATS' HOT",
+            "latest_arrivals_description": "Những thiết kế mới được GUAMAISON tuyển chọn, sẵn sàng đồng hành cùng nhịp sống mỗi ngày.",
+            "latest_arrivals_product_ids": [],
+            "instagram_section_enabled": "true",
+            "instagram_section_title": "Instagram",
+            "instagram_handle": "@GUAMAISON",
+            "instagram_profile_url": "",
+            "instagram_media_1_url": "",
+            "instagram_media_2_url": "",
+            "instagram_media_3_url": "",
+            "instagram_media_4_url": "",
+            "instagram_media_5_url": "",
+            "instagram_media_6_url": "",
+            # GUAMAISON-home-editorial-v21-instagram-link-defaults
+            "instagram_link_1_url": "",
+            "instagram_link_2_url": "",
+            "instagram_link_3_url": "",
+            "instagram_link_4_url": "",
+            "instagram_link_5_url": "",
+            "instagram_link_6_url": "",
         },
         "integrations": {
             "vnpay_tmncode": "",

@@ -7,6 +7,8 @@ import sys
 
 from flask import jsonify, request
 
+from app.models.product_model import ProductModel
+
 from app.middleware.auth_required import admin_required, permission_required
 from app.repositories.storefront_media_repository import StorefrontMediaRepositoryError
 from app.services.storefront_media_service import (
@@ -37,6 +39,50 @@ def _invalidate_storefront_cache() -> None:
                 callback()
             except Exception:
                 logger.debug("Media Studio could not invalidate app cache", exc_info=True)
+
+
+# GUAMAISON-home-editorial-v21-latest-products-catalog-api
+@admin_bp.get("/settings/storefront-latest-products/catalog")
+@admin_required
+@permission_required("settings.manage")
+def storefront_latest_products_catalog():
+    keyword = str(request.args.get("q") or "").strip()[:100]
+    raw_ids = str(request.args.get("ids") or "").strip()
+    try:
+        if raw_ids:
+            product_ids = [item.strip() for item in raw_ids.split(",") if item.strip()][:12]
+            products = [ProductModel.get_by_id(product_id) for product_id in product_ids]
+        else:
+            result = ProductModel.get_all(
+                page=1,
+                per_page=100,
+                keyword=keyword or None,
+                admin_mode=True,
+            )
+            products = result.get("items") or []
+        items = []
+        for product in products:
+            if not isinstance(product, dict) or not product.get("id") or product.get("deleted_at"):
+                continue
+            active = str(product.get("is_active", "")).strip().lower() in {"true", "1", "yes", "on"}
+            if not active:
+                continue
+            try:
+                price_label = f"{float(product.get('price') or 0):,.0f}".replace(",", ".") + " ₫"
+            except (TypeError, ValueError):
+                price_label = ""
+            items.append({
+                "id": str(product.get("id")),
+                "name": str(product.get("name") or "Sản phẩm"),
+                "slug": str(product.get("slug") or ""),
+                "sku": str(product.get("sku") or ""),
+                "thumbnail_url": str(product.get("thumbnail_url") or product.get("image_url") or product.get("image") or ""),
+                "price_label": price_label,
+            })
+        return jsonify({"ok": True, "items": items, "total": len(items)})
+    except Exception:
+        logger.exception("Latest-products catalog API failed")
+        return jsonify({"ok": False, "message": "Không thể tải danh sách sản phẩm lúc này."}), 500
 
 
 @admin_bp.post("/settings/storefront-media/upload")

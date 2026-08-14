@@ -1,0 +1,50 @@
+{% set gm_latest_ids = storefront.get('latest_arrivals_product_ids', []) if storefront else [] %}
+{% set gm_latest_eyebrow = storefront.get('latest_arrivals_eyebrow', '') if storefront else '' %}
+{% set gm_latest_title = storefront.get('latest_arrivals_title', '') if storefront else '' %}
+{% if not gm_latest_eyebrow or gm_latest_eyebrow == 'New season · 2026' %}{% set gm_latest_eyebrow = 'Bộ sưu tập mới · 2026' %}{% endif %}
+{% if not gm_latest_title or gm_latest_title|lower in ['latest arrivals', 'sản phẩm vừa cập bến'] %}{% set gm_latest_title = "WHATS' HOT" %}{% endif %}
+
+<section class="gm-lp-manager" data-latest-products-manager data-catalog-url="{{ url_for('admin.storefront_latest_products_catalog') }}" hidden>
+  <script type="application/json" data-latest-products-data>{{ {
+    'selected_ids': gm_latest_ids,
+    'enabled': storefront.get('latest_arrivals_enabled', 'true') if storefront else 'true',
+    'eyebrow': gm_latest_eyebrow,
+    'title': gm_latest_title,
+    'description': storefront.get('latest_arrivals_description', '') if storefront else ''
+  }|tojson }}</script>
+
+  <header class="gm-lp-manager__head">
+    <div>
+      <p class="gm-media-kicker">Sản phẩm trang chủ</p>
+      <h2>WHATS' HOT</h2>
+      <p>Chọn tối đa 12 sản phẩm và kéo-thả để sắp xếp đúng thứ tự hiển thị ngoài trang chủ.</p>
+    </div>
+    <label class="gm-lp-switch"><input type="checkbox" data-latest-enabled><span></span><b>Hiển thị khu vực</b></label>
+  </header>
+
+  <div class="gm-lp-copy">
+    <label><span>Dòng giới thiệu</span><input type="text" maxlength="80" data-latest-eyebrow placeholder="Bộ sưu tập mới · 2026"></label>
+    <label><span>Tiêu đề lớn</span><input type="text" maxlength="120" data-latest-title placeholder="WHATS' HOT"></label>
+    <label class="gm-lp-copy__wide"><span>Mô tả ngắn</span><textarea rows="3" maxlength="320" data-latest-description placeholder="Những thiết kế mới được GUAMAISON tuyển chọn..."></textarea></label>
+  </div>
+
+  <div class="gm-lp-layout">
+    <section class="gm-lp-panel">
+      <header><div><strong>Kho sản phẩm</strong><small>Tìm theo tên hoặc mã SKU</small></div><span data-latest-catalog-count>0</span></header>
+      <label class="gm-lp-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input type="search" data-latest-search placeholder="Tìm sản phẩm..."></label>
+      <div class="gm-lp-catalog" data-latest-catalog></div>
+      <div class="gm-lp-state" data-latest-catalog-state>Đang tải sản phẩm…</div>
+    </section>
+
+    <section class="gm-lp-panel gm-lp-panel--selected">
+      <header><div><strong>Đã chọn</strong><small>Kéo biểu tượng để đổi thứ tự</small></div><span><b data-latest-selected-count>0</b>/12</span></header>
+      <div class="gm-lp-selected" data-latest-selected></div>
+      <div class="gm-lp-state" data-latest-selected-empty hidden>Chưa chọn sản phẩm. Nhấn “Thêm” từ kho sản phẩm.</div>
+    </section>
+  </div>
+
+  <footer class="gm-lp-manager__footer">
+    <p data-latest-status role="status" aria-live="polite">Thay đổi chỉ xuất hiện ngoài trang khách sau khi lưu.</p>
+    <button type="button" data-latest-save><i class="fa-solid fa-check" aria-hidden="true"></i> Lưu khu vực sản phẩm mới</button>
+  </footer>
+</section>

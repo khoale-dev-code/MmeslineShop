@@ -1,0 +1,34 @@
+{% set gm_dynamic_items = storefront.get('instagram_media_items', []) if storefront else [] %}
+{% set gm_legacy_items = [
+  {'id': 'legacy-1', 'media_url': storefront.get('instagram_media_1_url', '') if storefront else '', 'click_url': storefront.get('instagram_link_1_url', '') if storefront else ''},
+  {'id': 'legacy-2', 'media_url': storefront.get('instagram_media_2_url', '') if storefront else '', 'click_url': storefront.get('instagram_link_2_url', '') if storefront else ''},
+  {'id': 'legacy-3', 'media_url': storefront.get('instagram_media_3_url', '') if storefront else '', 'click_url': storefront.get('instagram_link_3_url', '') if storefront else ''},
+  {'id': 'legacy-4', 'media_url': storefront.get('instagram_media_4_url', '') if storefront else '', 'click_url': storefront.get('instagram_link_4_url', '') if storefront else ''},
+  {'id': 'legacy-5', 'media_url': storefront.get('instagram_media_5_url', '') if storefront else '', 'click_url': storefront.get('instagram_link_5_url', '') if storefront else ''},
+  {'id': 'legacy-6', 'media_url': storefront.get('instagram_media_6_url', '') if storefront else '', 'click_url': storefront.get('instagram_link_6_url', '') if storefront else ''}
+] %}
+
+<section class="gm-ig-manager" data-instagram-manager hidden>
+  <script type="application/json" data-instagram-manager-data>{{ {'items': gm_dynamic_items, 'legacy_items': gm_legacy_items}|tojson }}</script>
+
+  <header class="gm-ig-manager__head">
+    <div>
+      <p class="gm-media-kicker">Dynamic social gallery</p>
+      <h2>Thư viện Instagram</h2>
+      <p>Thêm, xóa và kéo-thả để thay đổi thứ tự. Hỗ trợ ảnh, GIF, MP4, WebM và MOV.</p>
+    </div>
+    <button type="button" class="gm-ig-manager__add" data-instagram-add>
+      <i class="fa-solid fa-plus" aria-hidden="true"></i>
+      <span>Thêm media</span>
+    </button>
+  </header>
+
+  <div class="gm-ig-manager__status" data-instagram-manager-status role="status" aria-live="polite"></div>
+  <div class="gm-ig-manager__grid" data-instagram-manager-list></div>
+
+  <div class="gm-ig-manager__empty" data-instagram-manager-empty hidden>
+    <i class="fa-regular fa-images" aria-hidden="true"></i>
+    <strong>Chưa có nội dung Instagram</strong>
+    <span>Nhấn “Thêm media” để tạo mục đầu tiên.</span>
+  </div>
+</section>

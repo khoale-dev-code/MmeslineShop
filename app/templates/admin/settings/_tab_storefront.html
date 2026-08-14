@@ -64,10 +64,39 @@
         <button type="button" data-media-url-apply>Áp dụng</button>
       </div>
     </details>
+
+    {# GUAMAISON-home-editorial-v21-per-image-click-links #}
+    {% if key.startswith('instagram_media_') %}
+      {% set instagram_index = key|replace('instagram_media_', '')|replace('_url', '') %}
+      {% set instagram_link_key = 'instagram_link_' ~ instagram_index ~ '_url' %}
+      <details
+        class="gm-media-url gm-instagram-link"
+        data-instagram-link-panel
+        data-instagram-link-key="{{ instagram_link_key }}"
+        open
+      >
+        <summary>Link Instagram khi bấm ảnh</summary>
+        <div class="gm-instagram-link__row">
+          <input
+            data-instagram-link-input
+            type="url"
+            inputmode="url"
+            autocomplete="off"
+            value="{{ storefront.get(instagram_link_key, '')|e if storefront else '' }}"
+            placeholder="https://www.instagram.com/p/..."
+            aria-label="Link Instagram cho {{ label }}"
+          >
+          <button type="button" data-instagram-link-save>Lưu link</button>
+        </div>
+        <small class="gm-instagram-link__hint" data-instagram-link-status>Dán link bài Instagram tương ứng rồi nhấn Lưu link.</small>
+      </details>
+    {% endif %}
   </article>
 {% endmacro %}
 
 <link rel="stylesheet" href="{{ url_for('static', filename='admin/css/storefront_media_v14.css') }}?v=GUAMAISON-media-v14-2">
+<link rel="stylesheet" href="{{ url_for('static', filename='admin/css/storefront_instagram_dynamic_v21_3.css') }}?v=21.3.0"> {# GUAMAISON-home-editorial-v21-dynamic-instagram-admin-css #}
+<link rel="stylesheet" href="{{ url_for('static', filename='admin/css/storefront_latest_products_v21_4.css') }}?v=21.4.1"> {# GUAMAISON-home-editorial-v21-latest-products-admin-css #}
 
 <div
   class="gm-media"
@@ -92,8 +121,9 @@
     <div class="gm-media-filters" role="tablist" aria-label="Nhóm trang">
       <button type="button" class="is-active" data-media-filter="home">Trang chủ <b>5</b></button>
       <button type="button" data-media-filter="account">Tài khoản <b>2</b></button>
-      <button type="button" data-media-filter="shop">Shop <b>1</b></button>
-      <button type="button" data-media-filter="all">Tất cả <b>8</b></button>
+      <button type="button" data-media-filter="social">Instagram <b data-instagram-tab-count>0</b></button>
+      <button type="button" data-media-filter="latest-products">Sản phẩm mới <b>0</b></button>
+      <button type="button" data-media-filter="all">Tất cả <b data-instagram-all-count>7</b></button>
     </div>
     <a class="gm-media-contact-link" href="{{ url_for('admin.contact_page_settings') }}">
       <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
@@ -108,10 +138,13 @@
     {{ media_slot('split_left_url', 'Banner đôi · trái', 'Nửa trái của banner editorial.', 'fa-table-columns', 'home', '/', '4:5') }}
     {{ media_slot('split_right_url', 'Banner đôi · phải', 'Nửa phải của banner editorial.', 'fa-table-columns', 'home', '/', '4:5') }}
     {{ media_slot('banner4_video_url', 'Best Sellers', 'Nền khu vực sản phẩm bán chạy.', 'fa-clapperboard', 'home', '/', '16:9') }}
-    {{ media_slot('shop_banner_url', 'Hero trang Shop', 'Media mở đầu danh sách sản phẩm.', 'fa-store', 'shop', '/shop', '3:1') }}
     {{ media_slot('login_image_url', 'Trang đăng nhập', 'Ảnh dọc ở khu vực đăng nhập.', 'fa-right-to-bracket', 'account', '/login', '3:4', false) }}
     {{ media_slot('register_image_url', 'Trang đăng ký', 'Ảnh dọc ở khu vực tạo tài khoản.', 'fa-user-plus', 'account', '/register', '3:4', false) }}
   </div>
+
+  {% include "admin/settings/_instagram_manager_v21_3.html" %} {# GUAMAISON-home-editorial-v21-dynamic-instagram-admin #}
+
+  {% include "admin/settings/_latest_products_manager_v21_4.html" %} {# GUAMAISON-home-editorial-v21-latest-products-admin #}
 
   <div class="gm-media-savebar" data-media-savebar hidden>
     <div><strong data-savebar-label>Có thay đổi chưa lưu</strong><small>Ảnh chỉ cập nhật trên trang khách sau khi lưu.</small></div>
@@ -135,3 +168,5 @@
 </div>
 
 <script src="{{ url_for('static', filename='admin/js/storefront_media_v14.js') }}?v=GUAMAISON-media-v14-2"></script>
+<script src="{{ url_for('static', filename='admin/js/storefront_instagram_dynamic_v21_3.js') }}?v=21.3.0"></script> {# GUAMAISON-home-editorial-v21-dynamic-instagram-admin-js #}
+<script src="{{ url_for('static', filename='admin/js/storefront_latest_products_v21_4.js') }}?v=21.4.1"></script> {# GUAMAISON-home-editorial-v21-latest-products-admin-js #}

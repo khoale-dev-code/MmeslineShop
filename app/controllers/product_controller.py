@@ -35,6 +35,7 @@ from flask import (
 
 from app.models.collection_model import CollectionModel
 from app.models.product_model import ProductModel
+from app.models.setting_model import SettingModel
 from app.services.shop_filter_service import ShopFilterService  # GUAMAISON-shop-filters-v20.1
 from app.services.about_page_service import AboutPageService
 from app.services.size_chart_service import size_chart_service
@@ -898,6 +899,33 @@ def index():
         logger.error("[index] featured products failed: %s", exc, exc_info=True)
         featured_products = []
 
+    # GUAMAISON-home-editorial-v21-latest-product-selection
+    latest_products = []
+    try:
+        storefront_settings = SettingModel.get_section("storefront")
+        selected_ids = storefront_settings.get("latest_arrivals_product_ids") or []
+        if not isinstance(selected_ids, list):
+            selected_ids = []
+        for product_id in selected_ids[:12]:
+            product = ProductModel.get_by_id(str(product_id))
+            if product and _safe_bool(product.get("is_active")) and not product.get("deleted_at"):
+                latest_products.append(_normalize_product(product))
+    except Exception as exc:
+        logger.warning("[index] selected latest products failed: %s", exc, exc_info=True)
+        latest_products = []
+
+    if not latest_products:
+        try:
+            latest_result = _query_storefront_products(
+                page=1,
+                per_page=10,
+                sort="new",
+            )
+            latest_products = latest_result["items"]
+        except Exception as exc:
+            logger.error("[index] latest products failed: %s", exc, exc_info=True)
+            latest_products = list(featured_products)
+
     try:
         collections = CollectionModel.get_all(admin_mode=False)
     except Exception as exc:
@@ -907,6 +935,7 @@ def index():
     return render_template(
         "products/index.html",
         featured_products=featured_products,
+        latest_products=latest_products,  # GUAMAISON-home-editorial-v21-latest-context
         collections=collections,
     )
 
