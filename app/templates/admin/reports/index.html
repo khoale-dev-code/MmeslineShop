@@ -1,0 +1,214 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Analytics Intelligence | GUAMAISON Admin{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/css/reports-intelligence-v19.css') }}?v=20260812-v19-0">
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+{% set metadata = report.get('metadata', {}) %}
+{% set forecast = report.get('forecast', {}) %}
+{% set quality = report.get('data_quality', {}) %}
+{% set channel_labels = {'web': 'Website', 'pos': 'POS', 'shopee': 'Shopee', 'lazada': 'Lazada', 'tiktok_shop': 'TikTok Shop'} %}
+
+<main
+  class="ai-report-page"
+  data-analytics-version="19.0.0"
+  data-preview-url="{{ url_for('admin.preview_report_export') }}"
+  data-export-url="{{ url_for('admin.export_report') }}"
+>
+  <section class="ai-hero">
+    <div class="ai-hero-copy">
+      <span class="ai-live-badge"><i class="fa-solid fa-chart-simple" aria-hidden="true"></i>Analytics Intelligence v19</span>
+      <h1>Từ dữ liệu bán hàng<br><em>đến quyết định.</em></h1>
+      <p>
+        Nhìn rõ sản phẩm đang bán tốt, sản phẩm tăng tốc, nhu cầu có tiềm năng và lượng hàng nên chuẩn bị.
+        Mọi dự báo đều kèm độ tin cậy; thiếu tracking sẽ hiển thị N/A.
+      </p>
+      <div class="ai-hero-meta">
+        <span><i class="fa-regular fa-calendar" aria-hidden="true"></i>{{ filters.start_date.strftime('%d/%m/%Y') }} – {{ filters.end_date.strftime('%d/%m/%Y') }}</span>
+        <span><i class="fa-regular fa-clock" aria-hidden="true"></i>Cập nhật {{ metadata.get('generated_at', '')[:16]|replace('T', ' ') }} UTC</span>
+      </div>
+    </div>
+    <div class="ai-hero-actions">
+      <button class="ai-button ai-button--hero" type="button" data-export-open>
+        <i class="fa-solid fa-file-excel" aria-hidden="true"></i>
+        Tùy chỉnh Excel
+      </button>
+      <a class="ai-button ai-button--hero-secondary" href="{{ url_for('admin.pos_terminal') }}">
+        <i class="fa-solid fa-cash-register" aria-hidden="true"></i>
+        Mở POS
+      </a>
+      <div class="ai-quality-orb" style="--quality: {{ quality.get('score', 0) }}">
+        <strong>{{ quality.get('score', 0) }}<small>/100</small></strong>
+        <span>Chất lượng dữ liệu</span>
+      </div>
+    </div>
+  </section>
+
+  {% include 'admin/reports/partials/_filters.html' %}
+  {% include 'admin/reports/partials/_kpis.html' %}
+
+  <section class="ai-dashboard-grid">
+    <article class="ai-panel ai-trend-panel">
+      <header class="ai-panel-header">
+        <div>
+          <span class="ai-eyebrow">Revenue pulse</span>
+          <h2>Xu hướng doanh thu thuần</h2>
+          <p>Dữ liệu thực tế trong kỳ đã chọn; không gắn nhãn realtime giả.</p>
+        </div>
+        <span class="ai-status-pill">{{ report.get('trend', {}).get('period', 'day')|upper }}</span>
+      </header>
+      <div class="ai-chart"><canvas id="aiRevenueChart" aria-label="Biểu đồ doanh thu"></canvas></div>
+    </article>
+
+    <article class="ai-panel ai-channel-panel">
+      <header class="ai-panel-header">
+        <div>
+          <span class="ai-eyebrow">Channel mix</span>
+          <h2>Hiệu suất theo kênh</h2>
+          <p>Website, POS và các sàn đã đồng bộ.</p>
+        </div>
+      </header>
+      <div class="ai-chart ai-chart--channel"><canvas id="aiChannelChart" aria-label="Biểu đồ kênh bán"></canvas></div>
+      <div class="ai-channel-list">
+        {% for channel in report.get('channels', []) %}
+          <div>
+            <span><i class="ai-channel-dot ai-channel-dot--{{ channel.channel }}"></i>{{ channel_labels.get(channel.channel, channel.channel|upper) }}</span>
+            <strong>{{ '{:,.0f}'.format(channel.net_revenue).replace(',', '.') }} ₫</strong>
+            <small>{{ channel.revenue_share }}% · {{ channel.sold_units }} SP</small>
+          </div>
+        {% else %}
+          <div class="ai-empty">Chưa có doanh thu hợp lệ trong kỳ.</div>
+        {% endfor %}
+      </div>
+    </article>
+  </section>
+
+  <section class="ai-intelligence-grid">
+    <article class="ai-panel ai-forecast-card {{ 'is-ready' if forecast.get('status') == 'ready' else 'is-waiting' }}">
+      <div class="ai-panel-header">
+        <div>
+          <span class="ai-eyebrow">Demand forecast</span>
+          <h2>Dự báo 30 ngày</h2>
+          <p>{{ forecast.get('message') }}</p>
+        </div>
+        <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+      </div>
+      {% if forecast.get('status') == 'ready' %}
+        <div class="ai-forecast-metrics">
+          <div><span>Số lượng</span><strong>{{ forecast.units_30d }}</strong></div>
+          <div><span>Doanh thu dự kiến</span><strong>{{ '{:,.0f}'.format(forecast.revenue_30d).replace(',', '.') }} ₫</strong></div>
+          <div><span>Độ tin cậy</span><strong>{{ forecast.confidence }}%</strong></div>
+        </div>
+        <div class="ai-chart ai-chart--forecast"><canvas id="aiForecastChart" aria-label="Biểu đồ dự báo"></canvas></div>
+      {% else %}
+        <div class="ai-insufficient">
+          <i class="fa-solid fa-hourglass-half" aria-hidden="true"></i>
+          <strong>Chưa đủ dữ liệu để dự báo đáng tin</strong>
+          <span>Hệ thống không tự tạo số khi lịch sử bán chưa đạt ngưỡng.</span>
+        </div>
+      {% endif %}
+    </article>
+
+    <article class="ai-panel ai-funnel-card">
+      <header class="ai-panel-header">
+        <div>
+          <span class="ai-eyebrow">Conversion health</span>
+          <h2>Phễu chuyển đổi</h2>
+          <p>Đơn bán lấy từ hóa đơn thực tế; lượt xem/giỏ lấy từ tracking.</p>
+        </div>
+      </header>
+      <div class="ai-funnel-list">
+        {% for funnel in report.get('funnel', []) %}
+          <article class="ai-funnel-row">
+            <div class="ai-funnel-top">
+              <strong>{{ channel_labels.get(funnel.channel, funnel.channel|upper) }}</strong>
+              <span class="{{ 'is-warning' if not funnel.consistent else '' }}">
+                {% if funnel.conversion is none %}N/A{% else %}{{ funnel.conversion }}%{% endif %}
+              </span>
+            </div>
+            <div class="ai-funnel-steps">
+              <span><b>{{ funnel.views if funnel.views is not none else 'N/A' }}</b>Lượt xem</span>
+              <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+              <span><b>{{ funnel.carts if funnel.carts is not none else 'N/A' }}</b>Thêm giỏ</span>
+              <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+              <span><b>{{ funnel.sold }}</b>Đã bán</span>
+            </div>
+          </article>
+        {% else %}
+          <div class="ai-empty">Chưa có dữ liệu funnel.</div>
+        {% endfor %}
+      </div>
+    </article>
+  </section>
+
+  {% include 'admin/reports/partials/_product_table.html' %}
+
+  <section class="ai-bottom-grid">
+    <article class="ai-panel ai-marketplace-panel">
+      <header class="ai-panel-header">
+        <div>
+          <span class="ai-eyebrow">Marketplace hub</span>
+          <h2>Kết nối sàn thương mại điện tử</h2>
+          <p>Dùng OAuth/API chính thức; không crawl Seller Center và không đưa token ra frontend.</p>
+        </div>
+      </header>
+      <div class="ai-marketplace-list">
+        {% for marketplace in report.get('marketplaces', []) %}
+          <article class="ai-marketplace-item {{ 'is-connected' if marketplace.connected else '' }}">
+            <div class="ai-marketplace-logo">{{ marketplace.label[:1] }}</div>
+            <div>
+              <strong>{{ marketplace.label }}</strong>
+              <span>{{ marketplace.shop_name or ('Đã sẵn sàng đồng bộ' if marketplace.connected else 'Chưa cấp quyền người bán') }}</span>
+            </div>
+            <span class="ai-connection-state">
+              <i class="fa-solid {{ 'fa-circle-check' if marketplace.connected else 'fa-link-slash' }}" aria-hidden="true"></i>
+              {{ 'Đã kết nối' if marketplace.connected else 'Chưa kết nối' }}
+            </span>
+          </article>
+        {% endfor %}
+      </div>
+      <div class="ai-marketplace-note">
+        <i class="fa-solid fa-lock" aria-hidden="true"></i>
+        Chạy migration đi kèm để tạo kho kết nối. OAuth thực tế cần Partner/App ID do từng sàn phê duyệt.
+      </div>
+    </article>
+
+    <article class="ai-panel ai-quality-panel">
+      <header class="ai-panel-header">
+        <div>
+          <span class="ai-eyebrow">Data observability</span>
+          <h2>Chất lượng và độ đầy đủ</h2>
+          <p>Cảnh báo giúp bạn biết chỉ số nào có thể dùng để ra quyết định.</p>
+        </div>
+        <span class="ai-quality-label">{{ quality.get('label', 'N/A') }}</span>
+      </header>
+      <div class="ai-quality-stats">
+        <div><strong>{{ quality.get('order_rows', 0) }}</strong><span>Đơn hợp lệ</span></div>
+        <div><strong>{{ quality.get('tracking_rows', 0) }}</strong><span>Dòng tracking</span></div>
+        <div><strong>{{ quality.get('cost_coverage', 0) }}%</strong><span>Phủ giá vốn</span></div>
+      </div>
+      <ul class="ai-issue-list">
+        {% for issue in quality.get('issues', []) %}
+          <li><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>{{ issue }}</span></li>
+        {% else %}
+          <li class="is-success"><i class="fa-solid fa-circle-check" aria-hidden="true"></i><span>Không phát hiện vấn đề dữ liệu đáng kể.</span></li>
+        {% endfor %}
+      </ul>
+    </article>
+  </section>
+
+  {% include 'admin/reports/partials/_export_modal.html' %}
+  <div class="ai-toast" role="status" aria-live="polite" hidden data-report-toast></div>
+</main>
+
+<script id="aiReportData" type="application/json">{{ {
+  'trend': report.get('trend', {}),
+  'channels': report.get('channels', []),
+  'forecast': report.get('forecast', {}),
+  'filters': metadata.get('filters', {})
+}|tojson }}</script>
+<script defer src="{{ url_for('static', filename='admin/js/reports-intelligence-v19.js') }}?v=20260812-v19-0"></script>
+{% endblock %}

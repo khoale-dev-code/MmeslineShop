@@ -44,6 +44,7 @@ from app.models.product_model import ProductModel
 from app.models.product_group_model import ProductGroupModel
 from app.models.size_chart_model import SizeChartModel
 from app.services.audit_service import AuditService
+from app.services.shop_filter_service import ShopFilterService  # GUAMAISON-shop-filters-v20.1
 from app.utils.supabase_client import get_supabase_admin
 
 from . import admin_bp
@@ -616,7 +617,11 @@ def _product_data_from_form(form: dict) -> dict:
         "seo_keywords": seo_keywords or None,
         "search_keywords": search_keywords or None,
 
-        "tags": _parse_tags(form.get("tags")),
+        "tags": ShopFilterService(admin=True).merge_product_tags(
+            _parse_tags(form.get("tags")),
+            _parse_tags(form.get("filter_tags")),
+            replace_configured="filter_tags_present" in form,
+        ),  # GUAMAISON-shop-filters-v20.1-product-tags
     }
 
     return payload

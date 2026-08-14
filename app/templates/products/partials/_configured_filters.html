@@ -1,0 +1,36 @@
+{% set sf_config = shop_filter_config if shop_filter_config is defined and shop_filter_config else {'ready': false, 'groups': []} %}
+{% set sf_selected = selected_filter_tokens if selected_filter_tokens is defined and selected_filter_tokens else [] %}
+
+{% if sf_config.ready %}
+  <form id="shopConfiguredFilterForm" method="get" action="{{ request.path }}" data-configured-filter-form>
+    {% if category %}<input type="hidden" name="category" value="{{ category }}">{% endif %}
+    {% if collection and not (collection_info is defined and collection_info) %}<input type="hidden" name="collection" value="{{ collection }}">{% endif %}
+    {% if current_gender %}<input type="hidden" name="gender" value="{{ current_gender }}">{% endif %}
+    {% if keyword %}<input type="hidden" name="q" value="{{ keyword }}">{% endif %}
+    {% if sort %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
+
+    {% for group in sf_config.groups if group.is_active and group.options %}
+      <fieldset class="gua-shop-filter-group gm-shop-filter-group" data-configured-filter-group="{{ group.key }}">
+        <legend>
+          <span>{{ group.label }}</span>
+          <code>{{ group.key }}:</code>
+        </legend>
+
+        <div class="{{ 'gua-shop-filter-options gm-shop-filter-options--checks' if group.display_type == 'checkbox' else 'gua-shop-filter-chips gua-shop-filter-chips--wide gm-shop-filter-options' }}">
+          {% for option in group.options if option.is_active %}
+            {% set token = group.key ~ ':' ~ option.value %}
+            <label class="{{ 'gua-shop-check gm-shop-filter-check' if group.display_type == 'checkbox' else 'gua-shop-chip gm-shop-filter-chip' }}">
+              <input type="checkbox" name="f" value="{{ token }}" {% if token in sf_selected %}checked{% endif %}>
+              <span>
+                {% if group.display_type == 'color' %}
+                  <i class="gm-shop-filter-swatch" style="--gm-filter-color: {{ option.color_hex or '#d6b88d' }}" aria-hidden="true"></i>
+                {% endif %}
+                {{ option.label }}
+              </span>
+            </label>
+          {% endfor %}
+        </div>
+      </fieldset>
+    {% endfor %}
+  </form>
+{% endif %}

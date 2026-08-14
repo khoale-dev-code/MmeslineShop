@@ -1,0 +1,104 @@
+{% set segment_labels = {
+  'stock_risk': 'Nguy cơ hết hàng',
+  'accelerating': 'Đang tăng tốc',
+  'bestseller': 'Bán chạy',
+  'potential': 'Có tiềm năng',
+  'slow': 'Bán chậm',
+  'stable': 'Ổn định'
+} %}
+
+<section class="ai-panel ai-products-panel">
+  <header class="ai-panel-header ai-products-header">
+    <div>
+      <span class="ai-eyebrow">Product intelligence</span>
+      <h2>Hiệu suất và cơ hội sản phẩm</h2>
+      <p>Tách rõ bán chạy, tăng tốc, tiềm năng và rủi ro tồn kho.</p>
+    </div>
+    <label class="ai-search">
+      <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+      <span class="sr-only">Tìm sản phẩm</span>
+      <input type="search" placeholder="Tìm tên hoặc SKU..." data-product-search>
+    </label>
+  </header>
+
+  <div class="ai-segment-tabs" role="tablist" aria-label="Lọc nhóm sản phẩm">
+    <button class="is-active" type="button" data-segment-filter="all">Tất cả <b>{{ report.get('products', [])|length }}</b></button>
+    <button type="button" data-segment-filter="bestseller">Bán chạy <b>{{ report.get('summary', {}).get('bestsellers', 0) }}</b></button>
+    <button type="button" data-segment-filter="accelerating">Tăng tốc <b>{{ report.get('summary', {}).get('accelerating', 0) }}</b></button>
+    <button type="button" data-segment-filter="potential">Tiềm năng <b>{{ report.get('summary', {}).get('potential', 0) }}</b></button>
+    <button type="button" data-segment-filter="stock_risk">Sắp thiếu hàng <b>{{ report.get('summary', {}).get('stock_risk', 0) }}</b></button>
+  </div>
+
+  <div class="ai-table-scroll">
+    <table class="ai-product-table">
+      <thead>
+        <tr>
+          <th>Sản phẩm</th>
+          <th>Phân nhóm</th>
+          <th>Đã bán</th>
+          <th>Doanh thu thuần</th>
+          <th>Tăng trưởng</th>
+          <th>Biên LN</th>
+          <th>Tồn kho</th>
+          <th>Dự báo 30 ngày</th>
+          <th>Cơ hội</th>
+        </tr>
+      </thead>
+      <tbody data-product-rows>
+        {% for product in report.get('products', []) %}
+          <tr data-product-row data-segment="{{ product.segment }}" data-search="{{ (product.name ~ ' ' ~ product.sku)|lower }}">
+            <td data-label="Sản phẩm">
+              <div class="ai-product-identity">
+                {% if product.thumbnail_url %}
+                  <img src="{{ product.thumbnail_url }}" alt="" width="52" height="64" loading="lazy" decoding="async">
+                {% else %}
+                  <span class="ai-product-placeholder"><i class="fa-solid fa-shirt" aria-hidden="true"></i></span>
+                {% endif %}
+                <div>
+                  <strong>{{ product.name }}</strong>
+                  <small>{{ product.sku }}</small>
+                </div>
+              </div>
+            </td>
+            <td data-label="Phân nhóm">
+              <span class="ai-segment ai-segment--{{ product.segment }}">{{ segment_labels.get(product.segment, product.segment) }}</span>
+            </td>
+            <td data-label="Đã bán"><strong>{{ product.sold_units }}</strong></td>
+            <td data-label="Doanh thu">{{ '{:,.0f}'.format(product.net_revenue).replace(',', '.') }} ₫</td>
+            <td data-label="Tăng trưởng">
+              {% if product.growth_pct is none %}
+                <span class="ai-na">N/A</span>
+              {% else %}
+                <span class="ai-value {{ 'is-positive' if product.growth_pct >= 0 else 'is-negative' }}">
+                  {{ '+' if product.growth_pct >= 0 else '' }}{{ '{:,.1f}'.format(product.growth_pct).replace(',', '.') }}%
+                </span>
+              {% endif %}
+            </td>
+            <td data-label="Biên lợi nhuận">
+              {% if product.gross_margin is none %}<span class="ai-na">N/A</span>{% else %}{{ product.gross_margin }}%{% endif %}
+            </td>
+            <td data-label="Tồn kho">
+              <strong class="{{ 'is-negative' if product.segment == 'stock_risk' else '' }}">{{ product.stock }}</strong>
+            </td>
+            <td data-label="Dự báo 30 ngày">
+              {% if product.forecast_30d is none %}
+                <span class="ai-na" title="Cần tối thiểu 8 tuần dữ liệu">Chưa đủ dữ liệu</span>
+              {% else %}
+                <strong>{{ product.forecast_30d }}</strong>
+                <small class="ai-range">{{ product.forecast_low }}–{{ product.forecast_high }} · {{ product.forecast_confidence }}%</small>
+              {% endif %}
+            </td>
+            <td data-label="Điểm cơ hội">
+              <button class="ai-score" type="button" title="{{ product.reasons|join(' ') }}">
+                <span>{{ product.opportunity_score }}</span><small>/100</small>
+              </button>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="9"><div class="ai-empty">Chưa có dữ liệu sản phẩm trong kỳ đã chọn.</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="ai-empty ai-table-empty" hidden data-product-empty>Không có sản phẩm phù hợp bộ lọc.</div>
+</section>

@@ -1,0 +1,78 @@
+<div class="ai-modal" hidden data-export-modal aria-hidden="true">
+  <button class="ai-modal-backdrop" type="button" data-export-close aria-label="Đóng tùy chỉnh Excel"></button>
+  <section class="ai-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="excelExportTitle">
+    <header class="ai-modal-header">
+      <div>
+        <span class="ai-eyebrow">Excel report builder</span>
+        <h2 id="excelExportTitle">Tùy chỉnh trước khi xuất</h2>
+        <p>Cấu hình được ghi nhớ trên thiết bị này cho lần xuất tiếp theo.</p>
+      </div>
+      <button class="ai-icon-button" type="button" data-export-close aria-label="Đóng">
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <div class="ai-modal-body">
+      <div class="ai-export-grid">
+        <section class="ai-export-config">
+          <label class="ai-field">
+            <span>Tiêu đề workbook</span>
+            <input type="text" maxlength="120" value="GUAMAISON Analytics Intelligence" data-export-title>
+          </label>
+          <label class="ai-field">
+            <span>Ghi chú báo cáo</span>
+            <textarea rows="3" maxlength="500" placeholder="Ví dụ: Báo cáo phục vụ họp kinh doanh tuần..." data-export-note></textarea>
+          </label>
+
+          <fieldset class="ai-export-options">
+            <legend>Sheet cần xuất</legend>
+            <div class="ai-check-grid">
+              {% for key, label in export_sheets.items() %}
+                <label>
+                  <input type="checkbox" value="{{ key }}" data-export-sheet checked>
+                  <span><i class="fa-solid fa-table-list" aria-hidden="true"></i>{{ label }}</span>
+                </label>
+              {% endfor %}
+            </div>
+          </fieldset>
+
+          <fieldset class="ai-export-options">
+            <legend>Cột sản phẩm</legend>
+            <div class="ai-check-grid ai-check-grid--columns">
+              {% for key, meta in export_product_columns.items() %}
+                <label>
+                  <input type="checkbox" value="{{ key }}" data-export-column {% if key in default_product_columns %}checked{% endif %}>
+                  <span>{{ meta[0] }}</span>
+                </label>
+              {% endfor %}
+            </div>
+          </fieldset>
+
+          <label class="ai-switch-row">
+            <span><b>Biểu đồ trong Excel</b><small>Thêm xu hướng doanh thu và so sánh kênh.</small></span>
+            <input type="checkbox" data-export-charts checked>
+          </label>
+        </section>
+
+        <aside class="ai-export-preview" aria-live="polite">
+          <div class="ai-preview-icon"><i class="fa-solid fa-file-excel" aria-hidden="true"></i></div>
+          <h3>Cấu trúc workbook</h3>
+          <p>Nhấn “Xem trước cấu trúc” để kiểm tra sheet, số dòng và cột trước khi tải.</p>
+          <div class="ai-preview-list" data-export-preview>
+            <span class="ai-na">Chưa tạo bản xem trước</span>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <footer class="ai-modal-footer">
+      <button class="ai-button ai-button--ghost" type="button" data-export-close>Hủy</button>
+      <button class="ai-button ai-button--secondary" type="button" data-export-preview-button>
+        <i class="fa-solid fa-eye" aria-hidden="true"></i>Xem trước cấu trúc
+      </button>
+      <button class="ai-button ai-button--primary" type="button" data-export-download>
+        <i class="fa-solid fa-download" aria-hidden="true"></i>Xuất Excel
+      </button>
+    </footer>
+  </section>
+</div>

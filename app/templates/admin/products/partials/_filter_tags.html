@@ -1,0 +1,23 @@
+<section
+  class="gm-pft"
+  data-product-filter-tags
+  data-config-url="{{ url_for('admin.shop_filter_config_api') }}"
+  data-option-url="{{ url_for('admin.shop_filter_save_option_api') }}"
+  data-csrf="{{ csrf_token() }}"
+>
+  <header>
+    <div>
+      <p class="mm-kicker">Shop filters</p>
+      <h2>Tag dùng để lọc</h2>
+      <p>Chọn theo cấu hình Shop. Hệ thống tự tạo token đúng cú pháp, không cần gõ thủ công.</p>
+    </div>
+    <a href="{{ url_for('admin.shop_filter_settings_page') }}" target="_blank" rel="noopener">
+      <i class="fa-solid fa-sliders"></i> Quản lý bộ lọc
+    </a>
+  </header>
+  <div class="gm-pft-loading" data-filter-loading><i class="fa-solid fa-circle-notch fa-spin"></i> Đang tải bộ lọc…</div>
+  <div class="gm-pft-groups" data-filter-groups hidden></div>
+  <div class="gm-pft-error" data-filter-error hidden></div>
+  <input type="hidden" name="filter_tags" id="filterTagsHidden" value="">
+  <input type="hidden" name="filter_tags_present" value="1">
+</section>

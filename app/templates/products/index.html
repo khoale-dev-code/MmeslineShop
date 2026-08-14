@@ -771,19 +771,41 @@
     </section>
   {% endif %}
 
+{% set banner2_url = sf.get('banner2_url') or 'https://i.pinimg.com/1200x/c2/66/05/c2660571733bc9f4b917675c9bfe94f9.jpg' %}
+{% set banner2_clean = banner2_url.lower().split('?')[0].split('#')[0] %}
+{% set banner2_is_video = (
+  banner2_clean.endswith('.mp4') or
+  banner2_clean.endswith('.webm') or
+  banner2_clean.endswith('.mov') or
+  banner2_clean.endswith('.avi')
+) %}
+
   {# SIGNATURE BANNER #}
   <section class="mm-home-section mm-feature-panel group">
-    <div class="absolute inset-0 mm-media-frame">
-      <img
-        src="{{ sf.get('banner2_url') or 'https://i.pinimg.com/1200x/c2/66/05/c2660571733bc9f4b917675c9bfe94f9.jpg' }}"
-        alt="GUAMAISON Signature"
-        width="1800"
-        height="2200"
-        loading="lazy"
-        decoding="async"
-        class="mm-img-pan object-cover object-center"
-      >
-    </div>
+   <div class="absolute inset-0 mm-media-frame">
+  {% if banner2_is_video %}
+    <video autoplay muted loop playsinline preload="metadata" data-scroll-video
+      class="mm-img-pan object-cover object-center h-full w-full">
+      {% if banner2_clean.endswith('.webm') %}
+        <source src="{{ banner2_url }}" type="video/webm">
+      {% elif banner2_clean.endswith('.mov') %}
+        <source src="{{ banner2_url }}" type="video/quicktime">
+      {% elif banner2_clean.endswith('.avi') %}
+        <source src="{{ banner2_url }}" type="video/x-msvideo">
+      {% else %}
+        <source src="{{ banner2_url }}" type="video/mp4">
+      {% endif %}
+    </video>
+  {% else %}
+    <img
+      src="{{ banner2_url }}"
+      alt="GUAMAISON Signature"
+      width="1800" height="2200"
+      loading="lazy" decoding="async"
+      class="mm-img-pan object-cover object-center"
+    >
+  {% endif %}
+</div>
 
     <div class="absolute inset-0 bg-black/20 transition-colors duration-500 group-hover:bg-black/36"></div>
 
@@ -804,12 +826,51 @@
     </div>
   </section>
 
-  {# SPLIT BANNERS #}
-  <section class="mm-home-section mm-split-grid">
-    <article class="mm-split-panel group relative overflow-hidden bg-neutral-950">
-      <div class="absolute inset-0 mm-media-frame">
+ {# SPLIT BANNERS #}
+{% set split_left_url = sf.get('split_left_url') or 'https://i.pinimg.com/1200x/8d/f1/b1/8df1b177ec235f6699a8f56cd324e5e4.jpg' %}
+{% set split_left_clean = split_left_url.lower().split('?')[0].split('#')[0] %}
+{% set split_left_is_video = (
+  split_left_clean.endswith('.mp4') or
+  split_left_clean.endswith('.webm') or
+  split_left_clean.endswith('.mov') or
+  split_left_clean.endswith('.avi')
+) %}
+
+{% set split_right_url = sf.get('split_right_url') or 'https://i.pinimg.com/736x/ad/49/55/ad4955e1f64e66bf775163948ba51a3b.jpg' %}
+{% set split_right_clean = split_right_url.lower().split('?')[0].split('#')[0] %}
+{% set split_right_is_video = (
+  split_right_clean.endswith('.mp4') or
+  split_right_clean.endswith('.webm') or
+  split_right_clean.endswith('.mov') or
+  split_right_clean.endswith('.avi')
+) %}
+
+<section class="mm-home-section mm-split-grid">
+  <article class="mm-split-panel group relative overflow-hidden bg-neutral-950">
+    <div class="absolute inset-0 mm-media-frame">
+      {% if split_left_is_video %}
+        <video
+          autoplay
+          muted
+          loop
+          playsinline
+          preload="metadata"
+          data-scroll-video
+          class="mm-img-pan object-cover object-center h-full w-full"
+        >
+          {% if split_left_clean.endswith('.webm') %}
+            <source src="{{ split_left_url }}" type="video/webm">
+          {% elif split_left_clean.endswith('.mov') %}
+            <source src="{{ split_left_url }}" type="video/quicktime">
+          {% elif split_left_clean.endswith('.avi') %}
+            <source src="{{ split_left_url }}" type="video/x-msvideo">
+          {% else %}
+            <source src="{{ split_left_url }}" type="video/mp4">
+          {% endif %}
+        </video>
+      {% else %}
         <img
-          src="{{ sf.get('split_left_url') or 'https://i.pinimg.com/1200x/8d/f1/b1/8df1b177ec235f6699a8f56cd324e5e4.jpg' }}"
+          src="{{ split_left_url }}"
           alt="GUAMAISON Essentials"
           width="1200"
           height="1500"
@@ -817,31 +878,53 @@
           decoding="async"
           class="mm-img-pan object-cover object-center"
         >
+      {% endif %}
+    </div>
+
+    <div class="absolute inset-0 bg-black/20 transition-colors duration-500 group-hover:bg-black/36"></div>
+
+    <div class="absolute bottom-10 left-7 z-10 text-white md:bottom-12 md:left-10">
+      <div class="mm-slide-reveal mm-slide-left">
+        <p class="mm-eyebrow mb-3">
+          Daily Uniform
+        </p>
+
+        <h2 class="text-4xl font-black uppercase leading-none tracking-[-.06em] md:text-6xl">
+          Essentials
+        </h2>
+
+        <a href="/shop" class="mm-link-line mt-6">
+          Explore
+        </a>
       </div>
+    </div>
+  </article>
 
-      <div class="absolute inset-0 bg-black/20 transition-colors duration-500 group-hover:bg-black/36"></div>
-
-      <div class="absolute bottom-10 left-7 z-10 text-white md:bottom-12 md:left-10">
-        <div class="mm-slide-reveal mm-slide-left">
-          <p class="mm-eyebrow mb-3">
-            Daily Uniform
-          </p>
-
-          <h2 class="text-4xl font-black uppercase leading-none tracking-[-.06em] md:text-6xl">
-            Essentials
-          </h2>
-
-          <a href="/shop" class="mm-link-line mt-6">
-            Explore
-          </a>
-        </div>
-      </div>
-    </article>
-
-    <article class="mm-split-panel group relative overflow-hidden bg-neutral-950">
-      <div class="absolute inset-0 mm-media-frame">
+  <article class="mm-split-panel group relative overflow-hidden bg-neutral-950">
+    <div class="absolute inset-0 mm-media-frame">
+      {% if split_right_is_video %}
+        <video
+          autoplay
+          muted
+          loop
+          playsinline
+          preload="metadata"
+          data-scroll-video
+          class="mm-img-pan object-cover object-center h-full w-full"
+        >
+          {% if split_right_clean.endswith('.webm') %}
+            <source src="{{ split_right_url }}" type="video/webm">
+          {% elif split_right_clean.endswith('.mov') %}
+            <source src="{{ split_right_url }}" type="video/quicktime">
+          {% elif split_right_clean.endswith('.avi') %}
+            <source src="{{ split_right_url }}" type="video/x-msvideo">
+          {% else %}
+            <source src="{{ split_right_url }}" type="video/mp4">
+          {% endif %}
+        </video>
+      {% else %}
         <img
-          src="{{ sf.get('split_right_url') or 'https://i.pinimg.com/736x/ad/49/55/ad4955e1f64e66bf775163948ba51a3b.jpg' }}"
+          src="{{ split_right_url }}"
           alt="GUAMAISON Avant-Garde"
           width="1200"
           height="1500"
@@ -849,27 +932,28 @@
           decoding="async"
           class="mm-img-pan object-cover object-center"
         >
+      {% endif %}
+    </div>
+
+    <div class="absolute inset-0 bg-black/20 transition-colors duration-500 group-hover:bg-black/36"></div>
+
+    <div class="absolute bottom-10 left-7 z-10 text-white md:bottom-12 md:left-10">
+      <div class="mm-slide-reveal mm-slide-right">
+        <p class="mm-eyebrow mb-3">
+          Editorial
+        </p>
+
+        <h2 class="text-4xl font-black uppercase leading-none tracking-[-.06em] md:text-6xl">
+          Avant-Garde
+        </h2>
+
+        <a href="/shop" class="mm-link-line mt-6">
+          Explore
+        </a>
       </div>
-
-      <div class="absolute inset-0 bg-black/20 transition-colors duration-500 group-hover:bg-black/36"></div>
-
-      <div class="absolute bottom-10 left-7 z-10 text-white md:bottom-12 md:left-10">
-        <div class="mm-slide-reveal mm-slide-right">
-          <p class="mm-eyebrow mb-3">
-            Editorial
-          </p>
-
-          <h2 class="text-4xl font-black uppercase leading-none tracking-[-.06em] md:text-6xl">
-            Avant-Garde
-          </h2>
-
-          <a href="/shop" class="mm-link-line mt-6">
-            Explore
-          </a>
-        </div>
-      </div>
-    </article>
-  </section>
+    </div>
+  </article>
+</section>
 
   {# BEST SELLERS MEDIA: khung tự thích ứng ảnh / gif / webp / video #}
   {% set best_url = sf.get('banner4_video_url') or '' %}

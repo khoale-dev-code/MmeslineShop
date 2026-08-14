@@ -17,6 +17,7 @@ from . import products
 from . import reports
 from . import pos_controller  # <--- BẠN CHỈ CẦN THÊM DÒNG NÀY VÀO ĐÂY
 from . import settings
+from . import shop_filters  # GUAMAISON-shop-filters-v20.1
 from . import menus
 from . import about_page
 from . import size_charts

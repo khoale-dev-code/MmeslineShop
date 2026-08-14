@@ -35,6 +35,7 @@ from flask import (
 
 from app.models.collection_model import CollectionModel
 from app.models.product_model import ProductModel
+from app.services.shop_filter_service import ShopFilterService  # GUAMAISON-shop-filters-v20.1
 from app.services.about_page_service import AboutPageService
 from app.services.size_chart_service import size_chart_service
 from app.utils.supabase_client import get_supabase
@@ -694,6 +695,7 @@ def _query_storefront_products(
     keyword: Optional[str] = None,
     featured_only: bool = False,
     sort: Optional[str] = None,
+    filter_tokens: Optional[list[str]] = None,  # GUAMAISON-shop-filters-v20.1-query-argument
 ) -> dict:
     db = get_supabase()
 
@@ -710,7 +712,13 @@ def _query_storefront_products(
     if collection_product_ids is not None:
         product_ids = _intersect_ids(product_ids, collection_product_ids)
 
-    if product_ids is not None and not product_ids:
+    filter_product_ids = ShopFilterService(admin=False).find_matching_product_ids(
+        filter_tokens or [], normalized=True
+    )
+    if filter_product_ids is not None:
+        product_ids = _intersect_ids(product_ids, filter_product_ids)
+
+    if product_ids is not None and not product_ids:  # GUAMAISON-shop-filters-v20.1-rpc-intersection
         return {"items": [], "total": 0}
 
     offset = (page - 1) * per_page
@@ -913,8 +921,13 @@ def shop():
     gender = _clean(request.args.get("gender"))
     keyword = _clean(request.args.get("q"))
     sort = _clean(request.args.get("sort"))
+    filter_service = ShopFilterService(admin=False)
+    shop_filter_config = filter_service.configuration(include_inactive=False)
+    filter_tokens = filter_service.normalize_selected_tokens(
+        request.args.getlist("f"), config=shop_filter_config
+    )
 
-    try:
+    try:  # GUAMAISON-shop-filters-v20.1-shop-selection
         result = _query_storefront_products(
             page=page,
             per_page=per_page,
@@ -923,6 +936,7 @@ def shop():
             gender=gender,
             keyword=keyword,
             sort=sort,
+            filter_tokens=filter_tokens,  # GUAMAISON-shop-filters-v20.1-shop-query
         )
 
         products = result["items"]
@@ -944,6 +958,8 @@ def shop():
         current_gender=gender,
         keyword=keyword,
         sort=sort,
+        selected_filter_tokens=filter_tokens,
+        shop_filter_config=shop_filter_config,  # GUAMAISON-shop-filters-v20.1-shop-context
     )
 
 
@@ -1007,7 +1023,12 @@ def collection_detail(slug: str):
     page = max(1, _safe_int(request.args.get("page"), 1))
     keyword = _clean(request.args.get("q"))
     sort = _clean(request.args.get("sort"))
-    per_page = 30
+    filter_service = ShopFilterService(admin=False)
+    shop_filter_config = filter_service.configuration(include_inactive=False)
+    filter_tokens = filter_service.normalize_selected_tokens(
+        request.args.getlist("f"), config=shop_filter_config
+    )
+    per_page = 30  # GUAMAISON-shop-filters-v20.1-collection-selection
     try:
         result = _query_storefront_products(
             page=page,
@@ -1015,6 +1036,7 @@ def collection_detail(slug: str):
             collection_slug=slug,
             keyword=keyword,
             sort=sort,
+            filter_tokens=filter_tokens,  # GUAMAISON-shop-filters-v20.1-collection-query
         )
         products = result["items"]
         total = result["total"]
@@ -1036,6 +1058,8 @@ def collection_detail(slug: str):
         keyword=keyword,
         sort=sort,
         shop_description=collection_info.get("meta_description") or plain_description,
+        selected_filter_tokens=filter_tokens,
+        shop_filter_config=shop_filter_config,  # GUAMAISON-shop-filters-v20.1-collection-context
     )
 
 

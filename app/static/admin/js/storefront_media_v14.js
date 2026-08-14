@@ -8,6 +8,7 @@
   var IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".jfif", ".webp", ".gif", ".avif"];
   var VIDEO_EXTENSIONS = [".mp4", ".webm", ".mov"];
   var IMAGE_LIMIT = 4 * 1024 * 1024;
+  var GIF_LIMIT = 10 * 1024 * 1024;      // MỚI: riêng cho GIF
   var VIDEO_LIMIT = 20 * 1024 * 1024;
   var IMAGE_SOURCE_LIMIT = 30 * 1024 * 1024;
 
@@ -206,19 +207,20 @@
   }
 
   function validateFile(card, file, allowOptimization) {
-    if (!file || !file.size) throw new Error("Tệp rỗng hoặc không đọc được.");
-    var kind = mediaKind(file.name, file.type);
-    var allowVideo = card.dataset.allowVideo === "1";
-    if (kind === "video" && !allowVideo) throw new Error("Vị trí này chỉ chấp nhận hình ảnh.");
-    if (kind === "video" && !hasExtension(cleanPath(file.name), VIDEO_EXTENSIONS)) throw new Error("Video phải là MP4, WebM hoặc MOV.");
-    if (kind === "image" && !hasExtension(cleanPath(file.name), IMAGE_EXTENSIONS)) throw new Error("Ảnh phải là JPG, PNG, JFIF, WebP, GIF hoặc AVIF.");
-    var limit = kind === "video" ? VIDEO_LIMIT : IMAGE_LIMIT;
-    if (kind === "image" && file.size > IMAGE_SOURCE_LIMIT) throw new Error("Ảnh nguồn vượt 30MB. Hãy chọn ảnh nhẹ hơn.");
-    if (file.size > limit && !(kind === "image" && allowOptimization)) {
-      throw new Error("Tệp vượt giới hạn " + (kind === "video" ? "20MB" : "4MB") + ".");
-    }
-    return kind;
+  if (!file || !file.size) throw new Error("Tệp rỗng hoặc không đọc được.");
+  var kind = mediaKind(file.name, file.type);
+  var allowVideo = card.dataset.allowVideo === "1";
+  if (kind === "video" && !allowVideo) throw new Error("Vị trí này chỉ chấp nhận hình ảnh.");
+  if (kind === "video" && !hasExtension(cleanPath(file.name), VIDEO_EXTENSIONS)) throw new Error("Video phải là MP4, WebM hoặc MOV.");
+  if (kind === "image" && !hasExtension(cleanPath(file.name), IMAGE_EXTENSIONS)) throw new Error("Ảnh phải là JPG, PNG, JFIF, WebP, GIF hoặc AVIF.");
+  var isGif = cleanPath(file.name).endsWith(".gif");                       // MỚI
+  var limit = kind === "video" ? VIDEO_LIMIT : (isGif ? GIF_LIMIT : IMAGE_LIMIT); // SỬA
+  if (kind === "image" && file.size > IMAGE_SOURCE_LIMIT) throw new Error("Ảnh nguồn vượt 30MB. Hãy chọn ảnh nhẹ hơn.");
+  if (file.size > limit && !(kind === "image" && !isGif && allowOptimization)) {  // SỬA
+    throw new Error("Tệp vượt giới hạn " + (kind === "video" ? "20MB" : (isGif ? "10MB" : "4MB")) + ".");
   }
+  return kind;
+}
 
   function canvasToBlob(canvas, type, quality) {
     return new Promise(function (resolve, reject) {
@@ -272,14 +274,16 @@
     throw new Error("Không thể giảm ảnh xuống dưới 4MB. Hãy chọn ảnh nhẹ hơn.");
   }
 
-  async function prepareFile(card, file) {
-    var kind = validateFile(card, file, true);
-    if (kind !== "image" || file.size <= IMAGE_LIMIT) return { file: file, kind: kind, optimized: false };
-    setStatus(card, "Đang tối ưu ảnh");
-    var optimized = await optimizeLargeImage(file);
-    validateFile(card, optimized, false);
-    return { file: optimized, kind: "image", optimized: true, originalSize: file.size };
-  }
+async function prepareFile(card, file) {
+  var isGif = cleanPath(file.name).endsWith(".gif");         // MỚI
+  var kind = validateFile(card, file, true);
+  if (kind !== "image" || isGif || file.size <= IMAGE_LIMIT) // SỬA: bỏ qua tối ưu nếu là GIF
+    return { file: file, kind: kind, optimized: false };
+  setStatus(card, "Đang tối ưu ảnh");
+  var optimized = await optimizeLargeImage(file);
+  validateFile(card, optimized, false);
+  return { file: optimized, kind: "image", optimized: true, originalSize: file.size };
+}
 
   function setUploadProgress(card, percent) {
     var wrap = card.querySelector("[data-media-progress]");

@@ -1,0 +1,39 @@
+<form class="ai-filter-panel" method="get" action="{{ url_for('admin.reports') }}" data-report-filters>
+  <div class="ai-filter-dates">
+    <label class="ai-field">
+      <span>Từ ngày</span>
+      <input type="date" name="start_date" value="{{ filters.start_date.isoformat() }}" max="{{ filters.end_date.isoformat() }}">
+    </label>
+    <label class="ai-field">
+      <span>Đến ngày</span>
+      <input type="date" name="end_date" value="{{ filters.end_date.isoformat() }}">
+    </label>
+  </div>
+
+  <div class="ai-preset-group" aria-label="Khoảng thời gian nhanh">
+    <button type="button" data-report-preset="7">7 ngày</button>
+    <button type="button" data-report-preset="30">30 ngày</button>
+    <button type="button" data-report-preset="90">90 ngày</button>
+  </div>
+
+  <fieldset class="ai-channel-filter">
+    <legend>Kênh dữ liệu</legend>
+    {% for value, label in [('web', 'Website'), ('pos', 'POS'), ('shopee', 'Shopee'), ('lazada', 'Lazada'), ('tiktok_shop', 'TikTok Shop')] %}
+      <label>
+        <input type="checkbox" name="channel" value="{{ value }}" {% if value in filters.channels %}checked{% endif %}>
+        <span>{{ label }}</span>
+      </label>
+    {% endfor %}
+  </fieldset>
+
+  <label class="ai-compare-toggle">
+    <input type="hidden" name="compare_previous" value="0">
+    <input type="checkbox" name="compare_previous" value="1" {% if filters.compare_previous %}checked{% endif %}>
+    <span>So sánh kỳ trước</span>
+  </label>
+
+  <button class="ai-button ai-button--primary" type="submit">
+    <i class="fa-solid fa-filter" aria-hidden="true"></i>
+    Áp dụng
+  </button>
+</form>

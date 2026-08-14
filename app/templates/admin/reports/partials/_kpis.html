@@ -1,0 +1,48 @@
+{% set kpis = report.get('kpis', {}) %}
+{% set revenue = kpis.get('net_revenue', {}) %}
+{% set order_kpi = kpis.get('orders', {}) %}
+{% set units = kpis.get('sold_units', {}) %}
+{% set aov = kpis.get('average_order_value', {}) %}
+{% set margin = kpis.get('gross_margin', {}) %}
+{% set conversion = kpis.get('conversion', {}) %}
+{% set quality = kpis.get('data_quality', {}) %}
+
+<section class="ai-kpi-grid" aria-label="Chỉ số điều hành">
+  {% set cards = [
+    ('Doanh thu thuần', revenue.get('value'), 'currency', revenue.get('change_pct'), 'fa-sack-dollar'),
+    ('Đơn hợp lệ', order_kpi.get('value'), 'integer', order_kpi.get('change_pct'), 'fa-receipt'),
+    ('Sản phẩm đã bán', units.get('value'), 'integer', units.get('change_pct'), 'fa-shirt'),
+    ('Giá trị đơn TB', aov.get('value'), 'currency', aov.get('change_pct'), 'fa-chart-line'),
+    ('Biên lợi nhuận', margin.get('value'), 'percent', none, 'fa-scale-balanced'),
+    ('Chuyển đổi', conversion.get('value'), 'percent', none, 'fa-bullseye'),
+    ('Chất lượng dữ liệu', quality.get('value'), 'percent', none, 'fa-shield-halved')
+  ] %}
+
+  {% for label, value, kind, change, icon in cards %}
+    <article class="ai-kpi-card">
+      <div class="ai-kpi-icon"><i class="fa-solid {{ icon }}" aria-hidden="true"></i></div>
+      <div class="ai-kpi-copy">
+        <p>{{ label }}</p>
+        <strong>
+          {% if value is none %}
+            N/A
+          {% elif kind == 'currency' %}
+            {{ '{:,.0f}'.format(value).replace(',', '.') }} ₫
+          {% elif kind == 'percent' %}
+            {{ '{:,.1f}'.format(value).replace(',', '.') }}%
+          {% else %}
+            {{ '{:,.0f}'.format(value).replace(',', '.') }}
+          {% endif %}
+        </strong>
+        {% if change is not none %}
+          <span class="ai-delta {{ 'is-positive' if change >= 0 else 'is-negative' }}">
+            <i class="fa-solid {{ 'fa-arrow-trend-up' if change >= 0 else 'fa-arrow-trend-down' }}" aria-hidden="true"></i>
+            {{ '{:,.1f}'.format(change|abs).replace(',', '.') }}% so với kỳ trước
+          </span>
+        {% else %}
+          <span class="ai-delta is-neutral">Chưa có mốc so sánh đáng tin</span>
+        {% endif %}
+      </div>
+    </article>
+  {% endfor %}
+</section>

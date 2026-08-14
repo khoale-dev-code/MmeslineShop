@@ -1,0 +1,102 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Bộ lọc Shop — GUAMAISON Admin{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='admin/css/shop_filters_v20.css') }}?v=20.0.0">
+{% endblock %}
+
+{% block content %}
+<div
+  class="gm-sf-admin"
+  data-shop-filter-admin
+  data-groups-url="{{ url_for('admin.shop_filter_save_group_api') }}"
+  data-options-url="{{ url_for('admin.shop_filter_save_option_api') }}"
+  data-group-active-template="{{ url_for('admin.shop_filter_group_active_api', group_id='__ID__') }}"
+  data-option-active-template="{{ url_for('admin.shop_filter_option_active_api', option_id='__ID__') }}"
+  data-csrf="{{ csrf_token() }}"
+>
+  <header class="gm-sf-hero">
+    <div>
+      <a class="gm-sf-back" href="{{ url_for('admin.settings_page') }}" data-nav>
+        <i class="fa-solid fa-arrow-left"></i> Cài đặt
+      </a>
+      <p class="gm-sf-kicker">GUAMAISON · Storefront taxonomy</p>
+      <h1>Bộ lọc Shop</h1>
+      <p>Định nghĩa các nhóm lọc và tag chuẩn dùng chung giữa sản phẩm và trang Shop.</p>
+    </div>
+    <button class="gm-sf-primary" type="button" data-new-group>
+      <i class="fa-solid fa-plus"></i> Tạo bộ lọc
+    </button>
+  </header>
+
+  <section class="gm-sf-guide" aria-label="Quy ước tag">
+    <div><b>1</b><span>Tạo nhóm và lựa chọn</span></div>
+    <i class="fa-solid fa-chevron-right"></i>
+    <div><b>2</b><span>Gắn tag trong sản phẩm</span></div>
+    <i class="fa-solid fa-chevron-right"></i>
+    <div><b>3</b><span>Shop lọc đúng token</span></div>
+  </section>
+
+  {% if not filter_config.ready %}
+  <section class="gm-sf-migration" role="alert">
+    <i class="fa-solid fa-database"></i>
+    <div>
+      <strong>Chưa có schema Shop Filters v20</strong>
+      <p>Chạy file <code>supabase/migrations/20260814090000_shop_filters_v20.sql</code> trong Supabase SQL Editor, sau đó tải lại trang.</p>
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="gm-sf-summary">
+    <div><span>Nhóm đang bật</span><strong data-group-count>0</strong></div>
+    <div><span>Lựa chọn đang bật</span><strong data-option-count>0</strong></div>
+    <div><span>Cú pháp</span><strong><code>key:value</code></strong></div>
+  </section>
+
+  <div class="gm-sf-list" data-group-list></div>
+
+  <div class="gm-sf-empty" data-empty hidden>
+    <i class="fa-solid fa-filter-circle-xmark"></i>
+    <h2>Chưa có bộ lọc</h2>
+    <p>Tạo nhóm đầu tiên để bắt đầu gắn tag cho sản phẩm.</p>
+  </div>
+
+  <dialog class="gm-sf-dialog" data-group-dialog>
+    <form method="dialog" data-group-form>
+      <header>
+        <div><p class="gm-sf-kicker">Cấu hình nhóm</p><h2 data-group-dialog-title>Tạo bộ lọc</h2></div>
+        <button value="cancel" aria-label="Đóng"><i class="fa-solid fa-xmark"></i></button>
+      </header>
+      <input type="hidden" name="id">
+      <label><span>Tên hiển thị</span><input name="label" maxlength="80" required placeholder="Ví dụ: Phong cách"></label>
+      <label><span>Mã lệnh</span><div class="gm-sf-prefix"><input name="key" maxlength="32" required placeholder="phongcach"><b>:</b></div><small>Không dấu, không khoảng trắng. Mã được khóa sau khi tạo để không làm hỏng tag cũ.</small></label>
+      <label><span>Kiểu hiển thị</span><select name="display_type"><option value="chips">Nút chip</option><option value="checkbox">Danh sách chọn</option><option value="color">Mẫu màu</option></select></label>
+      <label class="gm-sf-toggle"><input type="checkbox" name="is_active" checked><span>Hiển thị trên Shop</span></label>
+      <footer><button value="cancel">Hủy</button><button class="gm-sf-primary" type="submit">Lưu bộ lọc</button></footer>
+    </form>
+  </dialog>
+
+  <dialog class="gm-sf-dialog" data-option-dialog>
+    <form method="dialog" data-option-form>
+      <header>
+        <div><p class="gm-sf-kicker">Giá trị lọc</p><h2 data-option-dialog-title>Thêm lựa chọn</h2></div>
+        <button value="cancel" aria-label="Đóng"><i class="fa-solid fa-xmark"></i></button>
+      </header>
+      <input type="hidden" name="id"><input type="hidden" name="group_id"><input type="hidden" name="group_key">
+      <label><span>Tên hiển thị</span><input name="label" maxlength="80" required placeholder="Ví dụ: Xanh navy"></label>
+      <label><span>Giá trị token</span><div class="gm-sf-prefix"><em data-token-prefix>color:</em><input name="value" maxlength="48" placeholder="xanh-navy"></div><small>Để trống để hệ thống tự chuyển tên tiếng Việt thành mã không dấu.</small></label>
+      <label data-color-field><span>Mã màu</span><input name="color_hex" type="color" value="#d6b88d"></label>
+      <label class="gm-sf-toggle"><input type="checkbox" name="is_active" checked><span>Cho phép sử dụng</span></label>
+      <footer><button value="cancel">Hủy</button><button class="gm-sf-primary" type="submit">Lưu lựa chọn</button></footer>
+    </form>
+  </dialog>
+
+  <div class="gm-sf-toasts" data-toasts aria-live="polite"></div>
+  <script type="application/json" data-initial-config>{{ filter_config|tojson }}</script>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='admin/js/shop_filters_v20.js') }}?v=20.0.0" defer></script>
+{% endblock %}

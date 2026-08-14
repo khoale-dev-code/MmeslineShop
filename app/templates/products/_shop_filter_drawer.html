@@ -46,7 +46,10 @@
         </fieldset>
       {% endif %}
 
-      {% if filter_meta.colors %}
+      {% include "products/partials/_configured_filters.html" %} {# GUAMAISON-shop-filters-v20.1-drawer-partial #}
+
+      {% set sf_active_keys = shop_filter_config.groups|selectattr('is_active')|map(attribute='key')|list if shop_filter_config is defined and shop_filter_config.ready else [] %}
+      {% if filter_meta.colors and 'color' not in sf_active_keys %} {# GUAMAISON-shop-filters-v20.1-hide-legacy-color #}
         <fieldset class="gua-shop-filter-group">
           <legend>Màu sắc</legend>
           <div class="gua-shop-filter-chips gua-shop-filter-chips--wide">
@@ -63,9 +66,15 @@
 
     <footer class="gua-shop-drawer__footer">
       <button type="button" class="gua-shop-button gua-shop-button--ghost" data-shop-clear-filter>Bỏ lọc</button>
-      <button type="button" class="gua-shop-button gua-shop-button--dark" data-shop-close-filter>
-        Xem <span data-shop-visible-count>{{ products|length }}</span> sản phẩm
-      </button>
+      {% if shop_filter_config is defined and shop_filter_config.ready %}
+        <button type="submit" form="shopConfiguredFilterForm" class="gua-shop-button gua-shop-button--dark gm-shop-filter-submit" data-configured-filter-submit>
+          Xem kết quả {# GUAMAISON-shop-filters-v20.1-drawer-submit #}
+        </button>
+      {% else %}
+        <button type="button" class="gua-shop-button gua-shop-button--dark" data-shop-close-filter>
+          Xem <span data-shop-visible-count>{{ products|length }}</span> sản phẩm
+        </button>
+      {% endif %}
     </footer>
   </aside>
 </div>

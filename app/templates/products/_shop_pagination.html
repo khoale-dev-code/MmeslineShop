@@ -1,6 +1,6 @@
 {% if total_pages is defined and total_pages > 1 %}
   {% macro shop_page_url(target_page) -%}
-    {{ request.path }}?page={{ target_page }}{% if keyword %}&amp;q={{ keyword|urlencode }}{% endif %}{% if category %}&amp;category={{ category|urlencode }}{% endif %}{% if collection and not (collection_info is defined and collection_info) %}&amp;collection={{ collection|urlencode }}{% endif %}{% if current_gender %}&amp;gender={{ current_gender|urlencode }}{% endif %}{% if sort %}&amp;sort={{ sort|urlencode }}{% endif %}
+    {{ request.path }}?page={{ target_page }}{% if keyword %}&amp;q={{ keyword|urlencode }}{% endif %}{% if category %}&amp;category={{ category|urlencode }}{% endif %}{% if collection and not (collection_info is defined and collection_info) %}&amp;collection={{ collection|urlencode }}{% endif %}{% if current_gender %}&amp;gender={{ current_gender|urlencode }}{% endif %}{% if sort %}&amp;sort={{ sort|urlencode }}{% endif %}{% for token in selected_filter_tokens or [] %}&amp;f={{ token|urlencode }}{% endfor %}{# GUAMAISON-shop-filters-v20.1-pagination #}
   {%- endmacro %}
 
   {% set first_page = [1, page - 2]|max %}

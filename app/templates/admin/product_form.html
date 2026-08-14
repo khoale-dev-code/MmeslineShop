@@ -25,6 +25,7 @@
 
 {% block extra_head %}
   <link rel="stylesheet" href="{{ url_for('static', filename='admin/css/product_form.css') }}?v=20260606-product-form">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/css/product_filter_tags_v20.css') }}?v=GUAMAISON-shop-filters-v20.1">
 
   {# CKEditor 4.22.1: tránh license LTS. Tắt version security popup trước khi editor khởi tạo. #}
   <script>
@@ -502,6 +503,7 @@
 
 {% block extra_scripts %}
   <script src="{{ url_for('static', filename='admin/js/product_form.js') }}?v=20260806-delete-flow-v6"></script>
+  <script src="{{ url_for('static', filename='admin/js/product_filter_tags_v20.js') }}?v=GUAMAISON-shop-filters-v20.1" defer></script>
   <script src="{{ url_for('static', filename='admin/js/mm_variants_lite.js') }}?v=20260806-delete-flow-v6"></script>
   <script src="{{ url_for('static', filename='admin/js/mm_product_media.js') }}?v=20260806-delete-flow-v6"></script>
 {% endblock %}
